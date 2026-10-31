@@ -1,0 +1,32 @@
+[
+  {
+    "descricao": "Administrativo",
+    "unidade": "Administrativo",
+    "slug": "administrativo"
+  },
+  {
+    "descricao": "Creche - DayCare",
+    "unidade": "Creche",
+    "slug": "creche-daycare"
+  },
+  {
+    "descricao": "Hotel",
+    "unidade": "Hotel",
+    "slug": "hotel"
+  },
+  {
+    "descricao": "Loja - Venda de Produtos",
+    "unidade": "Comércio de produtos",
+    "slug": "loja-venda-de-produtos"
+  },
+  {
+    "descricao": "Banho e Tosa",
+    "unidade": "Estética",
+    "slug": "banho-e-tosa"
+  },
+  {
+    "descricao": "Planos",
+    "unidade": "Estética",
+    "slug": "planos"
+  }
+]

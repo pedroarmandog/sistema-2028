@@ -1,0 +1,100 @@
+// Arquivo compartilhado de raças predefinidas
+// Usado por pages que precisam da lista de raças e da espécie (tipo)
+// Mantido como variável global simples para compatibilidade com o código existente
+window.racasPredefinidas = [
+    // Caninas
+    { nome: "Labrador Retriever", tipo: "Canina" },
+    { nome: "Golden Retriever", tipo: "Canina" },
+    { nome: "Bulldog Francês", tipo: "Canina" },
+    { nome: "Poodle", tipo: "Canina" },
+    { nome: "Shih Tzu", tipo: "Canina" },
+    { nome: "Yorkshire Terrier", tipo: "Canina" },
+    { nome: "Dachshund", tipo: "Canina" },
+    { nome: "Border Collie", tipo: "Canina" },
+    { nome: "Pug", tipo: "Canina" },
+    { nome: "Husky Siberiano", tipo: "Canina" },
+    { nome: "Spitz Alemão / Lulu da Pomerânia", tipo: "Canina" },
+    { nome: "Rottweiler", tipo: "Canina" },
+    { nome: "Beagle", tipo: "Canina" },
+    { nome: "Pastor Alemão", tipo: "Canina" },
+    { nome: "Buldogue Inglês", tipo: "Canina" },
+    { nome: "Chihuahua", tipo: "Canina" },
+    { nome: "Cocker Spaniel", tipo: "Canina" },
+    { nome: "Akita Inu", tipo: "Canina" },
+    { nome: "Boxer", tipo: "Canina" },
+    { nome: "Maltês", tipo: "Canina" },
+    { nome: "Schnauzer Miniatura", tipo: "Canina" },
+    { nome: "Pinscher Miniatura", tipo: "Canina" },
+    { nome: "Doberman", tipo: "Canina" },
+    { nome: "Lhasa Apso", tipo: "Canina" },
+    { nome: "Boston Terrier", tipo: "Canina" },
+    { nome: "Basset Hound", tipo: "Canina" },
+    { nome: "Samoieda", tipo: "Canina" },
+    { nome: "Border Terrier", tipo: "Canina" },
+    { nome: "Pastor Australiano", tipo: "Canina" },
+    { nome: "Weimaraner", tipo: "Canina" },
+    { nome: "Staffordshire Bull Terrier", tipo: "Canina" },
+    { nome: "American Pit Bull Terrier", tipo: "Canina" },
+    { nome: "Shar Pei", tipo: "Canina" },
+    { nome: "Bull Terrier", tipo: "Canina" },
+    { nome: "Cane Corso", tipo: "Canina" },
+    { nome: "Dálmata", tipo: "Canina" },
+    { nome: "Whippet", tipo: "Canina" },
+    { nome: "Bernese Mountain Dog", tipo: "Canina" },
+    { nome: "Collie", tipo: "Canina" },
+    { nome: "São Bernardo", tipo: "Canina" },
+    // Felinas
+    { nome: "Persa", tipo: "Felina" },
+    { nome: "Siamês", tipo: "Felina" },
+    { nome: "Maine Coon", tipo: "Felina" },
+    { nome: "Bengal", tipo: "Felina" },
+    { nome: "Sphynx", tipo: "Felina" },
+    { nome: "British Shorthair", tipo: "Felina" },
+    { nome: "Ragdoll", tipo: "Felina" },
+    { nome: "Angorá Turco", tipo: "Felina" },
+    { nome: "Scottish Fold", tipo: "Felina" },
+    { nome: "Abissínio", tipo: "Felina" },
+    { nome: "Norueguês da Floresta", tipo: "Felina" },
+    { nome: "American Shorthair", tipo: "Felina" },
+    { nome: "Burmês", tipo: "Felina" },
+    { nome: "Cornish Rex", tipo: "Felina" },
+    { nome: "Devon Rex", tipo: "Felina" },
+    { nome: "Oriental Shorthair", tipo: "Felina" },
+    { nome: "Balinês", tipo: "Felina" },
+    { nome: "Himalaio", tipo: "Felina" },
+    { nome: "Tonquinês", tipo: "Felina" },
+    { nome: "Somali", tipo: "Felina" },
+    { nome: "Siberiano", tipo: "Felina" },
+    { nome: "Munchkin", tipo: "Felina" },
+    { nome: "Ocicat", tipo: "Felina" },
+    { nome: "Azul Russo", tipo: "Felina" },
+    { nome: "Exotic Shorthair", tipo: "Felina" },
+    { nome: "Singapura", tipo: "Felina" },
+    { nome: "Ragamuffin", tipo: "Felina" },
+    { nome: "Bombay", tipo: "Felina" },
+    { nome: "Peterbald", tipo: "Felina" },
+    { nome: "Manx", tipo: "Felina" },
+    { nome: "Chartreux", tipo: "Felina" },
+    { nome: "LaPerm", tipo: "Felina" },
+    { nome: "Toyger", tipo: "Felina" },
+    { nome: "Snowshoe", tipo: "Felina" },
+    { nome: "Havana Brown", tipo: "Felina" }
+];
+
+// Nota: páginas que já definem racasPredefinidas inline continuarão funcionando,
+// pois esta variável somente será definida aqui se não existir previamente.
+if (!window.racasPredefinidas || window.racasPredefinidas.length === 0) {
+    window.racasPredefinidas = window.racasPredefinidas || racasPredefinidas;
+}
+
+// Definir portes predefinidos para a página de Porte
+// Cada item tem { nome: '<porte>', descricao: '<descricao>' }
+window.portesPredefinidos = window.portesPredefinidos || [
+    { nome: 'Micro', descricao: 'Até 3kg' },
+    { nome: 'Pequeno', descricao: 'Até 10kg' },
+    { nome: 'Médio', descricao: '10-25kg' },
+    { nome: 'Grande', descricao: '25-45kg' },
+    { nome: 'Gigante', descricao: 'Acima de 45kg' }
+];
+
+// Nota: mantemos compatibilidade com páginas antigas que esperam racasPredefinidas.

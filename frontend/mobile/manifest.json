@@ -1,0 +1,64 @@
+{
+  "name": "PetHub",
+  "short_name": "PetHub",
+  "description": "Gestão completa do seu petshop na palma da mão",
+  "start_url": "/mobile/app.html",
+  "scope": "/mobile/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#0a1628",
+  "background_color": "#0a1628",
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "categories": ["business", "productivity"],
+  "gcm_sender_id": "103953800507",
+  "gcm_user_visible_only": true,
+  "icons": [
+    {
+      "src": "/mobile/icons/launchericon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/mobile/icons/launchericon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/mobile/icons/launchericon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/mobile/icons/launchericon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/mobile/icons/launchericon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Agenda de Hoje",
+      "short_name": "Agenda",
+      "description": "Ver agendamentos do dia",
+      "url": "/mobile/app.html?page=agenda",
+      "icons": [{ "src": "/mobile/icons/launchericon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Financeiro",
+      "short_name": "Financeiro",
+      "description": "Resumo financeiro",
+      "url": "/mobile/app.html?page=financeiro",
+      "icons": [{ "src": "/mobile/icons/launchericon-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}

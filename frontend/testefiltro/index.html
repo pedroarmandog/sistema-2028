@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="style.css" />
+  <title>Agenda Pet</title>
+</head>
+<body>
+
+  <div class="container">
+
+    <h2 class="titulo">Agenda - 23 de outubro de 2025</h2>
+
+    <div class="filtros">
+      <button class="filtro-btn ativo" data-filter="todos">Todos</button>
+      <button class="filtro-btn" data-filter="agendado">Agendado</button>
+      <button class="filtro-btn" data-filter="checkin">Check-in</button>
+      <button class="filtro-btn" data-filter="pronto">Pronto</button>
+      <button class="filtro-btn" data-filter="cancelado">Cancelado</button>
+    </div>
+
+    <table class="tabela">
+      <thead>
+        <tr>
+          <th>Horário</th>
+          <th>Pet | Cliente</th>
+          <th>Detalhes</th>
+          <th>Profissional</th>
+          <th>Valor</th>
+          <th>Situação</th>
+        </tr>
+      </thead>
+
+      <tbody id="lista-agendamentos">
+
+        <!-- Os itens são renderizados automaticamente pelo JS -->
+
+      </tbody>
+    </table>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

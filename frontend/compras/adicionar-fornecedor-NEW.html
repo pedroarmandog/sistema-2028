@@ -1,0 +1,275 @@
+﻿<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adicionar Fornecedor - PetHub</title>
+    <script src="../custom-colors.js"></script>
+    <link rel="icon" href="/fivecon/Design sem nome (17).png" type="image/png">
+    <link rel="stylesheet" href="../colors.css">
+    <link rel="stylesheet" href="../dashboard.css">
+    <link rel="stylesheet" href="./adicionar-fornecedor.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- SIDEBAR E HEADER SERÃO INJETADOS AUTOMATICAMENTE -->
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <button class="menu-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1>Cadastro de Fornecedor</h1>
+            </div>
+            
+            <div class="header-right">
+                <div class="calendar-widget">
+                    <button class="btn-calendar" id="calendarioWidget">
+                        <i class="fas fa-calendar"></i>
+                    </button>
+                </div>
+                
+                <div class="dropdown">
+                    <button class="btn-primary dropdown-toggle" id="inicioRapidoBtn">
+                        <i class="fas fa-plus"></i>
+                        Início Rápido
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="dropdown-menu" id="inicioRapidoMenu">
+                        <a href="/agendamentos-novo.html" class="dropdown-item">
+                            <i class="fas fa-calendar-plus"></i>
+                            Novo Atendimento
+                        </a>
+                        <a href="/pets/cadastro-pet.html" class="dropdown-item">
+                            <i class="fas fa-dog"></i>
+                            Novo Pet
+                        </a>
+                        <a href="/novo-cliente.html" class="dropdown-item">
+                            <i class="fas fa-user-plus"></i>
+                            Novo Cliente
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Pesquisar por menu">
+                </div>
+                
+                <div class="user-menu">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="nomeUsuario">Usuário</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Formulário de Cadastro -->
+        <div class="fornecedor-container">
+            <form id="fornecedorForm" class="fornecedor-form">
+                
+                <!-- Tipo Pessoa e Dados Principais -->
+                <div class="form-section">
+                    <div class="form-row">
+                        <div class="form-group tipo-pessoa-group">
+                            <label>Tipo Pessoa</label>
+                            <div class="tipo-pessoa-buttons">
+                                <button type="button" class="btn-tipo-pessoa active" data-tipo="juridica">
+                                    Jurídica
+                                </button>
+                                <button type="button" class="btn-tipo-pessoa" data-tipo="fisica">
+                                    Física
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="nome">Nome <span class="required-asterisk">*</span></label>
+                            <input type="text" id="nome" name="nome" class="form-control" required>
+                        </div>
+
+                        <div class="form-group" id="cnpjGroup">
+                            <label for="cnpj">CNPJ</label>
+                            <input type="text" id="cnpj" name="cnpj" class="form-control" maxlength="18">
+                        </div>
+
+                        <div class="form-group" id="cpfGroup" style="display: none;">
+                            <label for="cpf">CPF</label>
+                            <input type="text" id="cpf" name="cpf" class="form-control" maxlength="14">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="contribuinte">Contribuinte ICMS</label>
+                            <select id="contribuinte" name="contribuinte" class="form-control">
+                                <option value="">Selecione</option>
+                                <option value="Contribuinte">Contribuinte</option>
+                                <option value="Não Contribuinte">Não Contribuinte</option>
+                                <option value="Isento">Isento</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="consFinal">Cons. Final</label>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="consFinal" name="consFinal">
+                                <label for="consFinal" class="toggle-label"></label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="issRetido">
+                                ISS Retido 
+                                <i class="fas fa-info-circle" title="Informação sobre ISS Retido"></i>
+                            </label>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="issRetido" name="issRetido">
+                                <label for="issRetido" class="toggle-label"></label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="razaoSocial">Razão Social</label>
+                            <input type="text" id="razaoSocial" name="razaoSocial" class="form-control">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="inscEstadual">Insc. Estadual</label>
+                            <input type="text" id="inscEstadual" name="inscEstadual" class="form-control">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Endereço -->
+                <div class="form-section">
+                    <h3 class="section-title">Endereço</h3>
+                    <div class="form-row">
+                        <div class="form-group form-group-small">
+                            <label for="cep">CEP</label>
+                            <div class="input-with-icon">
+                                <input type="text" id="cep" name="cep" class="form-control" maxlength="9">
+                                <i class="fas fa-search search-icon" id="btnBuscarCep" title="Buscar CEP"></i>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="endereco">Endereço</label>
+                            <input type="text" id="endereco" name="endereco" class="form-control">
+                        </div>
+
+                        <div class="form-group form-group-small">
+                            <label for="numero">Número</label>
+                            <input type="text" id="numero" name="numero" class="form-control">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="complemento">Complemento</label>
+                            <input type="text" id="complemento" name="complemento" class="form-control">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="bairro">Bairro</label>
+                            <input type="text" id="bairro" name="bairro" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="cidade">Cidade</label>
+                            <input type="text" id="cidade" name="cidade" class="form-control" placeholder="Digite para pesquisar">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="proximidade">Proximidade</label>
+                            <input type="text" id="proximidade" name="proximidade" class="form-control">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contatos -->
+                <div class="form-section">
+                    <h3 class="section-title">Contatos</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="telefone">Telefone</label>
+                            <input type="text" id="telefone" name="telefone" class="form-control">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="tags">Tags</label>
+                            <div class="tags-input-container">
+                                <input type="text" id="tags" name="tags" class="form-control" placeholder="Adicione tags">
+                                <button type="button" class="btn-add-tag" title="Adicionar Tag">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">Email</label>
+                            <div class="email-input-container">
+                                <input type="email" id="email" name="email" class="form-control">
+                                <button type="button" class="btn-add-email" title="Adicionar Email">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="additionalEmailsContainer"></div>
+                </div>
+
+                <!-- Perfil de Comissão -->
+                <div class="form-section">
+                    <h3 class="section-title">Perfil de Comissão</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="parceiroIndicacao">Parceiro de indicação</label>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="parceiroIndicacao" name="parceiroIndicacao">
+                                <label for="parceiroIndicacao" class="toggle-label"></label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Observação -->
+                <div class="form-section">
+                    <h3 class="section-title">Observação</h3>
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <textarea id="observacao" name="observacao" class="form-control" rows="4" placeholder="Observações gerais sobre o fornecedor"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botões de Ação -->
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        Salvar
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="btnNovoFornecedor">
+                        <i class="fas fa-plus"></i>
+                        Novo
+                    </button>
+                    <button type="button" class="btn btn-cancel" id="btnCancelar">
+                        <i class="fas fa-times"></i>
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/sidebar-component/inject-sidebar.js"></script>
+    <script src="../api/api-client.js"></script>
+    <script src="./adicionar-fornecedor.js"></script>
+    <script src="../novo-atendimento-global.js"></script>
+</body>
+</html>
+

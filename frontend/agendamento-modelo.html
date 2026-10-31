@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Agendamento - Autocomplete</title>
+<style>
+    body { font-family: Arial, sans-serif; background:#f2f2f2; padding:40px; }
+
+    .modal {
+        width: 500px;
+        background: white;
+        margin: auto;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+    }
+
+    .form-group { margin-bottom: 20px; position: relative; }
+    label { font-weight: bold; }
+    input[type=text], input[type=date], input[type=time] {
+        width: 100%;
+        padding: 10px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        font-size: 15px;
+    }
+
+    /* DROPDOWN */
+    .dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        max-height: 200px;
+        overflow-y: auto;
+        background: #fff;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        display: none;
+        z-index: 10;
+    }
+
+    .dropdown div {
+        padding: 10px;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+    }
+
+    .dropdown div:hover {
+        background: #007bff;
+        color: white;
+    }
+
+    button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 15px;
+    }
+
+    .btn-success { background: #28a745; color:white; }
+    .btn-cancel { background: #555; color:white; }
+</style>
+</head>
+<body>
+
+<div class="modal">
+    <h2>Novo Agendamento</h2>
+
+    <!-- PET / CLIENTE -->
+    <div class="form-group">
+        <label>Pet/Cliente *</label>
+        <input type="text" id="petInput" placeholder="Digite o nome...">
+        <div id="petDropdown" class="dropdown"></div>
+    </div>
+
+    <!-- SERVIÇO -->
+    <div class="form-group">
+        <label>Serviço *</label>
+        <input type="text" id="servicoInput" placeholder="Digite o serviço...">
+        <div id="servicoDropdown" class="dropdown"></div>
+    </div>
+
+    <!-- DATA -->
+    <div class="form-group">
+        <label>Data</label>
+        <input type="date">
+    </div>
+
+    <!-- HORA -->
+    <div class="form-group">
+        <label>Hora</label>
+        <input type="time">
+    </div>
+
+    <button class="btn-cancel">Cancelar</button>
+    <button class="btn-success">Salvar</button>
+</div>
+
+<script>
+// LISTA DE PETS / CLIENTES
+const pets = [
+    "Kiara (Golden Retriever)",
+    "Karol", "Karolina", "Mel (Shih-tzu)", "Shakira (Shih-tzu)",
+    "Meggie (Shih-tzu)", "Karla", "Katarina", "Karine"
+];
+
+// LISTA DE SERVIÇOS
+const servicos = [
+    "Banho Porte Pequeno",
+    "Banho Porte Médio",
+    "Banho Porte Grande"
+];
+
+// FUNÇÃO DE AUTOCOMPLETE
+function setupAutocomplete(inputId, dropdownId, list) {
+    const input = document.getElementById(inputId);
+    const dropdown = document.getElementById(dropdownId);
+
+    input.addEventListener("input", () => {
+        const value = input.value.toLowerCase();
+        dropdown.innerHTML = "";
+
+        if (value === "") {
+            dropdown.style.display = "none";
+            return;
+        }
+
+        const filtered = list.filter(item => item.toLowerCase().includes(value));
+
+        if (filtered.length === 0) {
+            dropdown.style.display = "none";
+            return;
+        }
+
+        filtered.forEach(item => {
+            const div = document.createElement("div");
+            div.textContent = item;
+            div.onclick = () => {
+                input.value = item;
+                dropdown.style.display = "none";
+            };
+            dropdown.appendChild(div);
+        });
+
+        dropdown.style.display = "block";
+    });
+
+    // FECHAR dropdown ao clicar fora
+    document.addEventListener("click", (e) => {
+        if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.style.display = "none";
+        }
+    });
+}
+
+// APLICANDO AUTOCOMPLETE
+setupAutocomplete("petInput", "petDropdown", pets);
+setupAutocomplete("servicoInput", "servicoDropdown", servicos);
+</script>
+
+</body>
+</html>

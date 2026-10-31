@@ -1,0 +1,183 @@
+﻿<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Teste API - Produtos</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      button {
+        padding: 10px 20px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 5px;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+      pre {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 4px;
+        overflow-x: auto;
+        max-height: 500px;
+      }
+      .success {
+        color: green;
+        font-weight: bold;
+      }
+      .error {
+        color: red;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Teste de API - Produtos</h1>
+
+      <div>
+        <button onclick="testarConexao()">1. Testar Conexão Backend</button>
+        <button onclick="listarProdutos()">
+          2. Listar Produtos (GET /api/itens)
+        </button>
+        <button onclick="criarProdutoTeste()">3. Criar Produto Teste</button>
+      </div>
+
+      <h2>Resultado:</h2>
+      <div id="resultado"></div>
+
+      <h2>Dados Brutos:</h2>
+      <pre id="dados"></pre>
+    </div>
+
+    <script src="../api/api-client.js"></script>
+    <script>
+      const resultado = document.getElementById("resultado");
+      const dados = document.getElementById("dados");
+
+      function log(msg, tipo = "info") {
+        console.log(msg);
+        const p = document.createElement("p");
+        p.className = tipo;
+        p.textContent = msg;
+        resultado.appendChild(p);
+      }
+
+      function mostrarDados(obj) {
+        dados.textContent = JSON.stringify(obj, null, 2);
+      }
+
+      async function testarConexao() {
+        resultado.innerHTML = "";
+        dados.textContent = "";
+
+        log("Testando conexão com backend...");
+
+        try {
+          const API_BASE = window.__API_BASE__
+            ? window.__API_BASE__.replace(/\/$/, "")
+            : "";
+          const response = await fetch(API_BASE + "/api/itens");
+          log(
+            `Status: ${response.status} ${response.statusText}`,
+            response.ok ? "success" : "error",
+          );
+
+          const data = await response.json();
+          log(
+            `Resposta recebida: ${Array.isArray(data) ? data.length : "não é array"} itens`,
+            "success",
+          );
+
+          mostrarDados(data);
+        } catch (error) {
+          log(`Erro: ${error.message}`, "error");
+          mostrarDados({ erro: error.message, stack: error.stack });
+        }
+      }
+
+      async function listarProdutos() {
+        resultado.innerHTML = "";
+        dados.textContent = "";
+
+        log("Listando produtos via ApiClient...");
+
+        try {
+          const produtos = await ApiClient.getProdutos();
+          log(`${produtos.length} produtos retornados`, "success");
+
+          if (produtos.length > 0) {
+            log(
+              `Primeiro produto: ${produtos[0].nome || produtos[0].id}`,
+              "info",
+            );
+          } else {
+            log("Nenhum produto encontrado no banco de dados", "error");
+          }
+
+          mostrarDados(produtos);
+        } catch (error) {
+          log(`Erro: ${error.message}`, "error");
+          mostrarDados({ erro: error.message });
+        }
+      }
+
+      async function criarProdutoTeste() {
+        resultado.innerHTML = "";
+        dados.textContent = "";
+
+        log("Criando produto teste...");
+
+        const produtoTeste = {
+          id: "TESTE_" + Date.now(),
+          nome: "Produto Teste " + new Date().toLocaleTimeString(),
+          tipo: "produto",
+          categoria: "Teste",
+          custoBase: 10.0,
+          margem: 50,
+          preco: 15.0,
+          estoqueAtual: 100,
+          estoqueMinimo: 10,
+          ativo: "sim",
+        };
+
+        try {
+          const resultado = await ApiClient.criarProduto(produtoTeste);
+          log("Produto criado com sucesso!", "success");
+          log(`ID: ${resultado.id}`, "info");
+
+          mostrarDados(resultado);
+
+          setTimeout(() => {
+            log("Recarregando lista de produtos...", "info");
+            listarProdutos();
+          }, 1000);
+        } catch (error) {
+          log(`Erro ao criar produto: ${error.message}`, "error");
+          mostrarDados({ erro: error.message });
+        }
+      }
+
+      // Auto-teste ao carregar
+      window.addEventListener("load", () => {
+        log("Página carregada. Clique nos botões para testar.", "info");
+      });
+    </script>
+  </body>
+</html>

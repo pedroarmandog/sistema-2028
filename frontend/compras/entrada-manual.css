@@ -1,0 +1,776 @@
+/* ========================================
+   DASHBOARD CSS - PET CRIA
+   ======================================== */
+
+/* Importar cores globais */
+@import url('./colors.css');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--bg-body);
+    color: var(--text-primary);
+}
+
+/* Sidebar */
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 120px; /* diminuído para ficar mais compacto */
+    height: 100vh;
+    background: var(--bg-sidebar);
+    color: white;
+    overflow-x: hidden !important; /* remove scroll horizontal */
+    z-index: 1000;
+    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), width 0.25s ease;
+    transform: translateX(0);
+}
+
+.sidebar.collapsed {
+    transform: translateX(-100%);
+}
+
+.menu-toggle {
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin-right: 15px;
+}
+
+.menu-toggle:hover {
+    background: var(--bg-light);
+    color: var(--text-link);
+    transform: scale(1.05);
+}
+
+.menu-toggle:active {
+    transform: scale(0.95);
+}
+
+/* Centraliza o bloco de logo no sidebar sem alterar tamanho da imagem */
+.logo {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 6px 0; /* reduzir espaço superior para subir os ícones */
+}
+
+.logo-pet-cria {
+    height: 36px; /* diminuir um pouco a logo para caber melhor */
+    border-radius: 6px;
+    margin: 2px auto 4px auto; /* reduzir margem inferior para aproximar itens */
+}
+
+.logo i {
+    font-size: 24px;
+    color: var(--color-primary-light);
+}
+
+.sidebar-nav {
+    padding: 6px 0;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px; /* aumentar espaço entre ícone e texto */
+    padding: 15px 8px; /* aumentar espaçamento vertical */
+    color: var(--text-sidebar);
+    text-decoration: none;
+    transition: all 0.22s ease;
+    border-left: 0;
+    min-height: 58px; /* aumentar altura mínima */
+}
+
+/* ========================================
+   ENTRADA MANUAL - FORMULÁRIO
+   ======================================== */
+
+.entrada-manual-container {
+    padding: 12px 20px;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+.entrada-manual-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.entrada-manual-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.status-badge {
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-pendente {
+    background-color: #6c757d;
+    color: white;
+}
+
+.entrada-manual-section {
+    background: white;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.section-header {
+    margin-bottom: 10px;
+}
+
+.section-header h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.form-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.form-group {
+    flex: 1;
+    min-width: 200px;
+    position: relative;
+}
+
+.form-group-small {
+    flex: 0 0 110px;
+    min-width: 110px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #666;
+}
+
+.required {
+    color: #dc3545;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    font-size: 13px;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #2c7be5;
+}
+
+.btn-dots,
+.btn-truck {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    background: transparent;
+    border: none;
+    color: #6c757d;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 3px 6px;
+    transition: color 0.2s;
+}
+
+.btn-dots:hover,
+.btn-truck:hover {
+    color: #2c7be5;
+}
+
+/* Botão do caminhão posicionado externamente */
+.btn-truck-external {
+    background: transparent;
+    border: none;
+    color: #2c7be5; /* ícone azul */
+    cursor: pointer;
+    font-size: 18px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    transition: color 0.15s, transform 0.08s;
+    align-self: flex-end;
+    margin-bottom: 0;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+.btn-truck-external i { color: inherit; }
+
+.btn-truck-external:hover {
+    color: #1a68d1;
+    transform: scale(1.05);
+    background: transparent;
+}
+
+.btn-truck-external:active {
+    transform: scale(0.98);
+}
+
+/* Dropdown customizado para 'Frete por conta' */
+.custom-dropdown {
+    user-select: none;
+    cursor: pointer;
+    width: 100%;
+}
+
+.custom-dropdown-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    background: transparent;
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.custom-dropdown-toggle:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(44,123,229,0.12);
+}
+
+.custom-dropdown-list {
+    position: absolute;
+    left: 0;
+    top: calc(100% + 6px);
+    width: 100%;
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(2,16,26,0.08);
+    z-index: 2200;
+    overflow: hidden;
+}
+
+.custom-dropdown-topline {
+    height: 3px;
+    background: #2c7be5; /* linha azul no topo do dropdown */
+}
+
+.custom-dropdown-item {
+    padding: 10px 12px;
+    font-size: 14px;
+    color: #333;
+    background: white;
+}
+
+.custom-dropdown-item + .custom-dropdown-item {
+    border-top: 1px solid #f1f1f1;
+}
+
+.custom-dropdown-item:hover {
+    background: #f6fbff;
+}
+
+.custom-dropdown-caret {
+    margin-left: 8px;
+    color: #98a2b3;
+}
+
+.custom-dropdown.open .custom-dropdown-list {
+    display: block;
+}
+
+.custom-dropdown .custom-dropdown-selected {
+    color: #666;
+}
+
+.custom-dropdown .custom-dropdown-selected.selected {
+    color: var(--text-primary);
+}
+
+/* Autocomplete (fornecedor / transportador) */
+.autocomplete-list {
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(2,16,26,0.08);
+    overflow: hidden;
+}
+
+.autocomplete-topline { height: 3px; background: #2c7be5; }
+.autocomplete-item { padding: 10px 12px; font-size: 14px; color: #333; cursor: pointer; }
+.autocomplete-item + .autocomplete-item { border-top: 1px solid #f1f1f1; }
+.autocomplete-item:hover { background: #f6fbff; }
+.autocomplete-sub { font-size:12px;color:#666;margin-top:4px }
+
+.form-group-with-external-btn {
+    flex: 1;
+    min-width: 200px;
+}
+
+.table-container {
+    overflow-x: auto;
+    margin-bottom: 8px;
+}
+
+.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.items-table thead th {
+    background: #f8f9fa;
+    padding: 6px 6px;
+    text-align: left;
+    font-weight: 600;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
+    white-space: nowrap;
+    font-size: 12px;
+}
+
+.items-table tbody td {
+    padding: 6px 6px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.items-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+/* Botão de remover item (X) */
+.item-remove-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    background: transparent;
+    color: #d9534f; /* vermelho */
+    border: 1px solid rgba(217,83,79,0.12);
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 14px;
+}
+.item-remove-btn:hover {
+    background: rgba(217,83,79,0.06);
+}
+
+/* Estilo para inputs somente leitura (código) */
+.input-readonly {
+    background: #f8f9fa;
+    color: #495057;
+}
+
+.link-adicionar {
+    color: #2c7be5;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    display: inline-block;
+    margin-top: 6px;
+}
+
+.link-adicionar:hover {
+    text-decoration: underline;
+}
+
+.totais-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.totais-row {
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+}
+
+.totais-row .form-group {
+    flex: 1;
+}
+
+.fatura-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 12px;
+    padding: 12px;
+}
+
+.btn {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: #2c7be5;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #1a68d1;
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+.btn-danger {
+    background: transparent;
+    color: #dc3545;
+    border: 1px solid #dc3545;
+}
+
+.btn-danger:hover {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-light {
+    background: white;
+    color: #495057;
+    border: 1px solid #dee2e6;
+}
+
+.btn-light:hover {
+    background: #f8f9fa;
+}
+
+.nav-item:hover {
+    background-color: transparent; /* evitar blocos largos no menu estreito */
+    color: white;
+}
+
+.nav-item.active {
+    background-color: transparent;
+    color: white;
+}
+
+.nav-item i {
+    width: auto;
+    font-size: 22px; /* ícones um pouco menores para caber mais itens */
+    display: block;
+}
+
+.nav-item span {
+    display: block;
+    font-size: 13px; /* aumentar levemente a fonte dos rótulos */
+    line-height: 1.1;
+    margin-top: 6px;
+    text-align: center;
+    white-space: nowrap;
+    font-weight: 600; /* deixar mais gordinho */
+}
+
+/* Submenu Styles */
+.nav-item-with-submenu {
+    position: relative;
+}
+/* Esconder setinhas de submenu (remover chevrons que aparecem abaixo)
+   Aplicar !important para garantir que desapareçam em todas as páginas
+   que importam este CSS. */
+.nav-item .submenu-arrow {
+    display: none !important;
+}
+
+.nav-item-with-submenu.open .submenu-arrow {
+    display: none !important;
+    transform: none !important;
+}
+
+/* Submenu como painel lateral à direita do sidebar */
+/* Painel lateral: usar position:fixed para evitar clipping por overflow do sidebar
+   e garantir que o painel fique visível ao lado da sidebar mesmo quando a
+   sidebar tem overflow oculto. Também adicionamos um destaque visual temporário
+   para facilitar o debug (remover se tudo funcionar). */
+.nav-item-with-submenu .submenu {
+    position: fixed;
+    left: 140px; /* corresponde à largura atual da sidebar */
+    top: 0;
+    width: 240px; /* largura do painel lateral (reduzida) */
+    height: 100vh; /* painel ocupa altura completa */
+    max-height: none;
+    overflow-y: auto;
+    background: var(--bg-sidebar); /* usar o mesmo gradiente do sidebar */
+    transition: none;
+    margin: 0;
+    border-radius: 0 6px 6px 0;
+    display: none;
+    padding: 20px 18px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+    z-index: 2500; /* maior que o sidebar para garantir visibilidade */
+}
+
+/* Quando o submenu for movido para o body, aplicamos esta classe para garantir
+   que ocupe toda a altura da viewport e mantenha o mesmo background do sidebar. */
+.submenu-fixed {
+    position: fixed !important;
+    top: 0 !important;
+    height: 100vh !important;
+    overflow-y: auto !important;
+    width: 240px !important;
+    padding: 20px 18px !important;
+    background: var(--bg-sidebar) !important;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.18) !important;
+    border-radius: 0 6px 6px 0 !important;
+    z-index: 2500 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.submenu-fixed-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    color: var(--text-white);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+}
+.submenu-fixed-header-title {
+    color: var(--btn-success);
+    font-size: 15px;
+}
+
+/* Mostrar painel ao hover ou quando a classe .open for aplicada via JS */
+.nav-item-with-submenu:hover > .submenu,
+.nav-item-with-submenu.open > .submenu {
+    display: block;
+}
+
+.submenu.open { display: block; }
+
+.submenu-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 20px;
+    color: #ffffff; /* forçar branco para legibilidade */
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    border-left: 2px solid transparent;
+}
+
+.submenu-item:hover {
+    background: var(--overlay-light);
+    color: white;
+    border-left-color: var(--border-active);
+}
+
+.submenu-item span {
+    margin-left: 10px;
+}
+
+/* Main Content */
+.main-content {
+    margin-left: 110px;
+    min-height: 100vh;
+    transition: margin-left 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
+    width: calc(100% - 110px);
+}
+
+.main-content.sidebar-collapsed {
+    margin-left: 0;
+    width: 100%;
+}
+
+/* Header */
+.header {
+    background: var(--bg-white);
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-medium);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.header-left h1 {
+    margin: 0;
+    font-size: 24px;
+    color: var(--text-primary);
+}
+
+.header h1 {
+    font-size: 24px;
+    color: var(--bg-sidebar-start);
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+/* Calendar Widget */
+.calendar-widget {
+    position: relative;
+}
+
+.btn-calendar {
+    background: var(--bg-card);
+    border: 2px solid var(--border-primary);
+    color: var(--text-primary);
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    height: 44px;
+}
+
+.btn-calendar:hover {
+    background: var(--btn-primary);
+    color: white;
+    border-color: var(--btn-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(44, 90, 160, 0.2);
+}
+
+.btn-calendar:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(44, 90, 160, 0.2);
+}
+
+.btn-primary {
+    background: var(--btn-success);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.3s ease;
+}
+
+.btn-primary:hover {
+    background: var(--btn-success-hover);
+}
+
+.btn-primary-small {
+    background: var(--btn-success);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background-color 0.3s ease;
+    font-size: 14px;
+}
+
+.btn-primary-small:hover {
+    background: #229954;
+}
+
+.search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-box i {
+    position: absolute;
+    left: 12px;
+    color: #999;
+}
+
+.search-box input {
+    padding: 10px 15px 10px 40px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    width: 300px;
+    font-size: 14px;
+}
+
+.user-menu {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: background-color 0.3s ease;
+}
+
+.user-menu:hover {
+    background-color: #f8f9fa;
+}
+
+.user-menu i {
+    font-size: 24px;
+    color: #3498db;
+}

@@ -1,0 +1,12 @@
+{
+  "ignore": [
+    "backend/data/**",
+    "tmp/**",
+    "uploads/**",
+    "logs/**",
+    "*.log",
+    "**/.wwebjs_auth/**",
+    "**/.wwebjs_cache/**"
+  ],
+  "delay": 1000
+}

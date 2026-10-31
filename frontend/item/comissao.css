@@ -1,0 +1,825 @@
+/* Copiado de frontend/dashboard.css - estilos do menu e header */
+/* ========================================
+   DASHBOARD CSS - PET CRIA (snippet para menu)
+   ======================================== */
+
+@import url("../colors.css");
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--bg-body);
+  color: var(--text-primary);
+}
+
+/* Main Content */
+.main-content {
+  margin-left: 250px;
+  min-height: 100vh;
+  transition: margin-left 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  position: relative;
+  width: calc(100% - 250px);
+}
+
+.main-content.sidebar-collapsed {
+  margin-left: 0;
+  width: 100%;
+}
+
+/* Header */
+.header {
+  background: var(--bg-white);
+  padding: 15px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--shadow-medium);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.header-left h1 {
+  margin: 0;
+  font-size: 24px;
+  color: var(--text-primary);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.btn-calendar {
+  background: var(--bg-card);
+  border: 2px solid var(--border-primary);
+  color: var(--text-primary);
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 44px;
+}
+
+.btn-calendar:hover {
+  background: var(--btn-primary);
+  color: white;
+  border-color: var(--btn-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(44, 90, 160, 0.2);
+}
+
+.btn-calendar:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(44, 90, 160, 0.2);
+}
+
+.btn-primary {
+  background: var(--btn-success);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.3s ease;
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-box i {
+  position: absolute;
+  left: 12px;
+  color: #007bff;
+}
+
+.search-box input {
+  padding: 10px 15px 10px 40px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  width: 300px;
+  font-size: 14px;
+}
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: background-color 0.3s ease;
+}
+
+.user-menu:hover {
+  background-color: #f8f9fa;
+}
+
+/* Match dashboard profile icon style */
+.user-menu i {
+  font-size: 24px;
+  color: #3498db;
+}
+
+/* Dropdown */
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #e1e8ed;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.3s ease;
+  min-width: 200px;
+  margin-top: 5px;
+}
+
+.dropdown.open .dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  color: #333;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  border-bottom: 1px solid #f1f3f4;
+  transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+  background-color: #f8f9fa;
+  color: var(--btn-success);
+}
+
+/* Filtros Produto / Vendedor abaixo da pesquisa (invisíveis por padrão)
+   São mostrados apenas quando a aba PERFIL estiver ativa. */
+.filters-row {
+  display: none;
+}
+.filters-row.show {
+  display: flex;
+  gap: 8px;
+}
+.filter-btn {
+  background: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  color: var(--text-primary);
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.filter-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+.filter-btn.active {
+  background: var(--btn-primary);
+  color: #fff;
+  border-color: var(--btn-primary);
+}
+
+/* Correções específicas do modal de Adicionar Comissão (escopo restrito) */
+/* Aplica-se apenas a modais centralizados usados nesta página */
+.modal.modal-centered .modal-header .btn-close-modal {
+  background: #fff !important;
+  color: #333 !important;
+  border: 1px solid #e6e9ef !important;
+  padding: 6px 10px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+  display: inline-block !important;
+}
+.modal.modal-centered .modal-header .btn-close-modal:hover {
+  background: #f1f3f5 !important;
+}
+
+.modal.modal-centered .modal-footer {
+  padding: 14px 22px !important; /* garantir espaço lateral */
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.04) !important;
+}
+
+.modal.modal-centered .btn-save-comissao,
+.modal.modal-centered .btn-save-quicknew {
+  padding: 8px 14px !important;
+  border-radius: 6px !important;
+}
+
+/* Notification (light) */
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  min-width: 300px;
+  max-width: 500px;
+  padding: 15px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* ========================================
+   COMISSÃO - LAYOUT
+   ======================================== */
+
+/* Page Content */
+.page-content {
+  padding: 30px 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Page Header */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-add-comissao,
+.btn-add-perfil {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-add-comissao:hover,
+.btn-add-perfil:hover {
+  background: #007bff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(113, 178, 127, 0.3);
+}
+
+.btn-opcoes {
+  background: white;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-opcoes:hover {
+  background: #f8f9fa;
+  color: #495057;
+}
+
+/* Pequeno menu de Opções (usado pelo botão 'Opções' na página de Comissão) */
+.comissao-opcoes-menu {
+  font-size: 14px;
+}
+.comissao-opcao-item {
+  text-align: left;
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 10px 14px;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+.comissao-opcao-item:hover {
+  background: #f8f9fa;
+  color: var(--btn-primary);
+}
+
+/* Tabs Container */
+.tabs-container {
+  background: white;
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 2px solid #f1f3f5;
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  padding: 16px 32px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #6c757d;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s ease;
+  letter-spacing: 0.5px;
+}
+
+.tab-btn:hover {
+  color: #ff6b35;
+  background: #fff5f2;
+}
+
+.tab-btn.active {
+  color: #ff6b35;
+  border-bottom-color: #ff6b35;
+}
+
+/* Forçar aparência consistente das abas na página de comissão */
+.tabs-container {
+  /* reforça o fundo branco caso outra regra esteja tornando transparente */
+  background: #ffffff !important;
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06) !important;
+  padding: 8px 14px; /* deixa as abas visualmente mais altas */
+  display: flex;
+  align-items: center;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 2px solid #f1f3f5;
+}
+
+.tabs-container .tab-btn {
+  padding: 12px 28px !important; /* recupera tamanho mais confortável */
+  min-height: 40px; /* garante altura mínima */
+  background: transparent;
+  color: #6c757d;
+}
+
+.tabs-container .tab-btn.active {
+  color: #e65100;
+  border-bottom-color: #ff6b35;
+  background: rgba(255, 107, 53, 0.1);
+}
+
+/* Tab Content */
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* Search Section */
+.search-section {
+  background: white;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.search-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.search-input-wrapper > .fa-search {
+  color: #6c757d;
+  font-size: 16px;
+}
+
+.search-input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.search-input:focus {
+  border-color: #71b27f;
+}
+
+.search-input::placeholder {
+  color: #adb5bd;
+}
+
+.btn-search {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-search:hover {
+  background: #007bff;
+}
+
+/* Comissões Container */
+.comissoes-container {
+  background: white;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Comissões Table */
+.comissoes-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.comissoes-table thead {
+  background: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.comissoes-table th {
+  padding: 16px 20px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.comissoes-table th.col-perfil-produto {
+  width: 30%;
+}
+
+.comissoes-table th.col-perfil-vendedor {
+  width: 35%;
+}
+
+.comissoes-table th.col-percentual {
+  width: 15%;
+}
+
+.comissoes-table th.col-editar {
+  width: 10%;
+  text-align: center;
+}
+
+.comissoes-table th.col-excluir {
+  width: 10%;
+  text-align: center;
+}
+
+/* Table Body */
+.comissoes-table tbody tr {
+  border-bottom: 1px solid #f1f3f5;
+  transition: background 0.2s ease;
+}
+
+.comissoes-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.comissoes-table td {
+  padding: 16px 20px;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+/* Cells */
+.perfil-produto-cell,
+.perfil-vendedor-cell {
+  vertical-align: middle;
+  font-weight: 400;
+}
+
+.percentual-cell {
+  vertical-align: middle;
+  font-weight: 500;
+}
+
+/* Editar e Excluir Cells */
+.editar-cell,
+.excluir-cell {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.btn-icon {
+  background: transparent;
+  border: none;
+  color: #6c757d;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+  background: #e9ecef;
+}
+
+.btn-editar:hover {
+  color: #71b27f;
+}
+
+.btn-excluir:hover {
+  color: #dc3545;
+}
+
+/* Estilo semelhante ao de centro-resultado: botões quadrados com cor de fundo sutil */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+}
+
+/* editar (azul) */
+.btn-icon.btn-editar,
+.btn-icon.btn-editar-perfil,
+.btn-action.btn-edit {
+  color: #007bff;
+  background-color: rgba(0, 123, 255, 0.06);
+  border-radius: 6px;
+}
+.btn-icon.btn-editar:hover,
+.btn-icon.btn-editar-perfil:hover,
+.btn-action.btn-edit:hover {
+  background-color: rgba(0, 123, 255, 0.12);
+  color: #0056b3;
+}
+
+/* excluir (vermelho) */
+.btn-icon.btn-excluir,
+.btn-icon.btn-excluir-perfil,
+.btn-action.btn-delete {
+  color: #dc3545;
+  background-color: rgba(220, 53, 69, 0.06);
+  border-radius: 6px;
+}
+.btn-icon.btn-excluir:hover,
+.btn-icon.btn-excluir-perfil:hover,
+.btn-action.btn-delete:hover {
+  background-color: rgba(220, 53, 69, 0.12);
+  color: #c82333;
+}
+
+/* Estilos para a tabela de PERFIS (mesma aparência da PERCENTUAL) */
+.perfis-table th,
+.perfis-table td {
+  padding: 16px 20px;
+  text-align: left;
+  font-size: 14px;
+}
+
+.perfis-table th:nth-child(2),
+.perfis-table th:nth-child(3),
+.perfis-table td:nth-child(2),
+.perfis-table td:nth-child(3) {
+  width: 60px;
+  text-align: center;
+}
+
+.perfis-table td.descricao-cell {
+  text-align: left;
+  vertical-align: middle;
+  font-weight: 400;
+}
+
+/* Paginação */
+.pagination-container {
+  background: white;
+  padding: 16px 20px;
+  border-radius: 0 0 8px 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #dee2e6;
+}
+
+.pagination-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.items-per-page {
+  padding: 6px 32px 6px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-size: 14px;
+  color: var(--text-primary);
+  background: white;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236c757d' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+}
+
+.items-per-page:focus {
+  border-color: #71b27f;
+}
+
+.page-range {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-page {
+  background: white;
+  border: 1px solid #dee2e6;
+  color: #6c757d;
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.btn-page:not(:disabled):hover {
+  background: #71b27f;
+  color: white;
+  border-color: #71b27f;
+}
+
+.btn-page:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Perfil Info */
+.perfil-info {
+  background: white;
+  padding: 40px;
+  text-align: center;
+  color: #6c757d;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: 0 0 8px 8px;
+}
+
+/* Responsivo básico */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .main-content {
+    margin-left: 0;
+  }
+  .search-box input {
+    width: 200px;
+  }
+
+  .page-content {
+    padding: 20px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  .header-actions {
+    flex-direction: column;
+  }
+
+  .btn-add-comissao,
+  .btn-add-perfil,
+  .btn-opcoes {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .search-input-wrapper {
+    flex-direction: column;
+  }
+
+  .btn-search {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .comissoes-table {
+    font-size: 12px;
+  }
+
+  .comissoes-table th,
+  .comissoes-table td {
+    padding: 12px 8px;
+  }
+
+  .pagination-container {
+    flex-direction: column;
+    gap: 16px;
+  }
+}

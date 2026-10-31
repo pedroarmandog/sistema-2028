@@ -1,0 +1,1738 @@
+/* ============================================================
+   PetHub Mobile — Design System & Layout
+   Paleta: Azul escuro (#0a1628) + Verde (#00d68f) + Branco
+   Tipografia: Inter / Poppins (Google Fonts via @import)
+   ============================================================ */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap");
+
+/* ── Variáveis ──────────────────────────────────────────── */
+:root {
+  /* Cores principais */
+  --bg: #0a1628;
+  --surface: #0f2040;
+  --surface-2: #152a50;
+  --surface-3: #1a3260;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(255, 255, 255, 0.15);
+
+  /* Accent */
+  --green: #00d68f;
+  --green-dim: #00a86b;
+  --green-glow: rgba(0, 214, 143, 0.2);
+  --blue: #3a86ff;
+  --blue-dim: #1a5fcf;
+  --blue-glow: rgba(58, 134, 255, 0.2);
+
+  /* Texto */
+  --text: #f0f4ff;
+  --text-2: #b0bec5;
+  --muted: #6b7fa0;
+
+  /* Status */
+  --success: #00d68f;
+  --danger: #ff4d6d;
+  --warning: #ffb74d;
+  --info: #3a86ff;
+
+  /* Status agendamentos */
+  --status-agendado: #3a86ff;
+  --status-checkin: #ffb74d;
+  --status-pronto: #00d68f;
+  --status-concluido: #6b7fa0;
+  --status-cancelado: #ff4d6d;
+
+  /* Layout */
+  --header-h: 60px;
+  --nav-h: 70px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --radius: 16px;
+  --radius-sm: 10px;
+  --radius-lg: 22px;
+
+  /* Sombras */
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 2px 16px rgba(0, 0, 0, 0.35);
+  --shadow-green: 0 4px 20px rgba(0, 214, 143, 0.25);
+
+  /* Transições */
+  --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: 0.15s ease;
+}
+
+/* ── Reset ──────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  height: 100%;
+  overflow: hidden;
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+a {
+  color: var(--green);
+  text-decoration: none;
+}
+
+/* ── App Shell ──────────────────────────────────────────── */
+.app-shell {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  overflow: hidden;
+  /* Notch / câmera frontal (iOS / Android) */
+  padding-top: var(--safe-top);
+  /* safe-bottom é gerenciado pelo .bottom-nav para que seu
+     background se estenda até a home bar sem deixar faixa escura */
+}
+
+/* ── Splash Screen ──────────────────────────────────────── */
+.splash-screen {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  transition:
+    opacity 0.4s ease,
+    visibility 0.4s ease;
+}
+
+.splash-screen.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.splash-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px;
+}
+
+.splash-logo-wrap {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  background: var(--surface);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    var(--shadow-green),
+    0 0 0 1px var(--border);
+  margin-bottom: 8px;
+}
+
+.splash-logo-img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+}
+
+.splash-logo-fallback {
+  font-size: 48px;
+  line-height: 1;
+  position: absolute;
+}
+
+.splash-title {
+  font-family: "Poppins", sans-serif;
+  font-size: 32px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--green) 0%, var(--blue) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
+}
+
+.splash-sub {
+  font-size: 14px;
+  color: var(--muted);
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.splash-progress {
+  width: 120px;
+  height: 3px;
+  background: var(--surface-2);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-top: 24px;
+}
+
+.splash-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--green), var(--blue));
+  border-radius: 99px;
+  animation: splash-load 1.5s ease-in-out infinite;
+}
+
+@keyframes splash-load {
+  0% {
+    width: 0%;
+    margin-left: 0;
+  }
+  50% {
+    width: 60%;
+    margin-left: 20%;
+  }
+  100% {
+    width: 0%;
+    margin-left: 100%;
+  }
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+.app-header {
+  height: var(--header-h);
+  min-height: var(--header-h);
+  flex-shrink: 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  z-index: 100;
+}
+
+.header-inner {
+  height: 100%;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.header-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.header-greeting {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.header-saudacao {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.header-nome {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.header-empresa {
+  font-size: 11px;
+  color: var(--green);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.header-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+  position: relative;
+}
+
+.header-btn:active {
+  transform: scale(0.92);
+  background: var(--surface-3);
+}
+
+.notif-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  background: var(--danger);
+  border-radius: 50%;
+  border: 2px solid var(--surface);
+}
+
+/* ── Page Content ────────────────────────────────────────── */
+.page-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  background: var(--bg);
+}
+
+/* Scrollbar custom (desktop/Android) */
+.page-content::-webkit-scrollbar {
+  width: 4px;
+}
+.page-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+.page-content::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+/* ── Bottom Navigation ───────────────────────────────────── */
+.bottom-nav {
+  /* height fica flexível para absorver a safe-area inferior */
+  min-height: var(--nav-h);
+  flex-shrink: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-around;
+  padding-top: 8px;
+  /* Estende o fundo do nav até a home bar (iOS) ou gesture bar (Android) */
+  padding-bottom: var(--safe-bottom);
+  z-index: 100;
+}
+
+/* Respeita o atributo [hidden] — sem isso, o display:flex acima
+   sempre vence o hidden nativo do HTML e a barra aparece no login */
+.bottom-nav[hidden] {
+  display: none;
+}
+
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition:
+    color var(--transition-fast),
+    transform var(--transition-fast);
+  position: relative;
+  text-transform: uppercase;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nav-item:active {
+  transform: scale(0.9);
+}
+
+.nav-item.active {
+  color: var(--green);
+}
+
+.nav-item.active .nav-icon svg {
+  filter: drop-shadow(0 0 6px var(--green-glow));
+}
+
+.nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  transition: transform var(--transition-fast);
+}
+
+.nav-label {
+  line-height: 1;
+  transition: color var(--transition-fast);
+}
+
+.nav-badge {
+  position: absolute;
+  top: 2px;
+  right: calc(50% - 18px);
+  min-width: 16px;
+  height: 16px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 8px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--surface);
+}
+
+/* O atributo [hidden] deve vencer o display:flex acima.
+   Sem isto, a bolinha vermelha permanece visível mesmo quando a
+   contagem é 0/null/undefined (setBadge define hidden=true). */
+.nav-badge[hidden] {
+  display: none;
+}
+
+/* ── Toast Notifications ─────────────────────────────────── */
+.toast-container {
+  position: fixed;
+  bottom: calc(var(--nav-h) + var(--safe-bottom) + 12px);
+  left: 16px;
+  right: 16px;
+  z-index: 9000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.toast.toast-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast.toast-hiding {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.toast-success {
+  border-left: 3px solid var(--success);
+}
+.toast-error {
+  border-left: 3px solid var(--danger);
+}
+.toast-info {
+  border-left: 3px solid var(--blue);
+}
+.toast-warning {
+  border-left: 3px solid var(--warning);
+}
+
+.toast-success .toast-icon {
+  color: var(--success);
+  flex-shrink: 0;
+}
+.toast-error .toast-icon {
+  color: var(--danger);
+  flex-shrink: 0;
+}
+.toast-info .toast-icon {
+  color: var(--blue);
+  flex-shrink: 0;
+}
+.toast-warning .toast-icon {
+  color: var(--warning);
+  flex-shrink: 0;
+}
+
+.toast-message {
+  flex: 1;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.toast-close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  margin-left: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* ── Page Transitions ────────────────────────────────────── */
+.page-enter {
+  animation: page-in 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Cards ───────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
+  padding: 16px;
+  transition:
+    transform var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.card:active {
+  transform: scale(0.985);
+  border-color: var(--border-hover);
+}
+
+.card-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 8px;
+}
+
+.card-value {
+  font-family: "Poppins", sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+
+.card-value.green {
+  color: var(--green);
+}
+.card-value.blue {
+  color: var(--blue);
+}
+
+.card-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* ── Section Header ──────────────────────────────────────── */
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.2px;
+}
+
+.section-action {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--green);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+/* ── Stat Grid ────────────────────────────────────────────── */
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.stat-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.stat-card {
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--transition-fast);
+}
+
+.stat-card:active {
+  transform: scale(0.96);
+}
+
+.stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+}
+
+.stat-card.green::before {
+  background: var(--green);
+}
+.stat-card.blue::before {
+  background: var(--blue);
+}
+.stat-card.orange::before {
+  background: var(--warning);
+}
+.stat-card.red::before {
+  background: var(--danger);
+}
+
+.stat-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.stat-value {
+  font-family: "Poppins", sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  line-height: 1.2;
+}
+
+/* ── List Items ──────────────────────────────────────────── */
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.list-item:last-child {
+  border-bottom: none;
+}
+
+.list-item-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.list-item-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.list-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.list-item-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.list-item-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.list-item-right {
+  flex-shrink: 0;
+  text-align: right;
+}
+
+/* ── Status Badge ─────────────────────────────────────────── */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+.status-badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-agendado {
+  background: rgba(58, 134, 255, 0.15);
+  color: var(--status-agendado);
+}
+.status-agendado::before {
+  background: var(--status-agendado);
+}
+.status-checkin {
+  background: rgba(255, 183, 77, 0.15);
+  color: var(--status-checkin);
+}
+.status-checkin::before {
+  background: var(--status-checkin);
+}
+.status-pronto {
+  background: rgba(0, 214, 143, 0.15);
+  color: var(--status-pronto);
+}
+.status-pronto::before {
+  background: var(--status-pronto);
+}
+.status-concluido {
+  background: rgba(107, 127, 160, 0.15);
+  color: var(--status-concluido);
+}
+.status-concluido::before {
+  background: var(--status-concluido);
+}
+.status-cancelado {
+  background: rgba(255, 77, 109, 0.15);
+  color: var(--status-cancelado);
+}
+.status-cancelado::before {
+  background: var(--status-cancelado);
+}
+
+/* ── Pill Tabs ────────────────────────────────────────────── */
+.pill-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 0 20px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  margin-bottom: 4px;
+}
+.pill-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.pill-tab {
+  flex-shrink: 0;
+  padding: 7px 16px;
+  border-radius: 99px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.pill-tab.active {
+  background: var(--green-glow);
+  border-color: var(--green);
+  color: var(--green);
+}
+
+/* ── Empty / Loading States ──────────────────────────────── */
+.state-loading,
+.state-empty,
+.state-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  gap: 12px;
+  text-align: center;
+}
+
+.state-icon {
+  font-size: 40px;
+}
+.state-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+.state-sub {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--surface-2);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: var(--transition);
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.btn:active {
+  transform: scale(0.95);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--green) 0%, var(--green-dim) 100%);
+  color: #fff;
+  box-shadow: var(--shadow-green);
+}
+
+.btn-secondary {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn-danger {
+  background: rgba(255, 77, 109, 0.15);
+  color: var(--danger);
+  border: 1px solid rgba(255, 77, 109, 0.3);
+}
+
+.btn-full {
+  width: 100%;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* ── Page Wrapper ─────────────────────────────────────────── */
+.page-wrapper {
+  padding: 16px 20px 20px;
+  min-height: 100%;
+}
+
+/* ── Page Scroll ─────────────────────────────────────────── */
+.page-scroll {
+  padding-bottom: 12px;
+}
+
+/* ── Pull to refresh ──────────────────────────────────────── */
+.pull-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  color: var(--muted);
+  font-size: 13px;
+  gap: 8px;
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.25s ease;
+}
+
+.pull-indicator.visible {
+  max-height: 48px;
+}
+
+/* ── Login Page ──────────────────────────────────────────── */
+.login-page {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  background: var(--bg);
+  gap: 0;
+}
+
+/* Sem scroll na tela de login: o container de conteúdo não deve
+   rolar enquanto a página de login estiver ativa (mobile/desktop/PWA) */
+.page-content:has(.login-page) {
+  overflow: hidden;
+}
+
+.login-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 40px;
+}
+
+.login-logo-img {
+  width: 72px;
+  height: 72px;
+  background: var(--surface);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    var(--shadow-green),
+    0 0 0 1px var(--border);
+}
+
+.login-logo-img img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.login-title {
+  font-family: "Poppins", sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--green) 0%, var(--blue) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
+}
+
+.login-subtitle {
+  font-size: 14px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.login-form {
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.form-input::placeholder {
+  color: var(--muted);
+}
+
+.form-input:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px var(--green-glow);
+}
+
+.form-input-wrap {
+  position: relative;
+}
+
+.form-input-wrap .form-input {
+  padding-right: 48px;
+}
+
+.form-input-toggle {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.login-footer {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ── Dashboard Specific ──────────────────────────────────── */
+.dashboard-hero {
+  background: linear-gradient(135deg, var(--surface) 0%, var(--surface-3) 100%);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 20px;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-hero::after {
+  content: "🐾";
+  position: absolute;
+  right: 16px;
+  bottom: -4px;
+  font-size: 64px;
+  opacity: 0.08;
+  line-height: 1;
+}
+
+.hero-greeting {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.hero-title {
+  font-family: "Poppins", sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.hero-sub {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.faturamento-card {
+  background: linear-gradient(
+    135deg,
+    rgba(0, 214, 143, 0.12) 0%,
+    rgba(58, 134, 255, 0.08) 100%
+  );
+  border: 1px solid rgba(0, 214, 143, 0.2);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.faturamento-label {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.faturamento-value {
+  font-family: "Poppins", sans-serif;
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--green);
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.faturamento-row {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.faturamento-item {
+  flex: 1;
+}
+
+.faturamento-item-label {
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.faturamento-item-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-top: 2px;
+}
+
+/* ── Movimentações (últimas vendas) ────────────────────────── */
+.movimentacao-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.movimentacao-item:last-child {
+  border-bottom: none;
+}
+
+.movimentacao-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.movimentacao-cliente {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.movimentacao-data {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.movimentacao-right {
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+.movimentacao-valor {
+  font-family: "Poppins", sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--green);
+  white-space: nowrap;
+}
+
+.comparativo {
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  margin-top: 4px;
+}
+
+.comparativo.up {
+  background: rgba(0, 214, 143, 0.12);
+  color: var(--green);
+}
+.comparativo.down {
+  background: rgba(255, 77, 109, 0.12);
+  color: var(--danger);
+}
+.comparativo.flat {
+  background: rgba(107, 127, 160, 0.12);
+  color: var(--muted);
+}
+
+/* ── Agenda Specific ─────────────────────────────────────── */
+.agenda-date-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px 12px;
+}
+
+.agenda-date-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.agenda-date-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: var(--transition-fast);
+}
+
+.agenda-date-btn:active {
+  transform: scale(0.9);
+  background: var(--surface-2);
+}
+
+.agenda-date-title {
+  font-family: "Poppins", sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  min-width: 120px;
+}
+
+.agenda-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.agenda-item:last-child {
+  border-bottom: none;
+}
+
+.agenda-time {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 44px;
+  padding-top: 2px;
+}
+
+.agenda-time-main {
+  font-family: "Poppins", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+
+.agenda-time-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin: 6px 0;
+  flex-shrink: 0;
+}
+
+.agenda-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.agenda-pet-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.agenda-service {
+  font-size: 12px;
+  color: var(--text-2);
+  margin-bottom: 6px;
+}
+
+.agenda-client {
+  font-size: 11px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── Settings Toggle ─────────────────────────────────────── */
+.settings-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-toggle:last-child {
+  border-bottom: none;
+}
+
+.settings-toggle-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-toggle-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.settings-toggle-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* Toggle switch */
+.toggle-switch {
+  position: relative;
+  width: 46px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: var(--surface-3);
+  border-radius: 13px;
+  cursor: pointer;
+  transition: background 0.25s;
+  border: 1px solid var(--border);
+}
+
+.toggle-slider::before {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 3px;
+  top: 3px;
+  background: var(--muted);
+  border-radius: 50%;
+  transition:
+    transform 0.25s,
+    background 0.25s;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background: rgba(0, 214, 143, 0.2);
+  border-color: var(--green);
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(20px);
+  background: var(--green);
+}
+
+/* ── Profile Card ─────────────────────────────────────────── */
+.profile-card {
+  background: linear-gradient(135deg, var(--surface) 0%, var(--surface-3) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.profile-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--green-glow);
+  border: 2px solid var(--green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.profile-name {
+  font-family: "Poppins", sans-serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.profile-empresa {
+  font-size: 12px;
+  color: var(--green);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.profile-grupo {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* ── Divider ──────────────────────────────────────────────── */
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 16px 0;
+}
+
+/* ── Chips ────────────────────────────────────────────────── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+/* ── Version tag ──────────────────────────────────────────── */
+.version-tag {
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+  padding: 12px;
+  margin-top: 16px;
+}
+
+/* ── Install Prompt ───────────────────────────────────────── */
+.install-prompt {
+  background: linear-gradient(
+    135deg,
+    rgba(0, 214, 143, 0.1) 0%,
+    rgba(58, 134, 255, 0.08) 100%
+  );
+  border: 1px solid rgba(0, 214, 143, 0.25);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.install-prompt-text {
+  flex: 1;
+}
+
+.install-prompt-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.install-prompt-sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ── Telas muito pequenas (< 360px) ─────────────────────── */
+@media (max-width: 359px) {
+  :root {
+    --nav-h: 62px;
+  }
+  .page-wrapper {
+    padding: 12px 14px 16px;
+  }
+  .stat-grid-3 {
+    gap: 6px;
+  }
+  .stat-card {
+    padding: 10px 8px;
+  }
+  .stat-value {
+    font-size: 18px;
+  }
+  .stat-label {
+    font-size: 9px;
+  }
+  .pill-tabs {
+    padding: 0 14px;
+  }
+  .faturamento-value {
+    font-size: 26px;
+  }
+  .hero-title {
+    font-size: 17px;
+  }
+}
+
+/* ── Celular em landscape ─────────────────────────────────── */
+@media (orientation: landscape) and (max-height: 500px) {
+  :root {
+    --header-h: 48px;
+    --nav-h: 54px;
+  }
+  .page-wrapper {
+    padding: 10px 16px 12px;
+  }
+  .stat-card {
+    padding: 10px 8px;
+  }
+  .stat-value {
+    font-size: 18px;
+  }
+  .dashboard-hero {
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+  .faturamento-card {
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+  .stat-grid,
+  .stat-grid-3 {
+    gap: 8px;
+  }
+}
+
+/* ── Tablet / Desktop — centralizar o shell ──────────────── */
+/* 1024px: nenhum celular (nem em landscape) atinge esse CSS-width.
+   Apenas tablets e desktop terão o app centralizado. */
+@media (min-width: 1024px) {
+  .app-shell {
+    max-width: 520px;
+    margin: 0 auto;
+    box-shadow: 0 0 60px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* ── Dark mode (sempre escuro, mesmo no sistema claro) ───── */
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: dark;
+  }
+}
+
+/* ── Modal Overlay ─────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 10000;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.25s ease,
+    visibility 0.25s ease;
+}
+
+.modal-overlay.modal-visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-dialog {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 24px;
+  max-width: 340px;
+  width: 100%;
+  transform: scale(0.9) translateY(20px);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-overlay.modal-visible .modal-dialog {
+  transform: scale(1) translateY(0);
+}
+
+.modal-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: rgba(255, 77, 109, 0.15);
+  border: 2px solid rgba(255, 77, 109, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  margin: 0 auto 16px;
+}
+
+.modal-title {
+  font-family: "Poppins", sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.modal-message {
+  font-size: 14px;
+  color: var(--text-2);
+  text-align: center;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.modal-actions .btn {
+  flex: 1;
+  padding: 12px 16px;
+  font-size: 14px;
+}
+
+.modal-btn-cancel {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.modal-btn-confirm {
+  background: rgba(255, 77, 109, 0.15);
+  color: var(--danger);
+  border: 1px solid rgba(255, 77, 109, 0.3);
+}
+
+.modal-btn-confirm:active {
+  background: rgba(255, 77, 109, 0.25);
+  transform: scale(0.95);
+}

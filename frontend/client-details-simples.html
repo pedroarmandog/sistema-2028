@@ -1,0 +1,178 @@
+﻿<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PetHub - Detalhes do Cliente</title>
+    <script src="/custom-colors.js"></script>
+    <link rel="stylesheet" href="colors.css" />
+    <link rel="stylesheet" href="dashboard.css" />
+    <link rel="stylesheet" href="client-details.css" />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="logo">
+        <img
+          src="/fivecon/Design sem nome (17).png"
+          class="logo-pet-cria"
+          alt="Logo"
+        />
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="clientes.html" class="nav-item active">
+          <i class="fas fa-users"></i>
+          <span>Clientes</span>
+        </a>
+      </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <button class="menu-toggle">
+            <i class="fas fa-bars"></i>
+          </button>
+          <h1 id="clienteNome">Carregando...</h1>
+        </div>
+
+        <div class="header-right">
+          <button class="btn-primary" onclick="editarCliente()">
+            <i class="fas fa-edit"></i>
+            Editar
+          </button>
+
+          <div class="status-toggle">
+            <label>Ativo</label>
+            <input
+              type="checkbox"
+              id="statusCliente"
+              onchange="toggleStatusCliente()"
+            />
+          </div>
+
+          <div class="user-menu">
+            <i class="fas fa-user-circle"></i>
+            <span>...</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Client Details Content -->
+      <div class="client-details-container">
+        <!-- Cliente Header -->
+        <div class="cliente-header">
+          <div class="cliente-avatar-section">
+            <div class="cliente-avatar" id="clienteAvatar">
+              <i class="fas fa-user"></i>
+            </div>
+            <div class="cliente-info-header">
+              <h2 id="clienteNomeHeader">Carregando...</h2>
+              <div class="cliente-id">ID <span id="clienteId">---</span></div>
+              <div class="cliente-contato">
+                <div class="contato-item">
+                  <i class="fas fa-phone"></i>
+                  <span id="clienteTelefone">---</span>
+                </div>
+                <div class="contato-item">
+                  <i class="fas fa-map-marker-alt"></i>
+                  <span id="clienteEndereco">Sem Endereço, S/N</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="action-buttons">
+            <button class="btn-icon" title="Mais opções">
+              <i class="fas fa-ellipsis-h"></i>
+              <span>Mais</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="tabs-navigation">
+          <button class="tab-btn active" data-tab="detalhes">DETALHES</button>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tabs-content">
+          <!-- Detalhes Tab -->
+          <div class="tab-content active" id="detalhes-tab">
+            <div class="details-grid">
+              <!-- Detalhes do Cliente -->
+              <div class="details-section">
+                <h3><i class="fas fa-user"></i> Detalhes do Cliente</h3>
+                <div class="details-list">
+                  <div class="detail-item">
+                    <label>CPF:</label>
+                    <span id="clienteCpf">---</span>
+                  </div>
+                  <div class="detail-item">
+                    <label>RG:</label>
+                    <span id="clienteRg">---</span>
+                  </div>
+                  <div class="detail-item">
+                    <label>Data de Nascimento:</label>
+                    <span id="clienteDataNascimento">---</span>
+                  </div>
+                  <div class="detail-item">
+                    <label>Idade:</label>
+                    <span id="clienteIdade">---</span>
+                  </div>
+                  <div class="detail-item">
+                    <label>Sexo:</label>
+                    <span id="clienteSexo">---</span>
+                  </div>
+                  <div class="detail-item">
+                    <label>CEP:</label>
+                    <span id="clienteCep">---</span>
+                  </div>
+                  <div class="detail-item">
+                    <label>Email:</label>
+                    <span id="clienteEmail">---</span>
+                  </div>
+                  <div class="detail-item">
+                    <label>Limite de Crédito:</label>
+                    <span id="clienteLimiteCredito">0,00</span>
+                  </div>
+                  <div class="detail-item">
+                    <label>Grupo do Cliente:</label>
+                    <span id="clienteGrupo">---</span>
+                  </div>
+                  <div class="detail-item">
+                    <label>Perfil de Desconto:</label>
+                    <span id="clientePerfilDesconto">---</span>
+                  </div>
+                  <div class="detail-item">
+                    <label>Ativo:</label>
+                    <span id="clienteStatusText">Sim</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botão Voltar -->
+        <div class="back-button-container">
+          <button class="btn-voltar" onclick="voltarParaLista()">
+            <i class="fas fa-arrow-left"></i>
+            Voltar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts - APENAS O NECESSÁRIO -->
+    <script src="client-details.js"></script>
+    <script src="/sidebar-component/inject-sidebar.js"></script>
+  </body>
+</html>

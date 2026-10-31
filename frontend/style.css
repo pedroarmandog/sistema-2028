@@ -1,0 +1,128 @@
+/* ========================================
+   STYLE CSS - PET CRIA
+   ======================================== */
+
+/* Importar cores globais */
+@import url('./colors.css');
+
+body { 
+    font-family: Arial, sans-serif; 
+    padding: 20px; 
+}
+
+input, button { 
+    display: block; 
+    margin: 10px 0; 
+    padding: 8px; 
+}
+
+ul { 
+    list-style: none; 
+    padding: 0; 
+}
+
+body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    background-color: var(--bg-body);
+    color: var(--text-primary);
+}
+
+h1 {
+    color: var(--pet-orange);
+    text-align: center;
+}
+
+#calendar {
+    max-width: 900px;
+    margin: 20px auto;
+    background-color: var(--bg-white);
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: var(--shadow-medium);
+}
+
+.charts {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 40px;
+}
+
+canvas {
+    width: 400px !important;
+    height: 300px !important;
+}
+
+/* Botão de ação pequeno dentro de inputs (os '...') */
+.input-more {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    border: 0;
+    background: transparent;
+    font-size: 18px;
+    line-height: 1;
+    color: var(--text-secondary, #333);
+    cursor: pointer;
+    border-radius: 6px;
+}
+.input-more:hover {
+    background: rgba(0,0,0,0.04);
+}
+
+/* Mini menu usado pelo botão '...' */
+.mini-menu { font-family: inherit; }
+.mini-menu-item { padding: 8px 14px; cursor: pointer; }
+.mini-menu-item:hover { background: rgba(0,0,0,0.04); }
+
+/* Estoque: tornar o texto do período claramente clicável (hover + cursor) */
+.faturamento-wrapper.estoque-wrapper small.clickable-date,
+#estoque small.clickable-date {
+    cursor: pointer;
+    transition: background-color .12s, color .12s, transform .08s;
+    padding: 4px 8px;
+    border-radius: 6px;
+    display: inline-block;
+    line-height: 1.2;
+}
+.faturamento-wrapper.estoque-wrapper small.clickable-date strong,
+#estoque small.clickable-date strong {
+    display: inline-block;
+    line-height: 1.2;
+    padding: 0;
+}
+.faturamento-wrapper.estoque-wrapper small.clickable-date:hover,
+#estoque small.clickable-date:hover,
+.faturamento-wrapper.estoque-wrapper small.clickable-date strong:hover,
+#estoque small.clickable-date strong:hover {
+    background-color: rgba(0,0,0,0.06);
+    transform: translateY(-0.5px);
+}
+
+/* garantir foco visível para navegadores ao usar teclado */
+.faturamento-wrapper.estoque-wrapper small.clickable-date:focus,
+#estoque small.clickable-date:focus {
+    outline: 2px solid rgba(0,123,255,0.12);
+    outline-offset: 2px;
+}
+
+/* Botão remover vacina (X) na lista de vacinas */
+.vacina-remove-btn {
+    background: transparent;
+    border: none;
+    color: #c0392b;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: background-color .12s, color .12s;
+}
+.vacina-remove-btn:hover {
+    background: rgba(192, 57, 43, 0.08);
+}

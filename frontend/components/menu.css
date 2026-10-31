@@ -1,0 +1,167 @@
+/* menu.css - estilos específicos do menu lateral extraídos de dashboard.css */
+@import url('../colors.css');
+
+*{box-sizing:border-box}
+
+.sidebar{position:fixed;left:0;top:0;width:120px;height:100vh;background:var(--bg-sidebar);color:white;/* keep overflow-y for submenu */overflow-y:auto;z-index:80;transition:transform .4s cubic-bezier(.25,.46,.45,.94),width .25s ease;transform:translateX(0)}
+.sidebar.collapsed{transform:translateX(-100%)}
+.logo{display:flex;justify-content:center;align-items:center;padding:6px 0}
+.logo-pet-cria{height:36px;border-radius:6px;margin:2px auto 4px auto}
+.sidebar-nav{padding:6px 0}
+/* Itens do menu: mesma estrutura do dashboard para garantir hover idêntico */
+.sidebar .nav-item{
+	display:flex;
+	flex-direction:column;
+	align-items:center;
+	justify-content:center;
+	gap:4px;
+	padding:15px 8px;
+	color:var(--text-sidebar);
+	text-decoration:none;
+	transition:all .22s ease;
+	border-left:0;
+	min-height:58px;
+	position:relative;
+	z-index:1;
+}
+.sidebar .nav-item::before{
+	content: "" !important;
+	position: absolute !important;
+	left: 8px !important;
+	right: 8px !important;
+	top: 8px !important;
+	bottom: 8px !important;
+	border-radius: 12px !important;
+	background: transparent !important;
+	transition: background 180ms ease, transform 180ms ease, box-shadow 180ms ease !important;
+	z-index: 0 !important;
+	pointer-events: none !important;
+	display: block !important;
+}
+.sidebar .nav-item > *,
+.sidebar .nav-item span{ position:relative; z-index:2; }
+.sidebar .nav-item:hover{ color:white; }
+
+/* Garantir que o próprio .nav-item não receba background (evita hover "duplo"
+   quando outras folhas de estilo definem .nav-item:hover { background: ... }).
+   Mantemos somente o pseudo-elemento ::before para desenhar o fundo arredondado. */
+.sidebar .nav-item,
+.sidebar .nav-item:hover,
+.sidebar .nav-item:active,
+.sidebar .nav-item:focus {
+	background: transparent !important;
+}
+
+/* Hover: usar pseudo-elemento similar ao dashboard para desenhar o fundo arredondado
+	atrás do conteúdo. Isso mantém o efeito do dashboard (icone+texto) com mesmo tamanho. */
+.sidebar .nav-item:hover::before{
+	background: var(--overlay-light) !important;
+	transform: translateY(-2px) !important;
+	box-shadow: 0 6px 18px rgba(0,0,0,.18) !important;
+}
+.nav-item:hover{color:white}
+.sidebar .nav-item.active{ background-color:transparent; color:white; }
+.sidebar .nav-item i{ font-size:22px; display:block; }
+.sidebar .nav-item span{ display:block; font-size:13px; line-height:1.1; margin-top:6px; text-align:center; white-space:nowrap; font-weight:600 }
+.sidebar .nav-item-with-submenu{ position:relative }
+.sidebar .nav-item .submenu-arrow{ display:none !important }
+.sidebar .nav-item-with-submenu .submenu{
+	position: fixed !important;
+	/* colar o submenu na largura real da sidebar (120px) */
+	left: 120px !important;
+	top: 0 !important;
+	bottom: auto !important;
+	width: 240px !important;
+	min-height: 100vh !important;
+	height: auto !important;
+	max-height: none !important;
+	overflow-y: auto !important;
+	background: var(--bg-sidebar) !important;
+	transition: none !important;
+	margin: 0 !important;
+	border-radius: 0 6px 6px 0 !important;
+	display: none !important;
+	padding: 20px 18px !important;
+	box-shadow: 0 4px 18px rgba(0,0,0,.18) !important;
+	z-index: 2500 !important;
+}
+.submenu-fixed{
+	position: fixed !important;
+	left: 120px !important;
+	top: 0 !important;
+	bottom: 0 !important;
+	height: auto !important;
+	min-height: 100vh !important;
+	overflow-y: auto !important;
+	width: 240px !important;
+	padding: 20px 18px !important;
+	background: var(--bg-sidebar) !important;
+	box-shadow: 0 4px 18px rgba(0,0,0,.18) !important;
+	border-radius: 0 6px 6px 0 !important;
+	z-index: 2500 !important;
+	display: flex !important;
+	flex-direction: column !important;
+}
+.submenu-fixed-header{padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.03);color:var(--text-white);font-weight:600;display:flex;align-items:center}
+.submenu-fixed-header-title{color:var(--btn-success);font-size:15px}
+.nav-item-with-submenu:hover>.submenu,.nav-item-with-submenu.open>.submenu{display:block}
+.submenu.open{display:block}
+.submenu-item{display:flex;align-items:center;padding:10px 20px;color:#fff;text-decoration:none;font-size:14px;transition:all .2s ease;border-left:2px solid transparent}
+.submenu-item:hover{background:var(--overlay-light);color:white;border-left-color:var(--border-active)}
+.submenu-item span{margin-left:10px}
+
+/* Evita que a sidebar mostre scrollbar vertical ao passar o mouse (comportamento
+	do dashboard). Submenus continuam com seu próprio overflow-y:auto. */
+.sidebar:hover{ overflow-y: hidden !important; }
+
+/* Esconder track/scrollbar visual da sidebar para navegadores WebKit quando presente */
+.sidebar::-webkit-scrollbar{ width:0; height:0; }
+.sidebar{ -ms-overflow-style: none; scrollbar-width: none; }
+
+/* NOTA: não alteramos `.main-content` aqui para evitar conflito com estilos específicos
+	das páginas (ex: meus-itens.css). As páginas mantêm o controle do espaçamento do conteúdo.
+	O `z-index` da sidebar foi reduzido para não cobrir o header. */
+
+/* Corrige botões de ação que ficaram sem opacidade em algumas páginas
+   Força o botão primário a ficar opaco e com a cor de sucesso. */
+.main-content .btn-primary,
+.header .btn-primary,
+.btn-primary {
+	background: var(--btn-success) !important;
+	color: #ffffff !important;
+	opacity: 1 !important;
+	filter: none !important;
+	mix-blend-mode: normal !important;
+	box-shadow: 0 6px 18px rgba(0,0,0,0.08) !important;
+}
+
+/* garante que botões estejam clicáveis mesmo quando alguma camada tiver pointer-events:none */
+.main-content .btn-primary,
+.header .btn-primary { pointer-events: auto !important; }
+
+/* Corrige especificamente o botão 'Adicionar Produto' que na página
+   usa classe diferente (.btn-action). Torna-o visualmente idêntico
+   ao botão primário do dashboard. */
+.main-content #btnAdicionarProduto.btn-action,
+.main-content button#btnAdicionarProduto {
+	background: var(--btn-success) !important;
+	color: #ffffff !important;
+	opacity: 1 !important;
+	filter: none !important;
+	mix-blend-mode: normal !important;
+	border: none !important;
+	padding: 10px 14px !important;
+	border-radius: 6px !important;
+	display: inline-flex !important;
+	align-items: center !important;
+	gap: 8px !important;
+	box-shadow: 0 6px 18px rgba(0,0,0,0.08) !important;
+	cursor: pointer !important;
+	pointer-events: auto !important;
+}
+
+/* Pequeno ajuste quando hover */
+.main-content #btnAdicionarProduto.btn-action:hover,
+.main-content button#btnAdicionarProduto:hover {
+	transform: translateY(-2px) !important;
+}

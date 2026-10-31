@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PetHub - Sistema Inteligente para Pet Shops e Banho & Tosa</title>
+    <meta name="description" content="Transforme seu pet shop em um negócio mais organizado, conectado com seus clientes e preparado para crescer com o PetHub.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="landing-style.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="/fivecon/Design sem nome (17).png" type="image/png">
+    <!-- Meta Pixel Code -->
+    <script>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '27860877776909709');
+    fbq('track', 'PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none"
+    src="https://www.facebook.com/tr?id=27860877776909709&ev=PageView&noscript=1"
+    /></noscript>
+    <!-- End Meta Pixel Code -->
+</head>
+<body>
+
+    <!-- ============================================ -->
+    <!-- NAVBAR -->
+    <!-- ============================================ -->
+    <nav class="navbar" role="navigation" aria-label="Navegação principal">
+        <div class="container">
+            <a href="#" class="navbar-brand">
+                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 375 375'%3E%3Cpath fill='%23ffb23e' d='M42.5 0H41.3C18.6 0 0.2 18.4 0.2 41.4v1.2c0 22.7 18.4 41.1 41.1 41.1h42.2c0.1 0 0.2-0.1 0.2-0.2V41.4C83.7 18.6 65.3 0 42.5 0z'/%3E%3Cpath fill='%23041f3f' d='M26 27c-0.5 0.5-0.9 1-1.3 1.5s-0.8 1-1.2 1.6-0.7 1.1-1 1.7-0.4 1.2-0.5 1.8-0.3 1.3-0.5 1.9-0.3 1.3-0.5 1.9-0.2 1.4-0.3 2-0.1 1.3-0.1 2v0.1c0 0.7 0 1.3 0.1 2s0.2 1.3 0.3 2 0.3 1.3 0.5 1.9 0.3 1.3 0.5 1.9 0.4 1.2 0.5 1.8 0.3 1.2 1 1.7 0.8 1.1 1.2 1.6 0.9 1 1.3 1.5c3.8 3.8 9.5 4.7 14.4 5.4 0.9 0.1 1.7 0.2 2.5 0.4 1.6 0.3 3.1 0.9 4.5 1.8 0.6 0.4 1.2 0.7 1.9 0.9s1.4 0.2 2.1 0.1 1.4-0.3 2-0.6 1.2-0.7 1.8-1.2l6.4-6.4c0.5-0.5 0.9-1.1 1.2-1.8s0.5-1.3 0.6-2 0-1.4-0.2-2.1-0.5-1.3-0.9-1.9c-0.9-1.4-1.5-2.9-1.8-4.5-0.1-0.8-0.3-1.7-0.4-2.5-0.7-5-1.6-10.6-5.4-14.4-0.5-0.5-1-0.9-1.5-1.3s-1.1-0.8-1.6-1.2-1.1-0.7-1.7-1-1.2-0.6-1.8-0.9-1.2-0.5-1.9-0.7-1.3-0.4-1.9-0.5-1.3-0.2-2-0.3-1.3-0.1-2-0.1-1.3 0-2 0.1-1.3 0.1-2 0.2-1.3 0.3-1.9 0.5-1.3 0.5-1.9 0.7-1.2 0.9-1.7 1-1.2 1.2-1.6 0.8-1.1 1.3-1.5z'/%3E%3C/svg%3E" alt="PetHub Logo" height="40">
+                <span>PetHub</span>
+            </a>
+
+            <div class="nav-links">
+                <a href="#problemas">Problemas</a>
+                <a href="#solucao">Solução</a>
+                <a href="#beneficios">Benefícios</a>
+                <a href="#como-funciona">Como Funciona</a>
+                <a href="#faq">FAQ</a>
+                <a href="https://wa.me/5527998538741?text=Olá,%20gostaria%20de%20agendar%20uma%20demonstração%20do%20PetHub" target="_blank" class="btn btn-primary">Agendar Demonstração</a>
+            </div>
+
+            <button class="hamburger" aria-label="Abrir menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ============================================ -->
+    <!-- HERO -->
+    <!-- ============================================ -->
+    <section class="hero" id="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <span>🚀</span>
+                    Sistema inteligente para pet shops
+                </div>
+                <h1 class="hero-title">
+                    Transforme seu pet shop em<br>
+                    <span>uma máquina de fidelização</span><br>
+                    e crescimento
+                </h1>
+                <p class="hero-subtitle">
+                    Automatize a comunicação, recupere clientes inativos, organize sua agenda e aumente seu faturamento com o sistema que cuida do relacionamento com seus clientes.
+                </p>
+                <div class="hero-actions">
+                    <a href="https://wa.me/5527998538741?text=Olá,%20gostaria%20de%20agendar%20uma%20demonstração%20do%20PetHub" target="_blank" class="btn btn-primary">
+                        Agendar Demonstração
+                        <span>→</span>
+                    </a>
+                    <a href="#solucao" class="btn btn-outline">
+                        Ver Solução
+                    </a>
+                </div>
+                <div class="hero-stats">
+                    <div class="hero-stat">
+                        <h3>+40%</h3>
+                        <p>Retorno de clientes</p>
+                    </div>
+                    <div class="hero-stat">
+                        <h3>3x</h3>
+                        <p>Mais frequência</p>
+                    </div>
+                    <div class="hero-stat">
+                        <h3>-60%</h3>
+                        <p>Cancelamentos</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hero-image">
+                <div class="hero-image-wrapper">
+                    <div class="hero-mockup">
+                        <img src="imagens/dashboard-2.png" alt="Dashboard PetHub - Gestão inteligente do seu pet shop" class="hero-mockup-img">
+                    </div>
+                    <div class="floating-card floating-card-1">
+                        <span class="card-icon">📈</span>
+                        <span>+40% retorno de clientes</span>
+                    </div>
+                    <div class="floating-card floating-card-2">
+                        <span class="card-icon">🤖</span>
+                        <span>Automação total</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- PROBLEMAS -->
+    <!-- ============================================ -->
+    <section class="section problems" id="problemas">
+        <div class="container text-center">
+            <span class="section-tag">Dores comuns</span>
+            <h2 class="section-title">Parece familiar?</h2>
+            <p class="section-subtitle">
+                Se você enfrenta algum desses problemas, o PetHub foi feito para você.
+            </p>
+
+            <div class="problems-grid">
+                <div class="problem-card">
+                    <div class="problem-icon">😤</div>
+                    <h4>Clientes esquecem de voltar</h4>
+                    <p>Você atende bem, mas os clientes somem e só lembram do pet shop quando já passaram meses.</p>
+                </div>
+                <div class="problem-card">
+                    <div class="problem-icon">📋</div>
+                    <h4>Agenda desorganizada</h4>
+                    <p>Agenda de papel, post-its espalhados e agendamentos que se perdem no meio do caminho.</p>
+                </div>
+                <div class="problem-card">
+                    <div class="problem-icon">⏰</div>
+                    <h4>Equipe perde tempo</h4>
+                    <p>Seus funcionários gastam horas com ligações, lembretes manuais e tarefas repetitivas.</p>
+                </div>
+                <div class="problem-card">
+                    <div class="problem-icon">📉</div>
+                    <h4>Faturamento instável</h4>
+                    <p>Sem recorência e sem previsibilidade, o faturamento oscila e dificulta o planejamento.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- SOLUÇÃO -->
+    <!-- ============================================ -->
+    <section class="section solution" id="solucao">
+        <div class="container">
+            <div class="solution-grid">
+                <div class="solution-image">
+                    <div class="solution-image-wrapper">
+                       <img src="imagens/dashboard-4.png">
+                    </div>
+                </div>
+                <div>
+                    <span class="section-tag">Solução PetHub</span>
+                    <h2 class="section-title">Um sistema que cuida do<br>relacionamento com seus clientes</h2>
+                    <p class="section-subtitle" style="text-align: left; margin-left: 0;">
+                        O PetHub não é apenas um sistema de gestão. É uma plataforma inteligente que automatiza a comunicação, fideliza clientes e aumenta seu faturamento.
+                    </p>
+
+                    <div class="solution-list">
+                        <div class="solution-item">
+                            <div class="solution-check">✓</div>
+                            <div>
+                                <h4>CRM completo com disparo automático</h4>
+                                <p>Gerencie o relacionamento com seus clientes e dispare mensagens personalizadas pelo WhatsApp automaticamente.</p>
+                            </div>
+                        </div>
+                        <div class="solution-item">
+                            <div class="solution-check">✓</div>
+                            <div>
+                                <h4>Lembretes inteligentes</h4>
+                                <p>Envie lembretes automáticos de banho, tosa, vacinas e retornos sem nenhum esforço manual.</p>
+                            </div>
+                        </div>
+                        <div class="solution-item">
+                            <div class="solution-check">✓</div>
+                            <div>
+                                <h4>Recuperação de clientes inativos</h4>
+                                <p>Campanhas automáticas que trazem de volta quem não visita seu pet shop há mais de 60 dias.</p>
+                            </div>
+                        </div>
+                        <div class="solution-item">
+                            <div class="solution-check">✓</div>
+                            <div>
+                                <h4>Histórico completo do pet</h4>
+                                <p>Acompanhe todo o histórico de cada pet: serviços, vacinas, observações e preferências.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- BENEFÍCIOS -->
+    <!-- ============================================ -->
+    <section class="section benefits" id="beneficios">
+        <div class="container text-center">
+            <span class="section-tag">Benefícios</span>
+            <h2 class="section-title">Tudo que seu pet shop precisa</h2>
+            <p class="section-subtitle">
+                Funcionalidades poderosas que trabalham 24 horas por dia para fazer seu negócio crescer.
+            </p>
+
+            <div class="benefits-grid">
+                <div class="benefit-card">
+                    <div class="benefit-icon">❤️</div>
+                    <h4>Relacionamento com Clientes</h4>
+                    <p>CRM completo com histórico de interações, preferências e hábitos de cada tutor e seu pet.</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">📈</div>
+                    <h4>Aumento de Faturamento</h4>
+                    <p>Estratégias automáticas de vendas, recuperação de clientes e campanhas que geram mais receita.</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">⚡</div>
+                    <h4>Automação de Comunicação</h4>
+                    <p>Disparo automático de mensagens no WhatsApp sem você precisar fazer nada. Seus clientes sempre lembrados.</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">🐾</div>
+                    <h4>Histórico Completo do Pet</h4>
+                    <p>Saiba tudo sobre cada pet: vacinas, serviços realizados, alergias, observações e muito mais.</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">📅</div>
+                    <h4>Agendamento Inteligente</h4>
+                    <p>Agenda online com horários inteligentes, blocking de horários e gestão de múltiplos profissionais.</p>
+                </div>
+                <div class="benefit-card">
+                    <div class="benefit-icon">📊</div>
+                    <h4>Gestão e Relatórios</h4>
+                    <p>Indicadores de desempenho, relatórios completos e dashboards que mostram exatamente como está seu negócio.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- COMO FUNCIONA -->
+    <!-- ============================================ -->
+    <section class="section how-it-works" id="como-funciona">
+        <div class="container text-center">
+            <span class="section-tag">Como Funciona</span>
+            <h2 class="section-title">Três passos para transformar seu pet shop</h2>
+            <p class="section-subtitle">
+                Simples de configurar, poderoso ao automatizar.
+            </p>
+
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-number">1</div>
+                    <h4>🔧 Configura</h4>
+                    <p>Cadastre seus serviços, profissionais, horários e personalize as mensagens automáticas. Em minutos seu pet shop está conectado.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">2</div>
+                    <h4>🤖 Automatiza</h4>
+                    <p>O PetHub começa a trabalhar por você: lembretes, campanhas de recuperação, follow-ups e agendamentos inteligentes.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-number">3</div>
+                    <h4>📈 Cresce</h4>
+                    <p>Seus clientes voltam mais, o faturamento se estabiliza, a agenda fica cheia e você ganha tempo para focar no que importa.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- DEMONSTRAÇÃO DO SISTEMA -->
+    <!-- ============================================ -->
+    <section class="section demo" id="demo">
+        <div class="container text-center">
+            <span class="section-tag">Demonstração</span>
+            <h2 class="section-title">Conheça o sistema PetHub</h2>
+            <p class="section-subtitle">
+                Telas inteligentes que facilitam o dia a dia do seu pet shop.
+            </p>
+
+            <div class="demo-grid">
+                <div class="demo-item">
+                    <div class="demo-item-image">
+                        <div class="placeholder-content">
+                            <img src="imagens/painel-de-controle.png">
+                            <p>Dashboard completo com indicadores</p>
+                        </div>
+                    </div>
+                    <div class="demo-item-caption">Painel de controle e métricas</div>
+                </div>
+                <div class="demo-item">
+                    <div class="demo-item-image">
+                        <div class="placeholder-content">
+                            <img src="imagens/agendamento-inteligente.png">
+                            <p>Agenda inteligente e gestão de horários</p>
+                        </div>
+                    </div>
+                    <div class="demo-item-caption">Agendamento inteligente</div>
+                </div>
+                <div class="demo-item">
+                    <div class="demo-item-image">
+                        <div class="placeholder-content">
+                            <img src="imagens/automacao.png">
+                            <p>Disparo automático de WhatsApp</p>
+                        </div>
+                    </div>
+                    <div class="demo-item-caption">Automação de comunicação</div>
+                </div>
+                <div class="demo-item">
+                    <div class="demo-item-image">
+                        <div class="placeholder-content">
+                            <img src="imagens/pets.png">
+                            <p>Histórico completo do pet</p>
+                        </div>
+                    </div>
+                    <div class="demo-item-caption">Histórico e gestão de pets</div>
+                </div>
+                <div class="demo-item demo-item-wide">
+                    <div class="demo-item-image">
+                        <div class="placeholder-content">
+                            <img src="imagens/acesso.png">
+                            <p>Nuvem — sistema funciona em qualquer lugar</p>
+                        </div>
+                    </div>
+                    <div class="demo-item-caption">Acesse de qualquer lugar, a qualquer hora</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- RESULTADOS -->
+    <!-- ============================================ -->
+    <section class="section results" id="resultados">
+        <div class="container text-center">
+            <span class="section-tag">Resultados</span>
+            <h2 class="section-title">Números que falam por si</h2>
+            <p class="section-subtitle">
+                Pet shops que usam o PetHub alcançam resultados expressivos em poucos meses.
+            </p>
+
+            <div class="results-grid">
+                <div class="result-card">
+                    <div class="result-number">
+                        <span class="value">40</span><span class="suffix">%</span>
+                    </div>
+                    <p class="result-label">Mais retorno de clientes</p>
+                </div>
+                <div class="result-card">
+                    <div class="result-number">
+                        <span class="value">3</span><span class="suffix">x</span>
+                    </div>
+                    <p class="result-label">Mais frequência de serviços</p>
+                </div>
+                <div class="result-card">
+                    <div class="result-number">
+                        <span class="value">60</span><span class="suffix">%</span>
+                    </div>
+                    <p class="result-label">Menos cancelamentos</p>
+                </div>
+                <div class="result-card">
+                    <div class="result-number">
+                        <span class="value">100</span><span class="suffix">%</span>
+                    </div>
+                    <p class="result-label">Mais organização</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- DEPOIMENTOS -->
+    <!-- ============================================ -->
+    <section class="section testimonials" id="depoimentos">
+        <div class="container text-center">
+            <span class="section-tag">Depoimentos</span>
+            <h2 class="section-title">Quem usa, recomenda</h2>
+            <p class="section-subtitle">
+                Veja o que os donos de pet shops estão falando sobre o PetHub.
+            </p>
+
+            <div class="testimonials-grid">
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">★★★★★</div>
+                    <p class="testimonial-text">
+                        "O PetHub revolucionou a forma como nos comunicamos com os clientes. Agora eles voltam com frequência e nunca mais perdi um agendamento por esquecimento. Minha agenda vive cheia!"
+                    </p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">CM</div>
+                        <div class="testimonial-author-info">
+                            <h5>Carlos Mendes</h5>
+                            <p>Dog's House Pet Shop — São Paulo, SP</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">★★★★★</div>
+                    <p class="testimonial-text">
+                        "Em apenas 3 meses usando o PetHub, nosso faturamento aumentou 35%. A automação das mensagens trouxe de volta dezenas de clientes que estavam inativos há meses."
+                    </p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">AL</div>
+                        <div class="testimonial-author-info">
+                            <h5>Ana Luísa Torres</h5>
+                            <p>Pet Carinho Banho & Tosa — Belo Horizonte, MG</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="testimonial-card">
+                    <div class="testimonial-stars">★★★★★</div>
+                    <p class="testimonial-text">
+                        "O que mais me impressionou foi a facilidade de uso. Em uma tarde já estávamos com tudo configurado. Os relatórios me ajudam a tomar decisões muito mais assertivas."
+                    </p>
+                    <div class="testimonial-author">
+                        <div class="testimonial-avatar">RF</div>
+                        <div class="testimonial-author-info">
+                            <h5>Rafael Fernandes</h5>
+                            <p>Pet & Cia — Rio de Janeiro, RJ</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- FAQ -->
+    <!-- ============================================ -->
+    <section class="section faq" id="faq">
+        <div class="container text-center">
+            <span class="section-tag">FAQ</span>
+            <h2 class="section-title">Perguntas frequentes</h2>
+            <p class="section-subtitle">
+                Tire suas dúvidas sobre o PetHub.
+            </p>
+
+            <div class="faq-list">
+                <div class="faq-item active">
+                    <button class="faq-question">
+                        O que é o PetHub?
+                        <span class="faq-icon">+</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>O PetHub é uma plataforma inteligente de gestão para pet shops e banho & tosa. Ele automatiza a comunicação com clientes através do WhatsApp, gerencia agendamentos, organiza o histórico dos pets e fornece relatórios completos para ajudar você a crescer seu negócio.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">
+                        Preciso ter conhecimento técnico para usar?
+                        <span class="faq-icon">+</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Não! O PetHub foi desenvolvido para ser intuitivo e fácil de usar. Você configura tudo em poucos minutos e o sistema já começa a funcionar automaticamente. Nossa equipe oferece suporte completo durante a implantação.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">
+                        Como funciona o disparo automático de mensagens?
+                        <span class="faq-icon">+</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>O PetHub envia lembretes automáticos de agendamentos, campanhas de recuperação para clientes inativos e mensagens de follow-up pós-serviço. Tudo integrado ao WhatsApp, sem você precisar fazer nada manualmente.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">
+                        O sistema funciona para qualquer tamanho de pet shop?
+                        <span class="faq-icon">+</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Sim! O PetHub é escalável e atende desde pequenos pet shops com um único profissional até grandes operações com múltiplas filiais e equipes completas.</p>
+                    </div>
+                </div>
+                <div class="faq-item">
+                    <button class="faq-question">
+                        Como posso agendar uma demonstração?
+                        <span class="faq-icon">+</span>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Basta clicar no botão "Agendar Demonstração" em qualquer parte da página. Nossa equipe entra em contato para marcar um horário e mostrar como o PetHub pode transformar seu pet shop.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- CTA FINAL -->
+    <!-- ============================================ -->
+    <section class="section cta-final" id="cta-final">
+        <div class="container">
+            <div class="cta-content">
+                <span class="section-tag">Comece agora</span>
+                <h2>Comece a transformar<br>seu pet shop hoje</h2>
+                <p>
+                    Agende uma demonstração gratuita e descubra como o PetHub pode automatizar seu relacionamento com clientes, aumentar seu faturamento e dar mais tempo para você focar no que realmente importa.
+                </p>
+                <a href="https://wa.me/5527998538741?text=Olá,%20gostaria%20de%20agendar%20uma%20demonstração%20do%20PetHub" target="_blank" class="btn btn-primary">
+                    Agendar Demonstração Gratuita
+                    <span>→</span>
+                </a>
+                <div class="cta-trust">
+                    <span>🔒 Sem compromisso</span>
+                    <span>⏱ Demonstração de 20 minutos</span>
+                    <span>💬 Suporte personalizado</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============================================ -->
+    <!-- FOOTER -->
+    <!-- ============================================ -->
+    <footer class="footer" id="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 375 375'%3E%3Cpath fill='%23ffb23e' d='M42.5 0H41.3C18.6 0 0.2 18.4 0.2 41.4v1.2c0 22.7 18.4 41.1 41.1 41.1h42.2c0.1 0 0.2-0.1 0.2-0.2V41.4C83.7 18.6 65.3 0 42.5 0z'/%3E%3Cpath fill='%23041f3f' d='M26 27c-0.5 0.5-0.9 1-1.3 1.5s-0.8 1-1.2 1.6-0.7 1.1-1 1.7-0.4 1.2-0.5 1.8-0.3 1.3-0.5 1.9-0.3 1.3-0.5 1.9-0.2 1.4-0.3 2-0.1 1.3-0.1 2v0.1c0 0.7 0 1.3 0.1 2s0.2 1.3 0.3 2 0.3 1.3 0.5 1.9 0.3 1.3 0.5 1.9 0.4 1.2 0.5 1.8 0.3 1.2 1 1.7 0.8 1.1 1.2 1.6 0.9 1 1.3 1.5c3.8 3.8 9.5 4.7 14.4 5.4 0.9 0.1 1.7 0.2 2.5 0.4 1.6 0.3 3.1 0.9 4.5 1.8 0.6 0.4 1.2 0.7 1.9 0.9s1.4 0.2 2.1 0.1 1.4-0.3 2-0.6 1.2-0.7 1.8-1.2l6.4-6.4c0.5-0.5 0.9-1.1 1.2-1.8s0.5-1.3 0.6-2 0-1.4-0.2-2.1-0.5-1.3-0.9-1.9c-0.9-1.4-1.5-2.9-1.8-4.5-0.1-0.8-0.3-1.7-0.4-2.5-0.7-5-1.6-10.6-5.4-14.4-0.5-0.5-1-0.9-1.5-1.3s-1.1-0.8-1.6-1.2-1.1-0.7-1.7-1-1.2-0.6-1.8-0.9-1.2-0.5-1.9-0.7-1.3-0.4-1.9-0.5-1.3-0.2-2-0.3-1.3-0.1-2-0.1-1.3 0-2 0.1-1.3 0.1-2 0.2-1.3 0.3-1.9 0.5-1.3 0.5-1.9 0.7-1.2 0.9-1.7 1-1.2 1.2-1.6 0.8-1.1 1.3-1.5z'/%3E%3C/svg%3E" alt="PetHub Logo" height="36">
+                    <p>Plataforma inteligente para pet shops e banho & tosa que automatiza o relacionamento com clientes e impulsiona o crescimento do seu negócio.</p>
+                </div>
+                <div class="footer-col">
+                    <h5>Produto</h5>
+                    <ul>
+                        <li><a href="#solucao">Solução</a></li>
+                        <li><a href="#beneficios">Benefícios</a></li>
+                        <li><a href="#demo">Demonstração</a></li>
+                        <li><a href="#faq">FAQ</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h5>Empresa</h5>
+                    <ul>
+                        <li><a href="#">Sobre Nós</a></li>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Contato</a></li>
+                        <li><a href="#">Trabalhe Conosco</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h5>Suporte</h5>
+                    <ul>
+                        <li><a href="#">Central de Ajuda</a></li>
+                        <li><a href="#">Termos de Uso</a></li>
+                        <li><a href="#">Política de Privacidade</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 PetHub. Todos os direitos reservados.</p>
+                <div class="footer-social">
+                    <a href="#" aria-label="Instagram" title="Instagram">IG</a>
+                    <a href="#" aria-label="Facebook" title="Facebook">FB</a>
+                    <a href="#" aria-label="YouTube" title="YouTube">YT</a>
+                    <a href="#" aria-label="LinkedIn" title="LinkedIn">IN</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ============================================ -->
+    <!-- BACK TO TOP BUTTON -->
+    <!-- ============================================ -->
+    <button class="back-to-top" aria-label="Voltar ao topo">
+        ↑
+    </button>
+
+    <!-- ============================================ -->
+    <!-- SCRIPTS -->
+    <!-- ============================================ -->
+    <script src="landing-script.js"></script>
+</body>
+</html>

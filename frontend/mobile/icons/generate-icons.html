@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Gerar Ícones PWA — PetHub</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 20px;
+        background: #0a1628;
+        color: white;
+      }
+      canvas {
+        display: none;
+      }
+      button {
+        background: #00d68f;
+        color: #0a1628;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        margin: 8px;
+        font-size: 14px;
+      }
+      .status {
+        margin-top: 16px;
+        padding: 12px;
+        background: #132040;
+        border-radius: 8px;
+      }
+      a {
+        color: #00d68f;
+        display: block;
+        margin: 4px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>🎨 Gerador de Ícones PWA — PetHub</h2>
+    <p>Clique para gerar e baixar todos os ícones necessários para o PWA.</p>
+    <button onclick="gerarTodos()">Gerar e Baixar Todos os Ícones</button>
+    <div id="status" class="status">Aguardando...</div>
+    <canvas id="canvas"></canvas>
+
+    <script>
+      const TAMANHOS = [
+        { nome: "icon-72", size: 72 },
+        { nome: "badge-72", size: 72, badge: true },
+        { nome: "icon-96", size: 96 },
+        { nome: "icon-128", size: 128 },
+        { nome: "icon-144", size: 144 },
+        { nome: "icon-152", size: 152 },
+        { nome: "icon-180", size: 180 },
+        { nome: "icon-192", size: 192 },
+        { nome: "icon-256", size: 256 },
+        { nome: "icon-512", size: 512 },
+        { nome: "icon-maskable", size: 512, maskable: true },
+      ];
+
+      function drawIcon(ctx, size, { maskable = false, badge = false } = {}) {
+        const s = size;
+        const cx = s / 2;
+        const cy = s / 2;
+        const r = s / 2;
+
+        // Safe zone for maskable: 80% of size
+        const scale = maskable ? 0.65 : 0.82;
+
+        // Background
+        ctx.fillStyle = "#0a1628";
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (badge) {
+          // Simple badge: green circle with bell
+          ctx.fillStyle = "#00d68f";
+          ctx.beginPath();
+          ctx.arc(cx, cy, r * 0.75, 0, Math.PI * 2);
+          ctx.fill();
+          return;
+        }
+
+        // Draw paw print
+        const green = "#00d68f";
+        const ps = s * scale; // paw scale
+
+        ctx.fillStyle = green;
+
+        // Função helper para desenhar elipse
+        function ellipse(x, y, rx, ry, rotation = 0) {
+          ctx.save();
+          ctx.translate(cx + x * (ps / s), cy + y * (ps / s));
+          ctx.rotate(rotation);
+          ctx.beginPath();
+          ctx.ellipse(0, 0, rx * (ps / s), ry * (ps / s), 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        // Pad principal
+        ellipse(0, 55, 75, 65);
+
+        // Dedos superiores (relativos ao centro)
+        ellipse(-85, -25, 28, 35, -0.35);
+        ellipse(-35, -55, 26, 33, -0.09);
+        ellipse(18, -60, 26, 33, 0.09);
+        ellipse(68, -35, 26, 33, 0.35);
+      }
+
+      async function gerarTodos() {
+        const canvas = document.getElementById("canvas");
+        const statusEl = document.getElementById("status");
+        statusEl.innerHTML = "Gerando ícones...";
+
+        const links = [];
+
+        for (const { nome, size, maskable, badge } of TAMANHOS) {
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext("2d");
+          ctx.clearRect(0, 0, size, size);
+          drawIcon(ctx, size, { maskable, badge });
+
+          const blob = await new Promise((resolve) =>
+            canvas.toBlob(resolve, "image/png"),
+          );
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `${nome}.png`;
+          a.textContent = `⬇ Baixar ${nome}.png (${size}x${size})`;
+          links.push(a);
+        }
+
+        statusEl.innerHTML =
+          "<strong>✅ Ícones gerados! Salve cada arquivo em:</strong><br><code>frontend/mobile/icons/</code><br><br>";
+        links.forEach((a) => statusEl.appendChild(a));
+
+        // Auto-download
+        for (const a of links) {
+          a.click();
+          await new Promise((r) => setTimeout(r, 300));
+        }
+      }
+    </script>
+  </body>
+</html>

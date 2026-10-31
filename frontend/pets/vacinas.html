@@ -1,0 +1,77 @@
+﻿<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vacinas do Pet</title>
+  <script src="../custom-colors.js"></script>
+  <link rel="icon" href="/fivecon/Design sem nome (17).png" type="image/png">
+  <link rel="stylesheet" href="../colors.css">
+  <link rel="stylesheet" href="../dashboard.css">
+  <link rel="stylesheet" href="vacinas.css">
+</head>
+<body>
+  <div class="page-wrapper">
+    <header class="header">
+      <div class="header-left">
+        <button class="menu-toggle"><i class="fas fa-bars"></i></button>
+        <h1>Vacinas</h1>
+      </div>
+      <div class="header-right">
+        <div class="user-menu"><i class="fas fa-user-circle"></i><span>...</span></div>
+      </div>
+    </header>
+
+    <main class="content-area">
+      <div class="container">
+        <div class="card">
+          <div class="card-header">
+            <h3>Vacinas aplicadas</h3>
+            <div class="card-actions">
+              <button id="btnAddVacina" class="btn btn-primary">Adicionar vacina</button>
+            </div>
+          </div>
+
+          <div class="card-body">
+            <div class="table-wrap">
+              <table class="data-table" id="vacinasTable">
+                <thead>
+                  <tr>
+                    <th>Data aplicação</th>
+                    <th>Vacina</th>
+                    <th>Produto</th>
+                    <th>Lote</th>
+                    <th>Dose</th>
+                    <th>Periodicidade</th>
+                    <th>Data renovação</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Linhas serão inseridas por JS -->
+                </tbody>
+              </table>
+
+              <div class="table-empty" id="vacinasEmpty">Nenhuma vacina registrada</div>
+            </div>
+
+            <div class="table-footer">
+              <div class="pagination">0 of 0</div>
+              <div class="pager">
+                <button class="pager-btn">&lt;</button>
+                <button class="pager-btn">&gt;</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+  </div>
+
+  <script src="../dashboard.js"></script>
+  <script src="vacinas.js"></script>
+    <script src="/sidebar-component/inject-sidebar.js"></script>
+</body>
+</html>
+

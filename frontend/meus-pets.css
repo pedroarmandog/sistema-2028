@@ -1,0 +1,28 @@
+/* estilos específicos para a página Meus Pets, harmonizados com dashboard.css */
+.search-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #e6e9ee;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #fff;
+}
+
+.table-wrap { background: #fff; border: 1px solid #ececec; border-radius:8px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); }
+.pets-table { width:100%; border-collapse: collapse; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+.pets-table thead th { text-align:left; padding:12px 16px; border-bottom:1px solid #eef0f2; color:#495057; font-weight:600; font-size:13px; }
+.pets-table tbody td { padding:12px 16px; border-bottom:1px solid #f3f4f6; color:#343a40; font-size:14px; }
+.pets-table tbody tr:hover { background:#fafbfc; }
+
+.status-active { color:#27ae60; font-weight:700; text-align:center; }
+.status-inactive { color:#e74c3c; font-weight:700; text-align:center; }
+
+.btn { padding:8px 12px; border-radius:6px; border:none; cursor:pointer; font-size:13px; }
+.btn-primary { background: linear-gradient(135deg, #007bff, #0056b3); color:#fff; }
+.btn-secondary { background:#f5f6f8; color:#333; border:1px solid #e6e9ee; }
+
+.action-dots { display:flex; justify-content:center; align-items:center; color:#999; }
+
+@media (max-width: 800px) {
+  .pets-table thead th:nth-child(1), .pets-table tbody td:nth-child(1) { display:none; }
+}

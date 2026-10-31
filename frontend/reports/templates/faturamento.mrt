@@ -1,0 +1,350 @@
+{
+  "ReportVersion": "2023.1.1",
+  "ReportName": "Relatório de Faturamento",
+  "ReportAlias": "Relatório de Faturamento",
+  "ReportDescription": "Relatório detalhado de faturamento por produto",
+  "ReportAuthor": "Sistema PetHub",
+  "ReportCreated": "/Date(1699315200000)/",
+  "ReportChanged": "/Date(1699315200000)/",
+  "EngineVersion": "EngineV2",
+  "CalculationMode": "Interpretation",
+  "Pages": {
+    "0": {
+      "Ident": "StiPage",
+      "Name": "Page1",
+      "PageWidth": 21,
+      "PageHeight": 29.7,
+      "Watermark": {
+        "TextBrush": "solid:50,0,0,0"
+      },
+      "Border": ";;2;;;;;solid:Black",
+      "Brush": "solid:White",
+      "Components": {
+        "0": {
+          "Ident": "StiPageHeaderBand",
+          "Name": "PageHeaderBand1",
+          "ClientRectangle": "0,0.4,19,2.5",
+          "Border": ";;;;;;;solid:Black",
+          "Brush": "solid:Transparent",
+          "Components": {
+            "0": {
+              "Ident": "StiText",
+              "Name": "HeaderTitle",
+              "ClientRectangle": "0,0,19,1",
+              "Text": "RELATÓRIO DE FATURAMENTO",
+              "Font": "Arial,20,Bold",
+              "Border": ";;;;;;;solid:Black",
+              "Brush": "solid:Transparent",
+              "TextBrush": "solid:Black",
+              "HorAlignment": "Center",
+              "VertAlignment": "Center"
+            },
+            "1": {
+              "Ident": "StiText",
+              "Name": "HeaderCompany",
+              "ClientRectangle": "0,1,19,0.6",
+              "Text": "{nomeEmpresa}",
+              "Font": "Arial,14",
+              "Border": ";;;;;;;solid:Black",
+              "Brush": "solid:Transparent",
+              "TextBrush": "solid:Black",
+              "HorAlignment": "Center",
+              "VertAlignment": "Center"
+            },
+            "2": {
+              "Ident": "StiText",
+              "Name": "HeaderPeriod",
+              "ClientRectangle": "0,1.7,19,0.6",
+              "Text": "{periodo}",
+              "Font": "Arial,10",
+              "Border": ";;;;;;;solid:Black",
+              "Brush": "solid:Transparent",
+              "TextBrush": "solid:64,64,64",
+              "HorAlignment": "Center",
+              "VertAlignment": "Center"
+            }
+          }
+        },
+        "1": {
+          "Ident": "StiHeaderBand",
+          "Name": "HeaderBand1",
+          "ClientRectangle": "0,3.7,19,0.8",
+          "Border": "All;;;;;;;solid:Black",
+          "Brush": "solid:220,220,220",
+          "Components": {
+            "0": {
+              "Ident": "StiText",
+              "Name": "HeaderCodigo",
+              "ClientRectangle": "0,0,2,0.8",
+              "Text": "Código",
+              "Font": "Arial,10,Bold",
+              "Border": ";;;;;;;solid:Black",
+              "Brush": "solid:Transparent",
+              "TextBrush": "solid:Black",
+              "HorAlignment": "Center",
+              "VertAlignment": "Center"
+            },
+            "1": {
+              "Ident": "StiText",
+              "Name": "HeaderProduto",
+              "ClientRectangle": "2,0,8,0.8",
+              "Text": "Produto",
+              "Font": "Arial,10,Bold",
+              "Border": ";;;;;;;solid:Black",
+              "Brush": "solid:Transparent",
+              "TextBrush": "solid:Black",
+              "HorAlignment": "Center",
+              "VertAlignment": "Center"
+            },
+            "2": {
+              "Ident": "StiText",
+              "Name": "HeaderQtd",
+              "ClientRectangle": "10,0,2,0.8",
+              "Text": "Qtd",
+              "Font": "Arial,10,Bold",
+              "Border": ";;;;;;;solid:Black",
+              "Brush": "solid:Transparent",
+              "TextBrush": "solid:Black",
+              "HorAlignment": "Center",
+              "VertAlignment": "Center"
+            },
+            "3": {
+              "Ident": "StiText",
+              "Name": "HeaderCusto",
+              "ClientRectangle": "12,0,3,0.8",
+              "Text": "Custo",
+              "Font": "Arial,10,Bold",
+              "Border": ";;;;;;;solid:Black",
+              "Brush": "solid:Transparent",
+              "TextBrush": "solid:Black",
+              "HorAlignment": "Center",
+              "VertAlignment": "Center"
+            },
+            "4": {
+              "Ident": "StiText",
+              "Name": "HeaderVenda",
+              "ClientRectangle": "15,0,4,0.8",
+              "Text": "Total Venda",
+              "Font": "Arial,10,Bold",
+              "Border": ";;;;;;;solid:Black",
+              "Brush": "solid:Transparent",
+              "TextBrush": "solid:Black",
+              "HorAlignment": "Center",
+              "VertAlignment": "Center"
+            }
+          }
+        },
+        "2": {
+          "Ident": "StiDataBand",
+          "Name": "DataBand1",
+          "ClientRectangle": "0,5.3,19,0.8",
+          "DataSourceName": "Data.produtos",
+          "Border": ";;;;;;;solid:Black",
+          "Brush": "solid:Transparent",
+          "Components": {
+            "0": {
+              "Ident": "StiText",
+              "Name": "TextCodigo",
+              "ClientRectangle": "0,0,2,0.8",
+              "Text": "{Data.produtos.codigo}",
+              "Font": "Arial,9",
+              "Border": ";;;;;;;solid:Black",
+              "Brush": "solid:Transparent",
+              "TextBrush": "solid:Black",
+              "HorAlignment": "Center",
+              "VertAlignment": "Center"
+            },
+            "1": {
+              "Ident": "StiText",
+              "Name": "TextProduto",
+              "ClientRectangle": "2,0,8,0.8",
+              "Text": "{Data.produtos.produto}",
+              "Font": "Arial,9",
+              "Border": ";;;;;;;solid:Black",
+              "Brush": "solid:Transparent",
+              "TextBrush": "solid:Black",
+              "VertAlignment": "Center",
+              "Margins": "5,5,0,0"
+            },
+            "2": {
+              "Ident": "StiText",
+              "Name": "TextQtd",
+              "ClientRectangle": "10,0,2,0.8",
+              "Text": "{Data.produtos.qtd_vendida}",
+              "Font": "Arial,9",
+              "Border": ";;;;;;;solid:Black",
+              "Brush": "solid:Transparent",
+              "TextBrush": "solid:Black",
+              "HorAlignment": "Center",
+              "VertAlignment": "Center"
+            },
+            "3": {
+              "Ident": "StiText",
+              "Name": "TextCusto",
+              "ClientRectangle": "12,0,3,0.8",
+              "Text": "{Data.produtos.custo}",
+              "Font": "Arial,9",
+              "Border": ";;;;;;;solid:Black",
+              "Brush": "solid:Transparent",
+              "TextBrush": "solid:Black",
+              "HorAlignment": "Right",
+              "VertAlignment": "Center",
+              "TextFormat": {
+                "Ident": "StiCurrencyFormatService",
+                "DecimalDigits": 2,
+                "DecimalSeparator": ",",
+                "GroupSeparator": ".",
+                "CurrencySymbol": "R$ ",
+                "PositivePattern": 0,
+                "NegativePattern": 0
+              },
+              "Margins": "0,5,0,0"
+            },
+            "4": {
+              "Ident": "StiText",
+              "Name": "TextVenda",
+              "ClientRectangle": "15,0,4,0.8",
+              "Text": "{Data.produtos.total_venda}",
+              "Font": "Arial,9",
+              "Border": ";;;;;;;solid:Black",
+              "Brush": "solid:Transparent",
+              "TextBrush": "solid:Black",
+              "HorAlignment": "Right",
+              "VertAlignment": "Center",
+              "TextFormat": {
+                "Ident": "StiCurrencyFormatService",
+                "DecimalDigits": 2,
+                "DecimalSeparator": ",",
+                "GroupSeparator": ".",
+                "CurrencySymbol": "R$ ",
+                "PositivePattern": 0,
+                "NegativePattern": 0
+              },
+              "Margins": "0,5,0,0"
+            }
+          }
+        },
+        "3": {
+          "Ident": "StiFooterBand",
+          "Name": "FooterBand1",
+          "ClientRectangle": "0,6.9,19,0.8",
+          "Border": "All;;;;;;;solid:Black",
+          "Brush": "solid:240,240,240",
+          "Components": {
+            "0": {
+              "Ident": "StiText",
+              "Name": "FooterLabel",
+              "ClientRectangle": "0,0,15,0.8",
+              "Text": "Total Geral:",
+              "Font": "Arial,10,Bold",
+              "Border": ";;;;;;;solid:Black",
+              "Brush": "solid:Transparent",
+              "TextBrush": "solid:Black",
+              "HorAlignment": "Right",
+              "VertAlignment": "Center",
+              "Margins": "0,5,0,0"
+            },
+            "1": {
+              "Ident": "StiText",
+              "Name": "FooterTotal",
+              "ClientRectangle": "15,0,4,0.8",
+              "Text": "{Sum(Data.produtos.total_venda)}",
+              "Font": "Arial,10,Bold",
+              "Border": ";;;;;;;solid:Black",
+              "Brush": "solid:Transparent",
+              "TextBrush": "solid:0,100,0",
+              "HorAlignment": "Right",
+              "VertAlignment": "Center",
+              "TextFormat": {
+                "Ident": "StiCurrencyFormatService",
+                "DecimalDigits": 2,
+                "DecimalSeparator": ",",
+                "GroupSeparator": ".",
+                "CurrencySymbol": "R$ ",
+                "PositivePattern": 0,
+                "NegativePattern": 0
+              },
+              "Margins": "0,5,0,0"
+            }
+          }
+        },
+        "4": {
+          "Ident": "StiPageFooterBand",
+          "Name": "PageFooterBand1",
+          "ClientRectangle": "0,8.5,19,0.8",
+          "Border": "Top;;;;;;;solid:Black",
+          "Brush": "solid:Transparent",
+          "Components": {
+            "0": {
+              "Ident": "StiText",
+              "Name": "FooterPage",
+              "ClientRectangle": "0,0,19,0.8",
+              "Text": "Página {PageNumber} de {TotalPageCount}",
+              "Font": "Arial,9",
+              "Border": ";;;;;;;solid:Black",
+              "Brush": "solid:Transparent",
+              "TextBrush": "solid:128,128,128",
+              "HorAlignment": "Center",
+              "VertAlignment": "Center"
+            }
+          }
+        }
+      }
+    }
+  },
+  "Dictionary": {
+    "DataSources": {
+      "0": {
+        "Ident": "StiDataTableSource",
+        "Name": "produtos",
+        "Alias": "produtos",
+        "Columns": {
+          "0": {
+            "Name": "codigo",
+            "Index": -1,
+            "NameInSource": "codigo",
+            "Alias": "codigo",
+            "Type": "System.String"
+          },
+          "1": {
+            "Name": "produto",
+            "Index": -1,
+            "NameInSource": "produto",
+            "Alias": "produto",
+            "Type": "System.String"
+          },
+          "2": {
+            "Name": "qtd_vendida",
+            "Index": -1,
+            "NameInSource": "qtd_vendida",
+            "Alias": "qtd_vendida",
+            "Type": "System.Int32"
+          },
+          "3": {
+            "Name": "custo",
+            "Index": -1,
+            "NameInSource": "custo",
+            "Alias": "custo",
+            "Type": "System.Decimal"
+          },
+          "4": {
+            "Name": "total_venda",
+            "Index": -1,
+            "NameInSource": "total_venda",
+            "Alias": "total_venda",
+            "Type": "System.Decimal"
+          }
+        }
+      }
+    },
+    "Variables": {
+      "0": {
+        "Name": "periodo",
+        "Alias": "periodo",
+        "Type": "System.String",
+        "InitBy": "Value",
+        "Value": "Período de Análise"
+      }
+    }
+  }
+}

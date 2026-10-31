@@ -1,0 +1,644 @@
+/* Copiado de frontend/dashboard.css - estilos do menu e header */
+/* ========================================
+   DASHBOARD CSS - PET CRIA (snippet para menu)
+   ======================================== */
+
+@import url('../colors.css');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--bg-body);
+    color: var(--text-primary);
+}
+
+/* Main Content */
+.main-content {
+    margin-left: 250px;
+    min-height: 100vh;
+    transition: margin-left 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
+    width: calc(100% - 250px);
+}
+
+.main-content.sidebar-collapsed {
+    margin-left: 0;
+    width: 100%;
+}
+
+/* Header */
+.header {
+    background: var(--bg-white);
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-medium);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.header-left h1 {
+    margin: 0;
+    font-size: 24px;
+    color: var(--text-primary);
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.btn-calendar {
+    background: var(--bg-card);
+    border: 2px solid var(--border-primary);
+    color: var(--text-primary);
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    height: 44px;
+}
+
+.btn-calendar:hover {
+    background: var(--btn-primary);
+    color: white;
+    border-color: var(--btn-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(44, 90, 160, 0.2);
+}
+
+.btn-calendar:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(44, 90, 160, 0.2);
+}
+
+.btn-primary {
+    background: var(--btn-success);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.3s ease;
+}
+
+.search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-box i {
+    position: absolute;
+    left: 12px;
+    color: #999;
+}
+
+.search-box input {
+    padding: 10px 15px 10px 40px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    width: 300px;
+    font-size: 14px;
+}
+
+.user-menu {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: background-color 0.3s ease;
+}
+
+.user-menu:hover {
+    background-color: #f8f9fa;
+}
+
+/* Match dashboard profile icon style */
+.user-menu i {
+    font-size: 24px;
+    color: #007bff;
+}
+
+/* Dropdown */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #e1e8ed;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    min-width: 200px;
+    margin-top: 5px;
+}
+
+.dropdown.open .dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    color: #333;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    border-bottom: 1px solid #f1f3f4;
+    transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+    color: #27ae60;
+}
+
+/* Notification (light) */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    min-width: 300px;
+    max-width: 500px;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+/* Responsivo básico */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+    .sidebar.open {
+        transform: translateX(0);
+    }
+    .main-content { margin-left: 0; }
+    .search-box input { width: 200px; }
+}
+
+/* ==================== PERFIL DO FORNECEDOR ==================== */
+:root {
+    /* Ajuste esta variável para mover os botões do perfil mais para esquerda/direita */
+    /* Valores sugeridos: 40px (padrão), 60px, 80px, 100px */
+    --perfil-buttons-margin-right: 100px;
+}
+
+.main-content {
+    margin-left: 250px;
+    padding: 0;
+}
+
+.perfil-fornecedor-page {
+    /* diminuir espaçamento à esquerda para aproximar do menu lateral */
+    padding: 30px 30px 30px 18px;
+    background-color: #f8f9fa;
+    min-height: calc(100vh - 60px);
+}
+
+/* Header do Perfil */
+.perfil-header {
+    background: white;
+    border-radius: 8px;
+    padding: 30px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.perfil-header-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.perfil-avatar {
+    width: 100px;
+    height: 100px;
+    background-color: #607D8B;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    color: white;
+}
+
+.perfil-info {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.fornecedor-nome {
+    font-size: 24px;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+}
+
+.perfil-badges {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.badge-codigo {
+    background-color: #e3f2fd;
+    color: #007bff;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.badge-tipo {
+    background-color: #f1f8e9;
+    color: #689F38;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.perfil-header-right {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    /* Use a variável CSS para ajustar o espaçamento */
+    margin-right: var(--perfil-buttons-margin-right);
+}
+
+.btn-editar-perfil {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-editar-perfil:hover {
+    background-color: #1976D2;
+    transform: translateY(-2px);
+}
+
+.btn-ativo-perfil {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-ativo-perfil:hover {
+    background-color: #388E3C;
+    transform: translateY(-2px);
+}
+
+.btn-mais-perfil {
+    background-color: white;
+    color: #666;
+    border: 1px solid #ddd;
+    padding: 10px 15px;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-mais-perfil:hover {
+    background-color: #f5f5f5;
+    border-color: #bbb;
+}
+
+/* Card de Detalhes */
+.detalhes-fornecedor-card {
+    background: white;
+    border-radius: 8px;
+    padding: 30px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.detalhes-titulo {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+    margin: 0 0 25px 0;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #f0f0f0;
+}
+
+.detalhes-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.campo-detalhe {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.campo-detalhe label {
+    font-size: 13px;
+    color: #666;
+    font-weight: 500;
+}
+
+.campo-valor {
+    font-size: 14px;
+    color: #333;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    min-height: 20px;
+    border: 1px solid #e0e0e0;
+}
+
+/* Ações do Perfil */
+.acoes-perfil {
+    display: flex;
+    justify-content: flex-start;
+    gap: 10px;
+}
+
+.btn-voltar {
+    background-color: white;
+    color: #666;
+    border: 1px solid #ddd;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-voltar:hover {
+    background-color: #f5f5f5;
+    border-color: #bbb;
+    transform: translateX(-5px);
+}
+
+/* Responsivo */
+@media (max-width: 992px) {
+    .perfil-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+    }
+
+    .perfil-header-right {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .detalhes-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .perfil-fornecedor-page {
+        padding: 15px;
+    }
+
+    .perfil-header {
+        padding: 20px;
+    }
+
+    .perfil-header-left {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .perfil-avatar {
+        width: 80px;
+        height: 80px;
+        font-size: 36px;
+    }
+
+    .fornecedor-nome {
+        font-size: 20px;
+    }
+
+    .perfil-header-right {
+        flex-wrap: wrap;
+    }
+
+    .detalhes-fornecedor-card {
+        padding: 20px;
+    }
+
+    .btn-editar-perfil,
+    .btn-ativo-perfil {
+        padding: 8px 16px;
+        font-size: 13px;
+    }
+}
+
+/* Popover de Inativar/Ativar (perfil) */
+.ativo-popover {
+    background: white;
+    border: 1px solid #e1e8ed;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    padding: 8px;
+    min-width: 140px;
+    font-weight: 600;
+    color: #333;
+}
+.ativo-popover-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    cursor: pointer;
+    border-radius: 6px;
+}
+.ativo-popover-item:hover { background: #f5f7fb; }
+.icon-ativo-fornecedor { color: #28a745; font-size: 16px; }
+.icon-inativo-fornecedor { color: #f44336; font-size: 16px; }
+
+/* pequenas cores utilitárias para os ícones dentro do popover */
+.ativo-popover .text-danger { color: #f44336; }
+.ativo-popover .text-success { color: #28a745; }
+
+/* Menu contextual do botão Mais (...) */
+.ctx-menu-perfil {
+    position: absolute;
+    background: white;
+    border: 1px solid rgba(0,0,0,0.08);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    border-radius: 8px;
+    overflow: hidden;
+    min-width: 180px;
+    z-index: 12060;
+}
+
+.ctx-menu-perfil .ctx-item {
+    padding: 10px 16px;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background 0.15s ease;
+}
+
+.ctx-menu-perfil .ctx-item:hover {
+    background: #f5f5f5;
+}
+
+.ctx-menu-perfil .ctx-item i {
+    width: 16px;
+    font-size: 14px;
+    color: #666;
+}
+
+.ctx-menu-perfil .ctx-item-excluir {
+    color: #d32f2f;
+}
+
+.ctx-menu-perfil .ctx-item-excluir i {
+    color: #d32f2f;
+}
+
+.ctx-menu-perfil .ctx-divider {
+    height: 1px;
+    background: #f1f3f4;
+    margin: 6px 0;
+}
+
+.ctx-menu-perfil .ctx-label {
+    padding: 8px 16px 6px;
+    color: #777;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Modal de Emissão de Recibo */
+.recibo-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.36);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 13050;
+}
+.recibo-modal {
+    background: white;
+    width: 760px;
+    max-width: calc(100% - 40px);
+    border-radius: 6px;
+    box-shadow: 0 12px 40px rgba(2,16,26,0.24);
+    overflow: hidden;
+}
+.recibo-modal .recibo-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    background: #f2f4f6;
+    border-bottom: 1px solid #e9ecef;
+}
+.recibo-modal .recibo-title { font-size: 16px; font-weight: 600; color: #333; }
+.recibo-modal .recibo-close { background:#6c757d;color:white;border:none;padding:8px 12px;border-radius:6px;cursor:pointer }
+.recibo-modal .recibo-body { padding: 20px 22px; }
+.recibo-modal .recibo-field { margin-bottom: 18px; }
+.recibo-modal label { display:block;color:#666;font-size:13px;margin-bottom:8px;font-weight:600 }
+.recibo-modal .recibo-readonly { padding:10px 12px;border-bottom:1px solid #e9ecef;color:#333 }
+.recibo-modal input[type="text"], .recibo-modal input[type="number"], .recibo-modal textarea {
+    width: 220px;
+    padding: 8px 10px;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    font-size: 14px;
+}
+.recibo-modal textarea { width:100%; height:100px; resize:vertical; }
+.recibo-modal .recibo-footer { padding: 14px 20px; display:flex; justify-content:flex-end; gap:12px; }
+.btn-recibo-visualizar { background:#0d6efd;color:white;border:none;padding:10px 16px;border-radius:6px;cursor:pointer }
+.btn-recibo-fechar { background:#f3f4f6;color:#333;border:none;padding:8px 12px;border-radius:6px;cursor:pointer }

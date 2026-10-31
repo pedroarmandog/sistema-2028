@@ -1,0 +1,209 @@
+/* estilos específicos para a página de Descontos - complementa dashboard.css */
+
+.container h3 { margin: 0 0 8px 0; }
+
+/* Toasts (notificações) - copia do padrão usado no sistema (pet-details) */
+#toast-container {
+  position: fixed;
+  right: 20px;
+  top: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 260px;
+  max-width: 420px;
+  background: #0d6efd;
+  color: white;
+  padding: 12px 14px;
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(13,110,253,0.16);
+  font-weight: 600;
+  animation: toast-in 180ms ease;
+}
+.toast .toast-icon { font-size: 18px; opacity: 0.95 }
+.toast .toast-close { margin-left: auto; background: transparent; border: none; color: rgba(255,255,255,0.9); cursor: pointer; font-weight: 700; }
+.toast.success { background: linear-gradient(90deg,#28a745,#28a745); }
+.toast.error { background: linear-gradient(90deg,#dc3545,#dc3545); }
+.toast.info { background: linear-gradient(90deg,#17a2b8,#17a2b8); }
+
+@keyframes toast-in {
+  from { transform: translateY(-6px); opacity: 0 }
+  to { transform: translateY(0); opacity: 1 }
+}
+
+/* Tornar cada 'card' mais parecido com um painel: fundo suave, borda e sombra leve */
+.card {
+  background: linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+  border: 1px solid #e9ecef;
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
+  box-shadow: 0 8px 24px rgba(16,24,40,0.04);
+}
+
+/* Ajuste específico para o card interno do 'Perfil de Produto' na página Descontos
+   Reduz padding e limita a altura para evitar que a caixa fique muito comprida */
+.dashboard-content .container > .card > div:first-child .card {
+  padding: 10px !important;
+  max-height: 140px; /* limitar altura para cerca de 3-6 linhas de tabela */
+  overflow: auto; /* permitir rolagem interna se houver mais conteúdo */
+  flex-basis: 60%;
+  display: flex ;
+  max-width: 90%;
+}
+
+/* Aumentar a largura do bloco "Perfil de Cliente" (sub-container à direita) */
+.dashboard-content .container > .card > div:last-child {
+  width: 700px !important; /* sobrescreve o inline style de 360px */
+  
+  
+}
+
+/* Se preferir uma aparência mais compacta da tabela, reduzir espaçamento das células */
+.dashboard-content .container > .card > div:first-child .card table td,
+.dashboard-content .container > .card > div:first-child .card table th {
+  padding: 8px 6px;
+}
+
+/* deixar o layout semelhante à screenshot: espaçamento maior */
+.dashboard-content .container { padding-top: 6px; }
+
+/* Header row inside cards (title + tools) */
+.card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.card-header-row h3 { margin: 0; font-size: 1rem; font-weight: 600; }
+.card-add {
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #6c757d;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.card-add i { font-size: 0.95rem; }
+.card-add:hover {
+  background: rgba(0,0,0,0.04);
+  color: #0d6efd;
+  transform: translateY(-1px);
+}
+
+/* Make the + on Perfil de Produto sit closer to the title (left column header) */
+.dashboard-content .container > .card > div:first-child .card-header-row {
+  justify-content: flex-start; /* keep elements close to the left */
+  gap: var(--card-add-gap, 10px); /* smaller gap between title and +, adjustable via CSS variable */
+}
+
+/* Allow finer offset control of the + button (set via JS function below) */
+.dashboard-content .container > .card > div:first-child .card-add {
+  margin-left: var(--card-add-left-offset, 600px);
+}
+
+/* pequenas melhorias visuais para tabelas */
+.card table td { padding: 10px 8px; border-bottom: 1px solid #f1f3f5; }
+
+/* garantir espaço entre os cabeçalhos da tabela (ex: Máximo e Gerente não fiquem "grudados") */
+.card table thead th { padding: 8px 12px; }
+.card table thead th + th { padding-left: 14px; }
+
+/* responsividade */
+@media (max-width: 900px) {
+  .card[style] { flex-direction: column; }
+}
+
+/* Lookup (custom select) styles used in Descontos modal */
+.lookup-list {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: calc(100% + 6px);
+  background: #fff;
+  border: 1px solid #e6e8ea;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(16,24,40,0.06);
+  max-height: 220px;
+  overflow: auto;
+  z-index: 12000;
+  padding: 6px;
+  animation: dropdown-in 160ms ease both;
+}
+.lookup-item {
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #333;
+  font-size: 0.95rem;
+}
+.lookup-item:hover { background: rgba(13,110,253,0.06); }
+.lookup-item .small-muted { display:block; color:#777; font-size:0.85rem; margin-top:4px }
+
+@keyframes dropdown-in { from { transform: translateY(-6px); opacity:0 } to { transform: translateY(0); opacity:1 } }
+
+/* Inputs used as lookups inside modal */
+#rp_produto_input, #rp_cliente_input {
+  padding: 8px 10px; border-radius:6px; border:1px solid #e6e8ea; width:100%; box-sizing:border-box; background:#fff;
+}
+
+/* Make first table column (Produto) expand to available space */
+/* adjustable layout for the Desconto Relações table */
+
+:root {
+  --rel-table-max-width: 50%; /* default table max width (can be px or %) */
+  --rel-prod-col: 80%; /* width of first column (produto) - default larger */
+  --rel-cliente-col: 12%; /* width of cliente column */
+  
+  
+}
+
+/* allow the relacao card to expand; the --rel-table-max-width variable controls the maximum width */
+.relacao-card { width: 100%; max-width: var(--rel-table-max-width); }
+#descontoRelacaoTableBody td:first-child, #descontoRelacaoTableBody th:first-child {
+  width: var(--rel-prod-col);
+  
+}
+#descontoRelacaoTableBody td:nth-child(2), #descontoRelacaoTableBody th:nth-child(2) {
+  width: var(--rel-cliente-col);
+  
+}
+#descontoRelacaoTableBody td:nth-child(3), #descontoRelacaoTableBody td:nth-child(4), #descontoRelacaoTableBody td:nth-child(5) {
+  width: auto; white-space:nowrap; text-align:left; padding-left:12px;
+}
+
+/* ensure inner card and table stretch to full width inside the relacao-card */
+.relacao-card > .card { width: 100%; padding: 12px; box-sizing: border-box; }
+.relacao-card table { width: 100%; }
+
+/* Modal tweaks for perfilProdutoModal (reuse small-filter styles) */
+.small-filter-modal { position: fixed; inset: 0; display:flex; align-items:center; justify-content:center; background: rgba(0,0,0,0.18); z-index: 9999; }
+.small-filter-box { width: 640px; max-width: calc(100% - 40px); border-radius: 8px; overflow:hidden; background:#fff; box-shadow:0 10px 40px rgba(0,0,0,0.12); }
+.small-filter-header { padding: 12px 18px; border-bottom: 1px solid #eef0f2; display:flex; justify-content:space-between; align-items:center; }
+.small-filter-body { padding: 18px; display:flex; flex-direction:column; gap:12px; }
+.small-filter-footer { padding: 12px 18px; border-top:1px solid #eef0f2; display:flex; justify-content:flex-end; gap:10px; }
+.small-filter-box input[type="text"], .small-filter-box input[type="number"] { padding:10px 12px; border-radius:6px; border:1px solid #e6e8ea; width:100%; box-sizing:border-box; }
+.small-filter-box label { font-size:0.95rem; color:#333; }
+
+/* modal section titles used in the desconto modals */
+.modal-section-title {
+  font-size: 0.95rem;
+  color: #6c757d;
+  margin-top: 8px;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.modal-section-subtitle {
+  font-size: 0.92rem;
+  color: #6c757d;
+  margin-top: 10px;
+}

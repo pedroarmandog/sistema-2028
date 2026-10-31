@@ -1,0 +1,1855 @@
+/* ========================================
+   AGENDAMENTOS CSS - PET CRIA
+   ======================================== */
+
+/* Importar cores globais */
+@import url("./colors.css");
+
+/* Agendamentos Styles */
+.agendamentos-container {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  height: calc(100vh - 80px);
+}
+
+/* make container positioning relative so collapsed sidebar can be absolute without breaking layout */
+.agendamentos-container {
+  position: relative;
+}
+
+/* Submenu Styles */
+/*.nav-item-with-submenu {
+    position: relative;
+}
+
+.nav-item .submenu-arrow {
+    margin-left: auto;
+    font-size: 12px;
+    transition: transform 0.3s ease;
+}
+
+.nav-item-with-submenu.open .submenu-arrow {
+    transform: rotate(180deg);
+}
+
+.submenu {
+    max-height: 0;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.2);
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    margin-left: 20px;
+    border-radius: 6px;
+}
+
+.submenu.open {
+    max-height: 200px;
+    padding: 10px 0;
+}
+
+.submenu-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 20px;
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    border-left: 2px solid transparent;
+}
+
+.submenu-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border-left-color: #3498db;
+}
+
+.submenu-item span {
+    margin-left: 10px;
+}*/
+
+/* Filters Sidebar */
+.filters-sidebar {
+  width: 240px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  height: fit-content;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+/* Collapsed state: keep only a small strip with the hamburger visible */
+.agendamentos-container.filters-collapsed .filters-sidebar {
+  width: 56px !important;
+  padding: 10px !important;
+  overflow: hidden !important;
+}
+.agendamentos-container.filters-collapsed .filters-sidebar .filter-section,
+.agendamentos-container.filters-collapsed .filters-sidebar .filter-actions {
+  display: none !important;
+}
+/* keep the header (Atualizar + view-toggle) visible when collapsed */
+.agendamentos-container.filters-collapsed .filters-sidebar .filter-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 8px 0 !important;
+}
+.agendamentos-container.filters-collapsed .filters-sidebar .view-toggle {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+}
+
+/* When collapsed, remove the filters-sidebar from normal flow so the main area expands
+   Keep the narrow strip visible at top-left of the content area */
+.agendamentos-container.filters-collapsed .filters-sidebar {
+  position: absolute !important;
+  left: 20px !important; /* match container padding */
+  top: 20px !important; /* match container padding */
+  /* reduce footprint: remove full-height white panel and shadows */
+  height: auto !important;
+  max-height: none !important;
+  z-index: 60 !important;
+  box-shadow: none !important;
+}
+
+.agendamentos-container.filters-collapsed .agendamentos-main {
+  /* ensure main content uses the full width when sidebar is absolute */
+  margin-left: 0 !important;
+  flex: 1 1 auto !important;
+}
+
+/* Keep the toggle pin at the top of the collapsed strip */
+.agendamentos-container.filters-collapsed .filters-sidebar {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+}
+.agendamentos-container.filters-collapsed .filters-sidebar .view-toggle {
+  margin-top: 8px !important;
+}
+
+/* Hide the collapsed sidebar background so only the control remains visible */
+.agendamentos-container.filters-collapsed .filters-sidebar {
+  width: auto !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  overflow: visible !important;
+}
+
+.agendamentos-container.filters-collapsed .filters-sidebar .view-toggle {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 4px !important;
+}
+
+.agendamentos-container.filters-collapsed .filters-sidebar .view-btn {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+  background: #007bff !important;
+  color: #fff !important;
+  border: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12) !important;
+}
+
+.agendamentos-container.filters-collapsed .filters-sidebar .view-btn i {
+  color: #fff !important;
+}
+
+.filter-section {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.filter-section:last-child {
+  border-bottom: none;
+}
+
+.filter-section h4 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.btn-refresh {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-refresh:hover {
+  background: #e9ecef;
+}
+
+.view-toggle {
+  display: flex;
+  gap: 4px;
+}
+
+.view-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #dee2e6;
+  background: #f8f9fa;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.view-btn.active,
+.view-btn:hover {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.filter-input,
+.filter-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 14px;
+  background: #fff;
+  transition: border-color 0.2s;
+}
+
+.filter-input:focus,
+.filter-select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.checkbox-group {
+  margin: 10px 0;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+.checkbox-label input[type="checkbox"] {
+  display: none;
+}
+
+.checkbox-label .checkmark {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #dee2e6;
+  border-radius: 4px;
+  background: #fff;
+  flex-shrink: 0;
+  margin-top: 1px;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.checkbox-label input[type="checkbox"]:checked + .checkmark {
+  background: #007bff;
+  border-color: #007bff;
+}
+
+.checkbox-label input[type="checkbox"]:checked + .checkmark::after {
+  content: "✓";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.btn-apply {
+  flex: 1;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-apply:hover {
+  background: #218838;
+}
+
+.btn-clear {
+  background: transparent;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-clear:hover {
+  background: #f8f9fa;
+  color: #495057;
+}
+
+/* Main Content Area */
+.agendamentos-main {
+  flex: 1;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Date Navigation */
+.date-navigation {
+  background: #f8f9fa;
+  padding: 20px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.date-picker {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.date-nav-btn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #dee2e6;
+  background: white;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.date-nav-btn:hover {
+  background: #e9ecef;
+}
+
+.current-date {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  min-width: 200px;
+  text-align: center;
+}
+
+/* Top row that groups the small controls and the date picker */
+.date-top-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-content: flex-start;
+  margin-bottom: 8px;
+}
+
+.date-top-row .mini-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Status badges dentro da lista de agendamentos */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: none;
+  cursor: pointer;
+  user-select: none;
+  min-width: 110px;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.status-badge.status-agendado {
+  background: #495057;
+  color: #fff;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06) inset;
+}
+
+.status-badge.status-check-in {
+  background: #1e88e5;
+  color: #fff;
+}
+
+.status-badge.status-pronto {
+  background: #7b1fa2;
+  color: #fff;
+}
+
+.status-badge.status-check-out {
+  background: #2e7d32;
+  color: #fff;
+}
+
+.status-badge.status-cancelado {
+  background: #c12b2b;
+  color: #fff;
+}
+
+/* pequeno ponto antes do texto para o estilo 'agendado' (como no exemplo) */
+.status-badge.status-agendado::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  border-radius: 50%;
+  display: inline-block;
+  margin-left: -6px;
+}
+
+/* Menu de opções ao clicar no status */
+.status-menu {
+  position: absolute;
+  background: #fff;
+  border: 1px solid #e6e6e6;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  border-radius: 6px;
+  z-index: 9999;
+  min-width: 160px;
+  padding: 6px 0;
+}
+.status-menu .item {
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #333;
+}
+.status-menu .item:hover {
+  background: #f5f5f5;
+}
+
+.mini-controls .btn-refresh {
+  padding: 8px 12px;
+  font-size: 14px;
+  border-radius: 6px;
+}
+
+.mini-controls .btn-calendar {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #dee2e6;
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mini-controls .btn-calendar:hover {
+  background: white !important;
+  border-color: #dee2e6 !important;
+  color: inherit !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.mini-controls .view-toggle .view-btn {
+  width: 36px;
+  height: 36px;
+}
+
+/* Reduce bottom margin of original date-picker when inside the top row */
+.date-top-row .date-picker {
+  margin-bottom: 0;
+}
+
+.view-buttons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.view-period-btn {
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.view-period-btn.active,
+.view-period-btn:hover:not(.view-period-disabled):not([disabled]) {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+/* Botões de período desabilitados (não clicáveis) — tom um pouco mais escuro */
+.view-period-btn.view-period-disabled,
+.view-period-btn[disabled] {
+  background: #eceff1 !important;
+  color: #333 !important;
+  border-color: #d0d5d9 !important;
+  cursor: default !important;
+  opacity: 1 !important;
+  pointer-events: none;
+}
+
+.view-period-btn.view-period-disabled:hover,
+.view-period-btn[disabled]:hover {
+  background: #eceff1 !important;
+  color: #333 !important;
+  border-color: #d0d5d9 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.status-filters {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.status-label {
+  font-weight: 600;
+  color: #333;
+}
+
+.status-tags {
+  display: flex;
+  gap: 8px;
+}
+
+.status-tag {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 2px solid transparent;
+}
+
+/* Estilo para tags ativas - borda mais grossa e destacada */
+.status-tag.active {
+  border-width: 3px;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.status-tag.status-agendado {
+  background: #424242;
+  color: white;
+}
+
+.status-tag.status-agendado.active {
+  border-color: #bdbdbd;
+}
+
+.status-tag.status-checkin {
+  /* Check-in: azul suave (fundo claro) com texto azul */
+  background: #e3f2fd;
+  color: #1e88e5;
+}
+
+.status-tag.status-checkin.active {
+  border-color: #1e88e5;
+}
+
+.status-tag.status-pronto {
+  /* Pronto: roxo */
+  background: #f3e5f5;
+  color: #6a1b9a;
+}
+
+.status-tag.status-pronto.active {
+  border-color: #6a1b9a;
+}
+
+.status-tag.status-checkout {
+  /* Check-out: verde */
+  background: #e8f5e8;
+  color: #2e7d32;
+}
+
+.status-tag.status-checkout.active {
+  border-color: #2e7d32;
+}
+
+.status-tag.status-cancelado {
+  /* Cancelado: cinza escuro */
+  background: #c12b2b;
+  color: white;
+}
+
+.status-tag.status-cancelado.active {
+  /* Borda cinza claro para ser visível no fundo escuro */
+  border-color: #421212;
+}
+
+.btn-filter {
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-filter:hover {
+  background: #0056b3;
+}
+
+/* Table */
+.agendamentos-table-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  /* Forçar altura relativa à viewport para garantir scroll consistente mesmo com zoom */
+  height: calc(100vh - 220px);
+  max-height: calc(100vh - 80px);
+  min-height: 0;
+}
+
+.table-header {
+  display: flex;
+  align-items: center;
+  background: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  padding: 15px 20px;
+}
+
+.table-controls {
+  width: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.table-columns {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 100px 2fr 1.5fr 150px 120px 130px 100px;
+  gap: 20px;
+  align-items: center;
+}
+
+.column-header {
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.table-body {
+  flex: 1;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  /* Espaço extra no fim para o último item não ficar encoberto por bordas/rodapé */
+  padding-bottom: 64px;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding: 40px;
+  color: #6c757d;
+}
+
+.empty-state i {
+  font-size: 48px;
+  margin-bottom: 20px;
+  color: #dee2e6;
+}
+
+.empty-state h3 {
+  margin: 0 0 10px 0;
+  font-size: 20px;
+  color: #495057;
+}
+
+.empty-state p {
+  margin: 0 0 30px 0;
+  font-size: 16px;
+}
+
+/* Modal Styles */
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+  background-color: white;
+  margin: 5% auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  animation: slideIn 0.3s ease;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-large {
+  width: 90%;
+  max-width: 800px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 20px;
+  color: #333;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #6c757d;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close:hover {
+  color: #000;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 20px;
+  border-top: 1px solid #dee2e6;
+  background: #f8f9fa;
+}
+
+.form-row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.form-group {
+  flex: 1;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 14px;
+  background: #fff;
+  transition: border-color 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .agendamentos-container {
+    flex-direction: column;
+  }
+
+  .filters-sidebar {
+    width: 100%;
+    max-height: 300px;
+  }
+
+  .table-columns {
+    grid-template-columns: 80px 1fr 1fr 80px 80px 80px 80px;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .agendamentos-container {
+    padding: 10px;
+  }
+
+  .date-picker {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .current-date {
+    text-align: left;
+    min-width: auto;
+  }
+
+  .view-buttons {
+    justify-content: center;
+  }
+
+  .status-filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .table-columns {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .column-header {
+    display: none;
+  }
+
+  .form-row {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .modal-content {
+    width: 95%;
+    margin: 2% auto;
+  }
+}
+
+/* Botão pequeno para área vazia */
+.btn-primary-small {
+  background: #27ae60 !important;
+  color: white !important;
+  border: none !important;
+  padding: 6px 12px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  font-weight: 500 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  transition: background-color 0.3s ease !important;
+  font-size: 13px !important;
+  max-width: 160px !important;
+  margin: 0 auto !important;
+}
+
+.btn-primary-small:hover {
+  background: #229954 !important;
+}
+
+/* Sidebar para Novo Agendamento */
+.agendamento-sidebar {
+  position: fixed;
+  top: 0;
+  right: -500px;
+  width: 500px;
+  height: 100vh;
+  background: white;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  transition: right 0.3s ease;
+  overflow-y: auto;
+}
+
+.agendamento-sidebar.open {
+  right: 0;
+}
+
+.sidebar-header {
+  padding: 20px;
+  background: #2c5aa0;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-header h3 {
+  margin: 0;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-close-sidebar {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.btn-close-sidebar:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-content {
+  padding: 20px;
+}
+
+.agendamento-form .form-group {
+  margin-bottom: 20px;
+}
+
+.agendamento-form .form-row {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.agendamento-form .form-row .form-group {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.agendamento-form label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.agendamento-form .form-control {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 14px;
+  background: #fff;
+  transition: border-color 0.2s;
+}
+
+.agendamento-form .form-control:focus {
+  outline: none;
+  border-color: #2c5aa0;
+  box-shadow: 0 0 0 2px rgba(44, 90, 160, 0.25);
+}
+
+.agendamento-form textarea.form-control {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* Search Container */
+.search-container {
+  position: relative;
+}
+
+.search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1001;
+  display: none;
+}
+
+.search-results.show {
+  display: block;
+}
+
+.search-result-item {
+  padding: 10px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s;
+}
+
+.search-result-item:hover {
+  background: #f8f9fa;
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.search-result-name {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 2px;
+}
+
+.search-result-details {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+/* Selected Info */
+.selected-info {
+  margin-top: 8px;
+  padding: 10px;
+  background: #e3f2fd;
+  border-radius: 6px;
+  border: 1px solid #bbdefb;
+  display: none;
+}
+
+.selected-info.show {
+  display: block;
+}
+
+.selected-pet-name {
+  font-weight: 600;
+  color: #1976d2;
+  margin-bottom: 4px;
+}
+
+.selected-pet-details {
+  font-size: 12px;
+  color: #666;
+}
+
+/* Form Actions */
+.form-actions {
+  padding: 20px 0 0 0;
+  border-top: 1px solid #e9ecef;
+  display: flex;
+  gap: 15px;
+  justify-content: flex-end;
+  margin-top: 30px;
+}
+
+.form-actions .btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-actions .btn-primary {
+  background: #2c5aa0;
+  color: white;
+}
+
+.form-actions .btn-primary:hover {
+  background: #1e3d72;
+}
+
+.form-actions .btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.form-actions .btn-secondary:hover {
+  background: #545b62;
+}
+
+/* Overlay */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  opacity: 0;
+  visibility: hidden;
+  display: none;
+  transition: all 0.3s ease;
+}
+
+.sidebar-overlay.show {
+  opacity: 1;
+  visibility: visible;
+  display: block;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .agendamento-sidebar {
+    width: 100%;
+    right: -100%;
+  }
+
+  .agendamento-form .form-row {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .sidebar-header {
+    padding: 15px;
+  }
+
+  .sidebar-content {
+    padding: 15px;
+  }
+}
+
+/* Botão Novo Agendamento no filtro */
+.status-filters .btn-primary {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 15px;
+}
+
+.status-filters .btn-primary:hover {
+  background: #218838;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* ========================================
+   NOVO AGENDAMENTO - FORMULÁRIO SIMPLIFICADO
+   ======================================== */
+
+/* Container de busca */
+.search-container {
+  position: relative;
+}
+
+.search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  display: none;
+  margin-top: 2px;
+}
+
+.search-result-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.search-result-item:hover {
+  background: var(--bg-gray-100);
+}
+
+.result-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.result-main strong {
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.result-type {
+  background: var(--primary-blue);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.result-price {
+  color: var(--success-green);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.result-details {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.search-no-results {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* Item selecionado */
+.selected-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-gray-100);
+  border-radius: 6px;
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.selected-item i {
+  color: var(--primary-blue);
+}
+
+/* Link "Salvar e adicionar outro" */
+.link-save-add {
+  color: var(--primary-blue);
+  text-decoration: none;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0;
+  transition: all 0.2s ease;
+}
+
+.link-save-add:hover {
+  color: var(--primary-blue-hover);
+  text-decoration: underline;
+}
+
+.link-save-add i {
+  font-size: 12px;
+}
+
+/* Botão "VER MAIS" */
+.btn-ver-mais {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.btn-ver-mais:hover {
+  color: var(--primary-blue);
+}
+
+.btn-ver-mais i {
+  transition: transform 0.3s ease;
+}
+
+.btn-ver-mais.expanded i {
+  transform: rotate(180deg);
+}
+
+/* Campos extras (inicialmente ocultos) */
+.campos-extras {
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: all 0.4s ease;
+  margin-top: 0;
+}
+
+.campos-extras.show {
+  opacity: 1;
+  max-height: 1000px;
+  margin-top: 15px;
+}
+
+/* Botões de ação reorganizados */
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-light);
+  flex-wrap: wrap;
+}
+
+.form-actions .btn {
+  flex: 1;
+  min-width: 120px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.form-actions .btn-secondary {
+  background: var(--bg-gray-200);
+  color: var(--text-primary);
+  border: 1px solid var(--border-light);
+}
+
+.form-actions .btn-secondary:hover {
+  background: var(--bg-gray-300);
+  transform: translateY(-1px);
+}
+
+.form-actions .btn-success {
+  background: var(--success-green);
+  color: white;
+}
+
+.form-actions .btn-success:hover {
+  background: var(--success-green-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+.form-actions .btn-primary {
+  background: var(--primary-blue);
+  color: white;
+}
+
+.form-actions .btn-primary:hover {
+  background: var(--primary-blue-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+/* Responsividade para botões em telas menores */
+@media (max-width: 768px) {
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions .btn {
+    flex: none;
+    width: 100%;
+  }
+}
+
+/* Botão de exclusão */
+.btn-danger {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.3s ease;
+}
+
+.btn-danger:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+}
+
+.btn-danger i {
+  font-size: 12px;
+}
+
+/* Status Dropdown Styles */
+.status-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.status-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 24px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  transition: all 0.18s ease;
+  min-width: 120px;
+  justify-content: center;
+}
+
+.status-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-arrow {
+  font-size: 10px;
+  transition: transform 0.2s ease;
+}
+
+.status-button:hover .status-arrow {
+  transform: rotate(180deg);
+}
+
+/* Status Colors - Agendado (Cinza) */
+.status-agendado {
+  background-color: #6c757d;
+  color: white;
+  padding-left: 18px;
+  padding-right: 18px;
+}
+
+.status-agendado .status-dot {
+  background-color: white;
+}
+
+/* Status Colors - Check-in (Azul) */
+.status-checkin {
+  background-color: #007bff;
+  color: white;
+}
+
+.status-checkin .status-dot {
+  background-color: white;
+}
+
+/* Status Colors - Pronto (Roxo) */
+.status-pronto {
+  background-color: #6f42c1;
+  color: white;
+}
+
+.status-pronto .status-dot {
+  background-color: white;
+}
+
+/* Status Colors - Check-out (Verde) */
+.status-checkout {
+  background-color: #28a745;
+  color: white;
+}
+
+.status-checkout .status-dot {
+  background-color: white;
+}
+
+/* Status Colors - Cancelado (Cinza escuro) */
+.status-cancelado {
+  background-color: #495057;
+  color: white;
+}
+
+.status-cancelado .status-dot {
+  background-color: white;
+}
+
+/* Status Menu */
+.status-menu {
+  display: block;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1000;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: 8px 0;
+  min-width: 140px;
+  margin-top: 4px;
+}
+
+.status-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 15px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.status-option:hover {
+  background-color: #f8f9fa;
+}
+
+/* Status Option Colors */
+.status-option.status-agendado {
+  color: #6c757d;
+  background: transparent;
+}
+
+.status-option.status-agendado .status-dot {
+  background-color: #6c757d;
+}
+
+.status-option.status-checkin {
+  color: #bdbdbd;
+  background: transparent;
+}
+
+.status-option.status-checkin .status-dot {
+  background-color: #007bff;
+}
+
+.status-option.status-pronto {
+  color: #6f42c1;
+  background: transparent;
+}
+
+.status-option.status-pronto .status-dot {
+  background-color: #6f42c1;
+}
+
+.status-option.status-checkout {
+  color: #28a745;
+  background: transparent;
+}
+
+.status-option.status-checkout .status-dot {
+  background-color: #28a745;
+}
+
+.status-option.status-cancelado {
+  color: #495057;
+  background: transparent;
+}
+
+.status-option.status-cancelado .status-dot {
+  background-color: #495057;
+}
+
+/* Estilos para colunas de agendamento */
+.agendamento-valor {
+  text-align: left;
+  font-weight: 600;
+  color: #28a745;
+}
+
+.agendamento-horario {
+  text-align: center;
+  font-weight: 500;
+}
+
+.agendamento-profissional {
+  text-align: left;
+}
+
+.agendamento-situacao {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+/* Grid layout para as colunas do agendamento */
+.agendamento-columns {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 100px 2fr 1.5fr 150px 120px 130px 100px;
+  gap: 20px;
+  align-items: center;
+}
+
+/* Todas as células do grid devem respeitar o min-width:0 para não estourar */
+.agendamento-columns > * {
+  min-width: 0;
+}
+
+/* Coluna de detalhes/observação cresce verticalmente */
+.agendamento-detalhes {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  align-self: start; /* garante que a célula cresça com o conteúdo em vez de ser centralizada verticalmente */
+}
+
+.agendamento-detalhes .agendamento-observacao,
+.agendamento-detalhes .agendamento-pet-observacao {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  display: block;
+  width: 100%;
+}
+
+/* Actions shown to the right of the status in each row */
+.agendamento-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.action-btn {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #6c757d;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    transform 0.12s;
+}
+
+.action-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+  transform: translateY(-1px);
+}
+
+.action-location {
+  color: #3a9ad9;
+}
+.action-export {
+  color: #2ca33a;
+}
+.action-menu {
+  color: #999;
+}
+/* A��es dos agendamentos (�cones no final da linha) */
+.agendamento-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 12px;
+}
+
+.agendamento-actions .action-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  color: #666;
+  font-size: 16px;
+  width: 32px;
+  height: 32px;
+}
+
+.agendamento-actions .action-icon:hover {
+  background: rgba(0, 0, 0, 0.05);
+  transform: scale(1.1);
+}
+
+.agendamento-actions .action-icon:first-child {
+  color: #3a9ad9;
+}
+
+.agendamento-actions .action-icon:nth-child(2) {
+  color: #2ca33a;
+}
+
+.agendamento-actions .action-icon:last-child {
+  color: #999;
+}
+
+/* Cabeçalho de seção por data (linha cinza) */
+.agendamento-section {
+  margin-bottom: 8px;
+}
+.agendamento-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #e9edf0;
+  color: #2f3a3f;
+  padding: 10px 14px;
+  font-weight: 700;
+  border: 1px solid #d7dfe3;
+  border-radius: 6px 6px 0 0;
+}
+.agendamento-section-header .section-date {
+  font-size: 14px;
+}
+.agendamento-section-header .section-count {
+  color: #6c757d;
+  font-weight: 600;
+}
+.agendamento-section-body {
+  border-left: 1px solid #e9ecef;
+  border-right: 1px solid #e9ecef;
+  border-bottom: 1px solid #e9ecef;
+  border-radius: 0 0 6px 6px;
+}
+
+/* Cabeçalho de seção por data (linha cinza) */
+.agendamento-section {
+  margin-bottom: 8px;
+}
+.agendamento-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #e9edf0;
+  color: #2f3a3f;
+  padding: 10px 14px;
+  font-weight: 700;
+  border: 1px solid #d7dfe3;
+  border-radius: 6px 6px 0 0;
+}
+.agendamento-section-header .section-date {
+  font-size: 14px;
+}
+.agendamento-section-header .section-count {
+  color: #6c757d;
+  font-weight: 600;
+}
+.agendamento-section-body {
+  border-left: 1px solid #e9ecef;
+  border-right: 1px solid #e9ecef;
+  border-bottom: 1px solid #e9ecef;
+  border-radius: 0 0 6px 6px;
+}

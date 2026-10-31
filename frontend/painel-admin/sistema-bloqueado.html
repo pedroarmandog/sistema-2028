@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema Bloqueado - PetHub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    /* ===== RESET & BASE ===== */
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #0B1533;
+      color: #fff;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ===== CANVAS BACKGROUND ===== */
+    #particles-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ===== TECH LINES SVG OVERLAY ===== */
+    .tech-lines {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0.15;
+    }
+
+    /* ===== BACKGROUND GLOW ORBS ===== */
+    .bg-orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .bg-orb--1 {
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.2), transparent 70%);
+      top: -150px;
+      left: -150px;
+      animation: orbFloat1 12s ease-in-out infinite alternate;
+    }
+    .bg-orb--2 {
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(139, 92, 246, 0.15), transparent 70%);
+      bottom: -100px;
+      right: -100px;
+      animation: orbFloat2 15s ease-in-out infinite alternate;
+    }
+    .bg-orb--3 {
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(6, 182, 212, 0.12), transparent 70%);
+      top: 40%;
+      right: 30%;
+      animation: orbFloat3 10s ease-in-out infinite alternate;
+    }
+
+    @keyframes orbFloat1 {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(60px, 40px) scale(1.1); }
+    }
+    @keyframes orbFloat2 {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(-40px, -30px) scale(1.15); }
+    }
+    @keyframes orbFloat3 {
+      0% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+      100% { transform: translate(30px, -20px) scale(1.2); opacity: 1; }
+    }
+
+    /* ===== MAIN WRAPPER ===== */
+    .main-wrapper {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 32px 48px;
+      gap: 28px;
+    }
+
+    /* ===== TWO COLUMN LAYOUT ===== */
+    .content-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      max-width: 1360px;
+      width: 100%;
+      flex: 1;
+      align-items: center;
+      margin: 0 auto;
+    }
+
+    /* ===== LEFT COLUMN - MASCOT ===== */
+    .mascot-col {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      min-height: 500px;
+    }
+
+    /* Floating decorative elements */
+    .float-icon {
+      position: absolute;
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: rgba(255, 255, 255, 0.7);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      animation: floatItem 6s ease-in-out infinite;
+      z-index: 3;
+    }
+    .float-icon--1 { top: 8%; left: 5%; animation-delay: 0s; }
+    .float-icon--2 { top: 15%; right: 8%; animation-delay: 1.2s; }
+    .float-icon--3 { bottom: 22%; left: 3%; animation-delay: 2.4s; }
+    .float-icon--4 { bottom: 10%; right: 5%; animation-delay: 0.6s; }
+    .float-icon--5 { top: 45%; left: 2%; animation-delay: 1.8s; }
+
+    @keyframes floatItem {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-14px); }
+    }
+
+    /* Glow rings behind mascot */
+    .mascot-glow-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid rgba(59, 130, 246, 0.1);
+      animation: ringPulse 4s ease-in-out infinite;
+    }
+    .mascot-glow-ring--1 {
+      width: 380px;
+      height: 380px;
+      animation-delay: 0s;
+    }
+    .mascot-glow-ring--2 {
+      width: 300px;
+      height: 300px;
+      animation-delay: 1s;
+      border-color: rgba(139, 92, 246, 0.08);
+    }
+    .mascot-glow-ring--3 {
+      width: 220px;
+      height: 220px;
+      animation-delay: 2s;
+      border-color: rgba(6, 182, 212, 0.08);
+    }
+
+    @keyframes ringPulse {
+      0%, 100% { transform: scale(1); opacity: 0.5; }
+      50% { transform: scale(1.06); opacity: 1; }
+    }
+
+    /* Main mascot wrapper */
+    .mascot-wrapper {
+      position: relative;
+      z-index: 4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    .mascot-image {
+      width: 100%;
+      height: auto;
+      max-height: 75vh;
+      object-fit: contain;
+      filter: drop-shadow(0 20px 60px rgba(0, 0, 0, 0.4));
+      animation: mascotBreathe 5s ease-in-out infinite;
+    }
+
+    @keyframes mascotBreathe {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.01); }
+    }
+
+    /* Smartphone overlay */
+    .phone-overlay {
+      position: absolute;
+      z-index: 5;
+      width: 28%;
+      bottom: 26%;
+      right: 10%;
+      pointer-events: none;
+    }
+
+    .phone-frame {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 9 / 16;
+      background: #1a1a2e;
+      border-radius: 10px;
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 6px;
+      overflow: hidden;
+    }
+
+    .phone-screen {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #0a0a1a, #1a1a2e);
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      position: relative;
+    }
+
+    .phone-x-icon {
+      font-size: 28px;
+      color: #ef4444;
+      animation: xPulse 1.8s ease-in-out infinite;
+      filter: drop-shadow(0 0 12px rgba(239, 68, 68, 0.5));
+    }
+
+    .phone-text {
+      font-family: 'Inter', sans-serif;
+      font-weight: 800;
+      font-size: 9px;
+      letter-spacing: 0.5px;
+      text-align: center;
+      line-height: 1.1;
+      color: #ef4444;
+      text-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+      animation: xPulse 1.8s ease-in-out infinite;
+    }
+
+    @keyframes xPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(0.92); }
+    }
+
+    .phone-notch {
+      position: absolute;
+      top: 4px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 30%;
+      height: 4px;
+      background: #222;
+      border-radius: 4px;
+    }
+
+    /* ===== RIGHT COLUMN - CARD ===== */
+    .card-col {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+    }
+
+    .glass-card {
+      width: 100%;
+      max-width: 560px;
+      padding: 44px 40px;
+      background: rgba(255, 255, 255, 0.035);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-radius: 28px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .glass-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle at 30% 20%, rgba(59, 130, 246, 0.04), transparent 60%);
+      pointer-events: none;
+    }
+
+    .glass-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 28px 90px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    }
+
+    /* Lock icon */
+    .lock-icon-wrapper {
+      width: 72px;
+      height: 72px;
+      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05));
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    .lock-icon-wrapper i {
+      font-size: 32px;
+      color: #ef4444;
+      filter: drop-shadow(0 0 20px rgba(239, 68, 68, 0.3));
+    }
+
+    .lock-icon-wrapper::after {
+      content: '';
+      position: absolute;
+      inset: -4px;
+      border-radius: 24px;
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), transparent);
+      z-index: -1;
+    }
+
+    /* Titles */
+    .title-main {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-weight: 700;
+      font-size: 36px;
+      line-height: 1.15;
+      margin-bottom: 16px;
+      letter-spacing: -0.5px;
+    }
+
+    .title-main .highlight-red {
+      color: #ef4444;
+      position: relative;
+    }
+
+    .title-main .highlight-red::after {
+      content: '';
+      position: absolute;
+      bottom: 2px;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, #ef4444, transparent);
+      border-radius: 2px;
+    }
+
+    /* Description */
+    .description-text {
+      font-size: 15px;
+      line-height: 1.7;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 24px;
+      font-weight: 400;
+    }
+
+    .description-text strong {
+      color: rgba(255, 255, 255, 0.85);
+      font-weight: 600;
+    }
+
+    /* Info box */
+    .info-box {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .info-box i {
+      font-size: 16px;
+      color: #f59e0b;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    .info-box p {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.55);
+      line-height: 1.6;
+    }
+
+    /* Buttons */
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 16px 24px;
+      border-radius: 14px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 15px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+      text-decoration: none;
+      color: #fff;
+    }
+
+    .btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
+      pointer-events: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #dc2626, #b91c1c);
+      box-shadow: 0 4px 20px rgba(220, 38, 38, 0.3);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(220, 38, 38, 0.4);
+    }
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .btn-secondary {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      box-shadow: 0 4px 20px rgba(37, 99, 235, 0.25);
+    }
+    .btn-secondary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(37, 99, 235, 0.35);
+    }
+    .btn-secondary:active {
+      transform: translateY(0);
+    }
+
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.7);
+      font-weight: 500;
+      padding: 12px 20px;
+      font-size: 14px;
+    }
+    .btn-ghost:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.15);
+      color: #fff;
+    }
+
+    /* Email */
+    .email-row {
+      text-align: center;
+      margin: 6px 0 16px;
+    }
+
+    .email-row a {
+      color: rgba(255, 255, 255, 0.5);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s;
+      letter-spacing: 0.3px;
+    }
+
+    .email-row a:hover {
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .email-row i {
+      margin-right: 6px;
+      font-size: 13px;
+    }
+
+    /* Divider */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+      margin: 8px 0 18px;
+    }
+
+    /* ===== FOOTER CARDS ===== */
+    .footer-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      max-width: 1360px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .footer-card {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      transition: all 0.3s ease;
+    }
+
+    .footer-card:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .footer-card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: rgba(59, 130, 246, 0.08);
+      border: 1px solid rgba(59, 130, 246, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .footer-card:nth-child(1) .footer-card-icon { color: #3b82f6; }
+    .footer-card:nth-child(2) .footer-card-icon { color: #f59e0b; }
+    .footer-card:nth-child(3) .footer-card-icon { color: #10b981; }
+
+    .footer-card-text {
+      font-size: 13px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.6);
+      line-height: 1.4;
+    }
+
+    .footer-card-text strong {
+      color: rgba(255, 255, 255, 0.85);
+      font-weight: 600;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 1024px) {
+      .content-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+      .mascot-col {
+        min-height: 300px;
+      }
+      .mascot-image {
+        max-height: 40vh;
+      }
+      .card-col {
+        padding: 0 16px;
+      }
+      .glass-card {
+        padding: 32px 24px;
+      }
+      .footer-cards {
+        grid-template-columns: 1fr;
+      }
+      .main-wrapper {
+        padding: 16px 20px;
+        overflow-y: auto;
+      }
+      html, body {
+        overflow-y: auto;
+      }
+      .title-main {
+        font-size: 28px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .glass-card {
+        padding: 24px 16px;
+        border-radius: 20px;
+      }
+      .title-main {
+        font-size: 24px;
+      }
+      .lock-icon-wrapper {
+        width: 56px;
+        height: 56px;
+      }
+      .lock-icon-wrapper i {
+        font-size: 24px;
+      }
+      .btn {
+        padding: 14px 20px;
+        font-size: 14px;
+      }
+      .float-icon {
+        width: 36px;
+        height: 36px;
+        font-size: 14px;
+      }
+      .footer-card {
+        padding: 14px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Background Canvas -->
+  <canvas id="particles-canvas"></canvas>
+
+  <!-- Tech Lines SVG -->
+  <svg class="tech-lines" viewBox="0 0 1920 1080" preserveAspectRatio="none">
+    <defs>
+      <pattern id="techGrid" width="80" height="80" patternUnits="userSpaceOnUse">
+        <path d="M 80 0 L 0 0 0 80" fill="none" stroke="rgba(59, 130, 246, 0.12)" stroke-width="0.5"/>
+      </pattern>
+      <pattern id="techGrid2" width="160" height="160" patternUnits="userSpaceOnUse">
+        <path d="M 160 0 L 0 0 0 160" fill="none" stroke="rgba(139, 92, 246, 0.06)" stroke-width="0.5"/>
+      </pattern>
+    </defs>
+    <rect width="100%" height="100%" fill="url(#techGrid)" />
+    <rect width="100%" height="100%" fill="url(#techGrid2)" />
+    <!-- Diagonal tech lines -->
+    <line x1="0" y1="0" x2="400" y2="400" stroke="rgba(59, 130, 246, 0.04)" stroke-width="1"/>
+    <line x1="1920" y1="0" x2="1520" y2="400" stroke="rgba(59, 130, 246, 0.04)" stroke-width="1"/>
+    <line x1="0" y1="1080" x2="500" y2="580" stroke="rgba(139, 92, 246, 0.04)" stroke-width="1"/>
+    <line x1="1920" y1="1080" x2="1420" y2="580" stroke="rgba(139, 92, 246, 0.04)" stroke-width="1"/>
+    <line x1="960" y1="0" x2="960" y2="1080" stroke="rgba(59, 130, 246, 0.03)" stroke-width="0.5"/>
+    <line x1="0" y1="540" x2="1920" y2="540" stroke="rgba(59, 130, 246, 0.03)" stroke-width="0.5"/>
+  </svg>
+
+  <!-- Background Orbs -->
+  <div class="bg-orb bg-orb--1"></div>
+  <div class="bg-orb bg-orb--2"></div>
+  <div class="bg-orb bg-orb--3"></div>
+
+  <!-- Main Content -->
+  <div class="main-wrapper">
+    <!-- Two Column Grid -->
+    <div class="content-grid">
+      <!-- LEFT COLUMN - Mascot -->
+      <div class="mascot-col">
+        <!-- Glow rings -->
+        <div class="mascot-glow-ring mascot-glow-ring--1"></div>
+        <div class="mascot-glow-ring mascot-glow-ring--2"></div>
+        <div class="mascot-glow-ring mascot-glow-ring--3"></div>
+
+        <!-- Floating icons -->
+        <div class="float-icon float-icon--1"><i class="fas fa-lock"></i></div>
+        <div class="float-icon float-icon--2"><i class="fas fa-credit-card"></i></div>
+        <div class="float-icon float-icon--3"><i class="fas fa-shield-halved"></i></div>
+        <div class="float-icon float-icon--4"><i class="fas fa-triangle-exclamation"></i></div>
+        <div class="float-icon float-icon--5"><i class="fas fa-coins"></i></div>
+
+        <!-- Mascot -->
+        <div class="mascot-wrapper">
+          <img
+            class="mascot-image"
+src="../../mascote pethub/acesso-negado.png"
+            alt="Mascote PetHub"
+            draggable="false"
+          />
+
+          <!-- Smartphone overlay -->
+          <!-- <div class="phone-overlay">
+            <div class="phone-frame">
+              <div class="phone-screen">
+                <div class="phone-notch"></div>
+                <div class="phone-x-icon"><i class="fas fa-xmark"></i></div>
+                 <div class="phone-text">ACESSO<br/>NEGADO</div>
+              </div>
+            </div>
+          </div> --> 
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN - Glass Card -->
+      <div class="card-col">
+        <div class="glass-card">
+          <!-- Lock Icon -->
+          <div class="lock-icon-wrapper">
+            <i class="fas fa-lock"></i>
+          </div>
+
+          <!-- Title -->
+          <h1 class="title-main">
+            Sistema <span class="highlight-red">Bloqueado</span>
+          </h1>
+
+          <!-- Description -->
+          <p class="description-text">
+            Seu acesso ao sistema foi <strong>bloqueado por falta de pagamento</strong>.<br />
+            Para regularizar sua situação e reativar o acesso, entre em contato com nossa equipe.
+          </p>
+
+          <!-- Info Box -->
+          <div class="info-box">
+            <i class="fas fa-circle-info"></i>
+            <p>Mesmo com login e senha corretos, o acesso permanecerá bloqueado até a regularização.</p>
+          </div>
+
+          <!-- Buttons -->
+          <div class="btn-group">
+            <a href="https://wa.me/5527998538741?text=Ol%C3%A1%2C%20gostaria%20de%20regularizar%20o%20pagamento%20do%20meu%20sistema%20PetHub%20e%20reativar%20meu%20acesso.%20Pode%20me%20ajudar%3F" target="_blank" class="btn btn-primary">
+              <i class="fas fa-credit-card"></i>
+              Regularizar pagamento
+            </a>
+            <a href="https://wa.me/5527998538741?text=Ol%C3%A1%2C%20preciso%20falar%20com%20o%20suporte%20sobre%20o%20bloqueio%20do%20meu%20sistema%20PetHub.%20Pode%20me%20ajudar%3F" target="_blank" class="btn btn-secondary">
+              <i class="fas fa-headset"></i>
+              Falar com suporte
+            </a>
+          </div>
+
+          <!-- Email -->
+          <div class="email-row">
+            <a href="mailto:pethub@gmail.com">
+              <i class="fas fa-envelope"></i>
+              pethub@gmail.com
+            </a>
+          </div>
+
+          <div class="divider"></div>
+
+          <!-- Back to Login -->
+          <a href="../../login/login.html" class="btn btn-ghost" style="width:100%;">
+            <i class="fas fa-arrow-left"></i>
+            Voltar ao Login
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Cards -->
+    <div class="footer-cards">
+      <div class="footer-card">
+        <div class="footer-card-icon"><i class="fas fa-shield-halved"></i></div>
+        <div class="footer-card-text">
+          <strong>Seus dados continuam seguros</strong><br />
+          Criptografia e proteção mantidas
+        </div>
+      </div>
+      <div class="footer-card">
+        <div class="footer-card-icon"><i class="fas fa-bolt"></i></div>
+        <div class="footer-card-text">
+          <strong>Reativação imediata</strong><br />
+          Após confirmação do pagamento
+        </div>
+      </div>
+      <div class="footer-card">
+        <div class="footer-card-icon"><i class="fas fa-message"></i></div>
+        <div class="footer-card-text">
+          <strong>Suporte especializado</strong><br />
+          Disponível para ajudar você
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== JAVASCRIPT ===== -->
+  <script>
+    // ===== PARTICLES SYSTEM =====
+    (function initParticles() {
+      const canvas = document.getElementById('particles-canvas');
+      const ctx = canvas.getContext('2d');
+      let particles = [];
+      let mouseX = -1000;
+      let mouseY = -1000;
+      let animationId;
+
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+
+      window.addEventListener('resize', resize);
+      resize();
+
+      class Particle {
+        constructor() {
+          this.reset();
+        }
+
+        reset() {
+          this.x = Math.random() * canvas.width;
+          this.y = Math.random() * canvas.height;
+          this.size = Math.random() * 2.2 + 0.4;
+          this.speedX = (Math.random() - 0.5) * 0.3;
+          this.speedY = (Math.random() - 0.5) * 0.3;
+          this.opacity = Math.random() * 0.5 + 0.1;
+          this.pulseSpeed = Math.random() * 0.02 + 0.005;
+          this.pulsePhase = Math.random() * Math.PI * 2;
+          this.color = this.randomColor();
+        }
+
+        randomColor() {
+          const colors = [
+            '59, 130, 246',   // blue
+            '139, 92, 246',   // purple
+            '6, 182, 212',    // cyan
+            '99, 102, 241',   // indigo
+            '168, 85, 247',   // violet
+          ];
+          return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        update() {
+          // Mouse interaction - gentle push away
+          const dx = this.x - mouseX;
+          const dy = this.y - mouseY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 120) {
+            const force = (120 - dist) / 120;
+            this.speedX += (dx / dist) * force * 0.02;
+            this.speedY += (dy / dist) * force * 0.02;
+          }
+
+          // Damping
+          this.speedX *= 0.99;
+          this.speedY *= 0.99;
+
+          this.x += this.speedX;
+          this.y += this.speedY;
+
+          // Wrap around edges
+          if (this.x < -10) this.x = canvas.width + 10;
+          if (this.x > canvas.width + 10) this.x = -10;
+          if (this.y < -10) this.y = canvas.height + 10;
+          if (this.y > canvas.height + 10) this.y = -10;
+
+          // Pulse opacity
+          this.pulsePhase += this.pulseSpeed;
+        }
+
+        draw() {
+          const pulse = Math.sin(this.pulsePhase) * 0.3 + 0.7;
+          const alpha = this.opacity * pulse;
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${this.color}, ${alpha})`;
+          ctx.fill();
+
+          // Glow for larger particles
+          if (this.size > 1.5) {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size * 3, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${this.color}, ${alpha * 0.08})`;
+            ctx.fill();
+          }
+        }
+      }
+
+      // Create particle connections
+      function drawConnections() {
+        for (let i = 0; i < particles.length; i++) {
+          for (let j = i + 1; j < particles.length; j++) {
+            const dx = particles[i].x - particles[j].x;
+            const dy = particles[i].y - particles[j].y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 120) {
+              const alpha = (1 - dist / 120) * 0.08;
+              ctx.beginPath();
+              ctx.moveTo(particles[i].x, particles[i].y);
+              ctx.lineTo(particles[j].x, particles[j].y);
+              ctx.strokeStyle = `rgba(59, 130, 246, ${alpha})`;
+              ctx.lineWidth = 0.5;
+              ctx.stroke();
+            }
+          }
+        }
+      }
+
+      // Initialize particles
+      const particleCount = Math.min(Math.floor((canvas.width * canvas.height) / 12000), 140);
+      for (let i = 0; i < particleCount; i++) {
+        particles.push(new Particle());
+      }
+
+      // Mouse tracking
+      document.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+      });
+
+      document.addEventListener('mouseleave', () => {
+        mouseX = -1000;
+        mouseY = -1000;
+      });
+
+      // Animation loop
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (const p of particles) {
+          p.update();
+          p.draw();
+        }
+        drawConnections();
+        animationId = requestAnimationFrame(animate);
+      }
+
+      animate();
+
+      // Cleanup on page unload
+      window.addEventListener('beforeunload', () => {
+        if (animationId) cancelAnimationFrame(animationId);
+      });
+    })();
+
+    // ===== SESSION CLEANUP =====
+    document.cookie = 'pethub_token=; Max-Age=0; path=/';
+    document.cookie = 'usuarioLogadoId=; Max-Age=0; path=/';
+    document.cookie = 'usuarioLogadoNome=; Max-Age=0; path=/';
+
+    // Prevent back navigation
+    history.pushState(null, null, location.href);
+    window.addEventListener('popstate', function () {
+      history.pushState(null, null, location.href);
+    });
+  </script>
+</body>
+</html>

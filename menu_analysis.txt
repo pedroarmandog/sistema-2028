@@ -1,0 +1,24 @@
+﻿
+>         <div class="submenu" id="configuracaoSubmenu">
+            <a href="#" class="submenu-item">
+              <span>Empresa</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Usuário</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Grupo de usuário</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Profissional</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Permissões</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Centro de resultado</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Categoria financeira</span>
+
+

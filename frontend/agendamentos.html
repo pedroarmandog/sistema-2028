@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendamentos - Sistema Pet</title>
+    <script src="/custom-colors.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.css" rel="stylesheet">
+    <style>
+        #calendar {
+            max-width: 900px;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 0 8px rgba(0,0,0,0.1);
+            min-height: 400px;
+            border: 2px solid #ddd; /* Para visualizar o container */
+        }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .debug {
+            background: yellow;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <h1>Calendário de Agendamentos</h1>
+    <div class="debug" id="debug-info">Carregando...</div>
+    <div id="calendar"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.js"></script>
+    <script>
+        function updateDebug(message) {
+            const debugEl = document.getElementById('debug-info');
+            if (debugEl) {
+                debugEl.innerHTML += '<br>' + message;
+            }
+            console.log(message);
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            updateDebug('✅ DOM carregado');
+            
+            const calendarEl = document.getElementById('calendar');
+            if (!calendarEl) {
+                updateDebug('❌ Elemento #calendar não encontrado!');
+                return;
+            }
+            updateDebug('✅ Elemento #calendar encontrado');
+            
+            // Verificar se FullCalendar está disponível
+            if (typeof FullCalendar === 'undefined') {
+                updateDebug('❌ FullCalendar não carregado!');
+                return;
+            }
+            updateDebug('✅ FullCalendar carregado');
+            
+            try {
+                updateDebug('🔄 Criando calendário...');
+                
+                var calendar = new FullCalendar.Calendar(calendarEl, {
+                    initialView: 'dayGridMonth',
+                    height: 600,
+                    events: [
+                        {
+                            title: 'Evento Teste',
+                            date: '2025-10-25'
+                        },
+                        {
+                            title: 'Outro Teste',  
+                            date: '2025-10-26'
+                        }
+                    ],
+                    eventClick: function(info) {
+                        alert('Evento: ' + info.event.title);
+                    }
+                });
+                
+                updateDebug('🔄 Renderizando calendário...');
+                calendar.render();
+                updateDebug('✅ Calendário renderizado!');
+                
+            } catch (error) {
+                updateDebug('❌ Erro: ' + error.message);
+                console.error('Erro detalhado:', error);
+            }
+        });
+    </script>
+    <script src="/frontend/inject-sidebar.js"></script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #f3f5f7;
+  padding: 20px;
+}
+
+.container {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.titulo {
+  margin-bottom: 20px;
+}
+
+.filtros {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.filtro-btn {
+  padding: 8px 16px;
+  border: none;
+  background: #e5e7eb;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.filtro-btn:hover {
+  background: #d1d5db;
+}
+
+.filtro-btn.ativo {
+  background: #2563eb;
+  color: white;
+}
+
+.tabela {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabela th, .tabela td {
+  padding: 12px;
+  border-bottom: 1px solid #ddd;
+}
+
+.tag {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  color: white;
+}
+
+.tag.agendado { background: #6b7280; }
+.tag.checkin { background: #3b82f6; }
+.tag.pronto { background: #a855f7; }
+.tag.cancelado { background: #ef4444; }

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Sidebar Pet9 Style</title>
+
+<style>
+    body {
+        margin: 0;
+        background: #0A121A;
+        font-family: Arial;
+        color: #fff;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+        width: 80px;
+        height: 100vh;
+        background: #0F1A24;
+        padding-top: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+        position: fixed;
+        left: 0;
+        top: 0;
+    }
+
+    .menu-item {
+        width: 100%;
+        text-align: center;
+        padding: 15px 0;
+        cursor: pointer;
+        color: #7fffd4;
+        font-size: 14px;
+        user-select: none;
+    }
+
+    .menu-item:hover {
+        background: #12202d;
+    }
+
+    /* SUBMENU LATERAL */
+    .submenu {
+        position: fixed;
+        top: 0;
+        left: 80px; /* aparece ao lado da sidebar */
+        width: 230px;
+        height: 100vh;
+        background: #0F1A24;
+        padding: 20px;
+        display: none;
+        flex-direction: column;
+        gap: 15px;
+        border-left: 1px solid #1b2c3a;
+        animation: slide .25s ease forwards;
+    }
+
+    @keyframes slide {
+        from { opacity: 0; transform: translateX(-10px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+
+    .submenu a {
+        text-decoration: none;
+        color: #b5ffe1;
+        font-size: 15px;
+        padding: 6px 0;
+    }
+
+    .submenu a:hover {
+        color: #fff;
+    }
+
+</style>
+
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <div class="menu-item" data-menu="menu1">Painel</div>
+    <div class="menu-item" data-menu="menu2">Pet</div>
+    <div class="menu-item" data-menu="menu3">Financeiro</div>
+</div>
+
+<!-- SUBMENUS -->
+<div id="menu1" class="submenu">
+    <a href="#">Operacional</a>
+    <a href="#">Rel. Faturamento</a>
+    <a href="#">Posição de Caixa</a>
+</div>
+
+<div id="menu2" class="submenu">
+    <a href="#">Cadastro Pet</a>
+    <a href="#">Histórico</a>
+    <a href="#">Assinaturas</a>
+</div>
+
+<div id="menu3" class="submenu">
+    <a href="#">Contas a pagar</a>
+    <a href="#">Contas a receber</a>
+    <a href="#">Relatórios</a>
+</div>
+
+<script>
+    const menuItems = document.querySelectorAll('.menu-item');
+    let openMenu = null;
+
+    menuItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const menuId = item.getAttribute('data-menu');
+            const submenu = document.getElementById(menuId);
+
+            // Fecha menu anterior
+            if (openMenu && openMenu !== submenu) {
+                openMenu.style.display = 'none';
+            }
+
+            // Alterna visibilidade
+            submenu.style.display = submenu.style.display === 'flex' ? 'none' : 'flex';
+            openMenu = submenu.style.display === 'flex' ? submenu : null;
+        });
+    });
+
+    // Fecha ao clicar fora
+    document.addEventListener('click', e => {
+        if (!e.target.closest('.submenu') && !e.target.closest('.menu-item')) {
+            if (openMenu) openMenu.style.display = 'none';
+            openMenu = null;
+        }
+    });
+</script>
+
+    <script src="/inject-sidebar.js"></script>
+</body>
+</html>

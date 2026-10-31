@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Filtros - Agendamentos</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status-tag { 
+            display: inline-block; 
+            padding: 5px 10px; 
+            margin: 5px; 
+            border: 2px solid #ccc; 
+            border-radius: 15px; 
+            cursor: pointer; 
+            background: #f5f5f5;
+        }
+        .status-tag.active { 
+            background: #007bff; 
+            color: white; 
+            border-color: #007bff; 
+        }
+        .status-agendado.active { background: #28a745; border-color: #28a745; }
+        .status-checkin.active { background: #ffc107; border-color: #ffc107; color: #000; }
+        .status-pronto.active { background: #17a2b8; border-color: #17a2b8; }
+        .status-cancelado.active { background: #dc3545; border-color: #dc3545; }
+        
+        .btn { padding: 10px 15px; margin: 10px 5px; cursor: pointer; border: none; border-radius: 5px; }
+        .btn-primary { background: #007bff; color: white; }
+        .agendamento-row { border: 1px solid #ddd; margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .hidden { display: none; }
+        .debug { background: #f8f9fa; padding: 10px; margin: 10px 0; border-left: 4px solid #007bff; }
+    </style>
+</head>
+<body>
+    <h1>Teste de Filtros - Agendamentos</h1>
+    
+    <div class="debug" id="debug">
+        <strong>Debug Info:</strong>
+        <div id="debugContent">Carregando...</div>
+    </div>
+    
+    <div class="status-filters">
+        <span class="status-label">Situação</span>
+        <div class="status-tags">
+            <span class="status-tag status-agendado active">Agendado</span>
+            <span class="status-tag status-checkin">Check-in</span>
+            <span class="status-tag status-pronto">Pronto</span>
+            <span class="status-tag status-cancelado">Cancelado</span>
+        </div>
+        <button class="btn btn-primary" onclick="aplicarFiltros()">Aplicar Filtro</button>
+        <button class="btn" onclick="limparFiltros()">Limpar Filtros</button>
+    </div>
+
+    <div id="agendamentosContainer">
+        <!-- Os agendamentos serão inseridos aqui -->
+    </div>
+
+    <script>
+        // Dados de teste mockados
+        const agendamentosMock = [
+            {
+                id: 1,
+                horario: '09:00',
+                petNome: 'Rex',
+                clienteNome: 'João Silva',
+                servico: 'Consulta Veterinária',
+                profissional: 'Dr. Maria Santos',
+                valor: 150.00,
+                status: 'agendado'
+            },
+            {
+                id: 2,
+                horario: '14:30',
+                petNome: 'Rex',
+                clienteNome: 'João Silva',
+                servico: 'Banho e Tosa',
+                profissional: 'Ana Costa',
+                valor: 80.00,
+                status: 'checkin'
+            },
+            {
+                id: 3,
+                horario: '16:00',
+                petNome: 'Rex',
+                clienteNome: 'João Silva',
+                servico: 'Vacinação',
+                profissional: 'Dr. Pedro Lima',
+                valor: 120.00,
+                status: 'pronto'
+            },
+            {
+                id: 4,
+                horario: '11:00',
+                petNome: 'Rex',
+                clienteNome: 'João Silva',
+                servico: 'Consulta de Rotina',
+                profissional: 'Dra. Carla Souza',
+                valor: 100.00,
+                status: 'cancelado'
+            }
+        ];
+
+        let filtros = {};
+
+        // Configurar event listeners
+        document.querySelectorAll('.status-tag').forEach(tag => {
+            tag.addEventListener('click', (e) => {
+                e.target.classList.toggle('active');
+                updateStatusFilters();
+                updateDebugInfo();
+            });
+        });
+
+        function updateStatusFilters() {
+            const activeTags = document.querySelectorAll('.status-tag.active');
+            const statusFilters = Array.from(activeTags).map(tag => {
+                if (tag.classList.contains('status-agendado')) return 'agendado';
+                if (tag.classList.contains('status-checkin')) return 'checkin';
+                if (tag.classList.contains('status-pronto')) return 'pronto';
+                if (tag.classList.contains('status-cancelado')) return 'cancelado';
+            }).filter(status => status !== undefined);
+            
+            filtros.status = statusFilters;
+            updateDebugInfo();
+        }
+
+        function aplicarFiltros() {
+            updateStatusFilters();
+            renderAgendamentos();
+        }
+
+        function limparFiltros() {
+            document.querySelectorAll('.status-tag').forEach(tag => {
+                tag.classList.remove('active');
+            });
+            filtros = {};
+            renderAgendamentos();
+        }
+
+        function filterAgendamentos() {
+            let filtrados = [...agendamentosMock];
+
+            // Filtro por status
+            if (filtros.status && filtros.status.length > 0) {
+                filtrados = filtrados.filter(agendamento => 
+                    filtros.status.includes(agendamento.status)
+                );
+            }
+
+            return filtrados;
+        }
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            }).format(value);
+        }
+
+        function renderAgendamentos() {
+            const container = document.getElementById('agendamentosContainer');
+            const agendamentosFiltrados = filterAgendamentos();
+
+            if (agendamentosFiltrados.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Nenhum agendamento encontrado</h3>
+                        <p>Não há agendamentos com o status "${filtros.status ? filtros.status.join(', ') : 'agendado'}" no período selecionado.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const html = agendamentosFiltrados.map(agendamento => `
+                <div class="agendamento-row">
+                    <strong>${agendamento.horario}</strong> - 
+                    ${agendamento.petNome} (${agendamento.clienteNome}) - 
+                    ${agendamento.servico} - 
+                    ${agendamento.profissional} - 
+                    ${formatCurrency(agendamento.valor)} - 
+                    <strong>Status: ${agendamento.status}</strong>
+                </div>
+            `).join('');
+
+            container.innerHTML = html;
+            updateDebugInfo();
+        }
+
+        function updateDebugInfo() {
+            const debugContent = document.getElementById('debugContent');
+            const activeTags = document.querySelectorAll('.status-tag.active');
+            const activeStatuses = Array.from(activeTags).map(tag => {
+                if (tag.classList.contains('status-agendado')) return 'agendado';
+                if (tag.classList.contains('status-checkin')) return 'checkin';
+                if (tag.classList.contains('status-pronto')) return 'pronto';
+                if (tag.classList.contains('status-cancelado')) return 'cancelado';
+            }).filter(status => status !== undefined);
+
+            debugContent.innerHTML = `
+                <div>Tags ativas: ${activeTags.length}</div>
+                <div>Status filtrados: [${activeStatuses.join(', ')}]</div>
+                <div>Filtros objeto: ${JSON.stringify(filtros)}</div>
+                <div>Agendamentos totais: ${agendamentosMock.length}</div>
+                <div>Agendamentos filtrados: ${filterAgendamentos().length}</div>
+            `;
+        }
+
+        // Inicializar
+        updateStatusFilters();
+        renderAgendamentos();
+    </script>
+    <script src="/inject-sidebar.js"></script>
+</body>
+</html>

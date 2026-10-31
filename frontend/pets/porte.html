@@ -1,0 +1,831 @@
+﻿<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PetHub</title>
+  <script src="../custom-colors.js"></script>
+  <link rel="icon" href="/fivecon/Design sem nome (17).png" type="image/png">
+  <!-- Font Awesome (icones) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Estilos do menu (copiar para sua página) -->
+  <link rel="stylesheet" href="./porte.css">
+  <link rel="stylesheet" href="../colors.css">
+  <link rel="stylesheet" href="../dashboard.css">
+<body>
+   <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="logo">
+            <!--<i class="fas fa-paw"></i>-->
+            <!--<span>Pet Cria</span>-->
+            <img src="/logos/Logo PetHub (2).svg" class="logo-pet-cria" alt="PetHub">
+        </div>
+        
+        <nav class="sidebar-nav">
+            <div class="nav-item-with-submenu">
+                <a href="#" class="nav-item" id="painelMenuItem">
+                    <i class="fas fa-th"></i>
+                    <span>Painel</span>
+                    <i class="fas fa-chevron-down submenu-arrow"></i>
+                </a>
+                <div class="submenu" id="painelSubmenu">
+                    <a href="../dashboard.html" class="submenu-item">
+                        <span>Operacional</span>
+                    </a>
+                    <a href="../painel/rel-faturamento.html" class="submenu-item">
+                        <span>Rel. Faturamento</span>
+                    </a>
+                    <!--<a href="../painel/rel-demonstrativo-resultados.html" class="submenu-item">
+                        <span>Rel. Demonstrativo de resultados</span>
+                    </a>-->
+                    <!--<a href="../painel/rel-recebiveis-produto.html" class="submenu-item">
+                        <span>Rel. Recebíveis por produto</span>
+                    </a>-->
+                    <a href="../painel/posicao-caixa.html" class="submenu-item">
+                        <span>Posição de Caixa</span>
+                    </a>
+                    <a href="../painel/painel-financeiro.html" class="submenu-item">
+                        <span>Painel Financeiro</span>
+                    </a>
+                </div>
+            </div>
+            
+            <a href="../dashboard.html" class="nav-item active">
+                <i class="fas fa-chart-bar"></i>
+                <span>Dashboard</span>
+            </a>
+            
+            <div class="nav-item-with-submenu">
+                <a href="#" class="nav-item" id="itemMenuItem">
+                    <i class="fas fa-cube"></i>
+                    <span>Item</span>
+                    <i class="fas fa-chevron-down submenu-arrow"></i>
+                </a>
+                <div class="submenu" id="itemSubmenu">
+                    <a href="../item/meus-itens.html" class="submenu-item">
+                        <span>Meus Itens</span>
+                    </a>
+                    <div class="submenu-item" id="leftBtnNovo" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <span>Novo</span>
+                        <span id="leftCaretNovo" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="leftSubNovo" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../item/novo-produto.html" class="submenu-item"><span>Produto</span></a>
+                        <a href="../item/novo-produto.html" class="submenu-item"><span>Serviço</span></a>
+                        <a href="../item/novo-produto.html" class="submenu-item"><span>Plano</span></a>
+                    </div>
+                    <a href="../item/agrupamento.html" class="submenu-item">
+                        <span>Agrupamento</span>
+                    </a>
+                    <a href="../item/marca.html" class="submenu-item">
+                        <span>Marca</span>
+                    </a>
+                    <a href="../item/unidade.html" class="submenu-item">
+                        <span>Unidade</span>
+                    </a>
+                    <a href="../descontos/index.html" class="submenu-item">
+                        <span>Descontos</span>
+                    </a>
+                    <a href="../item/comissao.html" class="submenu-item">
+                        <span>Comissão</span>
+                    </a>
+                    <a href="../item/etiquetas.html" class="submenu-item">
+                        <span>Etiquetas</span>
+                    </a>
+                    <!--<a href="../item/tributacao.html" class="submenu-item">
+                        <span>Tributação</span>
+                    </a>-->
+                    <div class="submenu-item" id="leftBtnEstoque" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <span>Estoque</span>
+                        <span id="leftCaretEstoque" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="leftSubEstoque" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../item/estoque/outras-entradas.html" class="submenu-item"><span>Outras entradas</span></a>
+                        <a href="../item/estoque/outras-saidas.html" class="submenu-item"><span>Outras saídas</span></a>
+                        <a href="#" class="submenu-item"><span>Transferência</span></a>
+                        <a href="../item/estoque/contagem-estoque.html" class="submenu-item"><span>Contagem de estoque</span></a>
+                    </div>
+                    <div class="submenu-item" id="leftBtnClinica" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <span>Clínica</span>
+                        <span id="leftCaretClinica" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="leftSubClinica" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../item/clinica/medicamentos.html" class="submenu-item"><span>Medicamentos</span></a>
+                        <a href="../item/clinica/vacina.html" class="submenu-item"><span>Vacinas</span></a>
+                        <a href="../item/clinica/periodicidade.html" class="submenu-item"><span>Periodicidade</span></a>
+                    </div>
+                    <a href="../item/manutecao-produtos.html" class="submenu-item">
+                        <span>Manutenção geral de produtos</span>
+                    </a>
+                    <a href="../item/controle-validade.html" class="submenu-item">
+                        <span>Controle de validade</span>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="nav-item-with-submenu">
+                <a href="#" class="nav-item" id="clienteMenuItem">
+                    <i class="fas fa-users"></i>
+                    <span>Cliente</span>
+                    <i class="fas fa-chevron-down submenu-arrow"></i>
+                </a>
+                <div class="submenu" id="clienteSubmenu">
+                    <a href="../clientes.html" class="submenu-item">
+                        <span>Meus Clientes</span>
+                    </a>
+                    <a href="../novo-cliente.html" class="submenu-item">
+                        <span>Novo Cliente</span>
+                    </a>
+                    <a href="../grupos-clientes.html" class="submenu-item">
+                        <span>Grupo de cliente</span>
+                    </a>
+                    <a href="../descontos/index.html" class="submenu-item">
+                        <span>Descontos</span>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="nav-item-with-submenu">
+                <a href="#" class="nav-item" id="petMenuItem">
+                    <i class="fas fa-dog"></i>
+                    <span>Pet</span>
+                    <i class="fas fa-chevron-down submenu-arrow"></i>
+                </a>
+                <div class="submenu" id="petSubmenu">
+                    <a href="../pets/meus-pets.html" class="submenu-item">
+                        <span>Meus Pets</span>
+                    </a>
+                    <a href="../pets/cadastro-pet.html" class="submenu-item">
+                        <span>Novo Pet</span>
+                    </a>
+                    <a href="../pets/especie-raca.html" class="submenu-item">
+                        <span>Espécie/raça</span>
+                    </a>
+                    <a href="../pets/pelagem.html" class="submenu-item">
+                        <span>Pelagem</span>
+                    </a>
+                    <a href="../pets/porte.html" class="submenu-item">
+                        <span>Porte</span>
+                    </a>
+                    <a href="../pets/box.html" class="submenu-item">
+                        <span>Box</span>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="nav-item-with-submenu">
+                <a href="#" class="nav-item" id="atendimentoMenuItem">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>Atendimento</span>
+                    <i class="fas fa-chevron-down submenu-arrow"></i>
+                </a>
+                <div class="submenu" id="atendimentoSubmenu">
+                    <a href="../agendamentos-novo.html" class="submenu-item">
+                        <span>Minha Agenda</span>
+                    </a>
+
+                    <!-- Vendas (toggle + nested) -->
+                    <div class="submenu-item" id="attBtnVendas" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Vendas</span></a>
+                        <span id="attCaretVendas" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="attSubVendas" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../atendimento/nova-venda.html" class="submenu-item"><span>Nova Venda</span></a>
+                        <!--<a href="#" class="submenu-item"><span>Pedido de Venda</span></a>-->
+                        <a href="../atendimento/consultar-vendas.html" class="submenu-item"><span>Consultar vendas</span></a>
+                    </div>
+
+                    <!--<a href="../atendimento/contratos.html" class="submenu-item">
+                        <span>Contratos</span>
+                    </a>-->
+                    <!--<a href="../atendimento/devolucao-venda.html" class="submenu-item">
+                        <span>Devolução de venda</span>
+                    </a>-->
+
+                    <!-- Caixa (toggle + nested) -->
+                    <div class="submenu-item" id="attBtnCaixa" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Caixa</span></a>
+                        <span id="attCaretCaixa" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="attSubCaixa" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../Caixa/abertura-fechamento.html" class="submenu-item"><span>Abertura/Fechamento</span></a>
+                        <a href="../Caixa/suprimento-sangria.html" class="submenu-item"><span>Suprimento/Sangria</span></a>
+                        <a href="#" class="submenu-item"><span>Rel. Demonstrativo de caixa</span></a>
+                    </div>
+
+                    <a href="../atendimento/orcamento.html" class="submenu-item">
+                        <span>Orçamento</span>
+                    </a>
+
+                    <!-- Relatórios (toggle + nested) -->
+                    <div class="submenu-item" id="attBtnRelatorios" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Relatórios</span></a>
+                        <span id="attCaretRel" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="attSubRelatorios" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../atendimento/relatorios/venda-no-periodo.html" class="submenu-item"><span>Venda no período</span></a>
+                        <!--<a href="../atendimento/relatorios/devolucao-no-periodo.html" class="submenu-item"><span>Devolução no período</span></a>-->
+                        <a href="../atendimento/relatorios/atendimento-no-periodo.html" class="submenu-item"><span>Atendimento no período</span></a>
+                        <!--<a href="../atendimento/relatorios/periodicos.html" class="submenu-item"><span>Periódico</span></a>-->
+                        <a href="../atendimento/relatorios/comissao.html" class="submenu-item"><span>Comissão</span></a>
+                        <!--<a href="../atendimento/relatorios/oportunidade-de-venda.html" class="submenu-item"><span>Oportunidade de Venda</span></a>-->
+                        <!--<a href="../atendimento/relatorios/faturamento-cliente-produto.html" class="submenu-item"><span>Faturamento por Cliente/Produto</span></a>-->
+                    </div>
+                </div>
+            </div>
+            
+            <a href="../marketing.html" class="nav-item" onclick="window.location.href='../marketing.html'">
+                <i class="fas fa-heart"></i>
+                <span>Marketing</span>
+            </a>
+            
+            <div class="nav-item-with-submenu">
+                <a href="#" class="nav-item" id="comprasMenuItem">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Compras</span>
+                    <i class="fas fa-chevron-down submenu-arrow"></i>
+                </a>
+                <div class="submenu" id="comprasSubmenu">
+                    <a href="../compras/entrada-mercadoria.html" class="submenu-item">
+                        <span>Entrada de mercadoria</span>
+                    </a>
+                    <a href="../compras/fornecedor.html" class="submenu-item">
+                        <span>Fornecedores</span>
+                    </a>
+                    <!-- Relatórios (toggle + nested) -->
+                    <div class="submenu-item" id="compBtnRelatorios" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Relatórios</span></a>
+                        <span id="compCaretRel" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="compSubRelatorios" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="#" class="submenu-item"><span>Entrada no período</span></a>
+                        <a href="#" class="submenu-item"><span>Entrada por produto</span></a>
+                        <a href="#" class="submenu-item"><span>Sugestão de compra</span></a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="nav-item-with-submenu">
+                <a href="#" class="nav-item" id="financeiroMenuItem">
+                    <i class="fas fa-dollar-sign"></i>
+                    <span>Financeiro</span>
+                    <i class="fas fa-chevron-down submenu-arrow"></i>
+                </a>
+                <div class="submenu" id="financeiroSubmenu">
+                    <!-- Contas a receber (toggle) -->
+                    <div class="submenu-item" id="finBtnReceber" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="" style="flex:1;text-decoration:none;color:inherit;"><span>Contas a receber</span></a>
+                        <span id="finCaretReceber" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="finSubReceber" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../financeiro/contas-a-receber/recebimento-cliente.html" class="submenu-item"><span>Recebimento de cliente</span></a>
+                    </div>
+
+                    <!-- Contas a pagar (toggle) -->
+                    <div class="submenu-item" id="finBtnPagar" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Contas a pagar</span></a>
+                        <span id="finCaretPagar" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="finSubPagar" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../financeiro/contas-a-receber/contas-a-pagar/pagamento-fornecedor.html" class="submenu-item"><span>Pagamento de fornecedor</span></a>
+                    </div>
+
+                    <!-- Conta (toggle) -->
+                    <!--<div class="submenu-item" id="finBtnConta" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Conta</span></a>
+                        <span id="finCaretConta" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="finSubConta" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../financeiro/contas-a-receber/conta/minha-conta.html" class="submenu-item"><span>Minhas Contas</span></a>
+                        <a href="../financeiro/contas-a-receber/conta/movimento-conta.html" class="submenu-item"><span>Movimento de conta</span></a>
+                        <a href="../financeiro/contas-a-receber/conta/banco.html" class="submenu-item"><span>Banco</span></a>
+                        <a href="../financeiro/contas-a-receber/conta/historico-padrao.html" class="submenu-item"><span>Histórico padrão</span></a>
+                    </div>-->
+
+                    <!--<a href="#" class="submenu-item">
+                        <span>Cheque</span>
+                    </a>-->
+
+                    <!-- Cartão (toggle) -->
+                    <!--<div class="submenu-item" id="finBtnCartao" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Cartão</span></a>
+                        <span id="finCaretCartao" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="finSubCartao" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="#" class="submenu-item"><span>Operadora de cartão</span></a>
+                        <a href="#" class="submenu-item"><span>Recebimento da operadora de cartão</span></a>
+                    </div>-->
+
+                    <!--<a href="#" class="submenu-item">
+                        <span>Condição de pagamento</span>
+                    </a>-->
+
+                    <!-- Relatórios (toggle) -->
+                    <!--<div class="submenu-item" id="finBtnRelatorios" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Relatórios</span></a>
+                        <span id="finCaretRel" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="finSubRelatorios" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../financeiro/relatorio/a-receber.html" class="submenu-item"><span>A receber</span></a>
+                        <a href="../financeiro/relatorio/recebimentos.html" class="submenu-item"><span>Recebimentos</span></a>
+                        <a href="../financeiro/relatorio/documentos-a-receber.html" class="submenu-item"><span>Documentos a receber emitidos</span></a>
+                        <a href="../financeiro/relatorio/a-pagar.html" class="submenu-item"><span>A pagar</span></a>
+                        <a href="../financeiro/relatorio/pagamentos.html" class="submenu-item"><span>Pagamentos</span></a>
+                        <a href="../financeiro/relatorio/custos-adquiridos.html" class="submenu-item"><span>Custos adquiridos</span></a>
+                        <a href="../financeiro/relatorio/custos-pagos.html" class="submenu-item"><span>Custos pagos</span></a>
+                        <a href="../financeiro/relatorio/despesas-emitidas.html" class="submenu-item"><span>Despesas emitidas</span></a>
+                        <a href="../financeiro/relatorio/extrato.html" class="submenu-item"><span>Extrato</span></a>
+                        <a href="../financeiro/relatorio/movimentacao-historico.html" class="submenu-item"><span>Movimentação por Histórico</span></a>
+                        <a href="" class="submenu-item"><span>Cheque</span></a>
+                        <a href="" class="submenu-item"><span>Cartão</span></a>
+                    </div>-->
+                </div>
+            </div>
+            
+            <div class="nav-item-with-submenu">
+                <a href="#" class="nav-item" id="configuracaoMenuItem">
+                    <i class="fas fa-cog"></i>
+                    <span>Configuração</span>
+                    <i class="fas fa-chevron-down submenu-arrow"></i>
+                </a>
+                <div class="submenu" id="configuracaoSubmenu">
+                    <a href="../configuracoes/empresa.html" class="submenu-item">
+                        <span>Empresa</span>
+                    </a>
+                    <a href="../configuracoes/usuario.html" class="submenu-item">
+                        <span>Usuário</span>
+                    </a>
+                    <a href="../configuracoes/grupo-usuario.html" class="submenu-item">
+                        <span>Grupo de usuário</span>
+                    </a>
+                    <a href="../configuracoes/profissional.html" class="submenu-item">
+                        <span>Profissional</span>
+                    </a>
+                    <!--<a href="../configuracoes/permissoes.html" class="submenu-item">
+                        <span>Permissões</span>
+                    </a>-->
+                    <a href="../configuracoes/centro-resultado.html" class="submenu-item">
+                        <span>Centro de resultado</span>
+                    </a>
+                    <a href="../configuracoes/categoria-financeira.html" class="submenu-item">
+                        <span>Categoria financeira</span>
+                    </a>
+                    <!--<a href="../configuracoes/tipo-documento.html" class="submenu-item">
+                        <span>Tipo de documento</span>
+                    </a>-->
+                    <!--<a href="../configuracoes/configuracoes-gerais.html" class="submenu-item">
+                        <span>Configurações Gerais</span>
+                    </a>-->
+                    <!--<a href="../configuracoes/pdv.html" class="submenu-item">
+                        <span>PDV</span>
+                    </a>-->
+                    <!--<a href="../configuracoes/formularios.html" class="submenu-item">
+                        <span>Formulários</span>
+                    </a>-->
+                    <!--<a href="../configuracoes/feriado.html" class="submenu-item">
+                        <span>Feriado</span>
+                    </a>-->
+                    <!--<a href="../configuracoes/ip.html" class="submenu-item">
+                        <span>IP</span>
+                    </a>-->
+                </div>
+            </div>
+        </nav>
+    </div>
+
+    <script src="../dashboard.js"></script>
+    <script src="../logo-manager.js"></script>
+    
+    <script>
+    // Toggle para submenu aninhado à esquerda (Item -> Novo)
+    (function(){
+        var leftBtn = document.getElementById('leftBtnNovo');
+        var leftSub = document.getElementById('leftSubNovo');
+        var leftCaret = document.getElementById('leftCaretNovo');
+        if(leftBtn && leftSub){
+            leftBtn.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = leftSub.style.display === 'block' || leftSub.style.display === 'flex';
+                leftSub.style.display = open ? 'none' : 'block';
+                if(leftCaret) leftCaret.innerText = open ? '▼' : '▲';
+            });
+        }
+        // Toggle para submenu aninhado Estoque
+        var leftBtnEst = document.getElementById('leftBtnEstoque');
+        var leftSubEst = document.getElementById('leftSubEstoque');
+        var leftCaretEst = document.getElementById('leftCaretEstoque');
+        if(leftBtnEst && leftSubEst){
+            leftBtnEst.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = leftSubEst.style.display === 'block' || leftSubEst.style.display === 'flex';
+                leftSubEst.style.display = open ? 'none' : 'block';
+                if(leftCaretEst) leftCaretEst.innerText = open ? '▼' : '▲';
+            });
+        }
+        // Toggle para submenu aninhado Clínica
+        var leftBtnClin = document.getElementById('leftBtnClinica');
+        var leftSubClin = document.getElementById('leftSubClinica');
+        var leftCaretClin = document.getElementById('leftCaretClinica');
+        if(leftBtnClin && leftSubClin){
+            leftBtnClin.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = leftSubClin.style.display === 'block' || leftSubClin.style.display === 'flex';
+                leftSubClin.style.display = open ? 'none' : 'block';
+                if(leftCaretClin) leftCaretClin.innerText = open ? '▼' : '▲';
+            });
+        }
+        // Toggle para submenus em Atendimento: Vendas, Caixa, Relatórios
+        var attBtnVendas = document.getElementById('attBtnVendas');
+        var attSubVendas = document.getElementById('attSubVendas');
+        var attCaretVendas = document.getElementById('attCaretVendas');
+        if(attBtnVendas && attSubVendas){
+            attBtnVendas.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = attSubVendas.style.display === 'block' || attSubVendas.style.display === 'flex';
+                attSubVendas.style.display = open ? 'none' : 'block';
+                if(attCaretVendas) attCaretVendas.innerText = open ? '▼' : '▲';
+            });
+        }
+
+        var attBtnCaixa = document.getElementById('attBtnCaixa');
+        var attSubCaixa = document.getElementById('attSubCaixa');
+        var attCaretCaixa = document.getElementById('attCaretCaixa');
+        if(attBtnCaixa && attSubCaixa){
+            attBtnCaixa.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = attSubCaixa.style.display === 'block' || attSubCaixa.style.display === 'flex';
+                attSubCaixa.style.display = open ? 'none' : 'block';
+                if(attCaretCaixa) attCaretCaixa.innerText = open ? '▼' : '▲';
+            });
+        }
+
+        var attBtnRel = document.getElementById('attBtnRelatorios');
+        var attSubRel = document.getElementById('attSubRelatorios');
+        var attCaretRel = document.getElementById('attCaretRel');
+        if(attBtnRel && attSubRel){
+            attBtnRel.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = attSubRel.style.display === 'block' || attSubRel.style.display === 'flex';
+                attSubRel.style.display = open ? 'none' : 'block';
+                if(attCaretRel) attCaretRel.innerText = open ? '▼' : '▲';
+            });
+        }
+        // Toggle para submenu aninhado em Compras: Relatórios
+        var compBtnRel = document.getElementById('compBtnRelatorios');
+        var compSubRel = document.getElementById('compSubRelatorios');
+        var compCaretRel = document.getElementById('compCaretRel');
+        if(compBtnRel && compSubRel){
+            compBtnRel.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = compSubRel.style.display === 'block' || compSubRel.style.display === 'flex';
+                compSubRel.style.display = open ? 'none' : 'block';
+                if(compCaretRel) compCaretRel.innerText = open ? '▼' : '▲';
+            });
+        }
+        // Toggle para submenus em Financeiro
+        var finBtnReceber = document.getElementById('finBtnReceber');
+        var finSubReceber = document.getElementById('finSubReceber');
+        var finCaretReceber = document.getElementById('finCaretReceber');
+        if(finBtnReceber && finSubReceber){
+            finBtnReceber.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = finSubReceber.style.display === 'block' || finSubReceber.style.display === 'flex';
+                finSubReceber.style.display = open ? 'none' : 'block';
+                if(finCaretReceber) finCaretReceber.innerText = open ? '▼' : '▲';
+            });
+        }
+
+        var finBtnPagar = document.getElementById('finBtnPagar');
+        var finSubPagar = document.getElementById('finSubPagar');
+        var finCaretPagar = document.getElementById('finCaretPagar');
+        if(finBtnPagar && finSubPagar){
+            finBtnPagar.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = finSubPagar.style.display === 'block' || finSubPagar.style.display === 'flex';
+                finSubPagar.style.display = open ? 'none' : 'block';
+                if(finCaretPagar) finCaretPagar.innerText = open ? '▼' : '▲';
+            });
+        }
+
+        var finBtnConta = document.getElementById('finBtnConta');
+        var finSubConta = document.getElementById('finSubConta');
+        var finCaretConta = document.getElementById('finCaretConta');
+        if(finBtnConta && finSubConta){
+            finBtnConta.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = finSubConta.style.display === 'block' || finSubConta.style.display === 'flex';
+                finSubConta.style.display = open ? 'none' : 'block';
+                if(finCaretConta) finCaretConta.innerText = open ? '▼' : '▲';
+            });
+        }
+
+        var finBtnCartao = document.getElementById('finBtnCartao');
+        var finSubCartao = document.getElementById('finSubCartao');
+        var finCaretCartao = document.getElementById('finCaretCartao');
+        if(finBtnCartao && finSubCartao){
+            finBtnCartao.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = finSubCartao.style.display === 'block' || finSubCartao.style.display === 'flex';
+                finSubCartao.style.display = open ? 'none' : 'block';
+                if(finCaretCartao) finCaretCartao.innerText = open ? '▼' : '▲';
+            });
+        }
+
+        var finBtnRel = document.getElementById('finBtnRelatorios');
+        var finSubRel = document.getElementById('finSubRelatorios');
+        var finCaretRel = document.getElementById('finCaretRel');
+        if(finBtnRel && finSubRel){
+            finBtnRel.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = finSubRel.style.display === 'block' || finSubRel.style.display === 'flex';
+                finSubRel.style.display = open ? 'none' : 'block';
+                if(finCaretRel) finCaretRel.innerText = open ? '▼' : '▲';
+            });
+        }
+        
+        // fechar ao clicar em outro lugar da sidebar (mantém outras opções)
+        document.addEventListener('click', function(e){
+            if(!e.target.closest('#itemSubmenu')){
+                if(leftSub) leftSub.style.display = 'none';
+                if(leftCaret) leftCaret.innerText = '▼';
+                // também fechar o submenu pai (#itemSubmenu) se estiver aberto
+                try{
+                    var parentSub = document.getElementById('itemSubmenu');
+                    if(parentSub){
+                        if(parentSub.classList && parentSub.classList.contains('open')){
+                            parentSub.classList.remove('open');
+                            try{ restoreSubmenu(parentSub); }catch(e){}
+                        } else {
+                            parentSub.style.display = 'none';
+                        }
+                    }
+                }catch(e){console.warn('Erro ao fechar submenu pai', e);}
+            }
+        });
+    })();
+    </script>
+    <script>
+    // Garantir que o header fique como filho direto de <body> e seja fixo no topo
+    // Isso evita que wrappers ou estilos de page-content empurrem o header para baixo.
+    (function(){
+        try{
+            document.addEventListener('DOMContentLoaded', function(){
+                var header = document.querySelector('.main-content > .header');
+                if(!header) header = document.querySelector('.header');
+                if(header && header.parentElement !== document.body){
+                    // mover para body (logo após a sidebar, se existe)
+                    var sidebar = document.querySelector('.sidebar');
+                    if(sidebar && sidebar.parentElement === document.body){
+                        document.body.insertBefore(header, sidebar.nextSibling);
+                    } else {
+                        document.body.insertBefore(header, document.body.firstChild);
+                    }
+                    // aplicar estilos finais defensivos e transição suave
+                    header.style.position = 'fixed';
+                    header.style.top = '0';
+                    header.style.right = '0';
+                    // transição do left usa mesma curva/duração do sidebar
+                    header.style.transition = 'left 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                    header.style.willChange = 'left';
+                    // posiciona dinamicamente à direita da sidebar (ou 0 quando colapsada)
+                    (function updateHeaderLeft(){
+                        try{
+                            var sb = document.querySelector('.sidebar');
+                            var left = (sb && !sb.classList.contains('collapsed')) ? (sb.offsetWidth + 'px') : '0px';
+                            header.style.left = left;
+                        }catch(e){ header.style.left = '120px'; }
+                    })();
+                    // garantir que o header fique abaixo do sidebar (sidebar z-index:1000)
+                    header.style.zIndex = '900';
+                    // ajustar padding do main-content para não ficar oculto
+                    var mc = document.querySelector('.main-content');
+                    if(mc) mc.style.paddingTop = (header.offsetHeight + 8) + 'px';
+                    // atualizar posição do header quando o menu for toggled ou ao redimensionar
+                    var menuToggleEl = document.querySelector('.menu-toggle');
+                    if(menuToggleEl){
+                        menuToggleEl.addEventListener('click', function(){
+                            try{
+                                var sb2 = document.querySelector('.sidebar');
+                                var left2 = (sb2 && !sb2.classList.contains('collapsed')) ? (sb2.offsetWidth + 'px') : '0px';
+                                header.style.left = left2;
+                                if(mc) mc.style.paddingTop = (header.offsetHeight + 8) + 'px';
+                            }catch(e){}
+                        });
+                    }
+                    window.addEventListener('resize', function(){
+                        try{
+                            var sb3 = document.querySelector('.sidebar');
+                            var left3 = (sb3 && !sb3.classList.contains('collapsed')) ? (sb3.offsetWidth + 'px') : '0px';
+                            header.style.left = left3;
+                            if(mc) mc.style.paddingTop = (header.offsetHeight + 8) + 'px';
+                        }catch(e){}
+                    });
+                }
+            });
+        }catch(e){ console.warn('header move failed', e); }
+    })();
+    </script>
+    <script>
+    // Handler global de click fora que fecha dropdowns e painéis abertos
+    (function(){
+        function closeAllMenus(){
+            try{
+                var leftSub = document.getElementById('leftSubNovo');
+                var leftCaret = document.getElementById('leftCaretNovo');
+                if(leftSub) leftSub.style.display = 'none';
+                if(leftCaret) leftCaret.innerText = '▼';
+                // reset carets dos submenus de Atendimento
+                try{ var aV = document.getElementById('attCaretVendas'); if(aV) aV.innerText = '▼'; }catch(e){}
+                try{ var aC = document.getElementById('attCaretCaixa'); if(aC) aC.innerText = '▼'; }catch(e){}
+                try{ var aR = document.getElementById('attCaretRel'); if(aR) aR.innerText = '▼'; }catch(e){}
+                // reset caret do submenu de Compras -> Relatórios
+                try{ var cR = document.getElementById('compCaretRel'); if(cR) cR.innerText = '▼'; }catch(e){}
+                // reset carets dos submenus de Financeiro
+                try{ var fR1 = document.getElementById('finCaretReceber'); if(fR1) fR1.innerText = '▼'; }catch(e){}
+                try{ var fR2 = document.getElementById('finCaretPagar'); if(fR2) fR2.innerText = '▼'; }catch(e){}
+                try{ var fR3 = document.getElementById('finCaretConta'); if(fR3) fR3.innerText = '▼'; }catch(e){}
+                try{ var fR4 = document.getElementById('finCaretCartao'); if(fR4) fR4.innerText = '▼'; }catch(e){}
+                try{ var fR5 = document.getElementById('finCaretRel'); if(fR5) fR5.innerText = '▼'; }catch(e){}
+
+                // fechar todos os .submenu e remover classe open
+                document.querySelectorAll('.submenu').forEach(function(s){
+                    try{ s.classList.remove('open'); }catch(e){}
+                    try{ restoreSubmenu(s); }catch(e){}
+                    s.style.display = 'none';
+                });
+
+                // remover open dos containers
+                document.querySelectorAll('.nav-item-with-submenu.open').forEach(function(c){ c.classList.remove('open'); });
+
+                // fechar painéis
+                document.querySelectorAll('.panel').forEach(function(p){ p.style.display = 'none'; });
+            }catch(e){ console.warn('closeAllMenus error', e); }
+        }
+
+        document.addEventListener('click', function(ev){
+            // esperar handlers internos processarem (por exemplo, abrir menus)
+            setTimeout(function(){
+                // se o clique ocorreu dentro da sidebar ou dentro de um submenu/painel, não fecha
+                if(ev.target.closest('.sidebar') || ev.target.closest('.submenu') || ev.target.closest('.panel')) return;
+                closeAllMenus();
+            }, 20);
+        });
+    })();
+    </script>
+    
+    <!-- Pedido de Venda: toast simples (azul claro) -->
+    <style>
+        .pedido-toast-container{position:fixed;top:18px;right:18px;display:flex;flex-direction:column;gap:8px;z-index:99999;pointer-events:none}
+        .pedido-toast{pointer-events:auto;background:linear-gradient(180deg,#e8f6ff,#d3efff);color:#023047;padding:10px 14px;border-radius:8px;box-shadow:0 8px 24px rgba(2,16,26,0.12);min-width:220px;max-width:380px;font-weight:300;opacity:0;transform:translateY(-6px) scale(0.98);transition:opacity .18s,transform .18s}
+    </style>
+    <script>
+    (function(){
+        if(window.__pedidoToastInstalled) return; window.__pedidoToastInstalled = true;
+        function showPedidoToast(message){
+            var c = document.querySelector('.pedido-toast-container');
+            if(!c){ c = document.createElement('div'); c.className = 'pedido-toast-container'; document.body.appendChild(c); }
+            var t = document.createElement('div'); t.className = 'pedido-toast'; t.textContent = message; c.appendChild(t);
+            requestAnimationFrame(function(){ t.style.opacity = '1'; t.style.transform = 'none'; });
+            setTimeout(function(){ t.style.opacity = '0'; t.style.transform = 'translateY(-6px) scale(0.98)'; setTimeout(function(){ try{ t.remove(); }catch(e){} },220); }, 5000);
+        }
+
+        document.addEventListener('click', function(e){
+            try{
+                var a = e.target && e.target.closest && e.target.closest('a');
+                if(!a) return;
+                var txt = (a.textContent||'').trim();
+                var href = a.getAttribute && (a.getAttribute('href')||'');
+                if(txt === 'Pedido de Venda' || (href && href.indexOf('pedido-venda') !== -1)){
+                    e.preventDefault(); e.stopPropagation();
+                    showPedidoToast('Pedido de Venda ainda está sendo desenvolvido');
+                }
+            }catch(err){/* silencioso */}
+        }, true); // usar capture para garantir execução antes de handlers que fazem stopPropagation
+    })();
+    </script>
+
+    <script src="/frontend/inject-sidebar.js"></script>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <button class="menu-toggle">
+          <i class="fas fa-bars"></i>
+        </button>
+        <h1>Porte</h1>
+      </div>
+      
+      <div class="header-right">
+        <div class="calendar-widget">
+          <button class="btn-calendar" id="calendarioWidget" onclick="abrirCalendarioSidebar()">
+            <i class="fas fa-calendar"></i>
+          </button>
+        </div>
+        
+        <div class="dropdown">
+          <button class="btn-primary dropdown-toggle" id="inicioRapidoBtn">
+            <i class="fas fa-plus"></i>
+            Início Rápido
+            <i class="fas fa-chevron-down"></i>
+          </button>
+          <div class="dropdown-menu" id="inicioRapidoMenu">
+            <a href="/agendamentos-novo.html" class="dropdown-item">
+              <i class="fas fa-calendar-plus"></i>
+              Novo Atendimento
+            </a>
+            <a href="/pets/cadastro-pet.html" class="dropdown-item" onclick="novoPet()">
+              <i class="fas fa-dog"></i>
+              Novo Pet
+            </a>
+            <a href="/novo-cliente.html" class="dropdown-item" onclick="novoCliente()">
+              <i class="fas fa-user-plus"></i>
+              Novo Cliente
+            </a>
+            <!--<a
+                href="/atendimento/novo-contrato.html"
+                class="dropdown-item"
+                onclick="novoContrato()"
+              >
+                <i class="fas fa-file-contract"></i>
+                Novo Contrato
+              </a><-->
+            <a href="/atendimento/nova-venda.html" class="dropdown-item" onclick="novaVenda()">
+              <i class="fas fa-shopping-bag"></i>
+              Nova Venda
+            </a>
+            <a href="../../financeiro/contas-a-receber/contas-a-pagar/pagamento-fornecedor.html" class="dropdown-item" onclick="novaContaPagar()">
+              <i class="fas fa-credit-card"></i>
+              Nova Conta a Pagar
+            </a>
+          </div>
+        </div>
+        
+
+        
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input type="text" placeholder="Pesquisar por menu">
+        </div>
+        
+        <div class="user-menu">
+          <i class="fas fa-user-circle"></i>
+          <span>...</span>
+        </div>
+      </div>
+    </header>
+    <!-- Fim do bloco a ser copiado -->
+  <!-- Bloco da página (espaço branco) inserido pelo assistente -->
+  <div class="page-wrapper">
+    <div class="container">
+  <h2>Porte</h2>
+
+    <div class="top-actions">
+  <input type="text" id="searchInput" placeholder="Pesquisar...">
+  <button id="addButton">+ Adicionar Porte</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Porte</th>
+          <th>Editar</th>
+          <th>Excluir</th>
+        </tr>
+      </thead>
+      <tbody id="porteList">
+        <!-- Itens carregados pelo JS -->
+      </tbody>
+    </table>
+
+    <div class="pagination">
+      <span>Itens por página:</span>
+      <select id="itemsPerPage">
+        <option value="50" selected>50</option>
+        <option value="25">25</option>
+        <option value="10">10</option>
+      </select>
+
+      <div id="pageInfo">1 - 8 de 8</div>
+      <button class="page-btn" id="prevPage">‹</button>
+      <button class="page-btn" id="nextPage">›</button>
+    </div>
+    </div>
+  </div>
+  </div>
+  <!-- Script do menu (mantido sem alteração) -->
+  <script src="../menu lateral e frontal/menu.js"></script>
+  <!-- Dados de raças compartilhados -->
+  <script src="porte-data.js"></script>
+  <!-- Script do widget de espécies (tabela) -->
+  <script src="porte-table.js"></script>
+  <!-- Script global do calendário (copia do dashboard) -->
+  <script src="../novo-atendimento-global.js"></script>
+    
+</body>
+</html>
+
+
+
+

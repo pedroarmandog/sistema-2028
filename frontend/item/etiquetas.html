@@ -1,0 +1,1314 @@
+﻿<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PetHub</title>
+  <script src="../custom-colors.js"></script>
+  <link rel="icon" href="/fivecon/Design sem nome (17).png" type="image/png">
+  <!-- Font Awesome (icones) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Estilos do menu (copiar para sua página) -->
+  <link rel="stylesheet" href="./etiquetas.css">
+  <link rel="stylesheet" href="../colors.css">
+  <link rel="stylesheet" href="../dashboard.css">
+</head>
+<body>
+  <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="logo">
+            <!--<i class="fas fa-paw"></i>-->
+            <!--<span>Pet Cria</span>-->
+            <img src="/logos/Logo PetHub (2).svg" class="logo-pet-cria" alt="PetHub">
+        </div>
+        
+        <nav class="sidebar-nav">
+            <div class="nav-item-with-submenu">
+                <a href="#" class="nav-item" id="painelMenuItem">
+                    <i class="fas fa-th"></i>
+                    <span>Painel</span>
+                    <i class="fas fa-chevron-down submenu-arrow"></i>
+                </a>
+                <div class="submenu" id="painelSubmenu">
+                    <a href="../dashboard.html" class="submenu-item">
+                        <span>Operacional</span>
+                    </a>
+                    <a href="../painel/rel-faturamento.html" class="submenu-item">
+                        <span>Rel. Faturamento</span>
+                    </a>
+                    <!--<a href="../painel/rel-demonstrativo-resultados.html" class="submenu-item">
+                        <span>Rel. Demonstrativo de resultados</span>
+                    </a>-->
+                    <!--<a href="../painel/rel-recebiveis-produto.html" class="submenu-item">
+                        <span>Rel. Recebíveis por produto</span>
+                    </a>-->
+                    <a href="../painel/posicao-caixa.html" class="submenu-item">
+                        <span>Posição de Caixa</span>
+                    </a>
+                    <a href="../painel/painel-financeiro.html" class="submenu-item">
+                        <span>Painel Financeiro</span>
+                    </a>
+                </div>
+            </div>
+            
+            <a href="../dashboard.html" class="nav-item active">
+                <i class="fas fa-chart-bar"></i>
+                <span>Dashboard</span>
+            </a>
+            
+            <div class="nav-item-with-submenu">
+                <a href="#" class="nav-item" id="itemMenuItem">
+                    <i class="fas fa-cube"></i>
+                    <span>Item</span>
+                    <i class="fas fa-chevron-down submenu-arrow"></i>
+                </a>
+                <div class="submenu" id="itemSubmenu">
+                    <a href="../item/meus-itens.html" class="submenu-item">
+                        <span>Meus Itens</span>
+                    </a>
+                    <div class="submenu-item" id="leftBtnNovo" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <span>Novo</span>
+                        <span id="leftCaretNovo" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="leftSubNovo" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../item/novo-produto.html" class="submenu-item"><span>Produto</span></a>
+                        <a href="../item/novo-produto.html" class="submenu-item"><span>Serviço</span></a>
+                        <a href="../item/novo-produto.html" class="submenu-item"><span>Plano</span></a>
+                    </div>
+                    <a href="../item/agrupamento.html" class="submenu-item">
+                        <span>Agrupamento</span>
+                    </a>
+                    <a href="../item/marca.html" class="submenu-item">
+                        <span>Marca</span>
+                    </a>
+                    <a href="../item/unidade.html" class="submenu-item">
+                        <span>Unidade</span>
+                    </a>
+                    <a href="../descontos/index.html" class="submenu-item">
+                        <span>Descontos</span>
+                    </a>
+                    <a href="../item/comissao.html" class="submenu-item">
+                        <span>Comissão</span>
+                    </a>
+                    <a href="../item/etiquetas.html" class="submenu-item">
+                        <span>Etiquetas</span>
+                    </a>
+                    <!--<a href="../item/tributacao.html" class="submenu-item">
+                        <span>Tributação</span>
+                    </a>-->
+                    <div class="submenu-item" id="leftBtnEstoque" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <span>Estoque</span>
+                        <span id="leftCaretEstoque" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="leftSubEstoque" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../item/estoque/outras-entradas.html" class="submenu-item"><span>Outras entradas</span></a>
+                        <a href="../item/estoque/outras-saidas.html" class="submenu-item"><span>Outras saídas</span></a>
+                        <a href="#" class="submenu-item"><span>Transferência</span></a>
+                        <a href="../item/estoque/contagem-estoque.html" class="submenu-item"><span>Contagem de estoque</span></a>
+                    </div>
+                    <div class="submenu-item" id="leftBtnClinica" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <span>Clínica</span>
+                        <span id="leftCaretClinica" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="leftSubClinica" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../item/clinica/medicamentos.html" class="submenu-item"><span>Medicamentos</span></a>
+                        <a href="../item/clinica/vacina.html" class="submenu-item"><span>Vacinas</span></a>
+                        <a href="../item/clinica/periodicidade.html" class="submenu-item"><span>Periodicidade</span></a>
+                    </div>
+                    <a href="../item/manutecao-produtos.html" class="submenu-item">
+                        <span>Manutenção geral de produtos</span>
+                    </a>
+                    <a href="../item/controle-validade.html" class="submenu-item">
+                        <span>Controle de validade</span>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="nav-item-with-submenu">
+                <a href="#" class="nav-item" id="clienteMenuItem">
+                    <i class="fas fa-users"></i>
+                    <span>Cliente</span>
+                    <i class="fas fa-chevron-down submenu-arrow"></i>
+                </a>
+                <div class="submenu" id="clienteSubmenu">
+                    <a href="../clientes.html" class="submenu-item">
+                        <span>Meus Clientes</span>
+                    </a>
+                    <a href="../novo-cliente.html" class="submenu-item">
+                        <span>Novo Cliente</span>
+                    </a>
+                    <a href="../grupos-clientes.html" class="submenu-item">
+                        <span>Grupo de cliente</span>
+                    </a>
+                    <a href="../descontos/index.html" class="submenu-item">
+                        <span>Descontos</span>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="nav-item-with-submenu">
+                <a href="#" class="nav-item" id="petMenuItem">
+                    <i class="fas fa-dog"></i>
+                    <span>Pet</span>
+                    <i class="fas fa-chevron-down submenu-arrow"></i>
+                </a>
+                <div class="submenu" id="petSubmenu">
+                    <a href="../pets/meus-pets.html" class="submenu-item">
+                        <span>Meus Pets</span>
+                    </a>
+                    <a href="../pets/cadastro-pet.html" class="submenu-item">
+                        <span>Novo Pet</span>
+                    </a>
+                    <a href="../pets/especie-raca.html" class="submenu-item">
+                        <span>Espécie/raça</span>
+                    </a>
+                    <a href="../pets/pelagem.html" class="submenu-item">
+                        <span>Pelagem</span>
+                    </a>
+                    <a href="../pets/porte.html" class="submenu-item">
+                        <span>Porte</span>
+                    </a>
+                    <a href="../pets/box.html" class="submenu-item">
+                        <span>Box</span>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="nav-item-with-submenu">
+                <a href="#" class="nav-item" id="atendimentoMenuItem">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>Atendimento</span>
+                    <i class="fas fa-chevron-down submenu-arrow"></i>
+                </a>
+                <div class="submenu" id="atendimentoSubmenu">
+                    <a href="../agendamentos-novo.html" class="submenu-item">
+                        <span>Minha Agenda</span>
+                    </a>
+
+                    <!-- Vendas (toggle + nested) -->
+                    <div class="submenu-item" id="attBtnVendas" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Vendas</span></a>
+                        <span id="attCaretVendas" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="attSubVendas" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../atendimento/nova-venda.html" class="submenu-item"><span>Nova Venda</span></a>
+                        <!--<a href="#" class="submenu-item"><span>Pedido de Venda</span></a>-->
+                        <a href="../atendimento/consultar-vendas.html" class="submenu-item"><span>Consultar vendas</span></a>
+                    </div>
+
+                    <!--<a href="../atendimento/contratos.html" class="submenu-item">
+                        <span>Contratos</span>
+                    </a>-->
+                    <!--<a href="../atendimento/devolucao-venda.html" class="submenu-item">
+                        <span>Devolução de venda</span>
+                    </a>-->
+
+                    <!-- Caixa (toggle + nested) -->
+                    <div class="submenu-item" id="attBtnCaixa" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Caixa</span></a>
+                        <span id="attCaretCaixa" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="attSubCaixa" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../Caixa/abertura-fechamento.html" class="submenu-item"><span>Abertura/Fechamento</span></a>
+                        <a href="../Caixa/suprimento-sangria.html" class="submenu-item"><span>Suprimento/Sangria</span></a>
+                        <a href="#" class="submenu-item"><span>Rel. Demonstrativo de caixa</span></a>
+                    </div>
+
+                    <a href="../atendimento/orcamento.html" class="submenu-item">
+                        <span>Orçamento</span>
+                    </a>
+
+                    <!-- Relatórios (toggle + nested) -->
+                    <div class="submenu-item" id="attBtnRelatorios" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Relatórios</span></a>
+                        <span id="attCaretRel" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="attSubRelatorios" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../atendimento/relatorios/venda-no-periodo.html" class="submenu-item"><span>Venda no período</span></a>
+                        <!--<a href="../atendimento/relatorios/devolucao-no-periodo.html" class="submenu-item"><span>Devolução no período</span></a>-->
+                        <a href="../atendimento/relatorios/atendimento-no-periodo.html" class="submenu-item"><span>Atendimento no período</span></a>
+                        <!--<a href="../atendimento/relatorios/periodicos.html" class="submenu-item"><span>Periódico</span></a>-->
+                        <a href="../atendimento/relatorios/comissao.html" class="submenu-item"><span>Comissão</span></a>
+                        <!--<a href="../atendimento/relatorios/oportunidade-de-venda.html" class="submenu-item"><span>Oportunidade de Venda</span></a>-->
+                        <!--<a href="../atendimento/relatorios/faturamento-cliente-produto.html" class="submenu-item"><span>Faturamento por Cliente/Produto</span></a>-->
+                    </div>
+                </div>
+            </div>
+            
+            <a href="../marketing.html" class="nav-item" onclick="window.location.href='../marketing.html'">
+                <i class="fas fa-heart"></i>
+                <span>Marketing</span>
+            </a>
+            
+            <div class="nav-item-with-submenu">
+                <a href="#" class="nav-item" id="comprasMenuItem">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Compras</span>
+                    <i class="fas fa-chevron-down submenu-arrow"></i>
+                </a>
+                <div class="submenu" id="comprasSubmenu">
+                    <a href="../compras/entrada-mercadoria.html" class="submenu-item">
+                        <span>Entrada de mercadoria</span>
+                    </a>
+                    <a href="../compras/fornecedor.html" class="submenu-item">
+                        <span>Fornecedores</span>
+                    </a>
+                    <!-- Relatórios (toggle + nested) -->
+                    <div class="submenu-item" id="compBtnRelatorios" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Relatórios</span></a>
+                        <span id="compCaretRel" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="compSubRelatorios" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="#" class="submenu-item"><span>Entrada no período</span></a>
+                        <a href="#" class="submenu-item"><span>Entrada por produto</span></a>
+                        <a href="#" class="submenu-item"><span>Sugestão de compra</span></a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="nav-item-with-submenu">
+                <a href="#" class="nav-item" id="financeiroMenuItem">
+                    <i class="fas fa-dollar-sign"></i>
+                    <span>Financeiro</span>
+                    <i class="fas fa-chevron-down submenu-arrow"></i>
+                </a>
+                <div class="submenu" id="financeiroSubmenu">
+                    <!-- Contas a receber (toggle) -->
+                    <div class="submenu-item" id="finBtnReceber" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="" style="flex:1;text-decoration:none;color:inherit;"><span>Contas a receber</span></a>
+                        <span id="finCaretReceber" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="finSubReceber" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../financeiro/contas-a-receber/recebimento-cliente.html" class="submenu-item"><span>Recebimento de cliente</span></a>
+                    </div>
+
+                    <!-- Contas a pagar (toggle) -->
+                    <div class="submenu-item" id="finBtnPagar" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Contas a pagar</span></a>
+                        <span id="finCaretPagar" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="finSubPagar" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../financeiro/contas-a-receber/contas-a-pagar/pagamento-fornecedor.html" class="submenu-item"><span>Pagamento de fornecedor</span></a>
+                    </div>
+
+                    <!-- Conta (toggle) -->
+                    <!--<div class="submenu-item" id="finBtnConta" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Conta</span></a>
+                        <span id="finCaretConta" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="finSubConta" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../financeiro/contas-a-receber/conta/minha-conta.html" class="submenu-item"><span>Minhas Contas</span></a>
+                        <a href="../financeiro/contas-a-receber/conta/movimento-conta.html" class="submenu-item"><span>Movimento de conta</span></a>
+                        <a href="../financeiro/contas-a-receber/conta/banco.html" class="submenu-item"><span>Banco</span></a>
+                        <a href="../financeiro/contas-a-receber/conta/historico-padrao.html" class="submenu-item"><span>Histórico padrão</span></a>
+                    </div>-->
+
+                    <!--<a href="#" class="submenu-item">
+                        <span>Cheque</span>
+                    </a>-->
+
+                    <!-- Cartão (toggle) -->
+                    <!--<div class="submenu-item" id="finBtnCartao" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Cartão</span></a>
+                        <span id="finCaretCartao" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="finSubCartao" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="#" class="submenu-item"><span>Operadora de cartão</span></a>
+                        <a href="#" class="submenu-item"><span>Recebimento da operadora de cartão</span></a>
+                    </div>-->
+
+                    <!--<a href="#" class="submenu-item">
+                        <span>Condição de pagamento</span>
+                    </a>-->
+
+                    <!-- Relatórios (toggle) -->
+                    <!--<div class="submenu-item" id="finBtnRelatorios" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Relatórios</span></a>
+                        <span id="finCaretRel" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="finSubRelatorios" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../financeiro/relatorio/a-receber.html" class="submenu-item"><span>A receber</span></a>
+                        <a href="../financeiro/relatorio/recebimentos.html" class="submenu-item"><span>Recebimentos</span></a>
+                        <a href="../financeiro/relatorio/documentos-a-receber.html" class="submenu-item"><span>Documentos a receber emitidos</span></a>
+                        <a href="../financeiro/relatorio/a-pagar.html" class="submenu-item"><span>A pagar</span></a>
+                        <a href="../financeiro/relatorio/pagamentos.html" class="submenu-item"><span>Pagamentos</span></a>
+                        <a href="../financeiro/relatorio/custos-adquiridos.html" class="submenu-item"><span>Custos adquiridos</span></a>
+                        <a href="../financeiro/relatorio/custos-pagos.html" class="submenu-item"><span>Custos pagos</span></a>
+                        <a href="../financeiro/relatorio/despesas-emitidas.html" class="submenu-item"><span>Despesas emitidas</span></a>
+                        <a href="../financeiro/relatorio/extrato.html" class="submenu-item"><span>Extrato</span></a>
+                        <a href="../financeiro/relatorio/movimentacao-historico.html" class="submenu-item"><span>Movimentação por Histórico</span></a>
+                        <a href="" class="submenu-item"><span>Cheque</span></a>
+                        <a href="" class="submenu-item"><span>Cartão</span></a>
+                    </div>-->
+                </div>
+            </div>
+            
+            <div class="nav-item-with-submenu">
+                <a href="#" class="nav-item" id="configuracaoMenuItem">
+                    <i class="fas fa-cog"></i>
+                    <span>Configuração</span>
+                    <i class="fas fa-chevron-down submenu-arrow"></i>
+                </a>
+                <div class="submenu" id="configuracaoSubmenu">
+                    <a href="../configuracoes/empresa.html" class="submenu-item">
+                        <span>Empresa</span>
+                    </a>
+                    <a href="../configuracoes/usuario.html" class="submenu-item">
+                        <span>Usuário</span>
+                    </a>
+                    <a href="../configuracoes/grupo-usuario.html" class="submenu-item">
+                        <span>Grupo de usuário</span>
+                    </a>
+                    <a href="../configuracoes/profissional.html" class="submenu-item">
+                        <span>Profissional</span>
+                    </a>
+                    <!--<a href="../configuracoes/permissoes.html" class="submenu-item">
+                        <span>Permissões</span>
+                    </a>-->
+                    <a href="../configuracoes/centro-resultado.html" class="submenu-item">
+                        <span>Centro de resultado</span>
+                    </a>
+                    <a href="../configuracoes/categoria-financeira.html" class="submenu-item">
+                        <span>Categoria financeira</span>
+                    </a>
+                    <!--<a href="../configuracoes/tipo-documento.html" class="submenu-item">
+                        <span>Tipo de documento</span>
+                    </a>-->
+                    <!--<a href="../configuracoes/configuracoes-gerais.html" class="submenu-item">
+                        <span>Configurações Gerais</span>
+                    </a>-->
+                    <!--<a href="../configuracoes/pdv.html" class="submenu-item">
+                        <span>PDV</span>
+                    </a>-->
+                    <!--<a href="../configuracoes/formularios.html" class="submenu-item">
+                        <span>Formulários</span>
+                    </a>-->
+                    <!--<a href="../configuracoes/feriado.html" class="submenu-item">
+                        <span>Feriado</span>
+                    </a>-->
+                    <!--<a href="../configuracoes/ip.html" class="submenu-item">
+                        <span>IP</span>
+                    </a>-->
+                </div>
+            </div>
+        </nav>
+    </div>
+
+    <script src="../dashboard.js"></script>
+    <script src="../logo-manager.js"></script>
+    <script>
+    // Toggle para submenu aninhado à esquerda (Item -> Novo)
+    (function(){
+        var leftBtn = document.getElementById('leftBtnNovo');
+        var leftSub = document.getElementById('leftSubNovo');
+        var leftCaret = document.getElementById('leftCaretNovo');
+        if(leftBtn && leftSub){
+            leftBtn.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = leftSub.style.display === 'block' || leftSub.style.display === 'flex';
+                leftSub.style.display = open ? 'none' : 'block';
+                if(leftCaret) leftCaret.innerText = open ? '▼' : '▲';
+            });
+        }
+        // Toggle para submenu aninhado Estoque
+        var leftBtnEst = document.getElementById('leftBtnEstoque');
+        var leftSubEst = document.getElementById('leftSubEstoque');
+        var leftCaretEst = document.getElementById('leftCaretEstoque');
+        if(leftBtnEst && leftSubEst){
+            leftBtnEst.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = leftSubEst.style.display === 'block' || leftSubEst.style.display === 'flex';
+                leftSubEst.style.display = open ? 'none' : 'block';
+                if(leftCaretEst) leftCaretEst.innerText = open ? '▼' : '▲';
+            });
+        }
+        // Toggle para submenu aninhado Clínica
+        var leftBtnClin = document.getElementById('leftBtnClinica');
+        var leftSubClin = document.getElementById('leftSubClinica');
+        var leftCaretClin = document.getElementById('leftCaretClinica');
+        if(leftBtnClin && leftSubClin){
+            leftBtnClin.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = leftSubClin.style.display === 'block' || leftSubClin.style.display === 'flex';
+                leftSubClin.style.display = open ? 'none' : 'block';
+                if(leftCaretClin) leftCaretClin.innerText = open ? '▼' : '▲';
+            });
+        }
+        // Toggle para submenus em Atendimento: Vendas, Caixa, Relatórios
+        var attBtnVendas = document.getElementById('attBtnVendas');
+        var attSubVendas = document.getElementById('attSubVendas');
+        var attCaretVendas = document.getElementById('attCaretVendas');
+        if(attBtnVendas && attSubVendas){
+            attBtnVendas.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = attSubVendas.style.display === 'block' || attSubVendas.style.display === 'flex';
+                attSubVendas.style.display = open ? 'none' : 'block';
+                if(attCaretVendas) attCaretVendas.innerText = open ? '▼' : '▲';
+            });
+        }
+
+        var attBtnCaixa = document.getElementById('attBtnCaixa');
+        var attSubCaixa = document.getElementById('attSubCaixa');
+        var attCaretCaixa = document.getElementById('attCaretCaixa');
+        if(attBtnCaixa && attSubCaixa){
+            attBtnCaixa.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = attSubCaixa.style.display === 'block' || attSubCaixa.style.display === 'flex';
+                attSubCaixa.style.display = open ? 'none' : 'block';
+                if(attCaretCaixa) attCaretCaixa.innerText = open ? '▼' : '▲';
+            });
+        }
+
+        var attBtnRel = document.getElementById('attBtnRelatorios');
+        var attSubRel = document.getElementById('attSubRelatorios');
+        var attCaretRel = document.getElementById('attCaretRel');
+        if(attBtnRel && attSubRel){
+            attBtnRel.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = attSubRel.style.display === 'block' || attSubRel.style.display === 'flex';
+                attSubRel.style.display = open ? 'none' : 'block';
+                if(attCaretRel) attCaretRel.innerText = open ? '▼' : '▲';
+            });
+        }
+        // Toggle para submenu aninhado em Compras: Relatórios
+        var compBtnRel = document.getElementById('compBtnRelatorios');
+        var compSubRel = document.getElementById('compSubRelatorios');
+        var compCaretRel = document.getElementById('compCaretRel');
+        if(compBtnRel && compSubRel){
+            compBtnRel.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = compSubRel.style.display === 'block' || compSubRel.style.display === 'flex';
+                compSubRel.style.display = open ? 'none' : 'block';
+                if(compCaretRel) compCaretRel.innerText = open ? '▼' : '▲';
+            });
+        }
+        // Toggle para submenus em Financeiro
+        var finBtnReceber = document.getElementById('finBtnReceber');
+        var finSubReceber = document.getElementById('finSubReceber');
+        var finCaretReceber = document.getElementById('finCaretReceber');
+        if(finBtnReceber && finSubReceber){
+            finBtnReceber.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = finSubReceber.style.display === 'block' || finSubReceber.style.display === 'flex';
+                finSubReceber.style.display = open ? 'none' : 'block';
+                if(finCaretReceber) finCaretReceber.innerText = open ? '▼' : '▲';
+            });
+        }
+
+        var finBtnPagar = document.getElementById('finBtnPagar');
+        var finSubPagar = document.getElementById('finSubPagar');
+        var finCaretPagar = document.getElementById('finCaretPagar');
+        if(finBtnPagar && finSubPagar){
+            finBtnPagar.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = finSubPagar.style.display === 'block' || finSubPagar.style.display === 'flex';
+                finSubPagar.style.display = open ? 'none' : 'block';
+                if(finCaretPagar) finCaretPagar.innerText = open ? '▼' : '▲';
+            });
+        }
+
+        var finBtnConta = document.getElementById('finBtnConta');
+        var finSubConta = document.getElementById('finSubConta');
+        var finCaretConta = document.getElementById('finCaretConta');
+        if(finBtnConta && finSubConta){
+            finBtnConta.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = finSubConta.style.display === 'block' || finSubConta.style.display === 'flex';
+                finSubConta.style.display = open ? 'none' : 'block';
+                if(finCaretConta) finCaretConta.innerText = open ? '▼' : '▲';
+            });
+        }
+
+        var finBtnCartao = document.getElementById('finBtnCartao');
+        var finSubCartao = document.getElementById('finSubCartao');
+        var finCaretCartao = document.getElementById('finCaretCartao');
+        if(finBtnCartao && finSubCartao){
+            finBtnCartao.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = finSubCartao.style.display === 'block' || finSubCartao.style.display === 'flex';
+                finSubCartao.style.display = open ? 'none' : 'block';
+                if(finCaretCartao) finCaretCartao.innerText = open ? '▼' : '▲';
+            });
+        }
+
+        var finBtnRel = document.getElementById('finBtnRelatorios');
+        var finSubRel = document.getElementById('finSubRelatorios');
+        var finCaretRel = document.getElementById('finCaretRel');
+        if(finBtnRel && finSubRel){
+            finBtnRel.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = finSubRel.style.display === 'block' || finSubRel.style.display === 'flex';
+                finSubRel.style.display = open ? 'none' : 'block';
+                if(finCaretRel) finCaretRel.innerText = open ? '▼' : '▲';
+            });
+        }
+        
+        // fechar ao clicar em outro lugar da sidebar (mantém outras opções)
+        document.addEventListener('click', function(e){
+            if(!e.target.closest('#itemSubmenu')){
+                if(leftSub) leftSub.style.display = 'none';
+                if(leftCaret) leftCaret.innerText = '▼';
+                // também fechar o submenu pai (#itemSubmenu) se estiver aberto
+                try{
+                    var parentSub = document.getElementById('itemSubmenu');
+                    if(parentSub){
+                        if(parentSub.classList && parentSub.classList.contains('open')){
+                            parentSub.classList.remove('open');
+                            try{ restoreSubmenu(parentSub); }catch(e){}
+                        } else {
+                            parentSub.style.display = 'none';
+                        }
+                    }
+                }catch(e){console.warn('Erro ao fechar submenu pai', e);}
+            }
+        });
+    })();
+    </script>
+
+    <script>
+    // Dropdown de Modelo de Etiqueta: opções e persistência no backend
+    (function(){
+        function initModeloDropdown(){
+            var input = document.getElementById('modeloEtiquetaField');
+            if(!input) return;
+
+        var options = [
+            'Papel A4 - 33 etiquetas (25x63mm) com marca/local',
+            'Papel A4 - 65 etiquetas (38x21mm) com 2 preços/barras',
+            'Papel A4 - 65 etiquetas (38x21mm) com barras',
+            'Papel A4 - 65 etiquetas (38x21mm) com preço/barras',
+            'Papel A4 - Gôndola - 16 etiquetas (93x34mm) com preço/barras',
+            'Papel Carta - 10 etiquetas (51x102mm) com preço/barras',
+            'Papel Carta - 80 etiquetas (44x13mm) com preço/barras',
+            'Papel Carta - 80 etiquetas (44x13mm) com barras',
+            'Papel A4 - 33 etiquetas (25x63mm) sem marca',
+            'Papel A4 - 65 etiquetas (38x21mm) com preço e barras',
+            'Papel A4 - 50 etiquetas (custom) com preço/barras'
+        ];
+
+        // criar dropdown container e anexar ao body
+        var dropdown = document.createElement('div');
+        dropdown.className = 'autocomplete-list';
+        dropdown.style.position = 'absolute';
+        dropdown.style.display = 'none';
+        dropdown.style.zIndex = 4000;
+        document.body.appendChild(dropdown);
+
+        function position(){
+            var r = input.getBoundingClientRect();
+            dropdown.style.minWidth = Math.max(300, r.width) + 'px';
+            var left = Math.round(r.left + window.pageXOffset - 6);
+            if(left < 8) left = 8;
+            dropdown.style.left = left + 'px';
+            dropdown.style.top = Math.round(r.bottom + window.pageYOffset + 6) + 'px';
+        }
+
+        function render(){
+            dropdown.innerHTML = '';
+            var top = document.createElement('div'); top.className='autocomplete-topline'; dropdown.appendChild(top);
+
+            // Substrings que identificam os modelos que devem ficar escuros e não clicáveis (conforme imagem)
+            var disabledSubstrings = [
+                'Gôndola - 16 etiquetas',
+                'Papel Carta - 10 etiquetas',
+                'Papel Carta - 80 etiquetas (44x13mm)',
+                '33 etiquetas (25x63mm) sem marca',
+                '65 etiquetas (38x21mm) com preço',
+                '50 etiquetas (custom)'
+            ];
+
+            options.forEach(function(opt){
+                var it = document.createElement('div'); it.className = 'autocomplete-item';
+                it.textContent = opt;
+
+                // verificar se este option corresponde a um dos modelos que devem ficar desabilitados
+                var shouldDisable = disabledSubstrings.some(function(sub){ return opt.indexOf(sub) !== -1; });
+                if(shouldDisable){
+                    it.style.background = '#f3f4f6';
+                    it.style.color = '#444';
+                    it.style.fontWeight = '600';
+                    it.style.padding = '10px 12px';
+                    it.style.borderBottom = '1px solid #e6e6e6';
+                    it.style.cursor = 'not-allowed';
+                    it.style.pointerEvents = 'none';
+                    // acrescentar indicação "(em breve)" quando não presente
+                    if(opt.toLowerCase().indexOf('em breve') === -1) it.textContent = opt + ' (em breve)';
+                } else {
+                    it.style.background = 'transparent';
+                    it.style.color = '#111';
+                    it.style.fontWeight = '600';
+                    it.style.padding = '10px 12px';
+                    it.style.borderBottom = '1px solid #e6e6e6';
+                    it.style.cursor = 'pointer';
+                    it.style.pointerEvents = 'auto';
+                    it.addEventListener('click', function(e){ e.stopPropagation(); selectOption(opt); });
+                }
+
+                dropdown.appendChild(it);
+            });
+        }
+
+        function selectOption(val){
+            input.value = val;
+            dropdown.style.display = 'none';
+            // Persistir no backend
+            try{
+                fetch('/api/modelo-etiqueta', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ modelo: val }) });
+            }catch(e){ console.warn('Erro ao salvar modelo etiqueta', e); }
+        }
+
+        input.addEventListener('click', function(e){
+            e.stopPropagation();
+            if(dropdown.style.display === 'block'){ dropdown.style.display = 'none'; return; }
+            render(); position(); dropdown.style.display = 'block';
+        });
+
+        document.addEventListener('click', function(e){ if(!dropdown.contains(e.target) && e.target !== input) dropdown.style.display = 'none'; });
+        window.addEventListener('resize', function(){ if(dropdown.style.display==='block') position(); });
+        window.addEventListener('scroll', function(){ if(dropdown.style.display==='block') position(); }, true);
+
+        // carregar seleção persistida
+        (async function loadPersisted(){
+            try{
+                const res = await fetch('/api/modelo-etiqueta');
+                if(!res.ok) return;
+                const data = await res.json();
+                if(data && data.modelo) input.value = data.modelo;
+            }catch(e){/* silencioso */}
+        })();
+        }
+        // inicializar quando DOM estiver pronto
+        if(document.readyState === 'loading'){
+            document.addEventListener('DOMContentLoaded', initModeloDropdown);
+        } else {
+            initModeloDropdown();
+        }
+    })();
+    </script>
+    <script>
+    // Handler global de click fora que fecha dropdowns e painéis abertos
+    (function(){
+        function closeAllMenus(){
+            try{
+                var leftSub = document.getElementById('leftSubNovo');
+                var leftCaret = document.getElementById('leftCaretNovo');
+                if(leftSub) leftSub.style.display = 'none';
+                if(leftCaret) leftCaret.innerText = '▼';
+                // reset carets dos submenus de Atendimento
+                try{ var aV = document.getElementById('attCaretVendas'); if(aV) aV.innerText = '▼'; }catch(e){}
+                try{ var aC = document.getElementById('attCaretCaixa'); if(aC) aC.innerText = '▼'; }catch(e){}
+                try{ var aR = document.getElementById('attCaretRel'); if(aR) aR.innerText = '▼'; }catch(e){}
+                // reset caret do submenu de Compras -> Relatórios
+                try{ var cR = document.getElementById('compCaretRel'); if(cR) cR.innerText = '▼'; }catch(e){}
+                // reset carets dos submenus de Financeiro
+                try{ var fR1 = document.getElementById('finCaretReceber'); if(fR1) fR1.innerText = '▼'; }catch(e){}
+                try{ var fR2 = document.getElementById('finCaretPagar'); if(fR2) fR2.innerText = '▼'; }catch(e){}
+                try{ var fR3 = document.getElementById('finCaretConta'); if(fR3) fR3.innerText = '▼'; }catch(e){}
+                try{ var fR4 = document.getElementById('finCaretCartao'); if(fR4) fR4.innerText = '▼'; }catch(e){}
+                try{ var fR5 = document.getElementById('finCaretRel'); if(fR5) fR5.innerText = '▼'; }catch(e){}
+
+                // fechar todos os .submenu e remover classe open
+                document.querySelectorAll('.submenu').forEach(function(s){
+                    try{ s.classList.remove('open'); }catch(e){}
+                    try{ restoreSubmenu(s); }catch(e){}
+                    s.style.display = 'none';
+                });
+
+                // remover open dos containers
+                document.querySelectorAll('.nav-item-with-submenu.open').forEach(function(c){ c.classList.remove('open'); });
+
+                // fechar painéis
+                document.querySelectorAll('.panel').forEach(function(p){ p.style.display = 'none'; });
+            }catch(e){ console.warn('closeAllMenus error', e); }
+        }
+
+        document.addEventListener('click', function(ev){
+            // esperar handlers internos processarem (por exemplo, abrir menus)
+            setTimeout(function(){
+                // se o clique ocorreu dentro da sidebar ou dentro de um submenu/painel, não fecha
+                if(ev.target.closest('.sidebar') || ev.target.closest('.submenu') || ev.target.closest('.panel')) return;
+                closeAllMenus();
+            }, 20);
+        });
+    })();
+    </script>
+    
+    <!-- Pedido de Venda: toast simples (azul claro) -->
+    <style>
+        .pedido-toast-container{position:fixed;top:18px;right:18px;display:flex;flex-direction:column;gap:8px;z-index:99999;pointer-events:none}
+        .pedido-toast{pointer-events:auto;background:linear-gradient(180deg,#e8f6ff,#d3efff);color:#023047;padding:10px 14px;border-radius:8px;box-shadow:0 8px 24px rgba(2,16,26,0.12);min-width:220px;max-width:380px;font-weight:300;opacity:0;transform:translateY(-6px) scale(0.98);transition:opacity .18s,transform .18s}
+    </style>
+    <script>
+    (function(){
+        if(window.__pedidoToastInstalled) return; window.__pedidoToastInstalled = true;
+        function showPedidoToast(message){
+            var c = document.querySelector('.pedido-toast-container');
+            if(!c){ c = document.createElement('div'); c.className = 'pedido-toast-container'; document.body.appendChild(c); }
+            var t = document.createElement('div'); t.className = 'pedido-toast'; t.textContent = message; c.appendChild(t);
+            requestAnimationFrame(function(){ t.style.opacity = '1'; t.style.transform = 'none'; });
+            setTimeout(function(){ t.style.opacity = '0'; t.style.transform = 'translateY(-6px) scale(0.98)'; setTimeout(function(){ try{ t.remove(); }catch(e){} },220); }, 5000);
+        }
+
+        document.addEventListener('click', function(e){
+            try{
+                var a = e.target && e.target.closest && e.target.closest('a');
+                if(!a) return;
+                var txt = (a.textContent||'').trim();
+                var href = a.getAttribute && (a.getAttribute('href')||'');
+                if(txt === 'Pedido de Venda' || (href && href.indexOf('pedido-venda') !== -1)){
+                    e.preventDefault(); e.stopPropagation();
+                    showPedidoToast('Pedido de Venda ainda está sendo desenvolvido');
+                }
+            }catch(err){/* silencioso */}
+        }, true); // usar capture para garantir execução antes de handlers que fazem stopPropagation
+    })();
+    </script>
+
+    <script src="/frontend/inject-sidebar.js"></script>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <button class="menu-toggle">
+          <i class="fas fa-bars"></i>
+        </button>
+        <h1>Emissão de etiquetas de produtos</h1>
+      </div>
+      
+      <div class="header-right">
+        <div class="calendar-widget">
+          <button class="btn-calendar" id="calendarioWidget" onclick="abrirCalendarioSidebar()">
+            <i class="fas fa-calendar"></i>
+          </button>
+        </div>
+        
+        <div class="dropdown">
+          <button class="btn-primary dropdown-toggle" id="inicioRapidoBtn">
+            <i class="fas fa-plus"></i>
+            Início Rápido
+            <i class="fas fa-chevron-down"></i>
+          </button>
+          <div class="dropdown-menu" id="inicioRapidoMenu">
+            <a href="/agendamentos-novo.html" class="dropdown-item">
+              <i class="fas fa-calendar-plus"></i>
+              Novo Atendimento
+            </a>
+            <a href="/pets/cadastro-pet.html" class="dropdown-item" onclick="novoPet()">
+              <i class="fas fa-dog"></i>
+              Novo Pet
+            </a>
+            <a href="/novo-cliente.html" class="dropdown-item" onclick="novoCliente()">
+              <i class="fas fa-user-plus"></i>
+              Novo Cliente
+            </a>
+            <!--<a
+                href="/atendimento/novo-contrato.html"
+                class="dropdown-item"
+                onclick="novoContrato()"
+              >
+                <i class="fas fa-file-contract"></i>
+                Novo Contrato
+              </a><-->
+            <a href="/atendimento/nova-venda.html" class="dropdown-item" onclick="novaVenda()">
+              <i class="fas fa-shopping-bag"></i>
+              Nova Venda
+            </a>
+            <a href="../../financeiro/contas-a-receber/contas-a-pagar/pagamento-fornecedor.html" class="dropdown-item" onclick="novaContaPagar()">
+              <i class="fas fa-credit-card"></i>
+              Nova Conta a Pagar
+            </a>
+          </div>
+        </div>
+        
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input type="text" placeholder="Pesquisar por menu">
+        </div>
+        
+        <div class="user-menu">
+          <i class="fas fa-user-circle"></i>
+          <span>...</span>
+        </div>
+      </div>
+    </header>
+    
+    <!-- Conteúdo Principal: Emissão de etiquetas de produtos -->
+    <div class="page-content">
+      <div class="page-header">
+        <h2 class="page-title"></h2>
+      </div>
+      
+      <!-- Layout em duas colunas -->
+      <div class="etiquetas-layout">
+        <!-- Coluna Esquerda: Adicionar etiquetas -->
+        <div class="left-column">
+          <div class="section-card">
+            <h3 class="section-title">Adicionar etiquetas</h3>
+            
+            <!-- Abas: ENTRADAS, PRODUTOS, PREÇOS ALTERADOS -->
+            <div class="tabs-container">
+              <div class="tabs">
+                <button class="tab-btn active" data-tab="entradas">ENTRADAS</button>
+                <button class="tab-btn" data-tab="produtos">PRODUTOS</button>
+                <button class="tab-btn" data-tab="precos">PREÇOS ALTERADOS</button>
+              </div>
+            </div>
+            
+            <!-- Conteúdo da Aba ENTRADAS -->
+            <div class="tab-content active" id="tab-entradas">
+              <div class="form-section">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="periodoEntrada">Período de Entrada *</label>
+                    <input type="text" id="periodoEntrada" value="06/11/2025 - 06/11/2025" class="form-control">
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="fornecedor">Fornecedor</label>
+                    <input type="text" id="fornecedor" placeholder="Digite para pesquisar fornecedores" class="form-control">
+                  </div>
+                  
+                  <div class="form-group-button">
+                    <button class="btn-buscar-notas" id="btnBuscarNotas">
+                      <i class="fas fa-search"></i>
+                      Buscar notas de entrada
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Conteúdo da Aba PRODUTOS -->
+                        <div class="tab-content" id="tab-produtos">
+                            <div class="form-section">
+                                <div class="form-row" style="align-items:center;">
+                                    <div class="form-group" style="flex:1;min-width:300px;">
+                                        <label for="produto">Produto *</label>
+                                        <input type="text" id="produto" placeholder="Digite para pesquisar" class="form-control">
+                                    </div>
+
+                                    <div class="form-group-small" style="min-width:120px;">
+                                        <label for="produtoQuantidade">Quantidade *</label>
+                                        <input type="number" id="produtoQuantidade" value="1" min="1" class="form-control-tiny">
+                                    </div>
+
+                                    <div class="form-group-button" style="align-self:flex-end;">
+                                        <button class="btn-visualizar" id="btnAddToPrint">Adicionar à lista de impressão</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+            
+            <!-- Conteúdo da Aba PREÇOS ALTERADOS -->
+                        <div class="tab-content" id="tab-precos">
+                            <div class="form-section">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="periodoPrecos">Período *</label>
+                                        <input type="text" id="periodoPrecos" placeholder="" class="form-control">
+                                    </div>
+
+                                    <div class="form-group-button" style="align-self:flex-end;">
+                                        <button class="btn-buscar-notas" id="btnBuscarPrecos">
+                                            <i class="fas fa-search"></i>
+                                            Buscar produtos
+                                        </button>
+                                    </div>
+                                </div>
+                                <!-- Resultados retornados pela API sobre preços alterados -->
+                                <div id="precosResults" class="precos-results" style="margin-top:18px"></div>
+                            </div>
+                        </div>
+          </div>
+        </div>
+        
+        <!-- Coluna Direita: Layout -->
+        <div class="right-column">
+          <div class="section-card">
+            <h3 class="section-title">Layout</h3>
+            
+            <div class="layout-section">
+                            <!-- Layout (removidas abas Impressora / Modelo Etiqueta) -->
+              
+              <!-- Conteúdo Impressora -->
+              <div class="layout-tab-content active" id="layout-impressora">
+                <div class="layout-form">
+                  <div class="form-row-layout">
+                                        <div class="form-group" style="min-width:200px;">
+                                            <label>Impressora</label>
+                                            <!-- Input com estilo underline (igual a Modelo de Etiqueta) -->
+                                            <input type="text" id="impressoraCurrent" class="form-control-underline" value="Laser" readonly style="cursor:pointer">
+                                            <!-- Dropdown reaproveitado para seleção visual (será posicionado via JS) -->
+                                            <div id="impressoraDropdown" class="impressora-dropdown" style="display:none;position:absolute;z-index:3000">
+                                                <div class="impressora-item" data-val="laser">Laser</div>
+                                                <div class="impressora-item" data-val="argox">Argox</div>
+                                            </div>
+                                        </div>
+                                        <div class="form-group-small" style="margin-top:6px;">
+                                            <label>Modelo de Etiqueta</label>
+                                            <input type="text" id="modeloEtiquetaField" class="form-control-underline" value="Papel A4 - 33 etiquetas (25x63mm) com marca/local" placeholder="Modelo de Etiqueta" readonly style="cursor:pointer">
+                                            <!-- dropdown será criado por JS e anexado ao body -->
+                                        </div>
+                                        <div class="form-group-tiny">
+                                            <label>1ª linha *</label>
+                                            <input type="number" value="1" class="form-control-tiny" disabled title="Campo fixo">
+                                        </div>
+
+                                        <!-- select moved below to a separate row (see layout) -->
+
+                                        <div class="form-group-tiny">
+                                            <label>1ª Coluna *</label>
+                                            <input type="number" value="1" class="form-control-tiny" disabled title="Campo fixo">
+                                        </div>
+                    
+                                        <!-- nova linha: colocar o select abaixo, alinhado à esquerda próximo de '1ª Coluna' -->
+                                        <div style="width:100%;display:flex;margin-top:12px;">
+                                                <div class="form-group-small" style="margin-top:0;margin-left:0;">
+                                                        <label>Gerar cód. barras por</label>
+                                                        <select class="form-control-small">
+                                                                <option selected>Código do produto</option>
+                                                                <option>Código de barras</option>
+                                                        </select>
+                                                </div>
+                                        </div>
+
+                                        <div class="form-group-button-layout">
+                                            <button class="btn-visualizar" id="btnVisualizarEtiquetas" style="padding-top:8px;margin-top:8px;">
+                                                Visualizar Etiquetas
+                                            </button>
+                                        </div>
+                  </div>
+                </div>
+              </div>
+              
+                            <!-- (aba 'Modelo Etiqueta' removida - configuração unificada acima) -->
+            </div>
+            
+            <!-- Lista de etiquetas para impressão -->
+            <div class="etiquetas-impressao">
+              <div class="etiquetas-header">
+                <span class="etiquetas-count">0 etiquetas para impressão</span>
+                <div class="etiquetas-actions">
+                  <button class="btn-icon-action" title="Limpar">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                  <button class="btn-icon-action" title="Opções">
+                    <i class="fas fa-ellipsis-v"></i>
+                  </button>
+                </div>
+              </div>
+                            <div class="etiquetas-list" id="etiquetasList" style="margin-top:12px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Fim do conteúdo principal -->
+  </div>
+
+  <!-- Script do menu (copiar para sua página) -->
+    <script src="./etiquetas.js"></script>
+
+    <script>
+    // Controla o dropdown visual da Impressora (abre/fecha e seleciona)
+    (function(){
+        var input = document.getElementById('impressoraCurrent');
+        var menu = document.getElementById('impressoraDropdown');
+        if(!input || !menu) return;
+
+        function positionMenu(){
+            try{
+                var r = input.getBoundingClientRect();
+                if(!document.body.contains(menu)) document.body.appendChild(menu);
+                // largura do menu baseada no input (mínimo e arredondada)
+                var menuWidth = Math.max(160, Math.round(r.width));
+                menu.style.minWidth = menuWidth + 'px';
+                // centralizar o menu em relação ao input: left = input.left + (input.width - menu.width)/2
+                // aplicar deslocamento extra para a esquerda para alinhar visualmente
+                var extraLeftOffset = 105; // px, ajustar conforme necessário
+                var left = Math.round(r.left + window.pageXOffset + Math.round((r.width - menuWidth) / 2) - 6 - extraLeftOffset);
+                // proteção: não sair da tela à esquerda
+                if(left < 8) left = 8;
+                menu.style.left = left + 'px';
+                menu.style.top = (r.bottom + window.pageYOffset + 6) + 'px';
+            }catch(e){ console.warn('posicao impressora', e); }
+        }
+
+        input.addEventListener('click', function(e){
+            e.stopPropagation();
+            if(menu.style.display === 'block') { menu.style.display = 'none'; return; }
+            positionMenu();
+            menu.style.display = 'block';
+        });
+
+        // click nas opções
+        menu.addEventListener('click', function(e){
+            var it = e.target && e.target.closest('.impressora-item');
+            if(!it) return;
+            var val = it.dataset.val || it.textContent.trim();
+            input.value = it.textContent.trim();
+            menu.style.display = 'none';
+        });
+
+        // fechar ao clicar fora
+        document.addEventListener('click', function(e){ if(!menu.contains(e.target) && e.target !== input) menu.style.display = 'none'; });
+        window.addEventListener('resize', function(){ if(menu.style.display==='block') positionMenu(); });
+        window.addEventListener('scroll', function(){ if(menu.style.display==='block') positionMenu(); }, true);
+    })();
+    </script>
+
+    <!-- Calendário Popup (duplicado local para esta página) -->
+    <div class="calendario-popup" id="calendarioPopupEtiquetas" style="display:none;position:absolute;z-index:2147483647">
+        <div class="calendario-header">
+            <button class="calendario-nav" id="btnMesAnteriorEtiquetas"><i class="fas fa-chevron-left"></i></button>
+            <span class="calendario-mes-ano" id="mesAnoAtualEtiquetas"></span>
+            <button class="calendario-nav" id="btnProximoMesEtiquetas"><i class="fas fa-chevron-right"></i></button>
+        </div>
+        <div class="calendario-weekdays">
+            <div class="weekday">Dom</div>
+            <div class="weekday">Seg</div>
+            <div class="weekday">Ter</div>
+            <div class="weekday">Qua</div>
+            <div class="weekday">Qui</div>
+            <div class="weekday">Sex</div>
+            <div class="weekday">Sáb</div>
+        </div>
+        <div class="calendario-days" id="diasCalendarioEtiquetas"></div>
+        <div class="calendario-actions" style="display:flex;justify-content:flex-end;gap:10px;padding:10px 14px">
+            <button class="btn btn-secondary" id="btnCalendarioCancelarEtiquetas">Cancelar</button>
+            <button class="btn btn-primary" id="btnCalendarioAplicarEtiquetas">Aplicar</button>
+        </div>
+    </div>
+
+    <!-- Script global do calendário (copia do dashboard) -->
+    <script>
+    (function(){
+        // Estado do calendário local para etiquetas
+        const calendarioStateEtiquetas = { mes: (new Date()).getMonth(), ano: (new Date()).getFullYear(), dataInicio: null, dataFim: null, selecionandoInicio: true, hoverDate: null };
+
+        function formatarDataEtiquetas(data){ if(!data) return ''; const dd = ('0'+data.getDate()).slice(-2); const mm = ('0'+(data.getMonth()+1)).slice(-2); const yyyy = data.getFullYear(); return dd + '/' + mm + '/' + yyyy; }
+        function parseDataEtiquetas(str){ if(!str || typeof str !== 'string') return null; const parts = str.split('/'); if(parts.length!==3) return null; return new Date(parseInt(parts[2],10), parseInt(parts[1],10)-1, parseInt(parts[0],10)); }
+        function datasIguaisEtiquetas(a,b){ if(!a||!b) return false; return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
+
+        function inicializarCalendarioEtiquetas(){
+            const periodoEntrada = document.getElementById('periodoEntrada');
+            const periodoPrecos = document.getElementById('periodoPrecos');
+            const popup = document.getElementById('calendarioPopupEtiquetas');
+            if(!popup) return;
+
+            // current target input (the one that opened the picker)
+            let currentPeriodoInput = periodoEntrada || periodoPrecos || null;
+
+            function openFor(inputEl){
+                if(!inputEl) return;
+                currentPeriodoInput = inputEl;
+                // expose globally so abrirCalendarioEtiquetas can position relative to it
+                window._currentPeriodoInput = inputEl;
+                abrirCalendarioEtiquetas();
+            }
+
+            if(periodoEntrada){ periodoEntrada.addEventListener('click', function(e){ e.stopPropagation(); openFor(periodoEntrada); }); }
+            if(periodoPrecos){ periodoPrecos.addEventListener('click', function(e){ e.stopPropagation(); openFor(periodoPrecos); }); }
+
+            document.addEventListener('click', function(e){ if(!popup.contains(e.target) && e.target !== periodoEntrada && e.target !== periodoPrecos) fecharCalendarioEtiquetas(); });
+
+            document.getElementById('btnMesAnteriorEtiquetas').addEventListener('click', function(){ calendarioStateEtiquetas.mes--; if(calendarioStateEtiquetas.mes<0){ calendarioStateEtiquetas.mes=11; calendarioStateEtiquetas.ano--; } gerarCalendarioEtiquetas(); });
+            document.getElementById('btnProximoMesEtiquetas').addEventListener('click', function(){ calendarioStateEtiquetas.mes++; if(calendarioStateEtiquetas.mes>11){ calendarioStateEtiquetas.mes=0; calendarioStateEtiquetas.ano++; } gerarCalendarioEtiquetas(); });
+            document.getElementById('btnCalendarioCancelarEtiquetas').addEventListener('click', function(){ fecharCalendarioEtiquetas(); });
+            document.getElementById('btnCalendarioAplicarEtiquetas').addEventListener('click', function(){ aplicarDatasEtiquetas(); });
+
+            // inicial values from periodoEntrada if present (fallback)
+            const initial = (periodoEntrada && periodoEntrada.value) || '';
+            if(initial && initial.indexOf('-')!==-1){ const parts = initial.split('-').map(s=>s.trim()); const d1 = parseDataEtiquetas(parts[0]); const d2 = parseDataEtiquetas(parts[1]); if(d1) calendarioStateEtiquetas.dataInicio = d1; if(d2) calendarioStateEtiquetas.dataFim = d2; }
+            gerarCalendarioEtiquetas();
+
+            // expose aplicarDatasEtiquetas to set value on the correct input
+            function aplicarDatasEtiquetas(){
+                const periodo = currentPeriodoInput;
+                if(!periodo) return;
+                if(calendarioStateEtiquetas.dataInicio) {
+                    if(calendarioStateEtiquetas.dataFim) periodo.value = formatarDataEtiquetas(calendarioStateEtiquetas.dataInicio) + ' - ' + formatarDataEtiquetas(calendarioStateEtiquetas.dataFim);
+                    else periodo.value = formatarDataEtiquetas(calendarioStateEtiquetas.dataInicio) + ' - ' + formatarDataEtiquetas(calendarioStateEtiquetas.dataInicio);
+                }
+                fecharCalendarioEtiquetas();
+            }
+
+            // override the global aplicar function used elsewhere in this closure
+            window.aplicarDatasEtiquetas = aplicarDatasEtiquetas;
+        }
+
+        function abrirCalendarioEtiquetas(){
+            const popup = document.getElementById('calendarioPopupEtiquetas');
+            const periodo = window._currentPeriodoInput || document.getElementById('periodoEntrada');
+            if(!popup || !periodo) return;
+            calendarioStateEtiquetas.selecionandoInicio = true; calendarioStateEtiquetas.hoverDate = null;
+            // position under input
+            try{
+                if(!document.body.contains(popup)) document.body.appendChild(popup);
+                popup.style.display = 'block';
+                popup.classList.add('active');
+                const rect = periodo.getBoundingClientRect();
+                const preferred = Math.min(680, Math.max(320, window.innerWidth - 40));
+                let left = Math.round(rect.left + window.pageXOffset + (rect.width/2) - (preferred/2));
+                // position a few pixels below the input bottom
+                let top = Math.round(rect.bottom + window.pageYOffset + 8);
+                if(left + preferred > window.innerWidth - 12) left = Math.max(12, window.innerWidth - preferred - 12);
+                if(left < 12) left = 12;
+                popup.style.left = left + 'px'; popup.style.top = top + 'px';
+            }catch(e){}
+            gerarCalendarioEtiquetas();
+        }
+
+        function fecharCalendarioEtiquetas(){ const popup = document.getElementById('calendarioPopupEtiquetas'); if(popup){ popup.style.display='none'; popup.classList.remove('active'); calendarioStateEtiquetas.hoverDate = null; } window._currentPeriodoInput = null; }
+
+        function gerarCalendarioEtiquetas(){
+            const mesAno = document.getElementById('mesAnoAtualEtiquetas'); const diasContainer = document.getElementById('diasCalendarioEtiquetas'); if(!mesAno||!diasContainer) return; diasContainer.innerHTML='';
+            const mes1 = calendarioStateEtiquetas.mes; const ano1 = calendarioStateEtiquetas.ano; let mes2 = mes1+1; let ano2 = ano1; if(mes2>11){ mes2=0; ano2=ano1+1; }
+            const nomes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+            mesAno.textContent = `${nomes[mes1]} ${ano1}  —  ${nomes[mes2]} ${ano2}`;
+            const wrapper = document.createElement('div'); wrapper.style.display='flex'; wrapper.style.gap='12px'; wrapper.style.justifyContent='center';
+            function gerarMes(mes,ano){ const container = document.createElement('div'); container.className='mes-container'; container.style.minWidth='260px'; const grid = document.createElement('div'); grid.style.display='grid'; grid.style.gridTemplateColumns='repeat(7,1fr)'; grid.style.gap='6px'; const primeiro = new Date(ano,mes,1); const ultimo = new Date(ano,mes+1,0); const diasAnt = primeiro.getDay(); const mesAnterior = new Date(ano,mes,0); for(let i=diasAnt-1;i>=0;i--){ const dia = mesAnterior.getDate()-i; criarDiaEtiquetas(dia, true, mes-1, ano, grid); } for(let d=1; d<=ultimo.getDate(); d++){ criarDiaEtiquetas(d, false, mes, ano, grid); } const totalPre = diasAnt + ultimo.getDate(); const restantes = Math.max(0, 42 - totalPre); for(let r=1;r<=restantes;r++) criarDiaEtiquetas(r, true, mes+1, ano, grid); container.appendChild(grid); return container; }
+            wrapper.appendChild(gerarMes(mes1, ano1)); wrapper.appendChild(gerarMes(mes2, ano2)); diasContainer.appendChild(wrapper);
+        }
+
+        function criarDiaEtiquetas(numeroDia, outroMes, mes, ano, container){ const diasContainer = container||document.getElementById('diasCalendarioEtiquetas'); const diaEl = document.createElement('div'); diaEl.className='dia'; diaEl.textContent = numeroDia; let anoAj = ano; if(mes<0){ mes=11; anoAj--; } else if(mes>11){ mes=0; anoAj++; } const dataAtual = new Date(anoAj, mes, numeroDia); const hoje = new Date(); hoje.setHours(0,0,0,0); if(outroMes) diaEl.classList.add('outros-mes'); if(dataAtual.getTime()===hoje.getTime() && !outroMes) diaEl.classList.add('hoje'); if(calendarioStateEtiquetas.dataInicio && datasIguaisEtiquetas(dataAtual, calendarioStateEtiquetas.dataInicio)) diaEl.classList.add('inicio-periodo'); if(calendarioStateEtiquetas.dataFim && datasIguaisEtiquetas(dataAtual, calendarioStateEtiquetas.dataFim)) diaEl.classList.add('fim-periodo'); if(calendarioStateEtiquetas.dataInicio && calendarioStateEtiquetas.dataFim && dataAtual > calendarioStateEtiquetas.dataInicio && dataAtual < calendarioStateEtiquetas.dataFim) diaEl.classList.add('periodo-range'); diaEl.dataset.dateIso = dataAtual.toISOString().slice(0,10);
+            diaEl.addEventListener('click', function(e){ e.stopPropagation(); selecionarDataEtiquetas(dataAtual); });
+            diaEl.addEventListener('mouseenter', function(){ if(!calendarioStateEtiquetas.selecionandoInicio && calendarioStateEtiquetas.dataInicio){ calendarioStateEtiquetas.hoverDate = dataAtual; atualizarHoverEtiquetas(); } });
+            diaEl.addEventListener('mouseleave', function(){ if(calendarioStateEtiquetas.hoverDate){ calendarioStateEtiquetas.hoverDate = null; atualizarHoverEtiquetas(); } });
+            diasContainer.appendChild(diaEl);
+        }
+
+        function selecionarDataEtiquetas(data){
+            if(calendarioStateEtiquetas.selecionandoInicio){
+                calendarioStateEtiquetas.dataInicio = new Date(data);
+                calendarioStateEtiquetas.dataFim = null;
+                calendarioStateEtiquetas.selecionandoInicio = false;
+            } else {
+                if(data < calendarioStateEtiquetas.dataInicio){
+                    calendarioStateEtiquetas.dataFim = calendarioStateEtiquetas.dataInicio;
+                    calendarioStateEtiquetas.dataInicio = new Date(data);
+                } else calendarioStateEtiquetas.dataFim = new Date(data);
+                calendarioStateEtiquetas.selecionandoInicio = true;
+            }
+            gerarCalendarioEtiquetas();
+            // atualizar os inputs para mostrar seleção parcial, mas NÃO fechar o calendário aqui
+            atualizarInputsEtiquetas();
+            // Antes: fechava automaticamente ao escolher a data de fim.
+            // Agora: o calendário só fecha quando o usuário clicar em 'Aplicar' ou 'Cancelar'.
+        }
+
+        function atualizarInputsEtiquetas(){
+            const periodoEntrada = document.getElementById('periodoEntrada');
+            const periodoPrecos = document.getElementById('periodoPrecos');
+            // prefer target input that opened the calendario (set by abrirCalendarioEtiquetas/openFor)
+            const target = (window._currentPeriodoInput || periodoEntrada || periodoPrecos);
+            if(!target) return;
+            if(calendarioStateEtiquetas.dataInicio) {
+                if(calendarioStateEtiquetas.dataFim) target.value = formatarDataEtiquetas(calendarioStateEtiquetas.dataInicio) + ' - ' + formatarDataEtiquetas(calendarioStateEtiquetas.dataFim);
+                else target.value = formatarDataEtiquetas(calendarioStateEtiquetas.dataInicio) + ' - ' + formatarDataEtiquetas(calendarioStateEtiquetas.dataInicio);
+            }
+        }
+
+        function atualizarHoverEtiquetas(){ const dias = document.querySelectorAll('#diasCalendarioEtiquetas .dia'); if(!dias || dias.length===0) return; dias.forEach(d=>{ d.classList.remove('hover-range'); d.classList.remove('hover-target'); }); if(!calendarioStateEtiquetas.dataInicio || !calendarioStateEtiquetas.hoverDate) return; const start = calendarioStateEtiquetas.dataInicio.getTime() <= calendarioStateEtiquetas.hoverDate.getTime() ? calendarioStateEtiquetas.dataInicio : calendarioStateEtiquetas.hoverDate; const end = calendarioStateEtiquetas.dataInicio.getTime() > calendarioStateEtiquetas.hoverDate.getTime() ? calendarioStateEtiquetas.dataInicio : calendarioStateEtiquetas.hoverDate; dias.forEach(d=>{ const iso = d.dataset.dateIso; if(!iso) return; const parts = iso.split('-'); const dt = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2])); if(dt.getTime()>start.getTime() && dt.getTime()<end.getTime()) d.classList.add('hover-range'); if(dt.getTime()===calendarioStateEtiquetas.hoverDate.getTime()) d.classList.add('hover-target'); }); }
+
+        function aplicarDatasEtiquetas(){
+            // aplicar no input que abriu o calendário (se disponível)
+            const periodoEntrada = document.getElementById('periodoEntrada');
+            const periodoPrecos = document.getElementById('periodoPrecos');
+            const target = (window._currentPeriodoInput || periodoEntrada || periodoPrecos);
+            if(!target) return;
+            if(calendarioStateEtiquetas.dataInicio) {
+                if(calendarioStateEtiquetas.dataFim) target.value = formatarDataEtiquetas(calendarioStateEtiquetas.dataInicio) + ' - ' + formatarDataEtiquetas(calendarioStateEtiquetas.dataFim);
+                else target.value = formatarDataEtiquetas(calendarioStateEtiquetas.dataInicio) + ' - ' + formatarDataEtiquetas(calendarioStateEtiquetas.dataInicio);
+            }
+            fecharCalendarioEtiquetas();
+        }
+
+        // inicializar após DOM ready
+        document.addEventListener('DOMContentLoaded', function(){ try{ inicializarCalendarioEtiquetas(); }catch(e){ console.warn('Erro inicializando calendário etiquetas', e); } });
+    })();
+    </script>
+    <!-- Script global do calendário (copia do dashboard) -->
+    <script src="../novo-atendimento-global.js"></script>
+    <script>
+    // Autocomplete fornecedor: busca /api/fornecedores?q=
+    (function(){
+        function debounce(fn, wait){ let t; return function(...args){ clearTimeout(t); t = setTimeout(()=> fn.apply(this,args), wait); }; }
+
+        const input = document.getElementById('fornecedor');
+        if(!input) return;
+
+        let dropdown = document.createElement('div');
+        dropdown.className = 'autocomplete-list';
+        dropdown.style.position = 'absolute';
+        dropdown.style.display = 'none';
+        document.body.appendChild(dropdown);
+
+        function position(){
+            const r = input.getBoundingClientRect();
+            const left = r.left + (window.pageXOffset||0);
+            const top = r.bottom + (window.pageYOffset||0) + 6;
+            dropdown.style.left = left + 'px';
+            dropdown.style.top = top + 'px';
+            dropdown.style.minWidth = Math.max(220, r.width) + 'px';
+        }
+
+        async function fetchFornecedores(q){
+            try{
+                const url = '/api/fornecedores' + (q?('?q=' + encodeURIComponent(q)):(''));
+                const res = await fetch(url);
+                if(!res.ok) return [];
+                const data = await res.json();
+                return Array.isArray(data)? data : [];
+            }catch(e){ console.warn('fetchFornecedores error', e); return []; }
+        }
+
+        function render(items){
+            dropdown.innerHTML = '';
+            if(!items || items.length===0){ dropdown.style.display='none'; return; }
+            const top = document.createElement('div'); top.className='autocomplete-topline'; dropdown.appendChild(top);
+            items.slice(0,40).forEach((f, idx) => {
+                const it = document.createElement('div'); it.className='autocomplete-item';
+                it.tabIndex = 0;
+                const name = (f.nome || f.razaoSocial || '');
+                it.innerHTML = `<div>${escapeHtml(name)}</div>` + (f.codigo?`<div class="autocomplete-sub">${escapeHtml(f.codigo)}</div>`:'');
+                it.addEventListener('click', function(e){ e.stopPropagation(); select(f); });
+                it.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); select(f); } });
+                dropdown.appendChild(it);
+            });
+            position();
+            dropdown.style.display = 'block';
+        }
+
+        function select(f){
+            input.value = f.nome || f.razaoSocial || '';
+            input.dataset.fornecedorId = f.id || '';
+            dropdown.style.display = 'none';
+        }
+
+        const deb = debounce(async function(q){
+            const items = await fetchFornecedores(q);
+            render(items);
+        }, 250);
+
+        // expose escapeHtml helper used elsewhere; define if missing
+        function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c]; }); }
+
+        input.addEventListener('input', function(e){ deb(this.value.trim()); });
+        input.addEventListener('focus', function(e){ deb(this.value.trim()); });
+        input.addEventListener('click', function(e){ deb(this.value.trim()); });
+
+        document.addEventListener('click', function(ev){ if(!dropdown.contains(ev.target) && ev.target !== input){ dropdown.style.display = 'none'; } });
+
+        // reposition on resize/scroll
+        window.addEventListener('resize', function(){ if(dropdown.style.display!=='none') position(); });
+        window.addEventListener('scroll', function(){ if(dropdown.style.display!=='none') position(); }, true);
+    })();
+    </script>
+    
+</body>
+</html>
+
+

@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - PetHub</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="../colors.css" />
+    <link rel="stylesheet" href="login.css" />
+    <style>
+      .notification-toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        min-width: 320px;
+        max-width: 400px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px;
+        z-index: 10000;
+        opacity: 0;
+        transform: translateX(400px);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .notification-toast.show {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      .notification-toast.notification-error {
+        border-left: 4px solid #dc2626;
+      }
+
+      .notification-toast.notification-success {
+        border-left: 4px solid #10b981;
+      }
+
+      .notification-icon {
+        flex-shrink: 0;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+      }
+
+      .notification-error .notification-icon {
+        background: #fee2e2;
+        color: #dc2626;
+      }
+
+      .notification-success .notification-icon {
+        background: #d1fae5;
+        color: #10b981;
+      }
+
+      .notification-message {
+        flex: 1;
+        font-size: 14px;
+        color: #374151;
+        line-height: 1.5;
+      }
+
+      .notification-close {
+        flex-shrink: 0;
+        width: 28px;
+        height: 28px;
+        border: none;
+        background: #f3f4f6;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: #6b7280;
+        transition: all 0.2s;
+      }
+
+      .notification-close:hover {
+        background: #e5e7eb;
+        color: #374151;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container">
+      <!-- Lado Esquerdo: Formulário de Login -->
+      <div class="login-left">
+        <div class="login-form-wrapper">
+          <div class="logo-container">
+            <img
+              src="../../logos/Logo PetHub (4).svg"
+              alt="Logo PetHub"
+              class="logo-svg"
+            />
+          </div>
+
+          <h2 class="login-title">Entrar na sua conta</h2>
+
+          <form id="loginForm" class="login-form">
+            <div class="form-group">
+              <input
+                type="text"
+                id="usuario"
+                name="usuario"
+                class="form-input"
+                placeholder="Nome de usuário ou e-mail"
+                autocomplete="username"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <input
+                type="password"
+                id="senha"
+                name="senha"
+                class="form-input"
+                placeholder="Senha"
+                autocomplete="current-password"
+                required
+              />
+            </div>
+
+            <button type="submit" class="btn-login">Entrar</button>
+
+            <div class="login-footer">
+              <a href="#" class="link-terms">Termos e Condições</a>
+              <a href="#" class="link-privacy">Política de Privacidade</a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Lado Direito: Marketing e Mascote -->
+      <div class="login-right">
+        <div class="marketing-content">
+          <h2 class="marketing-title">
+            Gestão <span class="highlight-orange">inteligente</span><br />
+            para seu Pet Shop.
+          </h2>
+
+          <p class="marketing-subtitle">
+            Agendamentos, mensagens e cobranças automáticas para você nunca
+            perder um cliente.
+          </p>
+
+          <div class="features-grid">
+            <div class="feature-item">
+              <span class="feature-icon">📅</span>
+              <span class="feature-text">Lembretes de Agendamento</span>
+            </div>
+            <div class="feature-item">
+              <span class="feature-icon">🛠️</span>
+              <span class="feature-text">Totalmente Customizável</span>
+            </div>
+            <div class="feature-item">
+              <span class="feature-icon">🔄</span>
+              <span class="feature-text"
+                >Reativação de clientes automática</span
+              >
+            </div>
+            <div class="feature-item">
+              <span class="feature-icon">🔔</span>
+              <span class="feature-text"
+                >Lembrete de Renovação de Periódicos</span
+              >
+            </div>
+            <div class="feature-item">
+              <span class="feature-icon">👋</span>
+              <span class="feature-text">Boas Vindas a Novos Clientes</span>
+            </div>
+            <div class="feature-item">
+              <span class="feature-icon">🎉</span>
+              <span class="feature-text"
+                >Felicitações a Pets e Tutores Aniversariantes</span
+              >
+            </div>
+          </div>
+
+          <div class="qr-section">
+            <div class="qr-code">
+              <img src="../qrcode/qrcode.png" alt="QR Code" class="qr-image" />
+            </div>
+            <div class="qr-text">
+              <p>Aponte a <span class="highlight-white">câmera</span></p>
+              <p>do seu celular no</p>
+              <p><span class="highlight-white">QrCode</span> e fale</p>
+              <p>com o nosso time</p>
+            </div>
+          </div>
+
+          <div class="mascot-container">
+            <img
+              src="../../logos/mascote-pethub.png"
+              alt="Mascote PetHub"
+              class="mascot-image"
+              onerror="this.style.display = 'none'"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="/api-config.js"></script>
+    <script src="login.js"></script>
+  </body>
+</html>

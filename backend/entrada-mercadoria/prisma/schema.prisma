@@ -1,0 +1,57 @@
+// Prisma schema para Entrada de Mercadoria
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model NotaEntrada {
+  id                  Int           @id @default(autoincrement())
+  chave               String?       @unique(map: "idx_chave")
+  numero              String?
+  fornecedorCnpj      String?
+  fornecedorNome      String?
+  dataEmissao         DateTime?
+  valorTotal          Decimal?      @db.Decimal(18,2)
+  status              NotaStatus    @default(PENDENTE)
+  produtosRelacionados Boolean      @default(false)
+  xmlContent          String?        // raw XML text
+  parsedData          Json?          // conteúdo extraído do XML
+  itens               NotaItem[]
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+}
+
+model NotaItem {
+  id                Int       @id @default(autoincrement())
+  notaId            Int
+  nota              NotaEntrada @relation(fields: [notaId], references: [id], onDelete: Cascade)
+  codigoFornecedor  String?
+  descricao         String?
+  quantidade        Decimal?  @db.Decimal(18,4)
+  unidade           String?
+  valorUnitario     Decimal?  @db.Decimal(18,6)
+  valorTotal        Decimal?  @db.Decimal(18,2)
+  produtoSistemaId  Int?      // FK para produto do sistema (caso vinculado)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model ProdutoSistema {
+  id          Int      @id @default(autoincrement())
+  sku         String?  @unique
+  nome        String
+  estoque     Decimal  @db.Decimal(18,4) @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  itensNota   NotaItem[] @relation(fields: [], references: [])
+}
+
+enum NotaStatus {
+  PENDENTE
+  IGNORADA
+  FINALIZADA
+}

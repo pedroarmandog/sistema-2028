@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pet Cria - Lista de Pets</title>
+    <link rel="stylesheet" href="../colors.css">
+    <link rel="stylesheet" href="../dashboard.css">
+    <link rel="stylesheet" href="../clientes.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        .pets-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .pets-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .pets-title h1 {
+            margin: 0;
+            color: #2c3e50;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        
+        .pets-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+        
+        .btn-add-pet {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+        
+        .btn-add-pet:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .pets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .pet-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border: 1px solid #f0f0f0;
+        }
+        
+        .pet-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .pet-card-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .pet-avatar {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .pet-info h3 {
+            margin: 0;
+            color: #2c3e50;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .pet-info p {
+            margin: 5px 0 0 0;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        .pet-details {
+            margin: 15px 0;
+        }
+        
+        .pet-detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f8f9fa;
+        }
+        
+        .pet-detail-item:last-child {
+            border-bottom: none;
+        }
+        
+        .pet-detail-label {
+            color: #6c757d;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .pet-detail-value {
+            color: #495057;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        .pet-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin: 15px 0;
+        }
+        
+        .pet-tag {
+            background: #e9ecef;
+            color: #495057;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        
+        .pet-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .btn-action {
+            padding: 8px 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 12px;
+            flex: 1;
+            text-align: center;
+            text-decoration: none;
+        }
+        
+        .btn-edit {
+            color: #007bff;
+            border-color: #007bff;
+        }
+        
+        .btn-edit:hover {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-delete {
+            color: #dc3545;
+            border-color: #dc3545;
+        }
+        
+        .btn-delete:hover {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .empty-state i {
+            font-size: 64px;
+            color: #dee2e6;
+            margin-bottom: 20px;
+        }
+        
+        .empty-state h3 {
+            color: #6c757d;
+            margin-bottom: 10px;
+        }
+        
+        .empty-state p {
+            color: #adb5bd;
+            margin-bottom: 30px;
+        }
+        
+        .loading-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 60px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+            .pets-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .pets-header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="nav-left">
+                <button class="sidebar-toggle" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="logo">
+                    <i class="fas fa-paw"></i>
+                    <span>Pet Cria</span>
+                </div>
+            </div>
+            
+            <div class="nav-right">
+                <button class="nav-btn" onclick="toggleProfile()">
+                    <i class="fas fa-user-circle"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-paw"></i>
+            <span>Pet Cria</span>
+        </div>
+        
+        <nav class="sidebar-nav">
+            <a href="../dashboard.html" class="nav-item">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+            </a>
+            
+            <div class="nav-item has-submenu">
+                <div class="nav-link" onclick="toggleSubmenu(this)">
+                    <i class="fas fa-users"></i>
+                    <span>Clientes</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="submenu">
+                    <a href="../clientes.html" class="submenu-item">
+                        <i class="fas fa-list"></i>
+                        Lista de Clientes
+                    </a>
+                    <a href="../novo-cliente.html" class="submenu-item">
+                        <i class="fas fa-user-plus"></i>
+                        Novo Cliente
+                    </a>
+                </div>
+            </div>
+            
+            <div class="nav-item has-submenu active">
+                <div class="nav-link" onclick="toggleSubmenu(this)">
+                    <i class="fas fa-paw"></i>
+                    <span>Pets</span>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="submenu">
+                    <a href="lista-pets.html" class="submenu-item active">
+                        <i class="fas fa-list"></i>
+                        Lista de Pets
+                    </a>
+                    <a href="cadastro-pet.html" class="submenu-item">
+                        <i class="fas fa-plus"></i>
+                        Novo Pet
+                    </a>
+                </div>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <div class="main-content">
+        <!-- Cabeçalho -->
+        <div class="pets-header">
+            <div class="pets-title">
+                <div class="pets-icon">
+                    <i class="fas fa-paw"></i>
+                </div>
+                <div>
+                    <h1>Lista de Pets</h1>
+                    <p>Gerencie os pets cadastrados</p>
+                </div>
+            </div>
+            
+            <a href="cadastro-pet.html" class="btn-add-pet">
+                <i class="fas fa-plus"></i>
+                Adicionar Pet
+            </a>
+        </div>
+
+        <!-- Container dos pets -->
+        <div id="petsContainer">
+            <!-- Loading inicial -->
+            <div class="loading-container" id="loadingContainer">
+                <div class="loading-spinner"></div>
+                <span style="margin-left: 15px; color: #6c757d;">Carregando pets...</span>
+            </div>
+            
+            <!-- Grid de pets -->
+            <div class="pets-grid" id="petsGrid" style="display: none;">
+                <!-- Os pets serão inseridos aqui via JavaScript -->
+            </div>
+            
+            <!-- Estado vazio -->
+            <div class="empty-state" id="emptyState" style="display: none;">
+                <i class="fas fa-paw"></i>
+                <h3>Nenhum pet cadastrado</h3>
+                <p>Comece adicionando o primeiro pet ao sistema</p>
+                <a href="cadastro-pet.html" class="btn-add-pet">
+                    <i class="fas fa-plus"></i>
+                    Cadastrar Primeiro Pet
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../dashboard.js"></script>
+    <script src="lista-pets.js"></script>
+    <script src="/sidebar-component/inject-sidebar.js"></script>
+</body>
+</html>

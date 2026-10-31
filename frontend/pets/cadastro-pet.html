@@ -1,0 +1,5178 @@
+﻿<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PetHub</title>
+    <script src="../custom-colors.js"></script>
+    <link
+      rel="icon"
+      href="/fivecon/Design sem nome (17).png"
+      type="image/png"
+    />
+    <link rel="stylesheet" href="../colors.css" />
+    <link rel="stylesheet" href="../dashboard.css" />
+    <link rel="stylesheet" href="../clientes.css" />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+
+    <style>
+      /* Estilos específicos para cadastro de pets */
+      .pet-form-container {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        margin: 20px auto 60px auto;
+        max-width: 1300px;
+      }
+
+      .pet-header {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #f8f9fa;
+      }
+
+      .pet-icon {
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 24px;
+      }
+
+      .pet-header h1 {
+        margin: 0;
+        color: #2c3e50;
+        font-size: 28px;
+        font-weight: 600;
+      }
+
+      .pet-header p {
+        margin: 5px 0 0 0;
+        color: #6c757d;
+        font-size: 14px;
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 25px;
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        z-index: 1;
+      }
+
+      .form-group.dropdown-active {
+        z-index: 1000;
+        overflow: visible;
+      }
+
+      .form-group.full-width {
+        grid-column: 1 / -1;
+      }
+
+      .form-group label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 8px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .form-group input,
+      .form-group select,
+      .form-group textarea {
+        padding: 12px 16px;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        background: white;
+      }
+
+      .form-group input:focus,
+      .form-group select:focus,
+      .form-group textarea:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+
+      .form-group textarea {
+        resize: vertical;
+        min-height: 100px;
+      }
+
+      .btn-group {
+        display: flex;
+        gap: 15px;
+        margin-top: 30px;
+        justify-content: flex-end;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+      }
+
+      .btn-secondary {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .btn-secondary:hover {
+        background: #5a6268;
+        transform: translateY(-1px);
+      }
+
+      .success-message,
+      .error-message {
+        display: none;
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        align-items: center;
+        gap: 10px;
+        font-weight: 500;
+      }
+
+      .success-message {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+
+      .success-message[style*="block"] {
+        display: flex !important;
+      }
+
+      .error-message {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+
+      .error-message[style*="block"] {
+        display: flex !important;
+      }
+
+      .info-card {
+        background: #e3f2fd;
+        border: 1px solid #90caf9;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 25px;
+        display: none;
+      }
+
+      .client-info {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+
+      .client-avatar {
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(135deg, #42a5f5 0%, #1976d2 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .client-info h3 {
+        margin: 0;
+        color: #1565c0;
+        font-size: 18px;
+      }
+
+      .client-info p {
+        margin: 5px 0 0 0;
+        color: #1976d2;
+        font-size: 14px;
+      }
+
+      .loading {
+        display: none;
+        text-align: center;
+        padding: 20px;
+        color: #6c757d;
+      }
+
+      .loading i {
+        font-size: 24px;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Validação visual */
+      .form-group.error input,
+      .form-group.error select {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+      }
+
+      .form-group.success input,
+      .form-group.success select {
+        border-color: #28a745;
+        box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .pet-form-container {
+          margin: 10px;
+          padding: 20px;
+        }
+
+        .form-row {
+          grid-template-columns: 1fr;
+        }
+
+        .btn-group {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .pet-header {
+          flex-direction: column;
+          text-align: center;
+          gap: 10px;
+        }
+
+        .client-info {
+          flex-direction: column;
+          text-align: center;
+          justify-content: center;
+        }
+      }
+
+      /* Custom Dropdown Styles */
+      .custom-dropdown {
+        position: relative;
+        width: 100%;
+        z-index: 999;
+      }
+
+      /* Tags Dropdown específico */
+      .tags-dropdown {
+        position: relative;
+        width: 100%;
+        z-index: 999999 !important;
+      }
+
+      .tags-dropdown .dropdown-menu {
+        z-index: 999999 !important;
+      }
+
+      .tags-dropdown-content {
+        position: absolute !important;
+        top: 100% !important;
+        left: 0 !important;
+        right: 0 !important;
+        background: white !important;
+        border: 2px solid #e9ecef !important;
+        border-top: none !important;
+        border-radius: 0 0 8px 8px !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15) !important;
+        z-index: 999999 !important;
+        display: none !important;
+        max-height: 320px !important;
+        overflow-y: auto !important;
+        width: 100% !important;
+      }
+
+      .tags-dropdown-content.show {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+      }
+
+      /* Garantir que outros elementos não sobreponham o dropdown de tags */
+      .form-group {
+        position: relative;
+        z-index: 1;
+      }
+
+      .form-group textarea {
+        position: relative;
+        z-index: 1;
+      }
+
+      .form-group label {
+        position: relative;
+        z-index: 1;
+      }
+
+      /* Garantir que tags dropdown sempre fique acima */
+      .tags-dropdown {
+        z-index: 999999 !important;
+      }
+
+      .tags-dropdown .tags-dropdown-content {
+        z-index: 999999 !important;
+      }
+
+      .custom-dropdown input {
+        width: 100%;
+        padding-right: 40px;
+        cursor: pointer;
+        position: relative;
+        z-index: 1;
+      }
+
+      .dropdown-arrow {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+        z-index: 2;
+      }
+
+      .dropdown-arrow.open {
+        transform: translateY(-50%) rotate(180deg);
+      }
+
+      .dropdown-menu {
+        position: absolute !important;
+        top: 100% !important;
+        left: 0 !important;
+        right: 0 !important;
+        background: white !important;
+        border: 2px solid #e9ecef !important;
+        border-top: none !important;
+        border-radius: 0 0 8px 8px !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15) !important;
+        z-index: 99999 !important;
+        display: none !important;
+        max-height: 320px !important;
+        overflow: hidden !important;
+        width: 100% !important;
+      }
+
+      .dropdown-menu.show {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+      }
+
+      .dropdown-search {
+        padding: 10px;
+        border-bottom: 1px solid #e9ecef;
+      }
+
+      .dropdown-search input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #e9ecef;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+
+      .dropdown-options {
+        max-height: 180px;
+        overflow-y: auto;
+      }
+
+      .dropdown-option {
+        padding: 10px 15px;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        border-bottom: 1px solid #f8f9fa;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .dropdown-option:hover {
+        background-color: #f8f9fa;
+      }
+
+      .dropdown-option:last-child {
+        border-bottom: none;
+      }
+
+      .dropdown-option .breed-name {
+        font-weight: 500;
+        color: #2c3e50;
+      }
+
+      .dropdown-option .breed-type {
+        font-size: 12px;
+        color: #6c757d;
+        background: #e9ecef;
+        padding: 2px 8px;
+        border-radius: 12px;
+      }
+
+      .dropdown-option-content {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .delete-option-btn {
+        background: none;
+        border: none;
+        color: #e74c3c;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 50%;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        opacity: 0.7;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .delete-option-btn:hover {
+        background: #e74c3c;
+        color: white;
+        opacity: 1;
+        transform: scale(1.1);
+      }
+
+      .dropdown-option.has-delete {
+        justify-content: space-between;
+      }
+
+      .dropdown-footer {
+        padding: 10px;
+        border-top: 1px solid #e9ecef;
+        background: #f8f9fa;
+      }
+
+      .add-new-option {
+        width: 100%;
+        padding: 8px 12px;
+        background: transparent;
+        border: 1px dashed #667eea;
+        border-radius: 6px;
+        color: #667eea;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-size: 14px;
+      }
+
+      .add-new-option:hover {
+        background: #667eea;
+        color: white;
+      }
+
+      /* Layout: ampliar e distribuir conteúdo (sem centralização excessiva) */
+      .main-content {
+        margin-left: 120px;
+        width: calc(100% - 120px);
+        transition:
+          margin-left 0.24s ease,
+          width 0.24s ease;
+        overflow-x: hidden;
+      }
+
+      .main-content.sidebar-collapsed {
+        margin-left: 0 !important;
+        width: 100% !important;
+      }
+
+      /* Fazer o container do formulário ocupar mais largura e ficar bem distribuído */
+      .pet-form-container {
+        max-width: none !important;
+        width: calc(100% - 36px) !important;
+        margin: 20px auto 40px auto !important;
+        padding: 24px !important;
+        box-sizing: border-box !important;
+      }
+
+      /* Ajustar a grade para distribuir melhor campos em telas largas */
+      .form-row {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 20px;
+      }
+
+      /* Evitar overflow horizontal por inputs muito largos */
+      .pet-form-container,
+      .form-row,
+      .form-group {
+        max-width: 100%;
+      }
+
+      /* Modal Styles */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 2000;
+        display: none;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .modal-overlay.show {
+        display: flex;
+      }
+
+      .modal-content {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        max-width: 500px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+      }
+
+      .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #f8f9fa;
+      }
+
+      .modal-header h2 {
+        margin: 0;
+        color: #2c3e50;
+        font-size: 24px;
+        font-weight: 600;
+      }
+
+      .modal-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        color: #6c757d;
+        cursor: pointer;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: all 0.3s ease;
+      }
+
+      .modal-close:hover {
+        background: #f8f9fa;
+        color: #2c3e50;
+      }
+
+      .modal-form {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .modal-form .form-group {
+        margin-bottom: 0;
+      }
+
+      .modal-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: flex-end;
+        margin-top: 20px;
+      }
+
+      /* Notificações Personalizadas */
+      .custom-notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+        border-left: 4px solid #e74c3c;
+        display: none;
+        align-items: flex-start;
+        gap: 15px;
+        max-width: 400px;
+        z-index: 99999;
+        animation: slideInRight 0.3s ease;
+      }
+
+      .custom-notification.success {
+        border-left-color: #27ae60;
+      }
+
+      .custom-notification.warning {
+        border-left-color: #f39c12;
+      }
+
+      .custom-notification.error {
+        border-left-color: #e74c3c;
+      }
+
+      .notification-icon {
+        font-size: 24px;
+        margin-top: 2px;
+      }
+
+      .notification-icon.success {
+        color: #27ae60;
+      }
+
+      .notification-icon.warning {
+        color: #f39c12;
+      }
+
+      .notification-icon.error {
+        color: #e74c3c;
+      }
+
+      .notification-content {
+        flex: 1;
+      }
+
+      .notification-title {
+        font-weight: 600;
+        font-size: 16px;
+        margin-bottom: 5px;
+        color: #2c3e50;
+      }
+
+      .notification-message {
+        font-size: 14px;
+        color: #6c757d;
+        line-height: 1.4;
+      }
+
+      .notification-close {
+        background: none;
+        border: none;
+        font-size: 18px;
+        color: #6c757d;
+        cursor: pointer;
+        padding: 0;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: all 0.3s ease;
+      }
+
+      .notification-close:hover {
+        background: #f8f9fa;
+        color: #2c3e50;
+      }
+
+      @keyframes slideInRight {
+        from {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      @keyframes slideOutRight {
+        from {
+          transform: translateX(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateX(100%);
+          opacity: 0;
+        }
+      }
+
+      /* Calendário Personalizado */
+      .custom-calendar {
+        position: relative;
+        width: 100%;
+        z-index: 1000;
+      }
+
+      .custom-calendar input {
+        width: 100%;
+        padding-right: 40px;
+      }
+
+      .calendar-icon {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+        cursor: pointer;
+        font-size: 16px;
+      }
+
+      .calendar-popup {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background: white;
+        border: 2px solid #2c5aa0; /* borda azul como no calendário de agendamentos */
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        z-index: 99999;
+        display: none;
+        padding: 12px;
+        width: 260px;
+        font-size: 13px;
+      }
+
+      .calendar-popup.show {
+        display: block;
+      }
+
+      .calendar-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .calendar-nav {
+        background: none;
+        border: none;
+        font-size: 14px;
+        color: #6c757d;
+        cursor: pointer;
+        padding: 2px 6px;
+        border-radius: 3px;
+        transition: all 0.2s ease;
+      }
+
+      .calendar-nav:hover {
+        background: #f8f9fa;
+        color: #2c3e50;
+      }
+
+      .calendar-month-year {
+        font-weight: 600;
+        color: #2c3e50;
+        font-size: 13px;
+      }
+
+      .calendar-weekdays {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 2px;
+        margin-bottom: 6px;
+      }
+
+      .calendar-weekday {
+        text-align: center;
+        font-weight: 600;
+        color: #6c757d;
+        font-size: 10px;
+        padding: 4px 2px;
+      }
+
+      .calendar-days {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 2px;
+      }
+
+      .calendar-day {
+        text-align: center;
+        padding: 4px 2px;
+        cursor: pointer;
+        border-radius: 3px;
+        transition: all 0.2s ease;
+        font-size: 11px;
+        border: none;
+        background: none;
+        min-height: 22px;
+      }
+
+      .calendar-day:hover {
+        background: #f8f9fa;
+      }
+
+      .calendar-day.other-month {
+        color: #ced4da;
+      }
+
+      .calendar-day.selected {
+        background: #007bff;
+        color: white;
+      }
+
+      .calendar-day.today {
+        background: #28a745;
+        color: white;
+      }
+
+      .calendar-actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 6px;
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid #e9ecef;
+      }
+
+      .calendar-btn {
+        padding: 4px 8px;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 11px;
+        transition: all 0.2s ease;
+      }
+
+      .calendar-btn.hoje {
+        background: #28a745;
+        color: white;
+      }
+
+      .calendar-btn.hoje:hover {
+        background: #218838;
+      }
+
+      .calendar-btn.fechar {
+        background: #6c757d;
+        color: white;
+      }
+
+      .calendar-btn.fechar:hover {
+        background: #5a6268;
+      }
+
+      /* Sistema de Tags */
+      .selected-tags {
+        margin-top: 10px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .selected-tags .tag {
+        display: inline-flex;
+        align-items: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 500;
+        border: 2px solid #5a67d8;
+        box-shadow: 0 3px 8px rgba(90, 103, 216, 0.3);
+        transition: all 0.3s ease;
+        cursor: default;
+      }
+
+      .selected-tags .tag:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 5px 15px rgba(90, 103, 216, 0.4);
+        border-color: #4c51bf;
+      }
+
+      .selected-tags .tag .delete-tag {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: white;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        margin-left: 8px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+      }
+
+      .selected-tags .tag .delete-tag:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: scale(1.1);
+      }
+
+      .tag-option {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+        border-bottom: 1px solid #f8f9fa;
+      }
+
+      .tag-option:hover {
+        background-color: #f8f9fa;
+      }
+
+      .tag-option:last-child {
+        border-bottom: none;
+      }
+
+      .tag-name {
+        font-weight: 500;
+        color: #2c3e50;
+      }
+
+      .tag-delete-btn {
+        background: none;
+        border: none;
+        color: #e74c3c;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 50%;
+        font-size: 12px;
+        transition: all 0.3s ease;
+        opacity: 0.7;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .tag-delete-btn:hover {
+        background: #e74c3c;
+        color: white;
+        opacity: 1;
+        transform: scale(1.1);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="logo">
+        <!--<i class="fas fa-paw"></i>-->
+        <!--<span>Pet Cria</span>-->
+        <img
+          src="/logos/Logo PetHub (2).svg"
+          class="logo-pet-cria"
+          alt="PetHub"
+        />
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="painelMenuItem">
+            <i class="fas fa-th"></i>
+            <span>Painel</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="painelSubmenu">
+            <a href="../dashboard.html" class="submenu-item">
+              <span>Operacional</span>
+            </a>
+            <a href="../painel/rel-faturamento.html" class="submenu-item">
+              <span>Rel. Faturamento</span>
+            </a>
+            <a
+              href="../painel/rel-demonstrativo-resultados.html"
+              class="submenu-item"
+            >
+              <span>Rel. Demonstrativo de resultados</span>
+            </a>
+            <a
+              href="../painel/rel-recebiveis-produto.html"
+              class="submenu-item"
+            >
+              <span>Rel. Recebíveis por produto</span>
+            </a>
+            <a href="../painel/posicao-caixa.html" class="submenu-item">
+              <span>Posição de Caixa</span>
+            </a>
+            <a href="../painel/painel-financeiro.html" class="submenu-item">
+              <span>Painel Financeiro</span>
+            </a>
+          </div>
+        </div>
+
+        <a href="../dashboard.html" class="nav-item active">
+          <i class="fas fa-chart-bar"></i>
+          <span>Dashboard</span>
+        </a>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="itemMenuItem">
+            <i class="fas fa-cube"></i>
+            <span>Item</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="itemSubmenu">
+            <a href="../item/meus-itens.html" class="submenu-item">
+              <span>Meus Itens</span>
+            </a>
+            <div
+              class="submenu-item"
+              id="leftBtnNovo"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <span>Novo</span>
+              <span id="leftCaretNovo" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="leftSubNovo"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a href="../item/novo-produto.html" class="submenu-item"
+                ><span>Produto</span></a
+              >
+              <a href="../item/novo-produto.html" class="submenu-item"
+                ><span>Serviço</span></a
+              >
+              <a href="../item/novo-produto.html" class="submenu-item"
+                ><span>Plano</span></a
+              >
+            </div>
+            <a href="../item/agrupamento.html" class="submenu-item">
+              <span>Agrupamento</span>
+            </a>
+            <a href="../item/marca.html" class="submenu-item">
+              <span>Marca</span>
+            </a>
+            <a href="../item/unidade.html" class="submenu-item">
+              <span>Unidade</span>
+            </a>
+            <a href="../descontos/index.html" class="submenu-item">
+              <span>Descontos</span>
+            </a>
+            <a href="../item/comissao.html" class="submenu-item">
+              <span>Comissão</span>
+            </a>
+            <a href="../item/etiquetas.html" class="submenu-item">
+              <span>Etiquetas</span>
+            </a>
+            <!--<a href="../item/tributacao.html" class="submenu-item">
+              <span>Tributação</span>
+            </a>-->
+            <div
+              class="submenu-item"
+              id="leftBtnEstoque"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <span>Estoque</span>
+              <span id="leftCaretEstoque" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="leftSubEstoque"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a
+                href="../item/estoque/outras-entradas.html"
+                class="submenu-item"
+                ><span>Outras entradas</span></a
+              >
+              <a href="../item/estoque/outras-saidas.html" class="submenu-item"
+                ><span>Outras saídas</span></a
+              >
+              <a href="#" class="submenu-item"><span>Transferência</span></a>
+              <a
+                href="../item/estoque/contagem-estoque.html"
+                class="submenu-item"
+                ><span>Contagem de estoque</span></a
+              >
+            </div>
+            <div
+              class="submenu-item"
+              id="leftBtnClinica"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <span>Clínica</span>
+              <span id="leftCaretClinica" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="leftSubClinica"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a href="../item/clinica/medicamentos.html" class="submenu-item"
+                ><span>Medicamentos</span></a
+              >
+              <a href="../item/clinica/vacina.html" class="submenu-item"
+                ><span>Vacinas</span></a
+              >
+              <a href="../item/clinica/periodicidade.html" class="submenu-item"
+                ><span>Periodicidade</span></a
+              >
+            </div>
+            <a href="../item/manutecao-produtos.html" class="submenu-item">
+              <span>Manutenção geral de produtos</span>
+            </a>
+            <a href="../item/controle-validade.html" class="submenu-item">
+              <span>Controle de validade</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="clienteMenuItem">
+            <i class="fas fa-users"></i>
+            <span>Cliente</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="clienteSubmenu">
+            <a href="../clientes.html" class="submenu-item">
+              <span>Meus Clientes</span>
+            </a>
+            <a href="../novo-cliente.html" class="submenu-item">
+              <span>Novo Cliente</span>
+            </a>
+            <a href="../grupos-clientes.html" class="submenu-item">
+              <span>Grupo de cliente</span>
+            </a>
+            <a href="../descontos/index.html" class="submenu-item">
+              <span>Descontos</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="petMenuItem">
+            <i class="fas fa-dog"></i>
+            <span>Pet</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="petSubmenu">
+            <a href="../pets/meus-pets.html" class="submenu-item">
+              <span>Meus Pets</span>
+            </a>
+            <a href="../pets/cadastro-pet.html" class="submenu-item">
+              <span>Novo Pet</span>
+            </a>
+            <a href="../pets/especie-raca.html" class="submenu-item">
+              <span>Espécie/raça</span>
+            </a>
+            <a href="../pets/pelagem.html" class="submenu-item">
+              <span>Pelagem</span>
+            </a>
+            <a href="../pets/porte.html" class="submenu-item">
+              <span>Porte</span>
+            </a>
+            <a href="../pets/box.html" class="submenu-item">
+              <span>Box</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="atendimentoMenuItem">
+            <i class="fas fa-calendar-check"></i>
+            <span>Atendimento</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="atendimentoSubmenu">
+            <a href="../agendamentos-novo.html" class="submenu-item">
+              <span>Minha Agenda</span>
+            </a>
+
+            <!-- Vendas (toggle + nested) -->
+            <div
+              class="submenu-item"
+              id="attBtnVendas"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="#" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Vendas</span></a
+              >
+              <span id="attCaretVendas" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="attSubVendas"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a href="../atendimento/nova-venda.html" class="submenu-item"
+                ><span>Nova Venda</span></a
+              >
+              <!--<a href="#" class="submenu-item"><span>Pedido de Venda</span></a>-->
+              <a
+                href="../atendimento/consultar-vendas.html"
+                class="submenu-item"
+                ><span>Consultar vendas</span></a
+              >
+            </div>
+
+            <!--<a href="../atendimento/contratos.html" class="submenu-item">
+              <span>Contratos</span>
+            </a>-->
+            <!--<a href="../atendimento/devolucao-venda.html" class="submenu-item">
+              <span>Devolução de venda</span>
+            </a>-->
+
+            <!-- Caixa (toggle + nested) -->
+            <div
+              class="submenu-item"
+              id="attBtnCaixa"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="#" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Caixa</span></a
+              >
+              <span id="attCaretCaixa" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="attSubCaixa"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a href="../Caixa/abertura-fechamento.html" class="submenu-item"
+                ><span>Abertura/Fechamento</span></a
+              >
+              <a href="../Caixa/suprimento-sangria.html" class="submenu-item"
+                ><span>Suprimento/Sangria</span></a
+              >
+              <a href="#" class="submenu-item"
+                ><span>Rel. Demonstrativo de caixa</span></a
+              >
+            </div>
+
+            <a href="../atendimento/orcamento.html" class="submenu-item">
+              <span>Orçamento</span>
+            </a>
+
+            <!-- Relatórios (toggle + nested) -->
+            <div
+              class="submenu-item"
+              id="attBtnRelatorios"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="#" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Relatórios</span></a
+              >
+              <span id="attCaretRel" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="attSubRelatorios"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a
+                href="../atendimento/relatorios/venda-no-periodo.html"
+                class="submenu-item"
+                ><span>Venda no período</span></a
+              >
+              <a
+                href="../atendimento/relatorios/atendimento-no-periodo.html"
+                class="submenu-item"
+                ><span>Atendimento no período</span></a
+              >
+              <a
+                href="../atendimento/relatorios/comissao.html"
+                class="submenu-item"
+                ><span>Comissão</span></a
+              >
+            </div>
+          </div>
+        </div>
+
+        <a
+          href="../marketing.html"
+          class="nav-item"
+          onclick="window.location.href = '../marketing.html'"
+        >
+          <i class="fas fa-heart"></i>
+          <span>Marketing</span>
+        </a>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="comprasMenuItem">
+            <i class="fas fa-shopping-cart"></i>
+            <span>Compras</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="comprasSubmenu">
+            <a href="../compras/entrada-mercadoria.html" class="submenu-item">
+              <span>Entrada de mercadoria</span>
+            </a>
+            <a href="../compras/fornecedor.html" class="submenu-item">
+              <span>Fornecedores</span>
+            </a>
+            <!-- Relatórios (toggle + nested) -->
+            <div
+              class="submenu-item"
+              id="compBtnRelatorios"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="#" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Relatórios</span></a
+              >
+              <span id="compCaretRel" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="compSubRelatorios"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a href="#" class="submenu-item"
+                ><span>Entrada no período</span></a
+              >
+              <a href="#" class="submenu-item"
+                ><span>Entrada por produto</span></a
+              >
+              <a href="#" class="submenu-item"
+                ><span>Sugestão de compra</span></a
+              >
+            </div>
+          </div>
+        </div>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="financeiroMenuItem">
+            <i class="fas fa-dollar-sign"></i>
+            <span>Financeiro</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="financeiroSubmenu">
+            <!-- Contas a receber (toggle) -->
+            <div
+              class="submenu-item"
+              id="finBtnReceber"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Contas a receber</span></a
+              >
+              <span id="finCaretReceber" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="finSubReceber"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a
+                href="../financeiro/contas-a-receber/recebimento-cliente.html"
+                class="submenu-item"
+                ><span>Recebimento de cliente</span></a
+              >
+            </div>
+
+            <!-- Contas a pagar (toggle) -->
+            <div
+              class="submenu-item"
+              id="finBtnPagar"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="#" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Contas a pagar</span></a
+              >
+              <span id="finCaretPagar" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="finSubPagar"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a
+                href="../financeiro/contas-a-receber/contas-a-pagar/pagamento-fornecedor.html"
+                class="submenu-item"
+                ><span>Pagamento de fornecedor</span></a
+              >
+            </div>
+
+            <!-- Conta (toggle) -->
+            <!--<div
+              class="submenu-item"
+              id="finBtnConta"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="#" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Conta</span></a
+              >
+              <span id="finCaretConta" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="finSubConta"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a
+                href="../financeiro/contas-a-receber/conta/minha-conta.html"
+                class="submenu-item"
+                ><span>Minhas Contas</span></a
+              >
+              <a
+                href="../financeiro/contas-a-receber/conta/movimento-conta.html"
+                class="submenu-item"
+                ><span>Movimento de conta</span></a
+              >
+              <a
+                href="../financeiro/contas-a-receber/conta/banco.html"
+                class="submenu-item"
+                ><span>Banco</span></a
+              >
+              <a
+                href="../financeiro/contas-a-receber/conta/historico-padrao.html"
+                class="submenu-item"
+                ><span>Histórico padrão</span></a
+              >
+            </div>-->
+
+            <!--<a href="#" class="submenu-item">
+              <span>Cheque</span>
+            </a>-->
+
+            <!-- Cartão (toggle) -->
+            <!--<div
+              class="submenu-item"
+              id="finBtnCartao"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="#" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Cartão</span></a
+              >
+              <span id="finCaretCartao" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="finSubCartao"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a href="#" class="submenu-item"
+                ><span>Operadora de cartão</span></a
+              >
+              <a href="#" class="submenu-item"
+                ><span>Recebimento da operadora de cartão</span></a
+              >
+            </div>-->
+
+            <!--<a href="#" class="submenu-item">
+              <span>Condição de pagamento</span>
+            </a>-->
+
+            <!-- Relatórios (toggle) -->
+            <!--<div
+              class="submenu-item"
+              id="finBtnRelatorios"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="#" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Relatórios</span></a
+              >
+              <span id="finCaretRel" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="finSubRelatorios"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a
+                href="../financeiro/relatorio/a-receber.html"
+                class="submenu-item"
+                ><span>A receber</span></a
+              >
+              <a
+                href="../financeiro/relatorio/recebimentos.html"
+                class="submenu-item"
+                ><span>Recebimentos</span></a
+              >
+              <a
+                href="../financeiro/relatorio/documentos-a-receber.html"
+                class="submenu-item"
+                ><span>Documentos a receber emitidos</span></a
+              >
+              <a
+                href="../financeiro/relatorio/a-pagar.html"
+                class="submenu-item"
+                ><span>A pagar</span></a
+              >
+              <a
+                href="../financeiro/relatorio/pagamentos.html"
+                class="submenu-item"
+                ><span>Pagamentos</span></a
+              >
+              <a
+                href="../financeiro/relatorio/custos-adquiridos.html"
+                class="submenu-item"
+                ><span>Custos adquiridos</span></a
+              >
+              <a
+                href="../financeiro/relatorio/custos-pagos.html"
+                class="submenu-item"
+                ><span>Custos pagos</span></a
+              >
+              <a
+                href="../financeiro/relatorio/despesas-emitidas.html"
+                class="submenu-item"
+                ><span>Despesas emitidas</span></a
+              >
+              <a
+                href="../financeiro/relatorio/extrato.html"
+                class="submenu-item"
+                ><span>Extrato</span></a
+              >
+              <a
+                href="../financeiro/relatorio/movimentacao-historico.html"
+                class="submenu-item"
+                ><span>Movimentação por Histórico</span></a
+              >
+              <a href="" class="submenu-item"><span>Cheque</span></a>
+              <a href="" class="submenu-item"><span>Cartão</span></a>
+            </div>-->
+          </div>
+        </div>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="configuracaoMenuItem">
+            <i class="fas fa-cog"></i>
+            <span>Configuração</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="configuracaoSubmenu">
+            <a href="../configuracoes/empresa.html" class="submenu-item">
+              <span>Empresa</span>
+            </a>
+            <a href="../configuracoes/usuario.html" class="submenu-item">
+              <span>Usuário</span>
+            </a>
+            <a href="../configuracoes/grupo-usuario.html" class="submenu-item">
+              <span>Grupo de usuário</span>
+            </a>
+            <a href="../configuracoes/profissional.html" class="submenu-item">
+              <span>Profissional</span>
+            </a>
+            <!--<a href="../configuracoes/permissoes.html" class="submenu-item">
+              <span>Permissões</span>
+            </a>-->
+            <a
+              href="../configuracoes/centro-resultado.html"
+              class="submenu-item"
+            >
+              <span>Centro de resultado</span>
+            </a>
+            <a
+              href="../configuracoes/categoria-financeira.html"
+              class="submenu-item"
+            >
+              <span>Categoria financeira</span>
+            </a>
+            <!--<a href="../configuracoes/tipo-documento.html" class="submenu-item">
+              <span>Tipo de documento</span>
+            </a>-->
+            <!--<a
+              href="../configuracoes/configuracoes-gerais.html"
+              class="submenu-item"
+            >
+              <span>Configurações Gerais</span>
+            </a>-->
+            <!--<a href="../configuracoes/pdv.html" class="submenu-item">
+              <span>PDV</span>
+            </a>-->
+            <!--<a href="../configuracoes/formularios.html" class="submenu-item">
+              <span>Formulários</span>
+            </a>-->
+            <!--<a href="../configuracoes/feriado.html" class="submenu-item">
+              <span>Feriado</span>
+            </a>-->
+            <!--<a href="../configuracoes/ip.html" class="submenu-item">
+              <span>IP</span>
+            </a>-->
+          </div>
+        </div>
+      </nav>
+    </div>
+
+    <script src="../dashboard.js"></script>
+    <script src="../logo-manager.js"></script>
+    <script src="../novo-atendimento-global.js"></script>
+    <script>
+      // Toggle para submenu aninhado à esquerda (Item -> Novo)
+      (function () {
+        var leftBtn = document.getElementById("leftBtnNovo");
+        var leftSub = document.getElementById("leftSubNovo");
+        var leftCaret = document.getElementById("leftCaretNovo");
+        if (leftBtn && leftSub) {
+          leftBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              leftSub.style.display === "block" ||
+              leftSub.style.display === "flex";
+            leftSub.style.display = open ? "none" : "block";
+            if (leftCaret) leftCaret.innerText = open ? "▼" : "▲";
+          });
+        }
+        // Toggle para submenu aninhado Estoque
+        var leftBtnEst = document.getElementById("leftBtnEstoque");
+        var leftSubEst = document.getElementById("leftSubEstoque");
+        var leftCaretEst = document.getElementById("leftCaretEstoque");
+        if (leftBtnEst && leftSubEst) {
+          leftBtnEst.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              leftSubEst.style.display === "block" ||
+              leftSubEst.style.display === "flex";
+            leftSubEst.style.display = open ? "none" : "block";
+            if (leftCaretEst) leftCaretEst.innerText = open ? "▼" : "▲";
+          });
+        }
+        // Toggle para submenu aninhado Clínica
+        var leftBtnClin = document.getElementById("leftBtnClinica");
+        var leftSubClin = document.getElementById("leftSubClinica");
+        var leftCaretClin = document.getElementById("leftCaretClinica");
+        if (leftBtnClin && leftSubClin) {
+          leftBtnClin.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              leftSubClin.style.display === "block" ||
+              leftSubClin.style.display === "flex";
+            leftSubClin.style.display = open ? "none" : "block";
+            if (leftCaretClin) leftCaretClin.innerText = open ? "▼" : "▲";
+          });
+        }
+        // Toggle para submenus em Atendimento: Vendas, Caixa, Relatórios
+        var attBtnVendas = document.getElementById("attBtnVendas");
+        var attSubVendas = document.getElementById("attSubVendas");
+        var attCaretVendas = document.getElementById("attCaretVendas");
+        if (attBtnVendas && attSubVendas) {
+          attBtnVendas.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              attSubVendas.style.display === "block" ||
+              attSubVendas.style.display === "flex";
+            attSubVendas.style.display = open ? "none" : "block";
+            if (attCaretVendas) attCaretVendas.innerText = open ? "▼" : "▲";
+          });
+        }
+
+        var attBtnCaixa = document.getElementById("attBtnCaixa");
+        var attSubCaixa = document.getElementById("attSubCaixa");
+        var attCaretCaixa = document.getElementById("attCaretCaixa");
+        if (attBtnCaixa && attSubCaixa) {
+          attBtnCaixa.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              attSubCaixa.style.display === "block" ||
+              attSubCaixa.style.display === "flex";
+            attSubCaixa.style.display = open ? "none" : "block";
+            if (attCaretCaixa) attCaretCaixa.innerText = open ? "▼" : "▲";
+          });
+        }
+
+        var attBtnRel = document.getElementById("attBtnRelatorios");
+        var attSubRel = document.getElementById("attSubRelatorios");
+        var attCaretRel = document.getElementById("attCaretRel");
+        if (attBtnRel && attSubRel) {
+          attBtnRel.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              attSubRel.style.display === "block" ||
+              attSubRel.style.display === "flex";
+            attSubRel.style.display = open ? "none" : "block";
+            if (attCaretRel) attCaretRel.innerText = open ? "▼" : "▲";
+          });
+        }
+        // Toggle para submenu aninhado em Compras: Relatórios
+        var compBtnRel = document.getElementById("compBtnRelatorios");
+        var compSubRel = document.getElementById("compSubRelatorios");
+        var compCaretRel = document.getElementById("compCaretRel");
+        if (compBtnRel && compSubRel) {
+          compBtnRel.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              compSubRel.style.display === "block" ||
+              compSubRel.style.display === "flex";
+            compSubRel.style.display = open ? "none" : "block";
+            if (compCaretRel) compCaretRel.innerText = open ? "▼" : "▲";
+          });
+        }
+        // Toggle para submenus em Financeiro
+        var finBtnReceber = document.getElementById("finBtnReceber");
+        var finSubReceber = document.getElementById("finSubReceber");
+        var finCaretReceber = document.getElementById("finCaretReceber");
+        if (finBtnReceber && finSubReceber) {
+          finBtnReceber.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              finSubReceber.style.display === "block" ||
+              finSubReceber.style.display === "flex";
+            finSubReceber.style.display = open ? "none" : "block";
+            if (finCaretReceber) finCaretReceber.innerText = open ? "▼" : "▲";
+          });
+        }
+
+        var finBtnPagar = document.getElementById("finBtnPagar");
+        var finSubPagar = document.getElementById("finSubPagar");
+        var finCaretPagar = document.getElementById("finCaretPagar");
+        if (finBtnPagar && finSubPagar) {
+          finBtnPagar.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              finSubPagar.style.display === "block" ||
+              finSubPagar.style.display === "flex";
+            finSubPagar.style.display = open ? "none" : "block";
+            if (finCaretPagar) finCaretPagar.innerText = open ? "▼" : "▲";
+          });
+        }
+
+        var finBtnConta = document.getElementById("finBtnConta");
+        var finSubConta = document.getElementById("finSubConta");
+        var finCaretConta = document.getElementById("finCaretConta");
+        if (finBtnConta && finSubConta) {
+          finBtnConta.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              finSubConta.style.display === "block" ||
+              finSubConta.style.display === "flex";
+            finSubConta.style.display = open ? "none" : "block";
+            if (finCaretConta) finCaretConta.innerText = open ? "▼" : "▲";
+          });
+        }
+
+        var finBtnCartao = document.getElementById("finBtnCartao");
+        var finSubCartao = document.getElementById("finSubCartao");
+        var finCaretCartao = document.getElementById("finCaretCartao");
+        if (finBtnCartao && finSubCartao) {
+          finBtnCartao.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              finSubCartao.style.display === "block" ||
+              finSubCartao.style.display === "flex";
+            finSubCartao.style.display = open ? "none" : "block";
+            if (finCaretCartao) finCaretCartao.innerText = open ? "▼" : "▲";
+          });
+        }
+
+        var finBtnRel = document.getElementById("finBtnRelatorios");
+        var finSubRel = document.getElementById("finSubRelatorios");
+        var finCaretRel = document.getElementById("finCaretRel");
+        if (finBtnRel && finSubRel) {
+          finBtnRel.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              finSubRel.style.display === "block" ||
+              finSubRel.style.display === "flex";
+            finSubRel.style.display = open ? "none" : "block";
+            if (finCaretRel) finCaretRel.innerText = open ? "▼" : "▲";
+          });
+        }
+
+        // fechar ao clicar em outro lugar da sidebar (mantém outras opções)
+        document.addEventListener("click", function (e) {
+          if (!e.target.closest("#itemSubmenu")) {
+            if (leftSub) leftSub.style.display = "none";
+            if (leftCaret) leftCaret.innerText = "▼";
+            // também fechar o submenu pai (#itemSubmenu) se estiver aberto
+            try {
+              var parentSub = document.getElementById("itemSubmenu");
+              if (parentSub) {
+                if (
+                  parentSub.classList &&
+                  parentSub.classList.contains("open")
+                ) {
+                  parentSub.classList.remove("open");
+                  try {
+                    restoreSubmenu(parentSub);
+                  } catch (e) {}
+                } else {
+                  parentSub.style.display = "none";
+                }
+              }
+            } catch (e) {
+              console.warn("Erro ao fechar submenu pai", e);
+            }
+          }
+        });
+      })();
+    </script>
+    <script>
+      // Garantir que o header fique como filho direto de <body> e seja fixo no topo
+      // Isso evita que wrappers ou estilos de page-content empurrem o header para baixo.
+      (function () {
+        try {
+          document.addEventListener("DOMContentLoaded", function () {
+            var header = document.querySelector(".main-content > .header");
+            if (!header) header = document.querySelector(".header");
+            if (header && header.parentElement !== document.body) {
+              // mover para body (logo após a sidebar, se existe)
+              var sidebar = document.querySelector(".sidebar");
+              if (sidebar && sidebar.parentElement === document.body) {
+                document.body.insertBefore(header, sidebar.nextSibling);
+              } else {
+                document.body.insertBefore(header, document.body.firstChild);
+              }
+              // aplicar estilos finais defensivos e transição suave
+              header.style.position = "fixed";
+              header.style.top = "0";
+              header.style.right = "0";
+              // transição do left usa mesma curva/duração do sidebar
+              header.style.transition =
+                "left 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)";
+              header.style.willChange = "left";
+              // posiciona dinamicamente à direita da sidebar (ou 0 quando colapsada)
+              (function updateHeaderLeft() {
+                try {
+                  var sb = document.querySelector(".sidebar");
+                  var left =
+                    sb && !sb.classList.contains("collapsed")
+                      ? sb.offsetWidth + "px"
+                      : "0px";
+                  header.style.left = left;
+                } catch (e) {
+                  header.style.left = "120px";
+                }
+              })();
+              // garantir que o header fique abaixo do sidebar (sidebar z-index:1000)
+              header.style.zIndex = "900";
+              // ajustar padding do main-content para não ficar oculto
+              var mc = document.querySelector(".main-content");
+              if (mc) mc.style.paddingTop = header.offsetHeight + 8 + "px";
+              // atualizar posição do header quando o menu for toggled ou ao redimensionar
+              var menuToggleEl = document.querySelector(".menu-toggle");
+              if (menuToggleEl) {
+                menuToggleEl.addEventListener("click", function () {
+                  try {
+                    var sb2 = document.querySelector(".sidebar");
+                    var left2 =
+                      sb2 && !sb2.classList.contains("collapsed")
+                        ? sb2.offsetWidth + "px"
+                        : "0px";
+                    header.style.left = left2;
+                    if (mc)
+                      mc.style.paddingTop = header.offsetHeight + 8 + "px";
+                  } catch (e) {}
+                });
+              }
+              window.addEventListener("resize", function () {
+                try {
+                  var sb3 = document.querySelector(".sidebar");
+                  var left3 =
+                    sb3 && !sb3.classList.contains("collapsed")
+                      ? sb3.offsetWidth + "px"
+                      : "0px";
+                  header.style.left = left3;
+                  if (mc) mc.style.paddingTop = header.offsetHeight + 8 + "px";
+                } catch (e) {}
+              });
+            }
+          });
+        } catch (e) {
+          console.warn("header move failed", e);
+        }
+      })();
+    </script>
+    <script>
+      // Handler global de click fora que fecha dropdowns e painéis abertos
+      (function () {
+        function closeAllMenus() {
+          try {
+            var leftSub = document.getElementById("leftSubNovo");
+            var leftCaret = document.getElementById("leftCaretNovo");
+            if (leftSub) leftSub.style.display = "none";
+            if (leftCaret) leftCaret.innerText = "▼";
+            // reset carets dos submenus de Atendimento
+            try {
+              var aV = document.getElementById("attCaretVendas");
+              if (aV) aV.innerText = "▼";
+            } catch (e) {}
+            try {
+              var aC = document.getElementById("attCaretCaixa");
+              if (aC) aC.innerText = "▼";
+            } catch (e) {}
+            try {
+              var aR = document.getElementById("attCaretRel");
+              if (aR) aR.innerText = "▼";
+            } catch (e) {}
+            // reset caret do submenu de Compras -> Relatórios
+            try {
+              var cR = document.getElementById("compCaretRel");
+              if (cR) cR.innerText = "▼";
+            } catch (e) {}
+            // reset carets dos submenus de Financeiro
+            try {
+              var fR1 = document.getElementById("finCaretReceber");
+              if (fR1) fR1.innerText = "▼";
+            } catch (e) {}
+            try {
+              var fR2 = document.getElementById("finCaretPagar");
+              if (fR2) fR2.innerText = "▼";
+            } catch (e) {}
+            try {
+              var fR3 = document.getElementById("finCaretConta");
+              if (fR3) fR3.innerText = "▼";
+            } catch (e) {}
+            try {
+              var fR4 = document.getElementById("finCaretCartao");
+              if (fR4) fR4.innerText = "▼";
+            } catch (e) {}
+            try {
+              var fR5 = document.getElementById("finCaretRel");
+              if (fR5) fR5.innerText = "▼";
+            } catch (e) {}
+
+            // fechar todos os .submenu e remover classe open
+            document.querySelectorAll(".submenu").forEach(function (s) {
+              try {
+                s.classList.remove("open");
+              } catch (e) {}
+              try {
+                restoreSubmenu(s);
+              } catch (e) {}
+              s.style.display = "none";
+            });
+
+            // remover open dos containers
+            document
+              .querySelectorAll(".nav-item-with-submenu.open")
+              .forEach(function (c) {
+                c.classList.remove("open");
+              });
+
+            // fechar painéis
+            document.querySelectorAll(".panel").forEach(function (p) {
+              p.style.display = "none";
+            });
+          } catch (e) {
+            console.warn("closeAllMenus error", e);
+          }
+        }
+
+        document.addEventListener("click", function (ev) {
+          // esperar handlers internos processarem (por exemplo, abrir menus)
+          setTimeout(function () {
+            // se o clique ocorreu dentro da sidebar ou dentro de um submenu/painel, não fecha
+            if (
+              ev.target.closest(".sidebar") ||
+              ev.target.closest(".submenu") ||
+              ev.target.closest(".panel")
+            )
+              return;
+            closeAllMenus();
+          }, 20);
+        });
+      })();
+    </script>
+
+    <!-- Pedido de Venda: toast simples (azul claro) -->
+    <style>
+      .pedido-toast-container {
+        position: fixed;
+        top: 18px;
+        right: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        z-index: 99999;
+        pointer-events: none;
+      }
+      .pedido-toast {
+        pointer-events: auto;
+        background: linear-gradient(180deg, #e8f6ff, #d3efff);
+        color: #023047;
+        padding: 10px 14px;
+        border-radius: 8px;
+        box-shadow: 0 8px 24px rgba(2, 16, 26, 0.12);
+        min-width: 220px;
+        max-width: 380px;
+        font-weight: 300;
+        opacity: 0;
+        transform: translateY(-6px) scale(0.98);
+        transition:
+          opacity 0.18s,
+          transform 0.18s;
+      }
+    </style>
+    <script>
+      (function () {
+        if (window.__pedidoToastInstalled) return;
+        window.__pedidoToastInstalled = true;
+        function showPedidoToast(message) {
+          var c = document.querySelector(".pedido-toast-container");
+          if (!c) {
+            c = document.createElement("div");
+            c.className = "pedido-toast-container";
+            document.body.appendChild(c);
+          }
+          var t = document.createElement("div");
+          t.className = "pedido-toast";
+          t.textContent = message;
+          c.appendChild(t);
+          requestAnimationFrame(function () {
+            t.style.opacity = "1";
+            t.style.transform = "none";
+          });
+          setTimeout(function () {
+            t.style.opacity = "0";
+            t.style.transform = "translateY(-6px) scale(0.98)";
+            setTimeout(function () {
+              try {
+                t.remove();
+              } catch (e) {}
+            }, 220);
+          }, 5000);
+        }
+
+        document.addEventListener(
+          "click",
+          function (e) {
+            try {
+              var a = e.target && e.target.closest && e.target.closest("a");
+              if (!a) return;
+              var txt = (a.textContent || "").trim();
+              var href = a.getAttribute && (a.getAttribute("href") || "");
+              if (
+                txt === "Pedido de Venda" ||
+                (href && href.indexOf("pedido-venda") !== -1)
+              ) {
+                e.preventDefault();
+                e.stopPropagation();
+                showPedidoToast(
+                  "Pedido de Venda ainda está sendo desenvolvido",
+                );
+              }
+            } catch (err) {
+              /* silencioso */
+            }
+          },
+          true,
+        ); // usar capture para garantir execução antes de handlers que fazem stopPropagation
+      })();
+    </script>
+
+    <script src="/frontend/inject-sidebar.js"></script>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <div class="pet-form-container">
+        <!-- Cabeçalho -->
+        <div class="pet-header">
+          <div class="pet-icon">
+            <i class="fas fa-paw"></i>
+          </div>
+          <div>
+            <h1>Cadastro de Pet</h1>
+            <p>Adicione um novo pet ao sistema</p>
+          </div>
+        </div>
+
+        <!-- Mensagens -->
+        <div class="success-message" id="successMessage">
+          <i class="fas fa-check-circle"></i>
+          Pet cadastrado com sucesso!
+        </div>
+
+        <div class="error-message" id="errorMessage">
+          <i class="fas fa-exclamation-triangle"></i>
+          <span id="errorText">Erro ao cadastrar pet</span>
+        </div>
+
+        <!-- Informações do Cliente -->
+        <div class="info-card" id="clientInfo" style="display: none">
+          <div class="client-info">
+            <div class="client-avatar" id="clientAvatar">S</div>
+            <div>
+              <h3 id="clientName">Carregando...</h3>
+              <p id="clientDetails">Cliente selecionado</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulário -->
+        <form id="petForm">
+          <input type="hidden" id="clienteId" name="cliente_id" />
+
+          <!-- Linha 1: Nome e Cliente -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="nome">
+                <i class="fas fa-paw"></i>
+                Nome do Pet *
+              </label>
+              <input
+                type="text"
+                id="nome"
+                name="nome"
+                required
+                placeholder="Digite o nome do pet"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="cliente">
+                <i class="fas fa-user"></i>
+                Cliente *
+              </label>
+              <select
+                id="cliente"
+                name="cliente_id"
+                required
+                onchange="mostrarInfoCliente(this.value)"
+              >
+                <option value="">Selecione o cliente...</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Linha 2: Raça e Gênero -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="raca">
+                <i class="fas fa-dna"></i>
+                Raça
+              </label>
+              <div class="custom-dropdown" id="racaDropdown">
+                <input
+                  type="text"
+                  id="raca"
+                  name="raca"
+                  placeholder="Digite ou selecione a raça do pet"
+                  autocomplete="off"
+                  onfocus="openRacaDropdown()"
+                  onclick="openRacaDropdown()"
+                />
+                <i
+                  class="fas fa-chevron-down dropdown-arrow"
+                  onclick="openRacaDropdown()"
+                ></i>
+                <div class="dropdown-menu" id="racaDropdownMenu">
+                  <div class="dropdown-search">
+                    <input
+                      type="text"
+                      id="racaSearch"
+                      placeholder="Buscar raça..."
+                      oninput="filterRacas(this.value)"
+                    />
+                  </div>
+                  <div class="dropdown-options" id="racaOptions">
+                    <!-- Opções serão carregadas via JavaScript -->
+                  </div>
+                  <div class="dropdown-footer">
+                    <button
+                      type="button"
+                      class="add-new-option"
+                      onclick="openAddRacaModal()"
+                    >
+                      <i class="fas fa-plus"></i>
+                      Adicionar nova raça
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="genero">
+                <i class="fas fa-venus-mars"></i>
+                Gênero
+              </label>
+              <div class="custom-dropdown" id="generoDropdown">
+                <input
+                  type="text"
+                  id="genero"
+                  name="genero"
+                  placeholder="Selecione o gênero do pet"
+                  autocomplete="off"
+                  onfocus="openGeneroDropdown()"
+                  onclick="openGeneroDropdown()"
+                  readonly
+                />
+                <i
+                  class="fas fa-chevron-down dropdown-arrow"
+                  onclick="openGeneroDropdown()"
+                ></i>
+                <div class="dropdown-menu" id="generoDropdownMenu">
+                  <div class="dropdown-options" id="generoOptions">
+                    <div
+                      class="dropdown-option"
+                      onclick="selectGenero('Macho')"
+                    >
+                      <div class="breed-name">Macho</div>
+                      <div class="breed-type">Masculino</div>
+                    </div>
+                    <div
+                      class="dropdown-option"
+                      onclick="selectGenero('Fêmea')"
+                    >
+                      <div class="breed-name">Fêmea</div>
+                      <div class="breed-type">Feminino</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Linha 3: Porte e Pelagem -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="porte">
+                <i class="fas fa-ruler-vertical"></i>
+                Porte
+              </label>
+              <div class="custom-dropdown" id="porteDropdown">
+                <input
+                  type="text"
+                  id="porte"
+                  name="porte"
+                  placeholder="Digite ou selecione o porte do pet"
+                  autocomplete="off"
+                  onfocus="openPorteDropdown()"
+                  onclick="openPorteDropdown()"
+                />
+                <i
+                  class="fas fa-chevron-down dropdown-arrow"
+                  onclick="openPorteDropdown()"
+                ></i>
+                <div class="dropdown-menu" id="porteDropdownMenu">
+                  <div class="dropdown-search">
+                    <input
+                      type="text"
+                      id="porteSearch"
+                      placeholder="Buscar porte..."
+                      oninput="filterPortes(this.value)"
+                    />
+                  </div>
+                  <div class="dropdown-options" id="porteOptions">
+                    <!-- Opções serão carregadas via JavaScript -->
+                  </div>
+                  <div class="dropdown-footer">
+                    <button
+                      type="button"
+                      class="add-new-option"
+                      onclick="openAddPorteModal()"
+                    >
+                      <i class="fas fa-plus"></i>
+                      Adicionar novo porte
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="pelagem">
+                <i class="fas fa-palette"></i>
+                Pelagem
+              </label>
+              <div class="custom-dropdown" id="pelagemDropdown">
+                <input
+                  type="text"
+                  id="pelagem"
+                  name="pelagem"
+                  placeholder="Digite ou selecione a cor do pet"
+                  autocomplete="off"
+                  onfocus="openPelagemDropdown()"
+                  onclick="openPelagemDropdown()"
+                />
+                <i
+                  class="fas fa-chevron-down dropdown-arrow"
+                  onclick="openPelagemDropdown()"
+                ></i>
+                <div class="dropdown-menu" id="pelagemDropdownMenu">
+                  <div class="dropdown-search">
+                    <input
+                      type="text"
+                      id="pelagemSearch"
+                      placeholder="Buscar cor..."
+                      oninput="filterPelagens(this.value)"
+                    />
+                  </div>
+                  <div class="dropdown-options" id="pelagemOptions">
+                    <!-- Opções serão carregadas via JavaScript -->
+                  </div>
+                  <div class="dropdown-footer">
+                    <button
+                      type="button"
+                      class="add-new-option"
+                      onclick="openAddPelagemModal()"
+                    >
+                      <i class="fas fa-plus"></i>
+                      Adicionar nova cor
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Linha 4: Data de Nascimento e Idade -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="data_nascimento">
+                <i class="fas fa-calendar"></i>
+                Data de Nascimento
+              </label>
+              <div class="custom-calendar">
+                <input
+                  type="text"
+                  id="data_nascimento"
+                  name="data_nascimento"
+                  placeholder="DD/MM/AAAA"
+                  maxlength="10"
+                  oninput="formatarData(this)"
+                  onblur="calcularIdade()"
+                />
+                <i
+                  class="fas fa-calendar calendar-icon"
+                  onclick="toggleCalendar()"
+                ></i>
+                <div class="calendar-popup" id="calendarPopup">
+                  <div class="calendar-header">
+                    <button
+                      type="button"
+                      class="calendar-nav"
+                      onclick="previousMonth()"
+                    >
+                      <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="calendar-month-year" id="monthYear"></div>
+                    <button
+                      type="button"
+                      class="calendar-nav"
+                      onclick="nextMonth()"
+                    >
+                      <i class="fas fa-chevron-right"></i>
+                    </button>
+                  </div>
+                  <div class="calendar-weekdays">
+                    <div class="calendar-weekday">D</div>
+                    <div class="calendar-weekday">S</div>
+                    <div class="calendar-weekday">T</div>
+                    <div class="calendar-weekday">Q</div>
+                    <div class="calendar-weekday">Q</div>
+                    <div class="calendar-weekday">S</div>
+                    <div class="calendar-weekday">S</div>
+                  </div>
+                  <div class="calendar-days" id="calendarDays"></div>
+                  <div class="calendar-actions">
+                    <button
+                      type="button"
+                      class="calendar-btn hoje"
+                      onclick="selectToday()"
+                    >
+                      Hoje
+                    </button>
+                    <button
+                      type="button"
+                      class="calendar-btn fechar"
+                      onclick="closeCalendar()"
+                    >
+                      Fechar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="idade">
+                <i class="fas fa-clock"></i>
+                Idade
+              </label>
+              <input
+                type="text"
+                id="idade"
+                name="idade"
+                readonly
+                placeholder="Será calculada automaticamente"
+              />
+            </div>
+          </div>
+
+          <!-- Linha 5: Chip e Pedigree -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="chip">
+                <i class="fas fa-microchip"></i>
+                Chip
+              </label>
+              <input
+                type="text"
+                id="chip"
+                name="chip"
+                placeholder="Número do chip"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="pedigree_rg">
+                <i class="fas fa-id-card"></i>
+                Pedigree RG
+              </label>
+              <input
+                type="text"
+                id="pedigree_rg"
+                name="pedigree_rg"
+                placeholder="Número do pedigree"
+              />
+            </div>
+          </div>
+
+          <!-- Linha 6: Alimentação -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="alimentacao">
+                <i class="fas fa-bone"></i>
+                Alimentação
+              </label>
+              <input
+                type="text"
+                id="alimentacao"
+                name="alimentacao"
+                placeholder="Tipo de ração/alimentação"
+              />
+            </div>
+          </div>
+
+          <!-- Linha 7: Tags -->
+          <div class="form-row">
+            <div class="form-group">
+              <label for="tags">
+                <i class="fas fa-tags"></i>
+                Tags
+              </label>
+              <div class="custom-dropdown tags-dropdown" id="tagsDropdown">
+                <input
+                  type="text"
+                  id="tags"
+                  name="tags"
+                  placeholder="Digite uma tag e pressione Enter"
+                  autocomplete="off"
+                  onfocus="openTagsDropdown()"
+                  onclick="openTagsDropdown()"
+                  onkeypress="handleTagKeypress(event, this)"
+                />
+                <i
+                  class="fas fa-chevron-down dropdown-arrow"
+                  onclick="toggleTagsDropdown()"
+                ></i>
+                <div
+                  class="dropdown-menu tags-dropdown-content"
+                  id="tagsDropdownMenu"
+                >
+                  <div class="dropdown-search">
+                    <input
+                      type="text"
+                      id="tagsSearch"
+                      placeholder="Buscar tag..."
+                      oninput="filterTags(this.value)"
+                    />
+                  </div>
+                  <div class="dropdown-options tags-options" id="tagsOptions">
+                    <!-- Opções serão carregadas via JavaScript -->
+                  </div>
+                  <div class="dropdown-footer">
+                    <div style="padding: 8px; font-size: 11px; color: #6c757d">
+                      <i class="fas fa-info-circle"></i>
+                      Digite uma tag e pressione Enter para adicionar
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tags selecionadas -->
+              <div class="selected-tags" id="selectedTags">
+                <!-- Tags selecionadas aparecerão aqui -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Linha 8: Alergias -->
+          <div class="form-row">
+            <div class="form-group full-width">
+              <label for="alergias">
+                <i class="fas fa-exclamation-triangle"></i>
+                Alergias
+              </label>
+              <textarea
+                id="alergias"
+                name="alergias"
+                placeholder="Descreva as alergias do pet"
+              ></textarea>
+            </div>
+          </div>
+
+          <!-- Linha 9: Observações -->
+          <div class="form-row">
+            <div class="form-group full-width">
+              <label for="observacao">
+                <i class="fas fa-comment"></i>
+                Observações
+              </label>
+              <textarea
+                id="observacao"
+                name="observacao"
+                placeholder="Observações gerais sobre o pet"
+              ></textarea>
+            </div>
+          </div>
+
+          <!-- Botões -->
+          <div class="btn-group">
+            <button
+              type="button"
+              class="btn-secondary"
+              onclick="limparFormulario()"
+            >
+              <i class="fas fa-eraser"></i>
+              Limpar
+            </button>
+            <button type="submit" class="btn-primary">
+              <i class="fas fa-save"></i>
+              Salvar Pet
+            </button>
+          </div>
+        </form>
+
+        <!-- Loading -->
+        <div class="loading" id="loading">
+          <i class="fas fa-spinner"></i>
+          <p>Salvando pet...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Adicionar Nova Raça -->
+    <div class="modal-overlay" id="addRacaModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Adicionar Nova Raça</h2>
+          <button
+            type="button"
+            class="modal-close"
+            onclick="closeAddRacaModal()"
+          >
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <form class="modal-form" id="addRacaForm" onsubmit="addNewRaca(event)">
+          <div class="form-group">
+            <label for="newRacaNome">
+              <i class="fas fa-paw"></i>
+              Nome da Raça *
+            </label>
+            <input
+              type="text"
+              id="newRacaNome"
+              required
+              placeholder="Digite o nome da raça"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="newRacaTipo">
+              <i class="fas fa-tag"></i>
+              Tipo *
+            </label>
+            <select id="newRacaTipo" required>
+              <option value="">Selecione o tipo...</option>
+              <option value="Canina">Canina</option>
+              <option value="Felina">Felina</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="newRacaDescricao">
+              <i class="fas fa-comment"></i>
+              Descrição (Opcional)
+            </label>
+            <textarea
+              id="newRacaDescricao"
+              placeholder="Descrição da raça"
+            ></textarea>
+          </div>
+
+          <div class="modal-buttons">
+            <button
+              type="button"
+              class="btn-secondary"
+              onclick="closeAddRacaModal()"
+            >
+              <i class="fas fa-times"></i>
+              Cancelar
+            </button>
+            <button type="submit" class="btn-primary">
+              <i class="fas fa-save"></i>
+              Salvar Raça
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal Adicionar Novo Porte -->
+    <div class="modal-overlay" id="addPorteModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Adicionar Novo Porte</h2>
+          <button
+            type="button"
+            class="modal-close"
+            onclick="closeAddPorteModal()"
+          >
+            &times;
+          </button>
+        </div>
+
+        <form onsubmit="addNewPorte(event)">
+          <div class="modal-form">
+            <div class="form-group">
+              <label for="novoPorteNome">
+                <i class="fas fa-ruler-vertical"></i>
+                Nome do Porte
+              </label>
+              <input
+                type="text"
+                id="novoPorteNome"
+                name="nome"
+                placeholder="Ex: Mini, XXL, etc."
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="novoPorteDescricao">
+                <i class="fas fa-info-circle"></i>
+                Descrição (opcional)
+              </label>
+              <input
+                type="text"
+                id="novoPorteDescricao"
+                name="descricao"
+                placeholder="Ex: Para pets até 5kg"
+              />
+            </div>
+          </div>
+
+          <div class="modal-buttons">
+            <button
+              type="button"
+              class="btn-secondary"
+              onclick="closeAddPorteModal()"
+            >
+              <i class="fas fa-times"></i>
+              Cancelar
+            </button>
+            <button type="submit" class="btn-primary">
+              <i class="fas fa-save"></i>
+              Salvar Porte
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal Adicionar Nova Cor -->
+    <div class="modal-overlay" id="addPelagemModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Adicionar Nova Cor</h2>
+          <button
+            type="button"
+            class="modal-close"
+            onclick="closeAddPelagemModal()"
+          >
+            &times;
+          </button>
+        </div>
+
+        <form onsubmit="addNewPelagem(event)">
+          <div class="modal-form">
+            <div class="form-group">
+              <label for="novaPelagemNome">
+                <i class="fas fa-palette"></i>
+                Nome da Cor
+              </label>
+              <input
+                type="text"
+                id="novaPelagemNome"
+                name="nome"
+                placeholder="Ex: Chocolate, Tigrado, etc."
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="novaPelagemDescricao">
+                <i class="fas fa-info-circle"></i>
+                Descrição (opcional)
+              </label>
+              <input
+                type="text"
+                id="novaPelagemDescricao"
+                name="descricao"
+                placeholder="Ex: Tom marrom escuro"
+              />
+            </div>
+          </div>
+
+          <div class="modal-buttons">
+            <button
+              type="button"
+              class="btn-secondary"
+              onclick="closeAddPelagemModal()"
+            >
+              <i class="fas fa-times"></i>
+              Cancelar
+            </button>
+            <button type="submit" class="btn-primary">
+              <i class="fas fa-save"></i>
+              Salvar Cor
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Notificação Personalizada -->
+    <div class="custom-notification" id="customNotification">
+      <div class="notification-icon" id="notificationIcon">
+        <i class="fas fa-exclamation-circle"></i>
+      </div>
+      <div class="notification-content">
+        <div class="notification-title" id="notificationTitle">Título</div>
+        <div class="notification-message" id="notificationMessage">
+          Mensagem
+        </div>
+      </div>
+      <button class="notification-close" onclick="hideCustomNotification()">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../script.js"></script>
+    <script src="../dashboard.js"></script>
+    <!-- carregar dados de pelagens predefinidas (usa window.pelagensPredefinidas) -->
+    <script src="pelagem-data.js"></script>
+    <script src="cadastro-pet.js"></script>
+
+    <script>
+      // === SISTEMA DE NOTIFICAÇÕES PERSONALIZADAS ===
+
+      function showCustomNotification(type, title, message, duration = 5000) {
+        const notification = document.getElementById("customNotification");
+        const icon = document.getElementById("notificationIcon");
+        const titleEl = document.getElementById("notificationTitle");
+        const messageEl = document.getElementById("notificationMessage");
+
+        // Limpar classes anteriores
+        notification.className = "custom-notification";
+        icon.className = "notification-icon";
+
+        // Definir tipo e ícone
+        switch (type) {
+          case "success":
+            notification.classList.add("success");
+            icon.classList.add("success");
+            icon.innerHTML = '<i class="fas fa-check-circle"></i>';
+            break;
+          case "warning":
+            notification.classList.add("warning");
+            icon.classList.add("warning");
+            icon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+            break;
+          case "error":
+            notification.classList.add("error");
+            icon.classList.add("error");
+            icon.innerHTML = '<i class="fas fa-times-circle"></i>';
+            break;
+          default:
+            icon.innerHTML = '<i class="fas fa-info-circle"></i>';
+        }
+
+        // Definir conteúdo
+        titleEl.textContent = title;
+        messageEl.textContent = message;
+
+        // Mostrar notificação
+        notification.style.display = "flex";
+
+        // Ocultar automaticamente após duration
+        if (duration > 0) {
+          setTimeout(() => {
+            hideCustomNotification();
+          }, duration);
+        }
+      }
+
+      function hideCustomNotification() {
+        const notification = document.getElementById("customNotification");
+        notification.style.animation = "slideOutRight 0.3s ease";
+
+        setTimeout(() => {
+          notification.style.display = "none";
+          notification.style.animation = "slideInRight 0.3s ease";
+        }, 300);
+      }
+
+      // Lista de raças predefinidas
+      const racasPredefinidas = [
+        // Caninas
+        { nome: "Labrador Retriever", tipo: "Canina" },
+        { nome: "Golden Retriever", tipo: "Canina" },
+        { nome: "Bulldog Francês", tipo: "Canina" },
+        { nome: "Poodle", tipo: "Canina" },
+        { nome: "Shih Tzu", tipo: "Canina" },
+        { nome: "Yorkshire Terrier", tipo: "Canina" },
+        { nome: "Dachshund", tipo: "Canina" },
+        { nome: "Border Collie", tipo: "Canina" },
+        { nome: "Pug", tipo: "Canina" },
+        { nome: "Husky Siberiano", tipo: "Canina" },
+        { nome: "Spitz Alemão / Lulu da Pomerânia", tipo: "Canina" },
+        { nome: "Rottweiler", tipo: "Canina" },
+        { nome: "Beagle", tipo: "Canina" },
+        { nome: "Pastor Alemão", tipo: "Canina" },
+        { nome: "Buldogue Inglês", tipo: "Canina" },
+        { nome: "Chihuahua", tipo: "Canina" },
+        { nome: "Cocker Spaniel", tipo: "Canina" },
+        { nome: "Akita Inu", tipo: "Canina" },
+        { nome: "Boxer", tipo: "Canina" },
+        { nome: "Maltês", tipo: "Canina" },
+        { nome: "Schnauzer Miniatura", tipo: "Canina" },
+        { nome: "Pinscher Miniatura", tipo: "Canina" },
+        { nome: "Doberman", tipo: "Canina" },
+        { nome: "Lhasa Apso", tipo: "Canina" },
+        { nome: "Boston Terrier", tipo: "Canina" },
+        { nome: "Basset Hound", tipo: "Canina" },
+        { nome: "Samoieda", tipo: "Canina" },
+        { nome: "Border Terrier", tipo: "Canina" },
+        { nome: "Pastor Australiano", tipo: "Canina" },
+        { nome: "Weimaraner", tipo: "Canina" },
+        { nome: "Staffordshire Bull Terrier", tipo: "Canina" },
+        { nome: "American Pit Bull Terrier", tipo: "Canina" },
+        { nome: "Shar Pei", tipo: "Canina" },
+        { nome: "Bull Terrier", tipo: "Canina" },
+        { nome: "Cane Corso", tipo: "Canina" },
+        { nome: "Dálmata", tipo: "Canina" },
+        { nome: "Whippet", tipo: "Canina" },
+        { nome: "Bernese Mountain Dog", tipo: "Canina" },
+        { nome: "Collie", tipo: "Canina" },
+        { nome: "São Bernardo", tipo: "Canina" },
+
+        // Felinas
+        { nome: "Persa", tipo: "Felina" },
+        { nome: "Siamês", tipo: "Felina" },
+        { nome: "Maine Coon", tipo: "Felina" },
+        { nome: "Bengal", tipo: "Felina" },
+        { nome: "Sphynx", tipo: "Felina" },
+        { nome: "British Shorthair", tipo: "Felina" },
+        { nome: "Ragdoll", tipo: "Felina" },
+        { nome: "Angorá Turco", tipo: "Felina" },
+        { nome: "Scottish Fold", tipo: "Felina" },
+        { nome: "Abissínio", tipo: "Felina" },
+        { nome: "Norueguês da Floresta", tipo: "Felina" },
+        { nome: "American Shorthair", tipo: "Felina" },
+        { nome: "Burmês", tipo: "Felina" },
+        { nome: "Cornish Rex", tipo: "Felina" },
+        { nome: "Devon Rex", tipo: "Felina" },
+        { nome: "Oriental Shorthair", tipo: "Felina" },
+        { nome: "Balinês", tipo: "Felina" },
+        { nome: "Himalaio", tipo: "Felina" },
+        { nome: "Tonquinês", tipo: "Felina" },
+        { nome: "Somali", tipo: "Felina" },
+        { nome: "Siberiano", tipo: "Felina" },
+        { nome: "Munchkin", tipo: "Felina" },
+        { nome: "Ocicat", tipo: "Felina" },
+        { nome: "Azul Russo", tipo: "Felina" },
+        { nome: "Exotic Shorthair", tipo: "Felina" },
+        { nome: "Singapura", tipo: "Felina" },
+        { nome: "Ragamuffin", tipo: "Felina" },
+        { nome: "Bombay", tipo: "Felina" },
+        { nome: "Peterbald", tipo: "Felina" },
+        { nome: "Manx", tipo: "Felina" },
+        { nome: "Chartreux", tipo: "Felina" },
+        { nome: "LaPerm", tipo: "Felina" },
+        { nome: "Toyger", tipo: "Felina" },
+        { nome: "Snowshoe", tipo: "Felina" },
+        { nome: "Havana Brown", tipo: "Felina" },
+      ];
+
+      // Variáveis globais para controle
+      let racasPersonalizadas = JSON.parse(
+        localStorage.getItem("racasPersonalizadas") || "[]",
+      );
+
+      // Constrói a lista "todasRacas" aplicando overrides e deleções salvos em racasPersonalizadas
+      function buildTodasRacas() {
+        const predef = (racasPredefinidas || []).slice();
+        const personal = (racasPersonalizadas || []).slice();
+        const result = [];
+
+        // Para cada predefinida, aplicar override ou deleção se houver entrada em personal com originalNome
+        predef.forEach((p) => {
+          const override = personal.find((pp) => pp.originalNome === p.nome);
+          if (override) {
+            if (override.deleted) return; // removida
+            result.push({ nome: override.nome, tipo: override.tipo });
+          } else {
+            // se houver um personal criado com mesmo nome e sem originalNome, preferi-lo
+            const sameNameCustom = personal.find(
+              (pp) => !pp.originalNome && pp.nome === p.nome && !pp.deleted,
+            );
+            if (sameNameCustom) {
+              result.push({
+                nome: sameNameCustom.nome,
+                tipo: sameNameCustom.tipo,
+              });
+            } else {
+              result.push({ nome: p.nome, tipo: p.tipo });
+            }
+          }
+        });
+
+        // Adicionar personal sem originalNome (novas raças criadas) e que não estejam marcadas como deletadas
+        personal.forEach((pp) => {
+          if (!pp.originalNome && !pp.deleted) {
+            // evitar duplicatas pelo nome
+            if (!result.some((r) => r.nome === pp.nome))
+              result.push({ nome: pp.nome, tipo: pp.tipo });
+          }
+        });
+
+        return result;
+      }
+
+      let todasRacas = buildTodasRacas();
+      let racasFiltradas = [...todasRacas];
+
+      // Função de teste para debug
+      window.testDropdown = function () {
+        console.log("🧪 Testando dropdown...");
+        console.log("Total de raças:", todasRacas.length);
+        console.log("Raças filtradas:", racasFiltradas.length);
+
+        const menu = document.getElementById("racaDropdownMenu");
+        console.log("Menu element:", menu);
+        console.log("Menu classes:", menu ? menu.className : "não encontrado");
+        console.log(
+          "Menu style display:",
+          menu ? menu.style.display : "não encontrado",
+        );
+
+        toggleRacaDropdown();
+
+        // Verificar após toggle
+        setTimeout(() => {
+          console.log("Após toggle:");
+          console.log(
+            "Menu classes:",
+            menu ? menu.className : "não encontrado",
+          );
+          console.log(
+            "Menu style display:",
+            menu ? menu.style.display : "não encontrado",
+          );
+          console.log(
+            "Menu computed style:",
+            menu ? window.getComputedStyle(menu).display : "não encontrado",
+          );
+        }, 200);
+      };
+
+      // Função para forçar abertura
+      window.forceOpen = function () {
+        const menu = document.getElementById("racaDropdownMenu");
+        if (menu) {
+          menu.classList.add("show");
+          menu.style.display = "block !important";
+          menu.style.visibility = "visible !important";
+          menu.style.opacity = "1 !important";
+          menu.style.zIndex = "99999 !important";
+          console.log("🚀 Dropdown forçado!");
+        }
+      };
+
+      // Inicializar dropdown ao carregar a página
+      document.addEventListener("DOMContentLoaded", function () {
+        console.log("🔧 Carregando dropdown de raças...");
+        loadRacasDropdown();
+        // Ouvir mudanças de raças vindas de outras abas/páginas
+        try {
+          const bc = new BroadcastChannel("racas-channel");
+          bc.onmessage = (ev) => {
+            if (!ev.data) return;
+            // Recarregar racasPersonalizadas e reconstruir listas
+            racasPersonalizadas = JSON.parse(
+              localStorage.getItem("racasPersonalizadas") || "[]",
+            );
+            todasRacas = buildTodasRacas();
+            racasFiltradas = [...todasRacas];
+            loadRacasDropdown();
+            // Se existir summary de espécies, atualizar
+            if (typeof renderEspeciesSummary === "function")
+              renderEspeciesSummary();
+          };
+          // Também escutar mudanças de pelagens vindas de outras abas/páginas
+          try {
+            const bcp = new BroadcastChannel("pelagens-channel");
+            bcp.onmessage = (ev) => {
+              if (!ev.data) return;
+              // Recarregar pelagensPersonalizadas e reconstruir listas
+              try {
+                pelagensPersonalizadas = JSON.parse(
+                  localStorage.getItem("pelagensPersonalizadas") || "[]",
+                );
+              } catch (e) {
+                pelagensPersonalizadas = [];
+              }
+              const predefPelagens = window.pelagensPredefinidas || [];
+              const pelagemMapLocal = new Map();
+              predefPelagens.forEach((p) => {
+                if (p && p.nome)
+                  pelagemMapLocal.set(p.nome, {
+                    nome: p.nome,
+                    descricao: p.tipo || "",
+                  });
+              });
+              pelagensPersonalizadas.forEach((pp) => {
+                if (pp && pp.deleted) {
+                  pelagemMapLocal.delete(pp.originalNome || "");
+                  return;
+                }
+                if (pp.originalNome) {
+                  pelagemMapLocal.delete(pp.originalNome);
+                  pelagemMapLocal.set(pp.nome, {
+                    nome: pp.nome,
+                    descricao: pp.tipo || "Personalizada",
+                  });
+                } else if (pp.nome) {
+                  pelagemMapLocal.set(pp.nome, {
+                    nome: pp.nome,
+                    descricao: pp.tipo || "Personalizada",
+                  });
+                }
+              });
+              todasPelagens = Array.from(pelagemMapLocal.values());
+              pelagensFiltradas = [...todasPelagens];
+              // Atualizar dropdown se estiver aberto
+              try {
+                loadPelagensDropdown();
+              } catch (e) {}
+            };
+          } catch (e) {
+            console.warn("BroadcastChannel (pelagens) não disponível:", e);
+          }
+          // Também escutar mudanças de portes vindas de outras abas/páginas
+          try {
+            const bcpPortes = new BroadcastChannel("portes-channel");
+            bcpPortes.onmessage = (ev) => {
+              if (!ev.data) return;
+              try {
+                portesPersonalizados = JSON.parse(
+                  localStorage.getItem("portesPersonalizados") || "[]",
+                );
+              } catch (e) {
+                portesPersonalizados = [];
+              }
+              const portesBase = [
+                { nome: "Pequeno", descricao: "Até 10kg" },
+                { nome: "Médio", descricao: "10-25kg" },
+                { nome: "Grande", descricao: "25-45kg" },
+                { nome: "Gigante", descricao: "Acima de 45kg" },
+              ];
+              todosPortes = [...portesBase, ...portesPersonalizados];
+              portesFiltrados = [...todosPortes];
+              try {
+                loadPortesDropdown();
+              } catch (e) {}
+            };
+          } catch (e) {
+            console.warn("BroadcastChannel (portes) não disponível:", e);
+          }
+        } catch (e) {
+          console.warn("BroadcastChannel não disponível:", e);
+        }
+
+        // Fechar dropdown ao clicar fora
+        document.addEventListener("click", function (e) {
+          const racaDropdown = document.getElementById("racaDropdown");
+          const generoDropdown = document.getElementById("generoDropdown");
+          const porteDropdown = document.getElementById("porteDropdown");
+          const pelagemDropdown = document.getElementById("pelagemDropdown");
+
+          // Fechar dropdown de raça se clicar fora
+          if (racaDropdown && !racaDropdown.contains(e.target)) {
+            closeRacaDropdown();
+          }
+
+          // Fechar dropdown de gênero se clicar fora
+          if (generoDropdown && !generoDropdown.contains(e.target)) {
+            closeGeneroDropdown();
+          }
+
+          // Fechar dropdown de porte se clicar fora
+          if (porteDropdown && !porteDropdown.contains(e.target)) {
+            closePorteDropdown();
+          }
+
+          // Fechar dropdown de pelagem se clicar fora
+          if (pelagemDropdown && !pelagemDropdown.contains(e.target)) {
+            closePelagemDropdown();
+          }
+        });
+
+        // Permitir digitação direta no campo principal
+        const racaInput = document.getElementById("raca");
+        if (racaInput) {
+          racaInput.addEventListener("input", function (e) {
+            const value = e.target.value;
+            filterRacas(value);
+            if (
+              !document
+                .getElementById("racaDropdownMenu")
+                .classList.contains("show")
+            ) {
+              toggleRacaDropdown();
+            }
+          });
+
+          racaInput.addEventListener("focus", function () {
+            if (
+              !document
+                .getElementById("racaDropdownMenu")
+                .classList.contains("show")
+            ) {
+              toggleRacaDropdown();
+            }
+          });
+        }
+
+        // Permitir digitação direta no campo de porte
+        const porteInput = document.getElementById("porte");
+        if (porteInput) {
+          porteInput.addEventListener("input", function (e) {
+            const value = e.target.value;
+            filterPortes(value);
+            if (
+              !document
+                .getElementById("porteDropdownMenu")
+                .classList.contains("show")
+            ) {
+              openPorteDropdown();
+            }
+          });
+
+          porteInput.addEventListener("focus", function () {
+            if (
+              !document
+                .getElementById("porteDropdownMenu")
+                .classList.contains("show")
+            ) {
+              openPorteDropdown();
+            }
+          });
+        }
+
+        // Permitir digitação direta no campo de pelagem
+        const pelagemInput = document.getElementById("pelagem");
+        if (pelagemInput) {
+          pelagemInput.addEventListener("input", function (e) {
+            const value = e.target.value;
+            filterPelagens(value);
+            if (
+              !document
+                .getElementById("pelagemDropdownMenu")
+                .classList.contains("show")
+            ) {
+              openPelagemDropdown();
+            }
+          });
+
+          pelagemInput.addEventListener("focus", function () {
+            if (
+              !document
+                .getElementById("pelagemDropdownMenu")
+                .classList.contains("show")
+            ) {
+              openPelagemDropdown();
+            }
+          });
+        }
+
+        console.log("✅ Dropdown de raças carregado!");
+      });
+
+      // Carregar opções no dropdown
+      function loadRacasDropdown() {
+        console.log("📋 Carregando raças no dropdown...");
+        const container = document.getElementById("racaOptions");
+
+        if (!container) {
+          console.error("❌ Container de opções não encontrado");
+          return;
+        }
+
+        container.innerHTML = "";
+
+        if (racasFiltradas.length === 0) {
+          const noResults = document.createElement("div");
+          noResults.className = "dropdown-option";
+          noResults.innerHTML =
+            '<span class="breed-name">Nenhuma raça encontrada</span>';
+          container.appendChild(noResults);
+          return;
+        }
+
+        racasFiltradas.forEach((raca) => {
+          const option = document.createElement("div");
+          option.className = "dropdown-option";
+
+          // Verificar se é uma raça personalizada (inclui overrides e custom)
+          const isPersonalizada = racasPersonalizadas.some(
+            (r) =>
+              !r.deleted &&
+              (r.nome === raca.nome || r.originalNome === raca.nome),
+          );
+
+          if (isPersonalizada) {
+            option.classList.add("has-delete");
+            option.innerHTML = `
+                        <div class="dropdown-option-content" onclick="selectRaca('${raca.nome}')">
+                            <span class="breed-name">${raca.nome}</span>
+                            <span class="breed-type">${raca.tipo} • Personalizada</span>
+                        </div>
+                        <button class="delete-option-btn" onclick="deleteRaca('${raca.nome}', event)" title="Excluir raça personalizada">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `;
+          } else {
+            option.onclick = () => selectRaca(raca.nome);
+            option.innerHTML = `
+                        <span class="breed-name">${raca.nome}</span>
+                        <span class="breed-type">${raca.tipo}</span>
+                    `;
+          }
+
+          container.appendChild(option);
+        });
+
+        console.log(`✅ ${racasFiltradas.length} raças carregadas`);
+      }
+
+      // Abrir dropdown diretamente
+      function openRacaDropdown() {
+        console.log("📤 Abrindo dropdown diretamente");
+        const menu = document.getElementById("racaDropdownMenu");
+        const arrow = document.querySelector(".dropdown-arrow");
+        const formGroup = document
+          .querySelector("#racaDropdown")
+          .closest(".form-group");
+
+        if (!menu) {
+          console.error("❌ Menu dropdown não encontrado");
+          return;
+        }
+
+        // Se já estiver aberto, não fazer nada
+        if (menu.classList.contains("show")) {
+          console.log("✅ Dropdown já está aberto");
+          return;
+        }
+
+        // Adicionar classes para garantir visibilidade
+        menu.classList.add("show");
+        if (arrow) arrow.classList.add("open");
+        if (formGroup) formGroup.classList.add("dropdown-active");
+
+        // Force display com timeout
+        setTimeout(() => {
+          menu.style.display = "block";
+          menu.style.visibility = "visible";
+          menu.style.opacity = "1";
+          console.log("🎯 Dropdown forçado a aparecer");
+        }, 10);
+
+        // Focar no campo de busca após um pequeno delay
+        setTimeout(() => {
+          const searchInput = document.getElementById("racaSearch");
+          if (searchInput && document.activeElement !== searchInput) {
+            searchInput.focus();
+          }
+        }, 100);
+      }
+
+      // Toggle do dropdown
+      function toggleRacaDropdown() {
+        console.log("🔄 Toggle dropdown chamado");
+        const menu = document.getElementById("racaDropdownMenu");
+        const arrow = document.querySelector(".dropdown-arrow");
+        const formGroup = document
+          .querySelector("#racaDropdown")
+          .closest(".form-group");
+
+        if (!menu) {
+          console.error("❌ Menu dropdown não encontrado");
+          return;
+        }
+
+        if (menu.classList.contains("show")) {
+          console.log("📥 Fechando dropdown");
+          closeRacaDropdown();
+        } else {
+          console.log("📤 Abrindo dropdown");
+
+          // Adicionar classes para garantir visibilidade
+          menu.classList.add("show");
+          if (arrow) arrow.classList.add("open");
+          if (formGroup) formGroup.classList.add("dropdown-active");
+
+          // Force display com timeout
+          setTimeout(() => {
+            menu.style.display = "block";
+            menu.style.visibility = "visible";
+            menu.style.opacity = "1";
+            console.log("🎯 Dropdown forçado a aparecer");
+          }, 10);
+
+          // Focar no campo de busca após um pequeno delay
+          setTimeout(() => {
+            const searchInput = document.getElementById("racaSearch");
+            if (searchInput) searchInput.focus();
+          }, 100);
+        }
+      }
+
+      // Fechar dropdown
+      function closeRacaDropdown() {
+        console.log("📥 Fechando dropdown");
+        const menu = document.getElementById("racaDropdownMenu");
+        const arrow = document.querySelector(".dropdown-arrow");
+        const formGroup = document
+          .querySelector("#racaDropdown")
+          .closest(".form-group");
+
+        if (menu) {
+          menu.classList.remove("show");
+          menu.style.display = "none";
+          menu.style.visibility = "hidden";
+          menu.style.opacity = "0";
+        }
+
+        if (arrow) arrow.classList.remove("open");
+        if (formGroup) formGroup.classList.remove("dropdown-active");
+
+        const searchInput = document.getElementById("racaSearch");
+        if (searchInput) searchInput.value = "";
+
+        racasFiltradas = [...todasRacas];
+        loadRacasDropdown();
+      }
+
+      // Selecionar raça
+      function selectRaca(nome) {
+        document.getElementById("raca").value = nome;
+        closeRacaDropdown();
+      }
+
+      // Deletar raça personalizada (ou marcar predefinida como deletada)
+      function deleteRaca(nome, event) {
+        event.stopPropagation(); // Evitar que selecione a raça ao clicar no X
+
+        // Se existe como personalizada, remover; senão marcar predef como deletada
+        const idx = racasPersonalizadas.findIndex(
+          (r) => r.nome === nome || r.originalNome === nome,
+        );
+        if (idx !== -1) {
+          racasPersonalizadas.splice(idx, 1);
+        } else {
+          racasPersonalizadas.push({ originalNome: nome, deleted: true });
+        }
+
+        // Atualizar arrays via builder
+        todasRacas = buildTodasRacas();
+        racasFiltradas = [...todasRacas];
+
+        // Salvar no localStorage
+        localStorage.setItem(
+          "racasPersonalizadas",
+          JSON.stringify(racasPersonalizadas),
+        );
+
+        // Recarregar dropdown
+        loadRacasDropdown();
+
+        // Mostrar notificação de sucesso
+        showCustomNotification(
+          "success",
+          "Raça Excluída!",
+          `A raça "${nome}" foi removida com sucesso.`,
+        );
+
+        // Notificar outras abas/páginas
+        try {
+          new BroadcastChannel("racas-channel").postMessage({
+            action: "deleted",
+            originalNome: nome,
+          });
+        } catch (e) {}
+
+        console.log(`✅ Raça "${nome}" excluída`);
+      }
+
+      // Filtrar raças
+      function filterRacas(searchTerm) {
+        console.log("🔍 Filtrando raças:", searchTerm);
+
+        if (!searchTerm || searchTerm.trim() === "") {
+          racasFiltradas = [...todasRacas];
+        } else {
+          const term = searchTerm.toLowerCase().trim();
+          racasFiltradas = todasRacas.filter(
+            (raca) =>
+              raca.nome.toLowerCase().includes(term) ||
+              raca.tipo.toLowerCase().includes(term),
+          );
+        }
+
+        loadRacasDropdown();
+        console.log(`📊 ${racasFiltradas.length} raças filtradas`);
+      }
+
+      // Abrir modal para adicionar nova raça
+      function openAddRacaModal() {
+        document.getElementById("addRacaModal").classList.add("show");
+        document.getElementById("newRacaNome").focus();
+      }
+
+      // Fechar modal
+      function closeAddRacaModal() {
+        document.getElementById("addRacaModal").classList.remove("show");
+        document.getElementById("addRacaForm").reset();
+      }
+
+      // Adicionar nova raça
+      function addNewRaca(event) {
+        event.preventDefault();
+
+        const nome = document.getElementById("newRacaNome").value.trim();
+        const tipo = document.getElementById("newRacaTipo").value;
+        const descricao = document
+          .getElementById("newRacaDescricao")
+          .value.trim();
+
+        // Verificar se a raça já existe
+        const racaExiste = todasRacas.some(
+          (raca) => raca.nome.toLowerCase() === nome.toLowerCase(),
+        );
+
+        if (racaExiste) {
+          showCustomNotification(
+            "warning",
+            "Raça Já Existe!",
+            `A raça "${nome}" já está cadastrada no sistema. Escolha um nome diferente.`,
+          );
+          return;
+        }
+
+        // Criar nova raça
+        const novaRaca = { nome, tipo, descricao };
+
+        // Adicionar às listas e persistir
+        racasPersonalizadas.push(novaRaca);
+        localStorage.setItem(
+          "racasPersonalizadas",
+          JSON.stringify(racasPersonalizadas),
+        );
+
+        // Reconstruir listas
+        todasRacas = buildTodasRacas();
+        racasFiltradas = [...todasRacas];
+
+        // Atualizar dropdown
+        loadRacasDropdown();
+
+        // Notificar outras abas/páginas
+        try {
+          new BroadcastChannel("racas-channel").postMessage({
+            action: "added",
+            nome: nome,
+            tipo: tipo,
+          });
+        } catch (e) {}
+
+        // Selecionar a nova raça automaticamente
+        selectRaca(nome);
+
+        // Fechar modal
+        closeAddRacaModal();
+
+        // Mostrar mensagem de sucesso
+        const successMsg = document.getElementById("successMessage");
+        const originalText = successMsg.innerHTML;
+        successMsg.innerHTML =
+          '<i class="fas fa-check-circle"></i> Nova raça adicionada com sucesso!';
+        successMsg.style.display = "flex";
+
+        setTimeout(() => {
+          successMsg.style.display = "none";
+          successMsg.innerHTML = originalText;
+        }, 3000);
+      }
+
+      // === FUNÇÕES DO DROPDOWN DE GÊNERO ===
+
+      // Abrir dropdown de gênero
+      function openGeneroDropdown() {
+        console.log("📤 Abrindo dropdown de gênero");
+        const menu = document.getElementById("generoDropdownMenu");
+        const arrow = document.querySelector("#generoDropdown .dropdown-arrow");
+        const formGroup = document
+          .querySelector("#generoDropdown")
+          .closest(".form-group");
+
+        if (!menu) {
+          console.error("❌ Menu dropdown de gênero não encontrado");
+          return;
+        }
+
+        // Se já estiver aberto, não fazer nada
+        if (menu.classList.contains("show")) {
+          console.log("✅ Dropdown de gênero já está aberto");
+          return;
+        }
+
+        // Fechar dropdown de raça se estiver aberto
+        closeRacaDropdown();
+
+        // Adicionar classes para garantir visibilidade
+        menu.classList.add("show");
+        if (arrow) arrow.classList.add("open");
+        if (formGroup) formGroup.classList.add("dropdown-active");
+
+        // Force display com timeout
+        setTimeout(() => {
+          menu.style.display = "block";
+          menu.style.visibility = "visible";
+          menu.style.opacity = "1";
+          console.log("🎯 Dropdown de gênero forçado a aparecer");
+        }, 10);
+      }
+
+      // Fechar dropdown de gênero
+      function closeGeneroDropdown() {
+        console.log("📥 Fechando dropdown de gênero");
+        const menu = document.getElementById("generoDropdownMenu");
+        const arrow = document.querySelector("#generoDropdown .dropdown-arrow");
+        const formGroup = document
+          .querySelector("#generoDropdown")
+          .closest(".form-group");
+
+        if (menu) {
+          menu.classList.remove("show");
+          menu.style.display = "none";
+          menu.style.visibility = "hidden";
+          menu.style.opacity = "0";
+        }
+
+        if (arrow) arrow.classList.remove("open");
+        if (formGroup) formGroup.classList.remove("dropdown-active");
+      }
+
+      // Selecionar gênero
+      function selectGenero(genero) {
+        console.log("🎯 Gênero selecionado:", genero);
+
+        const input = document.getElementById("genero");
+        if (input) {
+          input.value = genero;
+          console.log("✅ Gênero definido no campo:", genero);
+        }
+
+        // Fechar dropdown
+        closeGeneroDropdown();
+      }
+
+      // === FUNÇÕES DO DROPDOWN DE PORTE ===
+
+      // Lista de portes padrões
+      let todosPortes = [
+        { nome: "Pequeno", descricao: "Até 10kg" },
+        { nome: "Médio", descricao: "10-25kg" },
+        { nome: "Grande", descricao: "25-45kg" },
+        { nome: "Gigante", descricao: "Acima de 45kg" },
+      ];
+
+      let portesFiltrados = [...todosPortes];
+      let portesPersonalizados = JSON.parse(
+        localStorage.getItem("portesPersonalizados") || "[]",
+      );
+
+      // Mesclar portes padrões com personalizados
+      todosPortes = [...todosPortes, ...portesPersonalizados];
+      portesFiltrados = [...todosPortes];
+
+      // Carregar portes no dropdown
+      function loadPortesDropdown() {
+        console.log("📋 Carregando portes no dropdown...");
+        const container = document.getElementById("porteOptions");
+
+        if (!container) {
+          console.error("❌ Container de opções de porte não encontrado");
+          return;
+        }
+
+        container.innerHTML = "";
+
+        if (portesFiltrados.length === 0) {
+          const noResults = document.createElement("div");
+          noResults.textContent = "Nenhum porte encontrado";
+          noResults.style.padding = "15px";
+          noResults.style.color = "#6c757d";
+          noResults.style.textAlign = "center";
+          container.appendChild(noResults);
+          return;
+        }
+
+        portesFiltrados.forEach((porte) => {
+          const option = document.createElement("div");
+          option.className = "dropdown-option";
+
+          // Verificar se é um porte personalizado
+          const isPersonalizado = portesPersonalizados.some(
+            (p) => p.nome === porte.nome,
+          );
+
+          if (isPersonalizado) {
+            option.classList.add("has-delete");
+            option.innerHTML = `
+                        <div class="dropdown-option-content" onclick="selectPorte('${porte.nome}')">
+                            <div class="breed-name">${porte.nome}</div>
+                            <div class="breed-type">${porte.descricao} • Personalizado</div>
+                        </div>
+                        <button class="delete-option-btn" onclick="deletePorte('${porte.nome}', event)" title="Excluir porte personalizado">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `;
+          } else {
+            option.onclick = () => selectPorte(porte.nome);
+            option.innerHTML = `
+                        <div class="breed-name">${porte.nome}</div>
+                        <div class="breed-type">${porte.descricao}</div>
+                    `;
+          }
+
+          container.appendChild(option);
+        });
+
+        console.log(`✅ ${portesFiltrados.length} portes carregados`);
+      }
+
+      // Abrir dropdown de porte
+      function openPorteDropdown() {
+        console.log("📤 Abrindo dropdown de porte");
+        const menu = document.getElementById("porteDropdownMenu");
+        const arrow = document.querySelector("#porteDropdown .dropdown-arrow");
+        const formGroup = document
+          .querySelector("#porteDropdown")
+          .closest(".form-group");
+
+        if (!menu) {
+          console.error("❌ Menu dropdown de porte não encontrado");
+          return;
+        }
+
+        // Se já estiver aberto, não fazer nada
+        if (menu.classList.contains("show")) {
+          console.log("✅ Dropdown de porte já está aberto");
+          return;
+        }
+
+        // Fechar outros dropdowns
+        closeRacaDropdown();
+        closeGeneroDropdown();
+
+        // Carregar portes
+        loadPortesDropdown();
+
+        // Adicionar classes para garantir visibilidade
+        menu.classList.add("show");
+        if (arrow) arrow.classList.add("open");
+        if (formGroup) formGroup.classList.add("dropdown-active");
+
+        // Force display com timeout
+        setTimeout(() => {
+          menu.style.display = "block";
+          menu.style.visibility = "visible";
+          menu.style.opacity = "1";
+          console.log("🎯 Dropdown de porte forçado a aparecer");
+        }, 10);
+
+        // Focar no campo de busca após um pequeno delay
+        setTimeout(() => {
+          const searchInput = document.getElementById("porteSearch");
+          if (searchInput && document.activeElement !== searchInput) {
+            searchInput.focus();
+          }
+        }, 100);
+      }
+
+      // Fechar dropdown de porte
+      function closePorteDropdown() {
+        console.log("📥 Fechando dropdown de porte");
+        const menu = document.getElementById("porteDropdownMenu");
+        const arrow = document.querySelector("#porteDropdown .dropdown-arrow");
+        const formGroup = document
+          .querySelector("#porteDropdown")
+          .closest(".form-group");
+
+        if (menu) {
+          menu.classList.remove("show");
+          menu.style.display = "none";
+          menu.style.visibility = "hidden";
+          menu.style.opacity = "0";
+        }
+
+        if (arrow) arrow.classList.remove("open");
+        if (formGroup) formGroup.classList.remove("dropdown-active");
+      }
+
+      // Selecionar porte
+      function selectPorte(nome) {
+        console.log("🎯 Porte selecionado:", nome);
+
+        const input = document.getElementById("porte");
+        if (input) {
+          input.value = nome;
+          console.log("✅ Porte definido no campo:", nome);
+        }
+
+        // Fechar dropdown
+        closePorteDropdown();
+      }
+
+      // Deletar porte personalizado
+      function deletePorte(nome, event) {
+        event.stopPropagation(); // Evitar que selecione o porte ao clicar no X
+
+        // Remover dos portes personalizados
+        portesPersonalizados = portesPersonalizados.filter(
+          (p) => p.nome !== nome,
+        );
+
+        // Atualizar arrays
+        const portesBase = [
+          { nome: "Pequeno", descricao: "Até 10kg" },
+          { nome: "Médio", descricao: "10-25kg" },
+          { nome: "Grande", descricao: "25-45kg" },
+          { nome: "Gigante", descricao: "Acima de 45kg" },
+        ];
+        todosPortes = [...portesBase, ...portesPersonalizados];
+        portesFiltrados = [...todosPortes];
+
+        // Salvar no localStorage
+        localStorage.setItem(
+          "portesPersonalizados",
+          JSON.stringify(portesPersonalizados),
+        );
+
+        // Recarregar dropdown
+        loadPortesDropdown();
+        try {
+          new BroadcastChannel("portes-channel").postMessage({
+            action: "deleted",
+            originalNome: nome,
+          });
+        } catch (e) {}
+
+        // Mostrar notificação de sucesso
+        showCustomNotification(
+          "success",
+          "Porte Excluído!",
+          `O porte "${nome}" foi removido com sucesso.`,
+        );
+
+        console.log(`✅ Porte "${nome}" excluído`);
+      }
+
+      // Filtrar portes
+      function filterPortes(searchTerm) {
+        console.log("🔍 Filtrando portes:", searchTerm);
+
+        if (!searchTerm) {
+          portesFiltrados = [...todosPortes];
+        } else {
+          portesFiltrados = todosPortes.filter(
+            (porte) =>
+              porte.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              porte.descricao.toLowerCase().includes(searchTerm.toLowerCase()),
+          );
+        }
+
+        // Recarregar opções
+        loadPortesDropdown();
+      }
+
+      // Abrir modal de adicionar porte
+      function openAddPorteModal() {
+        document.getElementById("addPorteModal").classList.add("show");
+        setTimeout(() => {
+          document.getElementById("novoPorteNome").focus();
+        }, 100);
+      }
+
+      // Fechar modal de adicionar porte
+      function closeAddPorteModal() {
+        document.getElementById("addPorteModal").classList.remove("show");
+        document.getElementById("novoPorteNome").value = "";
+        document.getElementById("novoPorteDescricao").value = "";
+      }
+
+      // Adicionar novo porte
+      function addNewPorte(event) {
+        event.preventDefault();
+
+        const nome = document.getElementById("novoPorteNome").value.trim();
+        const descricao =
+          document.getElementById("novoPorteDescricao").value.trim() ||
+          "Porte personalizado";
+
+        if (!nome) {
+          showCustomNotification(
+            "error",
+            "Campo Obrigatório!",
+            "Por favor, digite o nome do porte antes de continuar.",
+          );
+          return;
+        }
+
+        // Verificar se já existe
+        if (
+          todosPortes.some((p) => p.nome.toLowerCase() === nome.toLowerCase())
+        ) {
+          showCustomNotification(
+            "warning",
+            "Porte Já Existe!",
+            `O porte "${nome}" já está cadastrado no sistema. Escolha um nome diferente.`,
+          );
+          return;
+        }
+
+        // Adicionar aos personalizados
+        const novoPorte = { nome, descricao };
+        portesPersonalizados.push(novoPorte);
+        todosPortes.push(novoPorte);
+        portesFiltrados = [...todosPortes];
+
+        // Salvar no localStorage
+        localStorage.setItem(
+          "portesPersonalizados",
+          JSON.stringify(portesPersonalizados),
+        );
+
+        // Atualizar dropdown
+        loadPortesDropdown();
+        try {
+          new BroadcastChannel("portes-channel").postMessage({
+            action: "porte-added",
+            nome: nome,
+          });
+        } catch (e) {}
+
+        // Selecionar o novo porte automaticamente
+        selectPorte(nome);
+
+        // Fechar modal
+        closeAddPorteModal();
+
+        // Mostrar mensagem de sucesso
+        const successMsg = document.getElementById("successMessage");
+        const originalText = successMsg.innerHTML;
+        successMsg.innerHTML =
+          '<i class="fas fa-check-circle"></i> Novo porte adicionado com sucesso!';
+        successMsg.style.display = "flex";
+
+        setTimeout(() => {
+          successMsg.style.display = "none";
+          successMsg.innerHTML = originalText;
+        }, 3000);
+      }
+
+      // === FUNÇÕES DO DROPDOWN DE PELAGEM ===
+
+      // Construir lista de cores a partir dos predefinidos de pelagem e das personalizadas no localStorage
+      let pelagensPersonalizadas = JSON.parse(
+        localStorage.getItem("pelagensPersonalizadas") || "[]",
+      );
+      const predefPelagens = window.pelagensPredefinidas || [];
+      const pelagemMap = new Map();
+      // adicionar predefinidas
+      predefPelagens.forEach((p) => {
+        if (p && p.nome)
+          pelagemMap.set(p.nome, { nome: p.nome, descricao: p.tipo || "" });
+      });
+      // aplicar personalizadas (overrides e novas)
+      pelagensPersonalizadas.forEach((pp) => {
+        if (pp && pp.deleted) return;
+        if (pp.originalNome) {
+          // override: remover original e setar novo nome
+          pelagemMap.delete(pp.originalNome);
+          pelagemMap.set(pp.nome, {
+            nome: pp.nome,
+            descricao: pp.tipo || "Personalizada",
+          });
+        } else if (pp.nome) {
+          pelagemMap.set(pp.nome, {
+            nome: pp.nome,
+            descricao: pp.tipo || "Personalizada",
+          });
+        }
+      });
+
+      let todasPelagens = Array.from(pelagemMap.values());
+      let pelagensFiltradas = [...todasPelagens];
+
+      // Carregar pelagens no dropdown
+      function loadPelagensDropdown() {
+        console.log("📋 Carregando cores no dropdown...");
+        const container = document.getElementById("pelagemOptions");
+
+        if (!container) {
+          console.error("❌ Container de opções de pelagem não encontrado");
+          return;
+        }
+
+        container.innerHTML = "";
+
+        if (pelagensFiltradas.length === 0) {
+          const noResults = document.createElement("div");
+          noResults.textContent = "Nenhuma cor encontrada";
+          noResults.style.padding = "15px";
+          noResults.style.color = "#6c757d";
+          noResults.style.textAlign = "center";
+          container.appendChild(noResults);
+          return;
+        }
+
+        pelagensFiltradas.forEach((pelagem) => {
+          const option = document.createElement("div");
+          option.className = "dropdown-option";
+
+          // Verificar se é uma cor personalizada
+          const isPersonalizada = pelagensPersonalizadas.some(
+            (p) => p.nome === pelagem.nome,
+          );
+
+          if (isPersonalizada) {
+            option.classList.add("has-delete");
+            option.innerHTML = `
+                        <div class="dropdown-option-content" onclick="selectPelagem('${pelagem.nome}')">
+                            <div class="breed-name">${pelagem.nome}</div>
+                            <div class="breed-type">Personalizada</div>
+                        </div>
+                        <button class="delete-option-btn" onclick="deletePelagem('${pelagem.nome}', event)" title="Excluir cor personalizada">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    `;
+          } else {
+            option.onclick = () => selectPelagem(pelagem.nome);
+            option.innerHTML = `
+                        <div class="breed-name">${pelagem.nome}</div>
+                    `;
+          }
+
+          container.appendChild(option);
+        });
+
+        console.log(`✅ ${pelagensFiltradas.length} cores carregadas`);
+      }
+
+      // Abrir dropdown de pelagem
+      function openPelagemDropdown() {
+        console.log("📤 Abrindo dropdown de pelagem");
+        const menu = document.getElementById("pelagemDropdownMenu");
+        const arrow = document.querySelector(
+          "#pelagemDropdown .dropdown-arrow",
+        );
+        const formGroup = document
+          .querySelector("#pelagemDropdown")
+          .closest(".form-group");
+
+        if (!menu) {
+          console.error("❌ Menu dropdown de pelagem não encontrado");
+          return;
+        }
+
+        // Se já estiver aberto, não fazer nada
+        if (menu.classList.contains("show")) {
+          console.log("✅ Dropdown de pelagem já está aberto");
+          return;
+        }
+
+        // Fechar outros dropdowns
+        closeRacaDropdown();
+        closeGeneroDropdown();
+        closePorteDropdown();
+
+        // Carregar pelagens
+        loadPelagensDropdown();
+
+        // Adicionar classes para garantir visibilidade
+        menu.classList.add("show");
+        if (arrow) arrow.classList.add("open");
+        if (formGroup) formGroup.classList.add("dropdown-active");
+
+        // Force display com timeout
+        setTimeout(() => {
+          menu.style.display = "block";
+          menu.style.visibility = "visible";
+          menu.style.opacity = "1";
+          console.log("🎯 Dropdown de pelagem forçado a aparecer");
+        }, 10);
+
+        // Focar no campo de busca após um pequeno delay
+        setTimeout(() => {
+          const searchInput = document.getElementById("pelagemSearch");
+          if (searchInput && document.activeElement !== searchInput) {
+            searchInput.focus();
+          }
+        }, 100);
+      }
+
+      // Fechar dropdown de pelagem
+      function closePelagemDropdown() {
+        console.log("📥 Fechando dropdown de pelagem");
+        const menu = document.getElementById("pelagemDropdownMenu");
+        const arrow = document.querySelector(
+          "#pelagemDropdown .dropdown-arrow",
+        );
+        const formGroup = document
+          .querySelector("#pelagemDropdown")
+          .closest(".form-group");
+
+        if (menu) {
+          menu.classList.remove("show");
+          menu.style.display = "none";
+          menu.style.visibility = "hidden";
+          menu.style.opacity = "0";
+        }
+
+        if (arrow) arrow.classList.remove("open");
+        if (formGroup) formGroup.classList.remove("dropdown-active");
+      }
+
+      // Selecionar pelagem
+      function selectPelagem(nome) {
+        console.log("🎯 Cor selecionada:", nome);
+
+        const input = document.getElementById("pelagem");
+        if (input) {
+          input.value = nome;
+          console.log("✅ Cor definida no campo:", nome);
+        }
+
+        // Fechar dropdown
+        closePelagemDropdown();
+      }
+
+      // Deletar pelagem personalizada
+      function deletePelagem(nome, event) {
+        event.stopPropagation(); // Evitar que selecione a cor ao clicar no X
+        // Ajustar entries em localStorage (remover personalizadas ou marcar predefinidas como deletadas)
+        let rp = JSON.parse(
+          localStorage.getItem("pelagensPersonalizadas") || "[]",
+        );
+        // remover personalizadas com esse nome
+        rp = rp.filter((p) => (p.nome || p.originalNome) !== nome);
+        // se era predefinida e não existia override, marcar como deletada
+        const predef = window.pelagensPredefinidas || [];
+        const isPredef = predef.some((p) => p.nome === nome);
+        if (
+          isPredef &&
+          !rp.some((x) => x.originalNome === nome || x.nome === nome)
+        ) {
+          rp.push({ originalNome: nome, deleted: true });
+        }
+        // salvar
+        localStorage.setItem("pelagensPersonalizadas", JSON.stringify(rp));
+        // reconstruir listas usadas pela UI
+        pelagensPersonalizadas = rp;
+        const pelagemMap = new Map();
+        predef.forEach((p) => {
+          if (p && p.nome)
+            pelagemMap.set(p.nome, { nome: p.nome, descricao: p.tipo || "" });
+        });
+        pelagensPersonalizadas.forEach((pp) => {
+          if (pp && pp.deleted) {
+            pelagemMap.delete(pp.originalNome || "");
+            return;
+          }
+          if (pp.originalNome) {
+            pelagemMap.delete(pp.originalNome);
+            pelagemMap.set(pp.nome, {
+              nome: pp.nome,
+              descricao: pp.tipo || "Personalizada",
+            });
+          } else if (pp.nome) {
+            pelagemMap.set(pp.nome, {
+              nome: pp.nome,
+              descricao: pp.tipo || "Personalizada",
+            });
+          }
+        });
+        todasPelagens = Array.from(pelagemMap.values());
+        pelagensFiltradas = [...todasPelagens];
+        // Recarregar dropdown
+        loadPelagensDropdown();
+
+        // Mostrar notificação de sucesso
+        showCustomNotification(
+          "success",
+          "Cor Excluída!",
+          `A cor "${nome}" foi removida com sucesso.`,
+        );
+
+        console.log(`✅ Cor "${nome}" excluída`);
+        // Notificar outras abas/páginas sobre a exclusão
+        try {
+          new BroadcastChannel("pelagens-channel").postMessage({
+            action: "deleted",
+            originalNome: nome,
+          });
+        } catch (e) {}
+      }
+
+      // Filtrar pelagens
+      function filterPelagens(searchTerm) {
+        console.log("🔍 Filtrando cores:", searchTerm);
+
+        if (!searchTerm) {
+          pelagensFiltradas = [...todasPelagens];
+        } else {
+          pelagensFiltradas = todasPelagens.filter(
+            (pelagem) =>
+              pelagem.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              pelagem.descricao
+                .toLowerCase()
+                .includes(searchTerm.toLowerCase()),
+          );
+        }
+
+        // Recarregar opções
+        loadPelagensDropdown();
+      }
+
+      // Abrir modal de adicionar pelagem
+      function openAddPelagemModal() {
+        document.getElementById("addPelagemModal").classList.add("show");
+        setTimeout(() => {
+          document.getElementById("novaPelagemNome").focus();
+        }, 100);
+      }
+
+      // Fechar modal de adicionar pelagem
+      function closeAddPelagemModal() {
+        document.getElementById("addPelagemModal").classList.remove("show");
+        document.getElementById("novaPelagemNome").value = "";
+        document.getElementById("novaPelagemDescricao").value = "";
+      }
+
+      // Adicionar nova pelagem
+      function addNewPelagem(event) {
+        event.preventDefault();
+
+        const nome = document.getElementById("novaPelagemNome").value.trim();
+        const descricao =
+          document.getElementById("novaPelagemDescricao").value.trim() ||
+          "Cor personalizada";
+
+        if (!nome) {
+          showCustomNotification(
+            "error",
+            "Campo Obrigatório!",
+            "Por favor, digite o nome da cor antes de continuar.",
+          );
+          return;
+        }
+
+        // Verificar se já existe
+        if (
+          todasPelagens.some((p) => p.nome.toLowerCase() === nome.toLowerCase())
+        ) {
+          showCustomNotification(
+            "warning",
+            "Cor Já Existe!",
+            `A cor "${nome}" já está cadastrada no sistema. Escolha um nome diferente.`,
+          );
+          return;
+        }
+
+        // Adicionar aos personalizados (somente nome)
+        const novaPelagem = { nome };
+        pelagensPersonalizadas.push(novaPelagem);
+        // salvar
+        localStorage.setItem(
+          "pelagensPersonalizadas",
+          JSON.stringify(pelagensPersonalizadas),
+        );
+        // reconstruir todasPelagens a partir de predef + personalizadas
+        const predefPelagens = window.pelagensPredefinidas || [];
+        const pelagemMap = new Map();
+        predefPelagens.forEach((p) => {
+          if (p && p.nome)
+            pelagemMap.set(p.nome, { nome: p.nome, descricao: p.tipo || "" });
+        });
+        pelagensPersonalizadas.forEach((pp) => {
+          if (pp && pp.deleted) {
+            pelagemMap.delete(pp.originalNome || "");
+            return;
+          }
+          if (pp.originalNome) {
+            pelagemMap.delete(pp.originalNome);
+            pelagemMap.set(pp.nome, {
+              nome: pp.nome,
+              descricao: pp.tipo || "Personalizada",
+            });
+          } else if (pp.nome) {
+            pelagemMap.set(pp.nome, {
+              nome: pp.nome,
+              descricao: pp.tipo || "Personalizada",
+            });
+          }
+        });
+        todasPelagens = Array.from(pelagemMap.values());
+        pelagensFiltradas = [...todasPelagens];
+
+        // Atualizar dropdown
+        loadPelagensDropdown();
+
+        // Selecionar a nova cor automaticamente
+        selectPelagem(nome);
+
+        // Fechar modal
+        closeAddPelagemModal();
+
+        // Mostrar mensagem de sucesso
+        showCustomNotification(
+          "success",
+          "Nova Cor Adicionada!",
+          `A cor "${nome}" foi adicionada com sucesso.`,
+        );
+        // Notificar outras abas/páginas sobre a nova cor
+        try {
+          new BroadcastChannel("pelagens-channel").postMessage({
+            action: "color-added",
+            nome: nome,
+          });
+        } catch (e) {}
+      }
+
+      // === FUNÇÕES DO CALENDÁRIO PERSONALIZADO ===
+
+      let currentDate = new Date();
+      let selectedDate = null;
+
+      // Nomes dos meses
+      const monthNames = [
+        "Jan 2025",
+        "Fev 2025",
+        "Mar 2025",
+        "Abr 2025",
+        "Mai 2025",
+        "Jun 2025",
+        "Jul 2025",
+        "Ago 2025",
+        "Set 2025",
+        "Out 2025",
+        "Nov 2025",
+        "Dez 2025",
+      ];
+
+      // Formatar data enquanto digita
+      function formatarData(input) {
+        let valor = input.value.replace(/\D/g, ""); // Remove tudo que não é número
+
+        if (valor.length >= 2) {
+          valor = valor.substring(0, 2) + "/" + valor.substring(2);
+        }
+        if (valor.length >= 5) {
+          valor = valor.substring(0, 5) + "/" + valor.substring(5, 9);
+        }
+
+        input.value = valor;
+      }
+
+      // Abrir/fechar calendário (só pelo ícone)
+      function toggleCalendar() {
+        const popup = document.getElementById("calendarPopup");
+        if (popup.classList.contains("show")) {
+          closeCalendar();
+        } else {
+          openCalendar();
+        }
+      }
+
+      function openCalendar() {
+        // Fechar outros dropdowns
+        closePelagemDropdown();
+        closePorteDropdown();
+        closeGeneroDropdown();
+        closeRacaDropdown();
+
+        const popup = document.getElementById("calendarPopup");
+
+        // Renderizar conteúdo primeiro
+        renderCalendar();
+
+        // Para evitar problemas de z-index/overflow (popup sendo cortado pelos containers),
+        // movemos o popup para o <body> e posicionamos com coordenadas da janela (fixed).
+        const input = document.getElementById("data_nascimento");
+        if (input && popup) {
+          // garantir que o popup esteja como filho de body
+          if (popup.parentElement !== document.body) {
+            document.body.appendChild(popup);
+          }
+
+          // Forçar estilos para posicionamento absoluto sobre a viewport
+          popup.style.position = "fixed";
+          popup.style.zIndex = "999999";
+
+          const rect = input.getBoundingClientRect();
+          const popupWidth = popup.offsetWidth || 240;
+          let left = rect.left;
+          let top = rect.bottom + 6; // pequeno offset abaixo do input
+
+          // Ajustar se ultrapassar a largura da janela
+          if (left + popupWidth > window.innerWidth - 8) {
+            left = Math.max(8, window.innerWidth - popupWidth - 8);
+          }
+
+          popup.style.left = left + "px";
+          popup.style.top = top + "px";
+          popup.classList.add("show");
+        } else if (popup) {
+          // fallback: apenas mostrar se algo der errado
+          popup.style.position = "absolute";
+          popup.classList.add("show");
+        }
+      }
+
+      function closeCalendar() {
+        const popup = document.getElementById("calendarPopup");
+        if (!popup) return;
+
+        popup.classList.remove("show");
+
+        // Restaurar posicionamento para o container original (opcional)
+        const calendarContainer = document.querySelector(".custom-calendar");
+        if (calendarContainer && popup.parentElement === document.body) {
+          calendarContainer.appendChild(popup);
+          popup.style.position = "";
+          popup.style.left = "";
+          popup.style.top = "";
+          popup.style.zIndex = "";
+        }
+      }
+
+      // Navegar pelos meses
+      function previousMonth() {
+        currentDate.setMonth(currentDate.getMonth() - 1);
+        renderCalendar();
+      }
+
+      function nextMonth() {
+        currentDate.setMonth(currentDate.getMonth() + 1);
+        renderCalendar();
+      }
+
+      // Selecionar hoje
+      function selectToday() {
+        const today = new Date();
+        selectDate(today);
+      }
+
+      // Selecionar data
+      function selectDate(date) {
+        selectedDate = new Date(date);
+        const day = String(selectedDate.getDate()).padStart(2, "0");
+        const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+        const year = selectedDate.getFullYear();
+
+        const formattedDate = `${day}/${month}/${year}`;
+        document.getElementById("data_nascimento").value = formattedDate;
+
+        closeCalendar();
+        calcularIdade();
+      }
+
+      // Renderizar calendário (versão compacta)
+      function renderCalendar() {
+        const monthYear = document.getElementById("monthYear");
+        const calendarDays = document.getElementById("calendarDays");
+
+        // Atualizar cabeçalho
+        monthYear.textContent = monthNames[currentDate.getMonth()];
+
+        // Limpar dias
+        calendarDays.innerHTML = "";
+
+        // Obter primeiro dia do mês e quantos dias tem
+        const firstDay = new Date(
+          currentDate.getFullYear(),
+          currentDate.getMonth(),
+          1,
+        );
+        const lastDay = new Date(
+          currentDate.getFullYear(),
+          currentDate.getMonth() + 1,
+          0,
+        );
+        const daysInMonth = lastDay.getDate();
+        const startingDayOfWeek = firstDay.getDay();
+
+        // Adicionar dias do mês anterior
+        const prevMonth = new Date(
+          currentDate.getFullYear(),
+          currentDate.getMonth(),
+          0,
+        );
+        const daysInPrevMonth = prevMonth.getDate();
+
+        for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+          const day = daysInPrevMonth - i;
+          const button = createDayButton(day, true);
+          calendarDays.appendChild(button);
+        }
+
+        // Adicionar dias do mês atual
+        for (let day = 1; day <= daysInMonth; day++) {
+          const button = createDayButton(day, false);
+          calendarDays.appendChild(button);
+        }
+
+        // Adicionar dias do próximo mês para completar
+        const totalCells = calendarDays.children.length;
+        const remainingCells = Math.ceil(totalCells / 7) * 7 - totalCells;
+
+        for (let day = 1; day <= remainingCells && remainingCells < 7; day++) {
+          const button = createDayButton(day, true);
+          calendarDays.appendChild(button);
+        }
+      }
+
+      // Criar botão de dia (versão compacta)
+      function createDayButton(day, isOtherMonth) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "calendar-day";
+        button.textContent = day;
+
+        if (isOtherMonth) {
+          button.classList.add("other-month");
+        }
+
+        // Verificar se é hoje
+        const today = new Date();
+        const buttonDate = new Date(
+          currentDate.getFullYear(),
+          currentDate.getMonth(),
+          day,
+        );
+
+        if (
+          !isOtherMonth &&
+          buttonDate.getDate() === today.getDate() &&
+          buttonDate.getMonth() === today.getMonth() &&
+          buttonDate.getFullYear() === today.getFullYear()
+        ) {
+          button.classList.add("today");
+        }
+
+        // Verificar se está selecionado
+        if (
+          selectedDate &&
+          !isOtherMonth &&
+          buttonDate.getDate() === selectedDate.getDate() &&
+          buttonDate.getMonth() === selectedDate.getMonth() &&
+          buttonDate.getFullYear() === selectedDate.getFullYear()
+        ) {
+          button.classList.add("selected");
+        }
+
+        // Adicionar evento de clique
+        if (!isOtherMonth) {
+          button.onclick = () => selectDate(buttonDate);
+        }
+
+        return button;
+      }
+
+      // Calcular idade em anos, meses e dias
+      function calcularIdade() {
+        const dataInput = document.getElementById("data_nascimento").value;
+        const idadeInput = document.getElementById("idade");
+
+        if (!dataInput || dataInput.length < 10) {
+          idadeInput.value = "";
+          return;
+        }
+
+        // Parse da data (formato DD/MM/YYYY)
+        const [dia, mes, ano] = dataInput.split("/").map(Number);
+
+        // Validar se a data é válida
+        if (!dia || !mes || !ano || dia > 31 || mes > 12 || ano < 1900) {
+          idadeInput.value = "Data inválida";
+          return;
+        }
+
+        const dataNascimento = new Date(ano, mes - 1, dia);
+        const hoje = new Date();
+
+        // Verificar se a data é válida e não é futura
+        if (dataNascimento > hoje) {
+          idadeInput.value = "Data futura";
+          return;
+        }
+
+        // Calcular diferença
+        let anos = hoje.getFullYear() - dataNascimento.getFullYear();
+        let meses = hoje.getMonth() - dataNascimento.getMonth();
+        let dias = hoje.getDate() - dataNascimento.getDate();
+
+        // Ajustar se os dias são negativos
+        if (dias < 0) {
+          meses--;
+          const ultimoDiaMesAnterior = new Date(
+            hoje.getFullYear(),
+            hoje.getMonth(),
+            0,
+          ).getDate();
+          dias += ultimoDiaMesAnterior;
+        }
+
+        // Ajustar se os meses são negativos
+        if (meses < 0) {
+          anos--;
+          meses += 12;
+        }
+
+        // Formar string da idade
+        let idade = "";
+        if (anos > 0) {
+          idade += `${anos} ano${anos > 1 ? "s" : ""}`;
+        }
+        if (meses > 0) {
+          if (idade) idade += ", ";
+          idade += `${meses} mês${meses > 1 ? "es" : ""}`;
+        }
+        if (dias > 0 || !idade) {
+          if (idade) idade += " e ";
+          idade += `${dias} dia${dias > 1 ? "s" : ""}`;
+        }
+
+        idadeInput.value = idade;
+      }
+
+      // Fechar calendário ao clicar fora (respeita o popup quando movido para body)
+      document.addEventListener("click", function (e) {
+        const calendar = document.querySelector(".custom-calendar");
+        const popup = document.getElementById("calendarPopup");
+
+        // Se o clique foi dentro do popup, não fechar
+        if (popup && popup.contains(e.target)) return;
+
+        if (calendar && !calendar.contains(e.target)) {
+          closeCalendar();
+        }
+      });
+
+      // === SISTEMA DE TAGS ===
+      let allTags = [
+        "Sociável",
+        "Brincalhão",
+        "Calmo",
+        "Protetor",
+        "Amigável",
+        "Independente",
+        "Dócil",
+        "Ativo",
+        "Carinhoso",
+        "Alerta",
+      ];
+      let selectedTags = [];
+
+      function openTagsDropdown() {
+        console.log("📤 Abrindo dropdown de tags diretamente");
+        const menu = document.getElementById("tagsDropdownMenu");
+        const arrow = document.querySelector("#tagsDropdown .dropdown-arrow");
+        const formGroup = document
+          .querySelector("#tagsDropdown")
+          .closest(".form-group");
+
+        if (!menu) {
+          console.error("❌ Menu dropdown de tags não encontrado");
+          return;
+        }
+
+        // Se já estiver aberto, não fazer nada
+        if (menu.classList.contains("show")) {
+          console.log("✅ Dropdown de tags já está aberto");
+          return;
+        }
+
+        // Adicionar classes para garantir visibilidade
+        menu.classList.add("show");
+        if (arrow) arrow.classList.add("open");
+        if (formGroup) formGroup.classList.add("dropdown-active");
+
+        // Force display com timeout
+        setTimeout(() => {
+          menu.style.display = "block";
+          menu.style.visibility = "visible";
+          menu.style.opacity = "1";
+          console.log("🎯 Dropdown de tags forçado a aparecer");
+        }, 10);
+
+        // Carregar tags primeiro
+        loadSavedTags();
+
+        // Carregar todas as tags
+        carregarTagsNoDropdown();
+
+        // Focar no campo de busca após um pequeno delay
+        setTimeout(() => {
+          const searchInput = document.getElementById("tagsSearch");
+          if (searchInput && document.activeElement !== searchInput) {
+            searchInput.focus();
+          }
+        }, 100);
+      }
+
+      // Toggle do dropdown de tags
+      function toggleTagsDropdown() {
+        console.log("🔄 Toggle dropdown de tags chamado");
+        const menu = document.getElementById("tagsDropdownMenu");
+        const arrow = document.querySelector("#tagsDropdown .dropdown-arrow");
+        const formGroup = document
+          .querySelector("#tagsDropdown")
+          .closest(".form-group");
+
+        if (!menu) {
+          console.error("❌ Menu dropdown de tags não encontrado");
+          return;
+        }
+
+        if (menu.classList.contains("show")) {
+          console.log("📥 Fechando dropdown de tags");
+          closeTagsDropdown();
+        } else {
+          console.log("📤 Abrindo dropdown de tags");
+          openTagsDropdown();
+        }
+      }
+
+      function closeTagsDropdown() {
+        const menu = document.getElementById("tagsDropdownMenu");
+        const arrow = document.querySelector("#tagsDropdown .dropdown-arrow");
+        const formGroup = document
+          .querySelector("#tagsDropdown")
+          .closest(".form-group");
+
+        if (menu) menu.classList.remove("show");
+        if (arrow) arrow.classList.remove("open");
+        if (formGroup) formGroup.classList.remove("dropdown-active");
+      }
+
+      function carregarTagsNoDropdown() {
+        console.log("📋 Carregando tags no dropdown...");
+        const container = document.getElementById("tagsOptions");
+
+        if (!container) {
+          console.error("❌ Container de tags não encontrado");
+          return;
+        }
+
+        // Limpar container
+        container.innerHTML = "";
+
+        // Filtrar tags não selecionadas
+        const tagsDisponiveis = allTags.filter(
+          (tag) => !selectedTags.includes(tag),
+        );
+
+        console.log("📋 Tags disponíveis:", tagsDisponiveis.length);
+
+        tagsDisponiveis.forEach((tag) => {
+          const tagElement = document.createElement("div");
+          tagElement.className = "dropdown-option";
+          tagElement.textContent = tag;
+          tagElement.onclick = () => {
+            console.log("🖱️ Clicou na tag:", tag);
+            addTag(tag, true);
+          };
+          container.appendChild(tagElement);
+        });
+
+        console.log(`✅ ${tagsDisponiveis.length} tags carregadas`);
+      }
+
+      function handleTagKeypress(event, input) {
+        console.log(
+          "⌨️ Tecla pressionada no input principal:",
+          event.key,
+          "Valor:",
+          input.value,
+        );
+
+        if (event.key === "Enter") {
+          event.preventDefault();
+          const query = input.value.trim();
+
+          console.log("🏷️ Processando Enter com valor:", query);
+
+          if (query) {
+            // Se a tag não existe, criar nova
+            if (!allTags.includes(query)) {
+              allTags.push(query);
+              console.log("➕ Nova tag criada:", query);
+              showNotification("Tag personalizada criada!", "success");
+            }
+
+            // Adicionar a tag se não estiver selecionada
+            if (!selectedTags.includes(query)) {
+              addTag(query, true);
+              input.value = ""; // Limpar o input
+              saveTags();
+            } else {
+              showNotification("Esta tag já foi selecionada!", "warning");
+            }
+          } else {
+            showNotification("Digite o nome da tag!", "warning");
+          }
+        }
+      }
+
+      function addTag(tag, fromInput = false) {
+        console.log("🏷️ Tentando adicionar tag:", tag);
+
+        if (selectedTags.includes(tag)) {
+          if (fromInput) {
+            showNotification("Esta tag já foi selecionada!", "warning");
+          }
+          console.log("❌ Tag já selecionada");
+          return;
+        }
+
+        selectedTags.push(tag);
+        console.log("✅ Tag adicionada. Tags selecionadas:", selectedTags);
+        updateSelectedTagsDisplay();
+        saveTags();
+
+        if (fromInput) {
+          showNotification("Tag adicionada com sucesso!", "success");
+          closeTagsDropdown();
+        }
+      }
+
+      function deleteTag(tag) {
+        const index = selectedTags.indexOf(tag);
+        if (index > -1) {
+          selectedTags.splice(index, 1);
+          updateSelectedTagsDisplay();
+          saveTags();
+          showNotification("Tag removida!", "info");
+        }
+      }
+
+      function filterTags(query) {
+        console.log("🔍 Filtrando tags:", query);
+        const container = document.getElementById("tagsOptions");
+
+        if (!container) {
+          console.error("❌ Container de tags não encontrado");
+          return;
+        }
+
+        const filteredTags = allTags.filter(
+          (tag) =>
+            tag.toLowerCase().includes(query.toLowerCase()) &&
+            !selectedTags.includes(tag),
+        );
+
+        container.innerHTML = "";
+
+        // Se o texto digitado não bate exatamente com nenhuma tag existente, mostrar botão "Adicionar"
+        const queryTrimmed = query.trim();
+        const existeExata = allTags.some(
+          (t) => t.toLowerCase() === queryTrimmed.toLowerCase(),
+        );
+        if (queryTrimmed && !existeExata) {
+          const addRow = document.createElement("div");
+          addRow.className = "dropdown-option dropdown-option-add";
+          addRow.style.cssText =
+            "display:flex;align-items:center;gap:10px;padding:10px 14px;";
+          addRow.innerHTML = `
+                    <span style="flex:1;color:#555;">${escapeHtmlTags(queryTrimmed)}</span>
+                    <button type="button" onclick="adicionarTagCustom('${escapeHtmlTags(queryTrimmed).replace(/'/g, "\\'")}');event.stopPropagation();"
+                        style="background:#2c98f0;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">
+                        + Adicionar
+                    </button>
+                `;
+          container.appendChild(addRow);
+        }
+
+        filteredTags.forEach((tag) => {
+          const tagElement = document.createElement("div");
+          tagElement.className = "dropdown-option";
+          tagElement.textContent = tag;
+          tagElement.onclick = () => {
+            console.log("🖱️ Clicou na tag:", tag);
+            addTag(tag, true);
+          };
+          container.appendChild(tagElement);
+        });
+
+        console.log(`✅ ${filteredTags.length} tags filtradas exibidas`);
+      }
+
+      function escapeHtmlTags(str) {
+        return String(str).replace(
+          /[&<>"']/g,
+          (m) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[m],
+        );
+      }
+
+      async function adicionarTagCustom(tag) {
+        if (!tag || selectedTags.includes(tag)) return;
+        // Salvar no backend
+        try {
+          const resp = await fetch("/api/pet-tags", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tag }),
+          });
+          if (resp.ok) {
+            const json = await resp.json();
+            if (json.success && !json.jaExistia) {
+              // Adicionar ao array local
+              if (!allTags.includes(tag)) allTags.push(tag);
+              saveTags();
+            }
+          }
+        } catch (e) {
+          // fallback: adicionar só localmente
+          if (!allTags.includes(tag)) allTags.push(tag);
+          saveTags();
+        }
+        addTag(tag, true);
+        // Limpar o campo de busca
+        const searchInput = document.getElementById("tagsSearch");
+        if (searchInput) searchInput.value = "";
+      }
+
+      function updateSelectedTagsDisplay() {
+        console.log("🔄 Atualizando display das tags:", selectedTags);
+        const container = document.querySelector(".selected-tags");
+
+        if (!container) {
+          console.error("❌ Container .selected-tags não encontrado");
+          return;
+        }
+
+        container.innerHTML = "";
+
+        selectedTags.forEach((tag) => {
+          const tagElement = document.createElement("span");
+          tagElement.className = "tag";
+          tagElement.innerHTML = `
+                    ${tag}
+                    <button type="button" class="delete-tag" onclick="deleteTag('${tag}')" title="Remover tag">×</button>
+                `;
+          container.appendChild(tagElement);
+          console.log("✅ Tag adicionada ao DOM:", tag);
+        });
+
+        console.log(
+          "🔄 Display atualizado. Total de tags:",
+          selectedTags.length,
+        );
+      }
+
+      function saveTags() {
+        try {
+          localStorage.setItem("petTags_custom", JSON.stringify(allTags));
+          localStorage.setItem(
+            "petTags_selected",
+            JSON.stringify(selectedTags),
+          );
+          console.log("🏷️ Tags salvas:", { allTags, selectedTags });
+        } catch (error) {
+          console.error("Erro ao salvar tags:", error);
+        }
+      }
+
+      // Garantir que a inicialização de tags execute apenas uma vez
+      window.__petTagsInitialized = window.__petTagsInitialized || false;
+      function loadSavedTags() {
+        try {
+          if (window.__petTagsInitialized) return; // já inicializado
+
+          // Carregar tags customizadas do backend (async, sem bloquear)
+          fetch("/api/pet-tags")
+            .then((r) => (r.ok ? r.json() : null))
+            .then((json) => {
+              if (json && json.success && Array.isArray(json.tags)) {
+                allTags = [...new Set([...allTags, ...json.tags])];
+                console.log("🏷️ Tags carregadas do backend:", allTags.length);
+              }
+            })
+            .catch(() => {
+              // fallback: usar localStorage
+              try {
+                const savedCustomTags = localStorage.getItem("petTags_custom");
+                if (savedCustomTags) {
+                  const customTags = JSON.parse(savedCustomTags);
+                  allTags = [...new Set([...allTags, ...customTags])];
+                }
+              } catch (e) {}
+            });
+
+          // Carregar tags selecionadas (para esta sessão)
+          // Se estivermos criando um novo pet (sem pet_id na URL), não recarregar as tags
+          // previamente selecionadas — zerar para novo cadastro.
+          const urlParams = new URLSearchParams(window.location.search);
+          const petIdParam =
+            urlParams.get("pet_id") ||
+            urlParams.get("petId") ||
+            urlParams.get("id");
+          if (petIdParam) {
+            const savedSelectedTags = localStorage.getItem("petTags_selected");
+            if (savedSelectedTags) {
+              selectedTags = JSON.parse(savedSelectedTags);
+            }
+          } else {
+            // novo pet: garantir que não haja tags pré-selecionadas
+            selectedTags = [];
+            try {
+              localStorage.removeItem("petTags_selected");
+            } catch (e) {}
+          }
+
+          console.log("🏷️ Tags carregadas:", { allTags, selectedTags });
+        } catch (error) {
+          console.error("Erro ao carregar tags:", error);
+        } finally {
+          // marcar inicialização completa para evitar reexecuções
+          window.__petTagsInitialized = true;
+        }
+      }
+
+      // Fechar dropdown ao clicar fora
+      document.addEventListener("click", function (e) {
+        const dropdown = document.querySelector(".tags-dropdown");
+        const dropdownContent = document.querySelector(
+          ".tags-dropdown-content",
+        );
+
+        if (dropdown && dropdownContent && !dropdown.contains(e.target)) {
+          dropdownContent.classList.remove("show");
+        }
+      });
+
+      // Inicializar sistema de tags
+      document.addEventListener("DOMContentLoaded", function () {
+        console.log("🔧 Inicializando sistema de tags...");
+
+        // Garantir que o container existe
+        const container = document.querySelector(".selected-tags");
+        if (!container) {
+          console.error("❌ Container .selected-tags não encontrado no DOM");
+          return;
+        }
+
+        loadSavedTags();
+        updateSelectedTagsDisplay();
+
+        console.log("✅ Sistema de tags inicializado");
+      });
+
+      // Garantir que os submenus funcionem
+      document.addEventListener("DOMContentLoaded", function () {
+        console.log(
+          "🔧 Inicializando submenus na página de cadastro de pet...",
+        );
+
+        // Pequeno delay para garantir que todos os scripts foram carregados
+        setTimeout(() => {
+          if (typeof configurarPersistenciaSubmenu === "function") {
+            console.log("✅ Função configurarPersistenciaSubmenu encontrada");
+
+            // Reconfigurar todos os submenus
+            configurarPersistenciaSubmenu(
+              "clienteMenuItem",
+              "clienteSubmenu",
+              "cliente",
+            );
+            configurarPersistenciaSubmenu(
+              "painelMenuItem",
+              "painelSubmenu",
+              "painel",
+            );
+            configurarPersistenciaSubmenu("petMenuItem", "petSubmenu", "pet");
+            configurarPersistenciaSubmenu(
+              "atendimentoMenuItem",
+              "atendimentoSubmenu",
+              "atendimento",
+            );
+            configurarPersistenciaSubmenu(
+              "financeiroMenuItem",
+              "financeiroSubmenu",
+              "financeiro",
+            );
+            configurarPersistenciaSubmenu(
+              "configuracaoMenuItem",
+              "configuracaoSubmenu",
+              "configuracao",
+            );
+            configurarPersistenciaSubmenu(
+              "comprasMenuItem",
+              "comprasSubmenu",
+              "compras",
+            );
+
+            console.log("✅ Submenus configurados!");
+          } else {
+            console.error(
+              "❌ Função configurarPersistenciaSubmenu não encontrada",
+            );
+          }
+        }, 100);
+      });
+    </script>
+  </body>
+</html>

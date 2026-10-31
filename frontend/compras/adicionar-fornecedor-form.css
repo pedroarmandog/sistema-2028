@@ -1,0 +1,680 @@
+/* ===================================
+   CORES DO SISTEMA
+   =================================== */
+:root {
+    --color-primary: #007bff;
+    --color-primary-gradient: linear-gradient(135deg, #007bff 0%, #007bff 100%);
+}
+
+/* ===================================
+   FORMULÁRIO ADICIONAR FORNECEDOR
+   =================================== */
+
+/* Garantir que o body e html não tenham overflow */
+body, html {
+    overflow-x: hidden;
+}
+
+.main-content {
+    overflow-y: auto;
+    height: calc(100vh - 60px);
+}
+
+.form-container {
+    max-width: 100%;
+    margin: 0;
+    padding: 20px;
+    background: white;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.form-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--color-primary);
+}
+
+/* ===================================
+   TIPO PESSOA TOGGLE
+   =================================== */
+
+.tipo-pessoa-section {
+    margin-bottom: 15px;
+}
+
+.tipo-pessoa-toggle {
+    display: inline-flex;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+.tipo-btn {
+    padding: 10px 30px;
+    background: white;
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #666;
+}
+
+.tipo-btn.active {
+    background: var(--color-primary-gradient);
+    color: white;
+}
+
+.tipo-btn:hover:not(.active) {
+    background: #f5f5f5;
+}
+
+/* ===================================
+   SEÇÕES DO FORMULÁRIO
+   =================================== */
+
+.form-section {
+    margin-bottom: 15px;
+    padding: 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    background: #fafafa;
+}
+
+.section-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+/* ===================================
+   GRUPOS DE CAMPOS (GRID)
+   =================================== */
+
+.form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.form-row.two-columns {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.form-row.three-columns {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.form-row.four-columns {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 1400px) {
+    .form-row.four-columns {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 1000px) {
+    .form-row.four-columns {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ===================================
+   GRUPOS DE CAMPO
+   =================================== */
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 4px;
+}
+
+.form-group label.required::after {
+    content: " *";
+    color: #e53935;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    padding: 8px 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    transition: border-color 0.3s ease;
+    background: white;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 60px;
+    font-family: inherit;
+}
+
+/* ===================================
+   CAMPO COM ÍCONE (CEP)
+   =================================== */
+
+.input-with-icon {
+    position: relative;
+}
+
+.input-with-icon input {
+    padding-right: 40px;
+}
+
+.input-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-primary);
+    cursor: pointer;
+    font-size: 18px;
+    transition: color 0.3s ease;
+}
+
+.input-icon:hover {
+    color: #007bff;
+}
+
+/* ===================================
+   TOGGLE SWITCHES
+   =================================== */
+
+.toggle-group {
+    display: flex;
+    align-items: center;
+    margin-top: 8px;
+}
+
+.toggle-switch {
+    position: relative;
+    width: 50px;
+    height: 24px;
+    margin-right: 10px;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.3s;
+    border-radius: 24px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background: var(--color-primary-gradient);
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(26px);
+}
+
+.toggle-label {
+    font-size: 13px;
+    color: #666;
+    font-weight: 500;
+}
+
+/* ===================================
+   TOOLTIP
+   =================================== */
+
+.tooltip-icon {
+    position: relative;
+    display: inline-block;
+    margin-left: 6px;
+    cursor: help;
+}
+
+.tooltip-icon i {
+    font-size: 14px;
+    color: #999;
+    transition: color 0.2s ease;
+}
+
+.tooltip-icon:hover i {
+    color: #666;
+}
+
+.tooltip-content {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    transform: translateX(-50%);
+    background: #4a4a4a;
+    color: white;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.5;
+    white-space: normal;
+    width: 280px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.tooltip-content::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: #4a4a4a;
+}
+
+.tooltip-icon:hover .tooltip-content {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* ===================================
+   ISS RETIDO E INSC. MUNICIPAL INLINE
+   =================================== */
+
+.iss-inscmunicipal-inline {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+.iss-toggle-wrapper {
+    flex-shrink: 0;
+}
+
+.insc-municipal-wrapper {
+    flex: 0 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.insc-municipal-wrapper label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 4px;
+    white-space: nowrap;
+}
+
+.insc-municipal-wrapper input {
+    padding: 8px 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    transition: border-color 0.3s ease;
+    background: white;
+    width: 200px;
+}
+
+.insc-municipal-wrapper input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+/* ===================================
+   PARCEIRO E PERFIL INLINE
+   =================================== */
+
+.parceiro-perfil-inline {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+.parceiro-toggle-wrapper {
+    flex-shrink: 0;
+}
+
+.perfil-comissao-wrapper {
+    flex: 0 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.perfil-comissao-wrapper label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #555;
+    margin-bottom: 4px;
+    white-space: nowrap;
+}
+
+.perfil-comissao-wrapper input {
+    padding: 8px 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+    transition: border-color 0.3s ease;
+    background: white;
+    width: 220px;
+}
+
+.perfil-comissao-wrapper input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+/* ===================================
+   SEÇÃO DE CONTATOS
+   =================================== */
+
+.contato-input-wrapper {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+    grid-column: span 1;
+}
+
+.contato-input-wrapper .form-group {
+    flex: 1;
+}
+
+.add-contato-btn {
+    padding: 8px 12px;
+    background: var(--color-primary-gradient);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: opacity 0.3s ease;
+    height: 34px;
+    margin-top: auto;
+}
+
+.add-contato-btn:hover {
+    opacity: 0.9;
+}
+
+.tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--color-primary-gradient);
+    color: white;
+    border-radius: 20px;
+    font-size: 13px;
+}
+
+.tag-remove {
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 16px;
+    transition: opacity 0.3s ease;
+}
+
+.tag-remove:hover {
+    opacity: 0.7;
+}
+
+/* ===================================
+   BOTÕES DE AÇÃO
+   =================================== */
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.btn {
+    padding: 10px 25px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 100px;
+}
+
+.btn-primary {
+    background: var(--color-primary-gradient);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    background: #007bff;
+    box-shadow: 0 4px 12px rgba(0,123,255,0.28);
+}
+
+.btn-secondary {
+    background: #f0f0f0;
+    color: #555;
+}
+
+.btn-secondary:hover {
+    background: #e0e0e0;
+}
+
+.btn-cancel {
+    background: transparent;
+    border: 2px solid #e0e0e0;
+    color: #666;
+}
+
+.btn-cancel:hover {
+    border-color: #ccc;
+    background: #f5f5f5;
+}
+
+/* ===================================
+   RESPONSIVIDADE
+   =================================== */
+
+@media (max-width: 768px) {
+    .form-container {
+        padding: 20px;
+    }
+
+    .form-row,
+    .form-row.two-columns,
+    .form-row.three-columns,
+    .form-row.four-columns {
+        grid-template-columns: 1fr;
+    }
+
+    .tipo-pessoa-toggle {
+        width: 100%;
+    }
+
+    .tipo-btn {
+        flex: 1;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .btn {
+        width: 100%;
+    }
+
+    .contato-input-wrapper {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .add-contato-btn {
+        width: 100%;
+    }
+}
+
+/* ===================================
+   ESTADOS DE VALIDAÇÃO
+   =================================== */
+
+.form-group input.error,
+.form-group select.error,
+.form-group textarea.error {
+    border-color: #e53935;
+}
+
+.form-group input.error:focus,
+.form-group select.error:focus,
+.form-group textarea.error:focus {
+    box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.1);
+}
+
+.error-message {
+    color: #e53935;
+    font-size: 12px;
+    margin-top: 4px;
+    display: none;
+}
+
+.form-group.has-error .error-message {
+    display: block;
+}
+
+/* ===================================
+   CAMPO DESABILITADO
+   =================================== */
+
+.form-group input:disabled,
+.form-group select:disabled {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* ===================================
+   LOADING STATE
+   =================================== */
+
+.btn.loading {
+    position: relative;
+    color: transparent;
+    pointer-events: none;
+}
+
+.btn.loading::after {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 50%;
+    left: 50%;
+    margin-left: -8px;
+    margin-top: -8px;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spinner 0.6s linear infinite;
+}
+
+@keyframes spinner {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ===================================
+   CAMPOS CONDICIONAIS (CNPJ/CPF)
+   =================================== */
+
+.conditional-field {
+    display: none;
+}
+
+.conditional-field.show {
+    display: flex;
+}
+
+/* ===========================
+   BOTÕES VERDES (INÍCIO RÁPIDO / NOVO)
+   =========================== */
+
+/* Força o botão "Início Rápido" para usar a cor verde padrão do sistema */
+#inicioRapidoBtn {
+    background: var(--btn-primary) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+#inicioRapidoBtn:hover {
+    background: var(--btn-primary-hover) !important;
+}
+
+/* Botão "Novo" na tela de adicionar fornecedor deve ser verde também */
+#btn-novo {
+    background: var(--btn-primary) !important;
+    color: #fff !important;
+    border: none !important;
+}
+
+#btn-novo:hover {
+    background: var(--btn-primary-hover) !important;
+}

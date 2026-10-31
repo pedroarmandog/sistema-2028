@@ -1,0 +1,70 @@
+﻿<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Relatórios - Sistema Pet</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <h1>Relatórios de Agendamentos</h1>
+    <div class="charts">
+      <canvas id="servicosChart"></canvas>
+      <canvas id="petsChart"></canvas>
+    </div>
+
+    <script>
+      async function carregarRelatorios() {
+        const API_BASE = window.__API_BASE__
+          ? window.__API_BASE__.replace(/\/$/, "")
+          : "";
+        const res = await fetch(API_BASE + "/api/agendamentos");
+        const agendamentos = await res.json();
+
+        // Contar serviços mais agendados
+        const servicos = {};
+        agendamentos.forEach((a) => {
+          servicos[a.servico] = (servicos[a.servico] || 0) + 1;
+        });
+
+        // Contar tipos de pet
+        const tipos = {};
+        agendamentos.forEach((a) => {
+          const tipo = a.Pet.tipo;
+          tipos[tipo] = (tipos[tipo] || 0) + 1;
+        });
+
+        // Gráfico de serviços
+        new Chart(document.getElementById("servicosChart"), {
+          type: "bar",
+          data: {
+            labels: Object.keys(servicos),
+            datasets: [
+              {
+                label: "Serviços mais agendados",
+                data: Object.values(servicos),
+              },
+            ],
+          },
+        });
+
+        // Gráfico de pets
+        new Chart(document.getElementById("petsChart"), {
+          type: "pie",
+          data: {
+            labels: Object.keys(tipos),
+            datasets: [
+              {
+                label: "Tipos de Pets",
+                data: Object.values(tipos),
+              },
+            ],
+          },
+        });
+      }
+
+      carregarRelatorios();
+    </script>
+    <script src="/inject-sidebar.js"></script>
+  </body>
+</html>

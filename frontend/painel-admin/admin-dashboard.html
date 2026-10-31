@@ -1,0 +1,886 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Painel de Controle - PetHub</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="admin-dashboard.css" />
+  </head>
+  <body>
+    <!-- Top Bar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <img
+          src="../../logos/Logo PetHub (4).svg"
+          alt="PetHub"
+          class="topbar-logo"
+        />
+        <span class="topbar-title">Painel de Controle</span>
+      </div>
+      <div class="topbar-right">
+        <div class="admin-profile" id="adminProfile">
+          <div class="admin-avatar" id="adminAvatar">
+            <i class="fas fa-user"></i>
+          </div>
+          <span class="admin-name" id="adminName">Admin</span>
+          <i class="fas fa-chevron-down"></i>
+          <div class="profile-dropdown" id="profileDropdown">
+            <a href="#" id="btnVerPerfil"
+              ><i class="fas fa-user-circle"></i> Ver Perfil</a
+            >
+            <a href="#" id="btnLogout"
+              ><i class="fas fa-sign-out-alt"></i> Sair</a
+            >
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Conteúdo Principal -->
+    <div class="main-wrapper">
+      <!-- Tabs de navegação -->
+      <nav class="tabs-nav">
+        <button class="tab-btn active" data-tab="dashboard">
+          <i class="fas fa-chart-pie"></i> Dashboard
+        </button>
+        <button class="tab-btn" data-tab="empresas">
+          <i class="fas fa-building"></i> Empresas
+        </button>
+        <button class="tab-btn" data-tab="faturamento">
+          <i class="fas fa-dollar-sign"></i> Faturamento
+        </button>
+        <button class="tab-btn" data-tab="backup">
+          <i class="fas fa-database"></i> Backup
+        </button>
+        <button class="tab-btn" data-tab="acessos">
+          <i class="fas fa-users-cog"></i> Acessos
+        </button>
+      </nav>
+
+      <!-- ═══════ TAB DASHBOARD ═══════ -->
+      <section class="tab-content active" id="tab-dashboard">
+        <div class="dashboard-cards">
+          <div class="dash-card card-total">
+            <div class="dash-card-icon"><i class="fas fa-building"></i></div>
+            <div class="dash-card-info">
+              <span class="dash-card-value" id="totalEmpresas">0</span>
+              <span class="dash-card-label">Total de Empresas</span>
+            </div>
+          </div>
+          <div class="dash-card card-ativo">
+            <div class="dash-card-icon">
+              <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="dash-card-info">
+              <span class="dash-card-value" id="totalAtivas">0</span>
+              <span class="dash-card-label">Empresas Ativas</span>
+            </div>
+          </div>
+          <div class="dash-card card-vencido">
+            <div class="dash-card-icon">
+              <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="dash-card-info">
+              <span class="dash-card-value" id="totalVencidas">0</span>
+              <span class="dash-card-label">Vencidas</span>
+            </div>
+          </div>
+          <div class="dash-card card-bloqueado">
+            <div class="dash-card-icon"><i class="fas fa-ban"></i></div>
+            <div class="dash-card-info">
+              <span class="dash-card-value" id="totalBloqueadas">0</span>
+              <span class="dash-card-label">Bloqueadas</span>
+            </div>
+          </div>
+          <div class="dash-card card-faturamento">
+            <div class="dash-card-icon">
+              <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <div class="dash-card-info">
+              <span class="dash-card-value" id="faturamentoMensal"
+                >R$ 0,00</span
+              >
+              <span class="dash-card-label">Faturamento Mensal</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabela resumo de empresas -->
+        <div class="section-card">
+          <h3><i class="fas fa-list"></i> Visão Geral das Empresas</h3>
+          <div id="dashTableWrapper">
+            <table class="data-table" id="dashTable">
+              <thead>
+                <tr>
+                  <th>Empresa</th>
+                  <th>CNPJ</th>
+                  <th>Status</th>
+                  <th>Vencimento</th>
+                  <th>Mensalidade</th>
+                </tr>
+              </thead>
+              <tbody id="dashTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════ TAB EMPRESAS ═══════ -->
+      <section class="tab-content" id="tab-empresas">
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <div class="search-box">
+              <i class="fas fa-search"></i>
+              <input
+                type="text"
+                id="buscaEmpresa"
+                placeholder="Buscar por nome ou CNPJ..."
+              />
+            </div>
+            <select id="filtroStatus" class="filter-select">
+              <option value="">Todos os status</option>
+              <option value="ATIVO">Ativo</option>
+              <option value="VENCIDO">Vencido</option>
+              <option value="BLOQUEADO">Bloqueado</option>
+            </select>
+            <select id="filtroOrdem" class="filter-select">
+              <option value="">Mais recentes</option>
+              <option value="vencimento">Por vencimento</option>
+              <option value="nome">Por nome</option>
+            </select>
+          </div>
+          <button class="btn-primary" id="btnNovaEmpresa">
+            <i class="fas fa-plus"></i> Adicionar Empresa
+          </button>
+        </div>
+
+        <div class="section-card">
+          <table class="data-table" id="empresasTable">
+            <thead>
+              <tr>
+                <th>Empresa</th>
+                <th>CNPJ</th>
+                <th>Adesão</th>
+                <th>Status</th>
+                <th>Vencimento</th>
+                <th>Mensalidade</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="empresasTableBody"></tbody>
+          </table>
+          <div class="empty-state" id="empresasEmpty" style="display: none">
+            <i class="fas fa-building"></i>
+            <p>Nenhuma empresa encontrada</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════ TAB FATURAMENTO ═══════ -->
+      <section class="tab-content" id="tab-faturamento">
+        <div
+          class="dashboard-cards"
+          style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr))"
+        >
+          <div class="dash-card card-faturamento">
+            <div class="dash-card-icon"><i class="fas fa-calculator"></i></div>
+            <div class="dash-card-info">
+              <span class="dash-card-value" id="fatTotalMensal">R$ 0,00</span>
+              <span class="dash-card-label">Total Mensal (Ativas)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <h3><i class="fas fa-building"></i> Valor por Empresa</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Empresa</th>
+                <th>CNPJ</th>
+                <th>Mensalidade</th>
+                <th>Vencimento</th>
+              </tr>
+            </thead>
+            <tbody id="fatEmpresasBody"></tbody>
+          </table>
+        </div>
+
+        <div class="section-card">
+          <h3><i class="fas fa-history"></i> Histórico de Pagamentos</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Empresa</th>
+                <th>Valor</th>
+                <th>Status</th>
+                <th>Observação</th>
+              </tr>
+            </thead>
+            <tbody id="fatHistoricoBody"></tbody>
+          </table>
+          <div class="empty-state" id="fatHistoricoEmpty" style="display: none">
+            <i class="fas fa-receipt"></i>
+            <p>Nenhum pagamento registrado</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════ TAB BACKUP ═══════ -->
+      <section class="tab-content" id="tab-backup">
+        <div
+          class="dashboard-cards"
+          style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr))"
+        >
+          <div class="dash-card card-backup-total">
+            <div class="dash-card-icon"><i class="fas fa-database"></i></div>
+            <div class="dash-card-info">
+              <span class="dash-card-value" id="backupTotalEmpresas">0</span>
+              <span class="dash-card-label">Empresas com Backup</span>
+            </div>
+          </div>
+          <div class="dash-card card-backup-ultimo">
+            <div class="dash-card-icon"><i class="fas fa-clock"></i></div>
+            <div class="dash-card-info">
+              <span class="dash-card-value" id="backupUltimaData">-</span>
+              <span class="dash-card-label">Último Backup</span>
+            </div>
+          </div>
+          <div class="dash-card card-backup-acoes">
+            <div class="dash-card-icon"><i class="fas fa-play-circle"></i></div>
+            <div class="dash-card-info">
+              <button class="btn-backup-executar" id="btnExecutarBackup">
+                <i class="fas fa-play"></i> Executar Backup Agora
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <h3><i class="fas fa-shield-alt"></i> Backups por Empresa</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Empresa</th>
+                <th>Status</th>
+                <th>Último Backup</th>
+                <th>Total de Backups</th>
+                <th>Restaurar</th>
+              </tr>
+            </thead>
+            <tbody id="backupEmpresasBody"></tbody>
+          </table>
+          <div class="empty-state" id="backupEmpty" style="display: none">
+            <i class="fas fa-database"></i>
+            <p>
+              Nenhum backup encontrado. Execute o primeiro backup manualmente.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════ TAB ACESSOS ═══════ -->
+      <section class="tab-content" id="tab-acessos">
+        <div
+          class="dashboard-cards"
+          style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr))"
+        >
+          <div class="dash-card card-total">
+            <div class="dash-card-icon"><i class="fas fa-building"></i></div>
+            <div class="dash-card-info">
+              <span class="dash-card-value" id="acessosTotalEmpresas">0</span>
+              <span class="dash-card-label">Total de Empresas</span>
+            </div>
+          </div>
+          <div class="dash-card card-ativo">
+            <div class="dash-card-icon"><i class="fas fa-users"></i></div>
+            <div class="dash-card-info">
+              <span class="dash-card-value" id="acessosTotalAtivos">0</span>
+              <span class="dash-card-label">Sessões Ativas</span>
+            </div>
+          </div>
+          <div class="dash-card card-vencido">
+            <div class="dash-card-icon">
+              <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="dash-card-info">
+              <span class="dash-card-value" id="acessosNoLimite">0</span>
+              <span class="dash-card-label">No Limite</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-card">
+          <h3>
+            <i class="fas fa-users-cog"></i> Acessos Simultâneos por Empresa
+          </h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Empresa</th>
+                <th>CNPJ</th>
+                <th>Status</th>
+                <th>Limite</th>
+                <th>Em Uso</th>
+                <th>Disponível</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="acessosTableBody"></tbody>
+          </table>
+          <div class="empty-state" id="acessosEmpty" style="display: none">
+            <i class="fas fa-users-cog"></i>
+            <p>Nenhuma empresa cadastrada</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ═══════ MODAL Detalhes da Empresa ═══════ -->
+    <div class="modal-overlay" id="modalEmpresa">
+      <div class="modal-content">
+        <button class="modal-close" id="modalClose">&times;</button>
+        <div class="modal-header">
+          <div class="modal-foto-wrapper">
+            <div class="modal-foto" id="modalFoto">
+              <i class="fas fa-building"></i>
+            </div>
+          </div>
+          <h2 id="modalNome">Nome da Empresa</h2>
+          <span class="modal-status" id="modalStatus">ATIVO</span>
+        </div>
+        <div class="modal-body">
+          <div class="modal-info-grid">
+            <div class="modal-info-item">
+              <span class="modal-info-label"
+                ><i class="fas fa-id-card"></i> CNPJ</span
+              >
+              <span class="modal-info-value" id="modalCnpj">-</span>
+            </div>
+            <div class="modal-info-item">
+              <span class="modal-info-label"
+                ><i class="fas fa-map-pin"></i> CEP</span
+              >
+              <span class="modal-info-value" id="modalCep">-</span>
+            </div>
+            <div class="modal-info-item full-width">
+              <span class="modal-info-label"
+                ><i class="fas fa-map-marker-alt"></i> Endereço</span
+              >
+              <span class="modal-info-value" id="modalEndereco">-</span>
+            </div>
+            <div class="modal-info-item">
+              <span class="modal-info-label"
+                ><i class="fas fa-envelope"></i> Email</span
+              >
+              <span class="modal-info-value" id="modalEmail">-</span>
+            </div>
+            <div class="modal-info-item">
+              <span class="modal-info-label"
+                ><i class="fas fa-phone"></i> Telefone</span
+              >
+              <span class="modal-info-value" id="modalTelefone">-</span>
+            </div>
+            <div class="modal-info-item">
+              <span class="modal-info-label"
+                ><i class="fas fa-calendar"></i> Adesão</span
+              >
+              <span class="modal-info-value" id="modalAdesao">-</span>
+            </div>
+            <div class="modal-info-item">
+              <span class="modal-info-label"
+                ><i class="fas fa-clock"></i> Vencimento</span
+              >
+              <span class="modal-info-value" id="modalVencimento">-</span>
+            </div>
+            <div class="modal-info-item">
+              <span class="modal-info-label"
+                ><i class="fas fa-dollar-sign"></i> Mensalidade</span
+              >
+              <span class="modal-info-value" id="modalMensalidade">-</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-success" id="btnReativar">
+            <i class="fas fa-play-circle"></i> Reativar Sistema
+          </button>
+          <button class="btn-danger" id="btnBloquear">
+            <i class="fas fa-ban"></i> Bloquear Sistema
+          </button>
+          <button class="btn-primary" id="btnPagamento">
+            <i class="fas fa-money-bill"></i> Registrar Pagamento
+          </button>
+        </div>
+
+        <!-- Histórico de pagamentos da empresa -->
+        <div class="modal-pagamentos">
+          <h4><i class="fas fa-history"></i> Histórico de Pagamentos</h4>
+          <div id="modalPagamentosBody"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ MODAL Adicionar Empresa (Completo) ═══════ -->
+    <div class="modal-overlay" id="modalNovaEmpresa">
+      <div class="modal-content modal-form modal-wide">
+        <button class="modal-close" id="modalNovaClose">&times;</button>
+        <h2><i class="fas fa-building"></i> Adicionar Empresa</h2>
+
+        <form
+          id="formNovaEmpresa"
+          autocomplete="off"
+          enctype="multipart/form-data"
+        >
+          <!-- Seção: Dados da Empresa -->
+          <div class="form-section-title">
+            <i class="fas fa-id-card"></i> Dados da Empresa
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Razão Social *</label>
+              <input type="text" id="novaRazaoSocial" required />
+            </div>
+            <div class="form-group">
+              <label>Nome Fantasia *</label>
+              <input type="text" id="novaNome" required />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>CNPJ *</label>
+              <input type="text" id="novaCnpj" maxlength="18" required />
+            </div>
+            <div class="form-group">
+              <label>CEP</label>
+              <input type="text" id="novaCep" maxlength="9" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Endereço Completo</label>
+            <input
+              type="text"
+              id="novaEndereco"
+              placeholder="Rua, número, bairro, cidade - UF"
+            />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Email da Empresa</label>
+              <input type="email" id="novaEmail" />
+            </div>
+            <div class="form-group">
+              <label>Telefone</label>
+              <input type="text" id="novaTelefone" maxlength="15" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Logo da Empresa</label>
+            <div class="upload-area" id="uploadArea">
+              <input type="file" id="novaLogo" accept="image/*" hidden />
+              <div class="upload-placeholder" id="uploadPlaceholder">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <span>Clique ou arraste para enviar a logo</span>
+              </div>
+              <img
+                id="logoPreview"
+                class="logo-preview"
+                style="display: none"
+                alt="Preview"
+              />
+            </div>
+          </div>
+
+          <!-- Seção: Dados da Assinatura -->
+          <div class="form-section-title">
+            <i class="fas fa-file-invoice-dollar"></i> Dados da Assinatura
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Data de Início *</label>
+              <input type="date" id="novaDataInicio" required />
+            </div>
+            <div class="form-group">
+              <label>Valor da Mensalidade (R$) *</label>
+              <input
+                type="number"
+                id="novaValor"
+                min="0"
+                step="0.01"
+                required
+              />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Intervalo de Cobrança (dias) *</label>
+              <input
+                type="number"
+                id="novaIntervaloDias"
+                min="1"
+                max="365"
+                value="30"
+                required
+              />
+              <small class="form-hint" id="intervaloHint"
+                >Cobrança mensal (a cada 30 dias)</small
+              >
+            </div>
+            <div class="form-group">
+              <label>Próxima Cobrança</label>
+              <input
+                type="text"
+                id="novaProximaCobranca"
+                readonly
+                class="input-readonly"
+              />
+            </div>
+          </div>
+
+          <!-- Seção: Usuário Inicial -->
+          <div class="form-section-title">
+            <i class="fas fa-user-shield"></i> Usuário Inicial da Empresa
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Nome do Usuário *</label>
+              <input type="text" id="novaUsuarioNome" required />
+            </div>
+            <div class="form-group">
+              <label>Email de Login *</label>
+              <input
+                type="text"
+                id="novaUsuarioEmail"
+                placeholder="ex: karol@petmais"
+                required
+              />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Senha *</label>
+            <div class="password-wrapper">
+              <input
+                type="password"
+                id="novaUsuarioSenha"
+                minlength="6"
+                placeholder="Mínimo 6 caracteres"
+                required
+              />
+              <i class="fas fa-eye toggle-pwd" id="toggleNovaSenha"></i>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button type="submit" class="btn-primary" id="btnSalvarEmpresa">
+              <i class="fas fa-save"></i> Cadastrar Empresa
+            </button>
+            <button type="button" class="btn-secondary" id="btnCancelarNova">
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- ═══════ MODAL Acessos da Empresa ═══════ -->
+    <div class="modal-overlay" id="modalAcessos">
+      <div class="modal-content modal-wide">
+        <button class="modal-close" id="modalAcessosClose">&times;</button>
+        <div class="modal-header">
+          <h2>
+            <i class="fas fa-users-cog"></i>
+            <span id="acessosModalNome">Empresa</span>
+          </h2>
+          <span class="modal-status" id="acessosModalStatus">ATIVO</span>
+        </div>
+        <div class="modal-body">
+          <!-- Controle de limite -->
+          <div class="acessos-limite-section">
+            <div class="acessos-limite-card">
+              <span class="acessos-limite-label"
+                >Limite de Acessos Simultâneos</span
+              >
+              <div class="acessos-limite-control">
+                <button class="btn-limite-ajuste" id="btnLimiteMenos">
+                  <i class="fas fa-minus"></i>
+                </button>
+                <span class="acessos-limite-valor" id="acessosModalLimite"
+                  >3</span
+                >
+                <button class="btn-limite-ajuste" id="btnLimiteMais">
+                  <i class="fas fa-plus"></i>
+                </button>
+              </div>
+              <button
+                class="btn-primary btn-salvar-limite"
+                id="btnSalvarLimite"
+              >
+                <i class="fas fa-save"></i> Salvar Limite
+              </button>
+            </div>
+            <div class="acessos-resumo-card">
+              <div class="acessos-resumo-item">
+                <span class="acessos-resumo-numero" id="acessosModalEmUso"
+                  >0</span
+                >
+                <span class="acessos-resumo-label">Em uso agora</span>
+              </div>
+              <div class="acessos-resumo-item">
+                <span
+                  class="acessos-resumo-numero acessos-disponivel"
+                  id="acessosModalDisponivel"
+                  >3</span
+                >
+                <span class="acessos-resumo-label">Disponíveis</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Barra de progresso -->
+          <div class="acessos-barra-wrapper">
+            <div class="acessos-barra">
+              <div
+                class="acessos-barra-fill"
+                id="acessosBarraFill"
+                style="width: 0%"
+              ></div>
+            </div>
+            <span class="acessos-barra-texto" id="acessosBarraTexto"
+              >0 / 3 acessos</span
+            >
+          </div>
+
+          <!-- Sessões ativas -->
+          <div class="acessos-sessoes-section">
+            <div class="acessos-sessoes-header">
+              <h4><i class="fas fa-signal"></i> Sessões Ativas</h4>
+              <button class="btn-danger btn-sm" id="btnEncerrarTodas">
+                <i class="fas fa-power-off"></i> Encerrar Todas
+              </button>
+            </div>
+            <div id="acessosSessoesBody">
+              <p style="color: #aaa; text-align: center; padding: 20px">
+                Nenhuma sessão ativa
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification area -->
+    <div id="notificationArea"></div>
+
+    <!-- Confirmation modal (substitui confirm()) -->
+    <div class="modal-overlay" id="modalConfirm" inert>
+      <div class="modal-content modal-confirm">
+        <div class="modal-header">
+          <h3 id="confirmTitle">Confirmação</h3>
+        </div>
+        <div class="modal-body">
+          <p id="confirmMessage">Tem certeza?</p>
+        </div>
+        <div class="modal-actions" style="justify-content: flex-end">
+          <button class="btn-secondary" id="confirmCancel">Cancelar</button>
+          <button class="btn-primary" id="confirmOk" style="margin-left: 8px">
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Excluir Empresa (requer credenciais do admin) -->
+    <div class="modal-overlay" id="modalExcluirEmpresa" inert>
+      <div class="modal-content modal-form modal-confirm">
+        <div class="modal-header">
+          <h3>Confirmar Exclusão</h3>
+        </div>
+        <div class="modal-body">
+          <p style="margin-bottom: 12px">
+            Para excluir permanentemente esta empresa e todos os seus dados,
+            confirme o usuário e a senha do admin logado.
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <label style="font-size: 13px; color: #666"
+              >Usuário (nome ou email)</label
+            >
+            <div class="form-group">
+              <input
+                type="text"
+                id="excluirUsuario"
+                placeholder="usuário do admin"
+              />
+            </div>
+            <label style="font-size: 13px; color: #666">Senha</label>
+            <div class="form-group">
+              <div class="password-wrapper">
+                <input
+                  type="password"
+                  id="excluirSenha"
+                  placeholder="Senha do admin"
+                />
+              </div>
+            </div>
+            <small style="color: #999"
+              >Esta ação é irreversível. Todos os dados pertencentes apenas a
+              esta empresa serão removidos.</small
+            >
+          </div>
+        </div>
+        <div class="modal-actions" style="justify-content: flex-end">
+          <button class="btn-secondary" id="btnCancelarExcluir">
+            Cancelar
+          </button>
+          <button
+            class="btn-danger"
+            id="btnConfirmExcluir"
+            style="margin-left: 8px"
+          >
+            Excluir Empresa
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Impersonar Empresa (entrar como admin) -->
+    <div class="modal-overlay" id="modalImpersonarEmpresa" inert>
+      <div class="modal-content modal-form modal-confirm">
+        <div class="modal-header">
+          <h3>Acessar Empresa</h3>
+        </div>
+        <div class="modal-body">
+          <p style="margin-bottom: 12px">
+            Para acessar esta empresa como administrador, confirme suas
+            credenciais do painel admin.
+          </p>
+          <p
+            style="
+              font-weight: 600;
+              margin-bottom: 12px;
+              color: #4f46e5;
+              font-size: 14px;
+            "
+            id="impersonarEmpresaNome"
+          ></p>
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <label style="font-size: 13px; color: #666"
+              >Usuário (nome ou email)</label
+            >
+            <div class="form-group">
+              <input
+                type="text"
+                id="impersonarUsuario"
+                placeholder="Usuário do admin"
+              />
+            </div>
+            <label style="font-size: 13px; color: #666">Senha</label>
+            <div class="form-group">
+              <div class="password-wrapper">
+                <input
+                  type="password"
+                  id="impersonarSenha"
+                  placeholder="Senha do admin"
+                />
+              </div>
+            </div>
+            <small style="color: #999"
+              >Uma nova aba será aberta com acesso total aos dados desta
+              empresa.</small
+            >
+          </div>
+        </div>
+        <div class="modal-actions" style="justify-content: flex-end">
+          <button class="btn-secondary" id="btnCancelarImpersonar">
+            Cancelar
+          </button>
+          <button
+            class="btn-primary"
+            id="btnConfirmImpersonar"
+            style="margin-left: 8px; background: #4f46e5; color: #fff"
+          >
+            <i class="fas fa-sign-in-alt"></i> Acessar Empresa
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Restaurar Backup (requer credenciais do admin) -->
+    <div class="modal-overlay" id="modalRestaurarBackup" inert>
+      <div class="modal-content modal-form modal-confirm">
+        <div class="modal-header">
+          <h3>Confirmar Restauração</h3>
+        </div>
+        <div class="modal-body">
+          <p style="margin-bottom: 12px">
+            Para restaurar os dados desta empresa, confirme o usuário e a senha
+            do admin logado.
+          </p>
+          <p
+            style="
+              font-weight: 600;
+              margin-bottom: 4px;
+              color: #4f46e5;
+              font-size: 14px;
+            "
+            id="restaurarEmpresaNome"
+          ></p>
+          <p
+            style="
+              font-weight: 500;
+              margin-bottom: 12px;
+              color: #059669;
+              font-size: 13px;
+            "
+            id="restaurarDataInfo"
+          ></p>
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <label style="font-size: 13px; color: #666"
+              >Usuário (nome ou email)</label
+            >
+            <div class="form-group">
+              <input
+                type="text"
+                id="restaurarUsuario"
+                placeholder="Usuário do admin"
+              />
+            </div>
+            <label style="font-size: 13px; color: #666">Senha</label>
+            <div class="form-group">
+              <div class="password-wrapper">
+                <input
+                  type="password"
+                  id="restaurarSenha"
+                  placeholder="Senha do admin"
+                />
+              </div>
+            </div>
+            <small style="color: #e11d48; font-weight: 500"
+              >⚠️ Esta ação irá sobrescrever os dados atuais da empresa com o
+              backup selecionado. Esta ação não pode ser desfeita.</small
+            >
+          </div>
+        </div>
+        <div class="modal-actions" style="justify-content: flex-end">
+          <button class="btn-secondary" id="btnCancelarRestaurar">
+            Cancelar
+          </button>
+          <button
+            class="btn-danger"
+            id="btnConfirmRestaurar"
+            style="margin-left: 8px"
+          >
+            <i class="fas fa-undo-alt"></i> Restaurar Backup
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="/api-config.js"></script>
+    <script src="admin-dashboard.js"></script>
+  </body>
+</html>

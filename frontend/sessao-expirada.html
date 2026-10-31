@@ -1,0 +1,409 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sessão Encerrada - PetHub</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Poppins", sans-serif;
+        height: 100vh;
+        overflow: hidden;
+        background: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .bg-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        opacity: 0.08;
+      }
+
+      .pet-pattern {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 0;
+        opacity: 0.04;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M30 20c-5 0-9 4-9 9s4 9 9 9 9-4 9-9-4-9-9-9zm40 0c-5 0-9 4-9 9s4 9 9 9 9-4 9-9-4-9-9-9zm-20 15c-8 0-15 7-15 15 0 10 8 18 15 22 7-4 15-12 15-22 0-8-7-15-15-15zM20 55c-5 0-9 4-9 9s4 9 9 9 9-4 9-9-4-9-9-9zm60 0c-5 0-9 4-9 9s4 9 9 9 9-4 9-9-4-9-9-9z' fill='%23764ba2'/%3E%3C/svg%3E");
+        background-size: 120px 120px;
+        background-repeat: repeat;
+      }
+
+      .container {
+        position: relative;
+        z-index: 1;
+        text-align: center;
+        max-width: 520px;
+        width: 90%;
+        animation: fadeInUp 0.8s ease-out;
+      }
+
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .card {
+        background: #ffffff;
+        border-radius: 24px;
+        padding: 50px 40px;
+        box-shadow:
+          0 20px 60px rgba(0, 0, 0, 0.08),
+          0 4px 20px rgba(0, 0, 0, 0.04);
+      }
+
+      .pet-illustration {
+        width: 180px;
+        height: 180px;
+        margin: 0 auto 30px;
+        position: relative;
+      }
+
+      .pet-circle {
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        background: linear-gradient(
+          135deg,
+          #f3e7ff 0%,
+          #e8d5f5 50%,
+          #fce4ec 100%
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .pet-circle::before {
+        content: "";
+        position: absolute;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(
+          circle at 30% 30%,
+          rgba(255, 255, 255, 0.4),
+          transparent 50%
+        );
+      }
+
+      .pet-emoji {
+        font-size: 80px;
+        z-index: 1;
+        animation: petBounce 3s ease-in-out infinite;
+      }
+
+      @keyframes petBounce {
+        0%,
+        100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-8px);
+        }
+      }
+
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+        color: #e65100;
+        padding: 8px 18px;
+        border-radius: 50px;
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        animation: fadeIn 1s ease-out 0.3s both;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      .status-badge i {
+        font-size: 14px;
+      }
+
+      h1 {
+        font-size: 24px;
+        font-weight: 700;
+        color: #2d2d3a;
+        margin-bottom: 12px;
+        animation: fadeIn 1s ease-out 0.4s both;
+      }
+
+      .message {
+        font-size: 15px;
+        color: #6b7280;
+        line-height: 1.7;
+        margin-bottom: 30px;
+        animation: fadeIn 1s ease-out 0.5s both;
+      }
+
+      .message strong {
+        color: #4a4a5a;
+      }
+
+      .device-info {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        background: #f8f9fc;
+        border-radius: 12px;
+        padding: 14px 20px;
+        margin-bottom: 28px;
+        animation: fadeIn 1s ease-out 0.6s both;
+      }
+
+      .device-info i {
+        color: #764ba2;
+        font-size: 20px;
+      }
+
+      .device-info span {
+        font-size: 13px;
+        color: #6b7280;
+      }
+
+      .btn-login {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 36px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #fff;
+        border: none;
+        border-radius: 14px;
+        font-size: 15px;
+        font-weight: 600;
+        font-family: "Poppins", sans-serif;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        box-shadow: 0 6px 20px rgba(118, 75, 162, 0.3);
+        animation: fadeIn 1s ease-out 0.7s both;
+      }
+
+      .btn-login:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(118, 75, 162, 0.4);
+      }
+
+      .btn-login:active {
+        transform: translateY(0);
+      }
+
+      .footer-text {
+        margin-top: 24px;
+        font-size: 12px;
+        color: #b0b0b0;
+        animation: fadeIn 1s ease-out 0.8s both;
+      }
+
+      /* Floating paw prints */
+      .floating-paw {
+        position: fixed;
+        opacity: 0.06;
+        z-index: 0;
+        color: #764ba2;
+        animation: floatPaw linear infinite;
+      }
+
+      .floating-paw:nth-child(1) {
+        font-size: 30px;
+        left: 5%;
+        animation-duration: 18s;
+        animation-delay: 0s;
+      }
+      .floating-paw:nth-child(2) {
+        font-size: 22px;
+        left: 15%;
+        animation-duration: 22s;
+        animation-delay: 3s;
+      }
+      .floating-paw:nth-child(3) {
+        font-size: 35px;
+        left: 30%;
+        animation-duration: 20s;
+        animation-delay: 1s;
+      }
+      .floating-paw:nth-child(4) {
+        font-size: 18px;
+        left: 50%;
+        animation-duration: 25s;
+        animation-delay: 5s;
+      }
+      .floating-paw:nth-child(5) {
+        font-size: 28px;
+        left: 70%;
+        animation-duration: 19s;
+        animation-delay: 2s;
+      }
+      .floating-paw:nth-child(6) {
+        font-size: 24px;
+        left: 85%;
+        animation-duration: 23s;
+        animation-delay: 4s;
+      }
+      .floating-paw:nth-child(7) {
+        font-size: 32px;
+        left: 95%;
+        animation-duration: 17s;
+        animation-delay: 6s;
+      }
+
+      @keyframes floatPaw {
+        0% {
+          transform: translateY(100vh) rotate(0deg);
+          opacity: 0;
+        }
+        10% {
+          opacity: 0.06;
+        }
+        90% {
+          opacity: 0.06;
+        }
+        100% {
+          transform: translateY(-100px) rotate(360deg);
+          opacity: 0;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .card {
+          padding: 35px 24px;
+          border-radius: 18px;
+        }
+        .pet-illustration {
+          width: 140px;
+          height: 140px;
+        }
+        .pet-circle {
+          width: 140px;
+          height: 140px;
+        }
+        .pet-emoji {
+          font-size: 60px;
+        }
+        h1 {
+          font-size: 20px;
+        }
+        .message {
+          font-size: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bg-container"></div>
+    <div class="pet-pattern"></div>
+
+    <!-- Floating paw prints -->
+    <i class="fas fa-paw floating-paw"></i>
+    <i class="fas fa-paw floating-paw"></i>
+    <i class="fas fa-paw floating-paw"></i>
+    <i class="fas fa-paw floating-paw"></i>
+    <i class="fas fa-paw floating-paw"></i>
+    <i class="fas fa-paw floating-paw"></i>
+    <i class="fas fa-paw floating-paw"></i>
+
+    <div class="container">
+      <div class="card">
+        <div class="pet-illustration">
+          <div class="pet-circle">
+            <span class="pet-emoji" id="petEmoji">🐶</span>
+          </div>
+        </div>
+
+        <div class="status-badge">
+          <i class="fas fa-exchange-alt"></i>
+          Sessão transferida
+        </div>
+
+        <h1>Ops! Seu acesso foi movido</h1>
+
+        <p class="message">
+          Alguém fez login na sua conta em
+          <strong>outro dispositivo</strong>.<br />
+          Para sua segurança, esta sessão foi encerrada automaticamente.
+        </p>
+
+        <div class="device-info">
+          <i class="fas fa-laptop"></i>
+          <span>Novo acesso detectado em outro dispositivo</span>
+        </div>
+
+        <a href="/login/login.html" class="btn-login">
+          <i class="fas fa-sign-in-alt"></i>
+          Entrar novamente
+        </a>
+
+        <p class="footer-text">
+          <i class="fas fa-shield-alt"></i> &nbsp;Suas informações estão seguras
+        </p>
+      </div>
+    </div>
+
+    <script>
+      // Alternar emoji entre cachorro e gato
+      const emojis = ["🐶", "🐱", "🐕", "🐈", "🐾"];
+      let idx = 0;
+      const el = document.getElementById("petEmoji");
+      setInterval(() => {
+        idx = (idx + 1) % emojis.length;
+        el.style.transform = "scale(0.8)";
+        el.style.opacity = "0.5";
+        setTimeout(() => {
+          el.textContent = emojis[idx];
+          el.style.transform = "scale(1)";
+          el.style.opacity = "1";
+        }, 200);
+      }, 4000);
+      el.style.transition = "transform 0.3s ease, opacity 0.3s ease";
+
+      // Limpar cookies ao chegar nesta página
+      document.cookie =
+        "usuarioLogadoId=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      document.cookie =
+        "usuarioLogadoNome=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      document.cookie =
+        "pethub_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    </script>
+  </body>
+</html>

@@ -1,0 +1,319 @@
+﻿<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Restaurar Dados - PetHub</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        max-width: 800px;
+        margin: 50px auto;
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+      }
+      .container {
+        background: white;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      }
+      h1 {
+        color: #333;
+        margin-bottom: 10px;
+      }
+      .subtitle {
+        color: #666;
+        margin-bottom: 30px;
+      }
+      .btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 600;
+        margin: 10px 10px 10px 0;
+        transition: all 0.3s;
+      }
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+      }
+      .btn-success {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+      }
+      .btn-danger {
+        background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+      }
+      .log {
+        background: #f5f5f5;
+        padding: 20px;
+        border-radius: 8px;
+        margin-top: 20px;
+        max-height: 400px;
+        overflow-y: auto;
+        font-family: "Courier New", monospace;
+        font-size: 13px;
+        line-height: 1.6;
+      }
+      .success {
+        color: #28a745;
+        font-weight: bold;
+      }
+      .error {
+        color: #dc3545;
+        font-weight: bold;
+      }
+      .info {
+        color: #17a2b8;
+      }
+      .warning {
+        color: #ffc107;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🔄 Restaurar Dados do Sistema</h1>
+      <p class="subtitle">
+        Carregue os dados do banco de dados MySQL para o localStorage do
+        navegador
+      </p>
+
+      <button class="btn btn-success" onclick="restaurarTodos()">
+        🔄 Restaurar TODOS os Dados
+      </button>
+
+      <button class="btn" onclick="restaurarClientes()">
+        👥 Restaurar Apenas Clientes
+      </button>
+
+      <button class="btn" onclick="restaurarProdutos()">
+        📦 Restaurar Apenas Produtos
+      </button>
+
+      <button class="btn btn-danger" onclick="limparTudo()">
+        🗑️ Limpar LocalStorage
+      </button>
+
+      <div class="log" id="log"></div>
+    </div>
+
+    <script>
+      const API_URL = window.__API_BASE__
+        ? window.__API_BASE__.replace(/\/$/, "") + "/api"
+        : "/api";
+
+      function addLog(message, type = "info") {
+        const log = document.getElementById("log");
+        const time = new Date().toLocaleTimeString("pt-BR");
+        log.innerHTML += `<div class="${type}">[${time}] ${message}</div>`;
+        log.scrollTop = log.scrollHeight;
+      }
+
+      async function restaurarClientes() {
+        try {
+          addLog("📡 Buscando clientes do banco de dados...", "info");
+          const response = await fetch(`${API_URL}/clientes`);
+
+          if (!response.ok) throw new Error("Erro ao buscar clientes");
+
+          const clientes = await response.json();
+          addLog(`✅ ${clientes.length} clientes encontrados`, "success");
+
+          localStorage.setItem("clientes", JSON.stringify(clientes));
+          addLog("💾 Clientes salvos no localStorage", "success");
+        } catch (error) {
+          addLog(`❌ Erro: ${error.message}`, "error");
+        }
+      }
+
+      async function restaurarProdutos() {
+        try {
+          addLog("📡 Criando produtos exemplo...", "info");
+
+          const produtosExemplo = [
+            {
+              id: 1,
+              nome: "PA HIGIENICA CARA DE GATO AZUL",
+              categoria: "Higiene",
+              tipo: "produto",
+              custoBase: 1.41,
+              margem: 69,
+              preco: 3.0,
+              estoqueMinimo: 0,
+              estoqueAtual: 0,
+              codigo: "101",
+              marca: "Cara de Gato",
+              ativo: "sim",
+            },
+            {
+              id: 2,
+              nome: "BUTOX P CE 25 - 20ML",
+              categoria: "Farmácia",
+              tipo: "produto",
+              custoBase: 4.31,
+              margem: 160,
+              preco: 7.0,
+              estoqueMinimo: 0,
+              estoqueAtual: 40,
+              codigo: "102",
+              marca: "Butox",
+              ativo: "sim",
+            },
+            {
+              id: 3,
+              nome: "Ganadol Pomada Anti-infecciosa e Cicatrizante 50g",
+              categoria: "Farmácia",
+              tipo: "produto",
+              custoBase: 16.32,
+              margem: 69,
+              preco: 40.0,
+              estoqueMinimo: 0,
+              estoqueAtual: 27,
+              codigo: "103",
+              marca: "Ganadol",
+              ativo: "sim",
+            },
+            {
+              id: 4,
+              nome: "THUYA AVÍCOLA SIMÕES ORAL 20ML",
+              categoria: "Farmácia",
+              tipo: "produto",
+              custoBase: 5.0,
+              margem: 100,
+              preco: 10.0,
+              estoqueMinimo: 0,
+              estoqueAtual: 5,
+              codigo: "104",
+              marca: "Simões",
+              ativo: "sim",
+            },
+            {
+              id: 5,
+              nome: "GOLDEN ADULTO RAÇA PEQ FRANGO E ARROZ 15KG",
+              categoria: "Rações",
+              tipo: "produto",
+              custoBase: 40.04,
+              margem: 44,
+              preco: 131.0,
+              estoqueMinimo: 0,
+              estoqueAtual: 4,
+              codigo: "105",
+              marca: "Golden",
+              ativo: "sim",
+            },
+            {
+              id: 6,
+              nome: "GOLDEN COOKIE FILHOTE 400G",
+              categoria: "Ossos e Petiscos",
+              tipo: "produto",
+              custoBase: 5.07,
+              margem: 64,
+              preco: 13.0,
+              estoqueMinimo: 0,
+              estoqueAtual: 0,
+              codigo: "106",
+              marca: "Golden",
+              ativo: "sim",
+            },
+            {
+              id: 7,
+              nome: "Ração N&D Prime Cordeiro e Blueberry Cães Adultos",
+              categoria: "Rações",
+              tipo: "produto",
+              custoBase: 40.0,
+              margem: 15,
+              preco: 314.99,
+              estoqueMinimo: 5,
+              estoqueAtual: 15,
+              codigo: "107",
+              marca: "N&D",
+              ativo: "sim",
+            },
+            {
+              id: 8,
+              nome: "GOLDEN GATO CASTRADO SALMAO 10,1KG",
+              categoria: "Rações",
+              tipo: "produto",
+              custoBase: 38.61,
+              margem: 44,
+              preco: 126.0,
+              estoqueMinimo: 0,
+              estoqueAtual: 4,
+              codigo: "108",
+              marca: "Golden",
+              ativo: "sim",
+            },
+            {
+              id: 9,
+              nome: "GOLDEN GATO FILHOTE FRANGO 1KG",
+              categoria: "Rações",
+              tipo: "produto",
+              custoBase: 8.38,
+              margem: 62,
+              preco: 22.0,
+              estoqueMinimo: 0,
+              estoqueAtual: 0,
+              codigo: "109",
+              marca: "Golden",
+              ativo: "sim",
+            },
+            {
+              id: 10,
+              nome: "Banho e Tosa - Cães Pequeno Porte",
+              categoria: "Serviços",
+              tipo: "servico",
+              custoBase: 0,
+              margem: 0,
+              preco: 50.0,
+              estoqueMinimo: 0,
+              estoqueAtual: 0,
+              codigo: "201",
+              marca: "-",
+              ativo: "sim",
+            },
+          ];
+
+          localStorage.setItem("meusItens", JSON.stringify(produtosExemplo));
+          localStorage.setItem("produtos", JSON.stringify(produtosExemplo));
+          addLog(
+            `✅ ${produtosExemplo.length} produtos salvos no localStorage`,
+            "success",
+          );
+        } catch (error) {
+          addLog(`❌ Erro: ${error.message}`, "error");
+        }
+      }
+
+      async function restaurarTodos() {
+        addLog("🚀 Iniciando restauração completa...", "info");
+        await restaurarClientes();
+        await restaurarProdutos();
+        addLog(
+          "✨ Restauração concluída! Recarregue a página principal.",
+          "success",
+        );
+      }
+
+      function limparTudo() {
+        if (
+          confirm(
+            "⚠️ Tem certeza que deseja limpar TODOS os dados do localStorage?",
+          )
+        ) {
+          localStorage.clear();
+          addLog("🗑️ localStorage limpo!", "warning");
+        }
+      }
+
+      // Log inicial
+      addLog("Sistema pronto. Clique em um botão para começar.", "info");
+    </script>
+  </body>
+</html>

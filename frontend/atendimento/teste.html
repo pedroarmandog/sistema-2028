@@ -1,0 +1,388 @@
+﻿<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Menu Lateral e Header - Pet Cria (snippet)</title>
+    <!-- Font Awesome (icones) -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <!-- Estilos do menu (copiar para sua página) -->
+    <link rel="stylesheet" href="./teste.css" />
+  </head>
+  <body>
+    <!-- Copie todo este bloco para dentro do <body> da sua página onde deseja o menu lateral + header -->
+    <div class="sidebar">
+      <div class="logo">
+        <!-- Usar caminho root-relative para que o logo carregue corretamente em páginas com diferentes profundidades -->
+        <img
+          src="/fivecon/Design sem nome (17).png"
+          class="logo-pet-cria"
+          alt="Logo"
+        />
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="painelMenuItem">
+            <i class="fas fa-th"></i>
+            <span>Painel</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="painelSubmenu">
+            <a href="#" class="submenu-item">
+              <span>Operacional</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Rel. Faturamento</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Rel. Demonstrativo de resultados</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Rel. Recebíveis por produto</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Posição de Caixa</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Painel Financeiro</span>
+            </a>
+          </div>
+        </div>
+
+        <a href="/dashboard.html" class="nav-item">
+          <i class="fas fa-chart-bar"></i>
+          <span>Dashboard</span>
+        </a>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="itemMenuItem">
+            <i class="fas fa-cube"></i>
+            <span>Item</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="itemSubmenu">
+            <a href="#" class="submenu-item">
+              <span>Meus Itens</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Novo</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Agrupamento</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Marca</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Unidade</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Descontos</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Comissão</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Etiquetas</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Tributação</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Estoque</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Clínica</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Manutenção geral de produtos</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Controle de validade</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="clienteMenuItem">
+            <i class="fas fa-users"></i>
+            <span>Cliente</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="clienteSubmenu">
+            <a href="/clientes.html" class="submenu-item">
+              <span>Meus Clientes</span>
+            </a>
+            <a href="/novo-cliente.html" class="submenu-item">
+              <span>Novo Cliente</span>
+            </a>
+            <a href="/grupos-clientes.html" class="submenu-item">
+              <span>Grupo de cliente</span>
+            </a>
+            <a href="/descontos/index.html" class="submenu-item active">
+              <span>Descontos</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="petMenuItem">
+            <i class="fas fa-dog"></i>
+            <span>Pet</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="petSubmenu">
+            <a href="/pets/meus-pets.html" class="submenu-item">
+              <span>Meus Pets</span>
+            </a>
+            <a href="/pets/cadastro-pet.html" class="submenu-item">
+              <span>Novo Pet</span>
+            </a>
+            <a href="/pets/especie-raca.html" class="submenu-item">
+              <span>Espécie/raça</span>
+            </a>
+            <a href="/pets/pelagem.html" class="submenu-item">
+              <span>Pelagem</span>
+            </a>
+            <a href="/pets/porte.html" class="submenu-item">
+              <span>Porte</span>
+            </a>
+            <a href="/pets/box.html" class="submenu-item">
+              <span>Box</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="atendimentoMenuItem">
+            <i class="fas fa-calendar-check"></i>
+            <span>Atendimento</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="atendimentoSubmenu">
+            <a href="/agendamentos-novo.html" class="submenu-item">
+              <span>Minha Agenda</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Vendas</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Contratos</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Devolução de venda</span>
+            </a>
+            <div class="submenu-item-with-lateral">
+              <a href="#" class="submenu-item" id="caixaSubmenuItem">
+                <span>Caixa</span>
+                <i class="fas fa-chevron-right lateral-arrow"></i>
+              </a>
+              <div class="lateral-submenu" id="caixaLateralSubmenu">
+                <a href="#" class="lateral-submenu-item">
+                  <span>Abertura/Fechamento</span>
+                </a>
+                <a href="#" class="lateral-submenu-item">
+                  <span>Suprimento/Sangria</span>
+                </a>
+                <a href="#" class="lateral-submenu-item">
+                  <span>Rel. Demonstrativo de caixa</span>
+                </a>
+              </div>
+            </div>
+            <a href="#" class="submenu-item">
+              <span>Orçamento</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Relatórios</span>
+            </a>
+          </div>
+        </div>
+
+        <a href="/marketing.html" class="nav-item">
+          <i class="fas fa-heart"></i>
+          <span>Marketing</span>
+        </a>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="comprasMenuItem">
+            <i class="fas fa-shopping-cart"></i>
+            <span>Compras</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="comprasSubmenu">
+            <a href="#" class="submenu-item">
+              <span>Entrada de mercadoria</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Fornecedores</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Relatórios</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="financeiroMenuItem">
+            <i class="fas fa-dollar-sign"></i>
+            <span>Financeiro</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="financeiroSubmenu">
+            <a href="#" class="submenu-item">
+              <span>Contas a receber</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Contas a pagar</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Conta</span>
+            </a>
+            <!--<a href="#" class="submenu-item">
+            <span>Cheque</span>
+          </a>-->
+            <a href="#" class="submenu-item">
+              <span>Cartão</span>
+            </a>
+            <!--<a href="#" class="submenu-item">
+            <span>Condição de pagamento</span>
+          </a>-->
+            <a href="#" class="submenu-item">
+              <span>Relatórios</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="configuracaoMenuItem">
+            <i class="fas fa-cog"></i>
+            <span>Configuração</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="configuracaoSubmenu">
+            <a href="#" class="submenu-item">
+              <span>Empresa</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Usuário</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Grupo de usuário</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Profissional</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Permissões</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Centro de resultado</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Categoria financeira</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Tipo de documento</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Configurações Gerais</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>PDV</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Formulários</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>Feriado</span>
+            </a>
+            <a href="#" class="submenu-item">
+              <span>IP</span>
+            </a>
+          </div>
+        </div>
+      </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <button class="menu-toggle">
+            <i class="fas fa-bars"></i>
+          </button>
+          <h1>Seu Título Aqui</h1>
+        </div>
+
+        <div class="header-right">
+          <div class="calendar-widget">
+            <button
+              class="btn-calendar"
+              id="calendarioWidget"
+              onclick="abrirCalendarioSidebar()"
+            >
+              <i class="fas fa-calendar"></i>
+            </button>
+          </div>
+
+          <div class="dropdown">
+            <button class="btn-primary dropdown-toggle" id="inicioRapidoBtn">
+              <i class="fas fa-plus"></i>
+              Início Rápido
+              <i class="fas fa-chevron-down"></i>
+            </button>
+            <div class="dropdown-menu" id="inicioRapidoMenu">
+              <a href="/agendamentos-novo.html" class="dropdown-item">
+                <i class="fas fa-calendar-plus"></i>
+                Novo Atendimento
+              </a>
+              <a href="#" class="dropdown-item" onclick="novoPet()">
+                <i class="fas fa-dog"></i>
+                Novo Pet
+              </a>
+              <a href="#" class="dropdown-item" onclick="novoCliente()">
+                <i class="fas fa-user-plus"></i>
+                Novo Cliente
+              </a>
+              <a href="#" class="dropdown-item" onclick="novoContrato()">
+                <i class="fas fa-file-contract"></i>
+                Novo Contrato
+              </a>
+              <a href="#" class="dropdown-item" onclick="novaVenda()">
+                <i class="fas fa-shopping-bag"></i>
+                Nova Venda
+              </a>
+              <a href="#" class="dropdown-item" onclick="novaContaPagar()">
+                <i class="fas fa-credit-card"></i>
+                Nova Conta a Pagar
+              </a>
+            </div>
+          </div>
+
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Pesquisar por menu" />
+          </div>
+
+          <div class="user-menu">
+            <i class="fas fa-user-circle"></i>
+            <span>...</span>
+          </div>
+        </div>
+      </header>
+      <!-- Fim do bloco a ser copiado -->
+    </div>
+
+    <!-- Script do menu (copiar para sua página) -->
+    <script src="./teste.js"></script>
+    <!-- Script global do calendário (copia do dashboard) -->
+    <script src="../novo-atendimento-global.js"></script>
+    <script src="/sidebar-component/inject-sidebar.js"></script>
+  </body>
+</html>
+

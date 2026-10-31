@@ -1,0 +1,1935 @@
+﻿<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PetHub</title>
+    <script src="../custom-colors.js"></script>
+    <link
+      rel="icon"
+      href="/fivecon/Design sem nome (17).png"
+      type="image/png"
+    />
+    <link rel="stylesheet" href="../colors.css" />
+    <link rel="stylesheet" href="../dashboard.css" />
+    <link rel="stylesheet" href="../clientes.css" />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="pet-details..css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="logo">
+        <!--<i class="fas fa-paw"></i>-->
+        <!--<span>Pet Cria</span>-->
+        <img
+          src="/logos/Logo PetHub (2).svg"
+          class="logo-pet-cria"
+          alt="PetHub"
+        />
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="painelMenuItem">
+            <i class="fas fa-th"></i>
+            <span>Painel</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="painelSubmenu">
+            <a href="../dashboard.html" class="submenu-item">
+              <span>Operacional</span>
+            </a>
+            <a href="../painel/rel-faturamento.html" class="submenu-item">
+              <span>Rel. Faturamento</span>
+            </a>
+            <a
+              href="../painel/rel-demonstrativo-resultados.html"
+              class="submenu-item"
+            >
+              <span>Rel. Demonstrativo de resultados</span>
+            </a>
+            <a
+              href="../painel/rel-recebiveis-produto.html"
+              class="submenu-item"
+            >
+              <span>Rel. Recebíveis por produto</span>
+            </a>
+            <a href="../painel/posicao-caixa.html" class="submenu-item">
+              <span>Posição de Caixa</span>
+            </a>
+            <a href="../painel/painel-financeiro.html" class="submenu-item">
+              <span>Painel Financeiro</span>
+            </a>
+          </div>
+        </div>
+
+        <a href="../dashboard.html" class="nav-item active">
+          <i class="fas fa-chart-bar"></i>
+          <span>Dashboard</span>
+        </a>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="itemMenuItem">
+            <i class="fas fa-cube"></i>
+            <span>Item</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="itemSubmenu">
+            <a href="../item/meus-itens.html" class="submenu-item">
+              <span>Meus Itens</span>
+            </a>
+            <div
+              class="submenu-item"
+              id="leftBtnNovo"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <span>Novo</span>
+              <span id="leftCaretNovo" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="leftSubNovo"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a href="../item/novo-produto.html" class="submenu-item"
+                ><span>Produto</span></a
+              >
+              <a href="../item/novo-produto.html" class="submenu-item"
+                ><span>Serviço</span></a
+              >
+              <a href="../item/novo-produto.html" class="submenu-item"
+                ><span>Plano</span></a
+              >
+            </div>
+            <a href="../item/agrupamento.html" class="submenu-item">
+              <span>Agrupamento</span>
+            </a>
+            <a href="../item/marca.html" class="submenu-item">
+              <span>Marca</span>
+            </a>
+            <a href="../item/unidade.html" class="submenu-item">
+              <span>Unidade</span>
+            </a>
+            <a href="../descontos/index.html" class="submenu-item">
+              <span>Descontos</span>
+            </a>
+            <a href="../item/comissao.html" class="submenu-item">
+              <span>Comissão</span>
+            </a>
+            <a href="../item/etiquetas.html" class="submenu-item">
+              <span>Etiquetas</span>
+            </a>
+            <!--<a href="../item/tributacao.html" class="submenu-item">
+              <span>Tributação</span>
+            </a>-->
+            <div
+              class="submenu-item"
+              id="leftBtnEstoque"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <span>Estoque</span>
+              <span id="leftCaretEstoque" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="leftSubEstoque"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a
+                href="../item/estoque/outras-entradas.html"
+                class="submenu-item"
+                ><span>Outras entradas</span></a
+              >
+              <a href="../item/estoque/outras-saidas.html" class="submenu-item"
+                ><span>Outras saídas</span></a
+              >
+              <a href="#" class="submenu-item"><span>Transferência</span></a>
+              <a
+                href="../item/estoque/contagem-estoque.html"
+                class="submenu-item"
+                ><span>Contagem de estoque</span></a
+              >
+            </div>
+            <div
+              class="submenu-item"
+              id="leftBtnClinica"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <span>Clínica</span>
+              <span id="leftCaretClinica" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="leftSubClinica"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a href="../item/clinica/medicamentos.html" class="submenu-item"
+                ><span>Medicamentos</span></a
+              >
+              <a href="../item/clinica/vacina.html" class="submenu-item"
+                ><span>Vacinas</span></a
+              >
+              <a href="../item/clinica/periodicidade.html" class="submenu-item"
+                ><span>Periodicidade</span></a
+              >
+            </div>
+            <a href="../item/manutecao-produtos.html" class="submenu-item">
+              <span>Manutenção geral de produtos</span>
+            </a>
+            <a href="../item/controle-validade.html" class="submenu-item">
+              <span>Controle de validade</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="clienteMenuItem">
+            <i class="fas fa-users"></i>
+            <span>Cliente</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="clienteSubmenu">
+            <a href="../clientes.html" class="submenu-item">
+              <span>Meus Clientes</span>
+            </a>
+            <a href="../novo-cliente.html" class="submenu-item">
+              <span>Novo Cliente</span>
+            </a>
+            <a href="../grupos-clientes.html" class="submenu-item">
+              <span>Grupo de cliente</span>
+            </a>
+            <a href="../descontos/index.html" class="submenu-item">
+              <span>Descontos</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="petMenuItem">
+            <i class="fas fa-dog"></i>
+            <span>Pet</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="petSubmenu">
+            <a href="../pets/meus-pets.html" class="submenu-item">
+              <span>Meus Pets</span>
+            </a>
+            <a href="../pets/cadastro-pet.html" class="submenu-item">
+              <span>Novo Pet</span>
+            </a>
+            <a href="../pets/especie-raca.html" class="submenu-item">
+              <span>Espécie/raça</span>
+            </a>
+            <a href="../pets/pelagem.html" class="submenu-item">
+              <span>Pelagem</span>
+            </a>
+            <a href="../pets/porte.html" class="submenu-item">
+              <span>Porte</span>
+            </a>
+            <a href="../pets/box.html" class="submenu-item">
+              <span>Box</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="atendimentoMenuItem">
+            <i class="fas fa-calendar-check"></i>
+            <span>Atendimento</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="atendimentoSubmenu">
+            <a href="../agendamentos-novo.html" class="submenu-item">
+              <span>Minha Agenda</span>
+            </a>
+
+            <!-- Vendas (toggle + nested) -->
+            <div
+              class="submenu-item"
+              id="attBtnVendas"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="#" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Vendas</span></a
+              >
+              <span id="attCaretVendas" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="attSubVendas"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a href="../atendimento/nova-venda.html" class="submenu-item"
+                ><span>Nova Venda</span></a
+              >
+              <!--<a href="#" class="submenu-item"><span>Pedido de Venda</span></a>-->
+              <a
+                href="../atendimento/consultar-vendas.html"
+                class="submenu-item"
+                ><span>Consultar vendas</span></a
+              >
+            </div>
+
+            <!--<a href="../atendimento/contratos.html" class="submenu-item">
+              <span>Contratos</span>
+            </a>-->
+            <!--<a href="../atendimento/devolucao-venda.html" class="submenu-item">
+              <span>Devolução de venda</span>
+            </a>-->
+
+            <!-- Caixa (toggle + nested) -->
+            <div
+              class="submenu-item"
+              id="attBtnCaixa"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="#" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Caixa</span></a
+              >
+              <span id="attCaretCaixa" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="attSubCaixa"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a href="../Caixa/abertura-fechamento.html" class="submenu-item"
+                ><span>Abertura/Fechamento</span></a
+              >
+              <a href="../Caixa/suprimento-sangria.html" class="submenu-item"
+                ><span>Suprimento/Sangria</span></a
+              >
+              <a href="#" class="submenu-item"
+                ><span>Rel. Demonstrativo de caixa</span></a
+              >
+            </div>
+
+            <a href="../atendimento/orcamento.html" class="submenu-item">
+              <span>Orçamento</span>
+            </a>
+
+            <!-- Relatórios (toggle + nested) -->
+            <div
+              class="submenu-item"
+              id="attBtnRelatorios"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="#" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Relatórios</span></a
+              >
+              <span id="attCaretRel" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="attSubRelatorios"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a
+                href="../atendimento/relatorios/venda-no-periodo.html"
+                class="submenu-item"
+                ><span>Venda no período</span></a
+              >
+              <a
+                href="../atendimento/relatorios/devolucao-no-periodo.html"
+                class="submenu-item"
+                ><span>Devolução no período</span></a
+              >
+              <a
+                href="../atendimento/relatorios/atendimento-no-periodo.html"
+                class="submenu-item"
+                ><span>Atendimento no período</span></a
+              >
+              <a
+                href="../atendimento/relatorios/periodicos.html"
+                class="submenu-item"
+                ><span>Periódico</span></a
+              >
+              <a
+                href="../atendimento/relatorios/comissao.html"
+                class="submenu-item"
+                ><span>Comissão</span></a
+              >
+              <a
+                href="../atendimento/relatorios/oportunidade-de-venda.html"
+                class="submenu-item"
+                ><span>Oportunidade de Venda</span></a
+              >
+              <a
+                href="../atendimento/relatorios/faturamento-cliente-produto.html"
+                class="submenu-item"
+                ><span>Faturamento por Cliente/Produto</span></a
+              >
+            </div>
+          </div>
+        </div>
+
+        <a
+          href="../marketing.html"
+          class="nav-item"
+          onclick="window.location.href = '../marketing.html'"
+        >
+          <i class="fas fa-heart"></i>
+          <span>Marketing</span>
+        </a>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="comprasMenuItem">
+            <i class="fas fa-shopping-cart"></i>
+            <span>Compras</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="comprasSubmenu">
+            <a href="../compras/entrada-mercadoria.html" class="submenu-item">
+              <span>Entrada de mercadoria</span>
+            </a>
+            <a href="../compras/fornecedor.html" class="submenu-item">
+              <span>Fornecedores</span>
+            </a>
+            <!-- Relatórios (toggle + nested) -->
+            <div
+              class="submenu-item"
+              id="compBtnRelatorios"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="#" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Relatórios</span></a
+              >
+              <span id="compCaretRel" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="compSubRelatorios"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a href="#" class="submenu-item"
+                ><span>Entrada no período</span></a
+              >
+              <a href="#" class="submenu-item"
+                ><span>Entrada por produto</span></a
+              >
+              <a href="#" class="submenu-item"
+                ><span>Sugestão de compra</span></a
+              >
+            </div>
+          </div>
+        </div>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="financeiroMenuItem">
+            <i class="fas fa-dollar-sign"></i>
+            <span>Financeiro</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="financeiroSubmenu">
+            <!-- Contas a receber (toggle) -->
+            <div
+              class="submenu-item"
+              id="finBtnReceber"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Contas a receber</span></a
+              >
+              <span id="finCaretReceber" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="finSubReceber"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a
+                href="../financeiro/contas-a-receber/recebimento-cliente.html"
+                class="submenu-item"
+                ><span>Recebimento de cliente</span></a
+              >
+            </div>
+
+            <!-- Contas a pagar (toggle) -->
+            <div
+              class="submenu-item"
+              id="finBtnPagar"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="#" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Contas a pagar</span></a
+              >
+              <span id="finCaretPagar" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="finSubPagar"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a
+                href="../financeiro/contas-a-receber/contas-a-pagar/pagamento-fornecedor.html"
+                class="submenu-item"
+                ><span>Pagamento de fornecedor</span></a
+              >
+            </div>
+
+            <!-- Conta (toggle) -->
+            <!--<div
+              class="submenu-item"
+              id="finBtnConta"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="#" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Conta</span></a
+              >
+              <span id="finCaretConta" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="finSubConta"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a
+                href="../financeiro/contas-a-receber/conta/minha-conta.html"
+                class="submenu-item"
+                ><span>Minhas Contas</span></a
+              >
+              <a
+                href="../financeiro/contas-a-receber/conta/movimento-conta.html"
+                class="submenu-item"
+                ><span>Movimento de conta</span></a
+              >
+              <a
+                href="../financeiro/contas-a-receber/conta/banco.html"
+                class="submenu-item"
+                ><span>Banco</span></a
+              >
+              <a
+                href="../financeiro/contas-a-receber/conta/historico-padrao.html"
+                class="submenu-item"
+                ><span>Histórico padrão</span></a
+              >
+            </div>-->
+
+            <!--<a href="#" class="submenu-item">
+              <span>Cheque</span>
+            </a>-->
+
+            <!-- Cartão (toggle) -->
+            <!--<div
+              class="submenu-item"
+              id="finBtnCartao"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="#" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Cartão</span></a
+              >
+              <span id="finCaretCartao" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="finSubCartao"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a href="#" class="submenu-item"
+                ><span>Operadora de cartão</span></a
+              >
+              <a href="#" class="submenu-item"
+                ><span>Recebimento da operadora de cartão</span></a
+              >
+            </div>-->
+
+            <!--<a href="#" class="submenu-item">
+              <span>Condição de pagamento</span>
+            </a>-->
+
+            <!-- Relatórios (toggle) -->
+            <!--<div
+              class="submenu-item"
+              id="finBtnRelatorios"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="#" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Relatórios</span></a
+              >
+              <span id="finCaretRel" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="finSubRelatorios"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a
+                href="../financeiro/relatorio/a-receber.html"
+                class="submenu-item"
+                ><span>A receber</span></a
+              >
+              <a
+                href="../financeiro/relatorio/recebimentos.html"
+                class="submenu-item"
+                ><span>Recebimentos</span></a
+              >
+              <a
+                href="../financeiro/relatorio/documentos-a-receber.html"
+                class="submenu-item"
+                ><span>Documentos a receber emitidos</span></a
+              >
+              <a
+                href="../financeiro/relatorio/a-pagar.html"
+                class="submenu-item"
+                ><span>A pagar</span></a
+              >
+              <a
+                href="../financeiro/relatorio/pagamentos.html"
+                class="submenu-item"
+                ><span>Pagamentos</span></a
+              >
+              <a
+                href="../financeiro/relatorio/custos-adquiridos.html"
+                class="submenu-item"
+                ><span>Custos adquiridos</span></a
+              >
+              <a
+                href="../financeiro/relatorio/custos-pagos.html"
+                class="submenu-item"
+                ><span>Custos pagos</span></a
+              >
+              <a
+                href="../financeiro/relatorio/despesas-emitidas.html"
+                class="submenu-item"
+                ><span>Despesas emitidas</span></a
+              >
+              <a
+                href="../financeiro/relatorio/extrato.html"
+                class="submenu-item"
+                ><span>Extrato</span></a
+              >
+              <a
+                href="../financeiro/relatorio/movimentacao-historico.html"
+                class="submenu-item"
+                ><span>Movimentação por Histórico</span></a
+              >
+              <a href="" class="submenu-item"><span>Cheque</span></a>
+              <a href="" class="submenu-item"><span>Cartão</span></a>
+            </div>-->
+          </div>
+        </div>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="configuracaoMenuItem">
+            <i class="fas fa-cog"></i>
+            <span>Configuração</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="configuracaoSubmenu">
+            <a href="../configuracoes/empresa.html" class="submenu-item">
+              <span>Empresa</span>
+            </a>
+            <a href="../configuracoes/usuario.html" class="submenu-item">
+              <span>Usuário</span>
+            </a>
+            <a href="../configuracoes/grupo-usuario.html" class="submenu-item">
+              <span>Grupo de usuário</span>
+            </a>
+            <a href="../configuracoes/profissional.html" class="submenu-item">
+              <span>Profissional</span>
+            </a>
+            <!--<a href="../configuracoes/permissoes.html" class="submenu-item">
+              <span>Permissões</span>
+            </a>-->
+            <a
+              href="../configuracoes/centro-resultado.html"
+              class="submenu-item"
+            >
+              <span>Centro de resultado</span>
+            </a>
+            <a
+              href="../configuracoes/categoria-financeira.html"
+              class="submenu-item"
+            >
+              <span>Categoria financeira</span>
+            </a>
+            <!--<a href="../configuracoes/tipo-documento.html" class="submenu-item">
+              <span>Tipo de documento</span>
+            </a>-->
+            <a
+              href="../configuracoes/configuracoes-gerais.html"
+              class="submenu-item"
+            >
+              <span>Configurações Gerais</span>
+            </a>
+            <!--<a href="../configuracoes/pdv.html" class="submenu-item">
+              <span>PDV</span>
+            </a>-->
+            <!--<a href="../configuracoes/formularios.html" class="submenu-item">
+              <span>Formulários</span>
+            </a>-->
+            <!--<a href="../configuracoes/feriado.html" class="submenu-item">
+              <span>Feriado</span>
+            </a>-->
+            <!--<a href="../configuracoes/ip.html" class="submenu-item">
+              <span>IP</span>
+            </a>-->
+          </div>
+        </div>
+      </nav>
+    </div>
+
+    <script src="../dashboard.js"></script>
+    <script src="../logo-manager.js"></script>
+    <script src="../novo-atendimento-global.js"></script>
+    <script>
+      // Toggle para submenu aninhado à esquerda (Item -> Novo)
+      (function () {
+        var leftBtn = document.getElementById("leftBtnNovo");
+        var leftSub = document.getElementById("leftSubNovo");
+        var leftCaret = document.getElementById("leftCaretNovo");
+        if (leftBtn && leftSub) {
+          leftBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              leftSub.style.display === "block" ||
+              leftSub.style.display === "flex";
+            leftSub.style.display = open ? "none" : "block";
+            if (leftCaret) leftCaret.innerText = open ? "▼" : "▲";
+          });
+        }
+        // Toggle para submenu aninhado Estoque
+        var leftBtnEst = document.getElementById("leftBtnEstoque");
+        var leftSubEst = document.getElementById("leftSubEstoque");
+        var leftCaretEst = document.getElementById("leftCaretEstoque");
+        if (leftBtnEst && leftSubEst) {
+          leftBtnEst.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              leftSubEst.style.display === "block" ||
+              leftSubEst.style.display === "flex";
+            leftSubEst.style.display = open ? "none" : "block";
+            if (leftCaretEst) leftCaretEst.innerText = open ? "▼" : "▲";
+          });
+        }
+        // Toggle para submenu aninhado Clínica
+        var leftBtnClin = document.getElementById("leftBtnClinica");
+        var leftSubClin = document.getElementById("leftSubClinica");
+        var leftCaretClin = document.getElementById("leftCaretClinica");
+        if (leftBtnClin && leftSubClin) {
+          leftBtnClin.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              leftSubClin.style.display === "block" ||
+              leftSubClin.style.display === "flex";
+            leftSubClin.style.display = open ? "none" : "block";
+            if (leftCaretClin) leftCaretClin.innerText = open ? "▼" : "▲";
+          });
+        }
+        // Toggle para submenus em Atendimento: Vendas, Caixa, Relatórios
+        var attBtnVendas = document.getElementById("attBtnVendas");
+        var attSubVendas = document.getElementById("attSubVendas");
+        var attCaretVendas = document.getElementById("attCaretVendas");
+        if (attBtnVendas && attSubVendas) {
+          attBtnVendas.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              attSubVendas.style.display === "block" ||
+              attSubVendas.style.display === "flex";
+            attSubVendas.style.display = open ? "none" : "block";
+            if (attCaretVendas) attCaretVendas.innerText = open ? "▼" : "▲";
+          });
+        }
+
+        var attBtnCaixa = document.getElementById("attBtnCaixa");
+        var attSubCaixa = document.getElementById("attSubCaixa");
+        var attCaretCaixa = document.getElementById("attCaretCaixa");
+        if (attBtnCaixa && attSubCaixa) {
+          attBtnCaixa.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              attSubCaixa.style.display === "block" ||
+              attSubCaixa.style.display === "flex";
+            attSubCaixa.style.display = open ? "none" : "block";
+            if (attCaretCaixa) attCaretCaixa.innerText = open ? "▼" : "▲";
+          });
+        }
+
+        var attBtnRel = document.getElementById("attBtnRelatorios");
+        var attSubRel = document.getElementById("attSubRelatorios");
+        var attCaretRel = document.getElementById("attCaretRel");
+        if (attBtnRel && attSubRel) {
+          attBtnRel.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              attSubRel.style.display === "block" ||
+              attSubRel.style.display === "flex";
+            attSubRel.style.display = open ? "none" : "block";
+            if (attCaretRel) attCaretRel.innerText = open ? "▼" : "▲";
+          });
+        }
+        // Toggle para submenu aninhado em Compras: Relatórios
+        var compBtnRel = document.getElementById("compBtnRelatorios");
+        var compSubRel = document.getElementById("compSubRelatorios");
+        var compCaretRel = document.getElementById("compCaretRel");
+        if (compBtnRel && compSubRel) {
+          compBtnRel.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              compSubRel.style.display === "block" ||
+              compSubRel.style.display === "flex";
+            compSubRel.style.display = open ? "none" : "block";
+            if (compCaretRel) compCaretRel.innerText = open ? "▼" : "▲";
+          });
+        }
+        // Toggle para submenus em Financeiro
+        var finBtnReceber = document.getElementById("finBtnReceber");
+        var finSubReceber = document.getElementById("finSubReceber");
+        var finCaretReceber = document.getElementById("finCaretReceber");
+        if (finBtnReceber && finSubReceber) {
+          finBtnReceber.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              finSubReceber.style.display === "block" ||
+              finSubReceber.style.display === "flex";
+            finSubReceber.style.display = open ? "none" : "block";
+            if (finCaretReceber) finCaretReceber.innerText = open ? "▼" : "▲";
+          });
+        }
+
+        var finBtnPagar = document.getElementById("finBtnPagar");
+        var finSubPagar = document.getElementById("finSubPagar");
+        var finCaretPagar = document.getElementById("finCaretPagar");
+        if (finBtnPagar && finSubPagar) {
+          finBtnPagar.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              finSubPagar.style.display === "block" ||
+              finSubPagar.style.display === "flex";
+            finSubPagar.style.display = open ? "none" : "block";
+            if (finCaretPagar) finCaretPagar.innerText = open ? "▼" : "▲";
+          });
+        }
+
+        var finBtnConta = document.getElementById("finBtnConta");
+        var finSubConta = document.getElementById("finSubConta");
+        var finCaretConta = document.getElementById("finCaretConta");
+        if (finBtnConta && finSubConta) {
+          finBtnConta.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              finSubConta.style.display === "block" ||
+              finSubConta.style.display === "flex";
+            finSubConta.style.display = open ? "none" : "block";
+            if (finCaretConta) finCaretConta.innerText = open ? "▼" : "▲";
+          });
+        }
+
+        var finBtnCartao = document.getElementById("finBtnCartao");
+        var finSubCartao = document.getElementById("finSubCartao");
+        var finCaretCartao = document.getElementById("finCaretCartao");
+        if (finBtnCartao && finSubCartao) {
+          finBtnCartao.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              finSubCartao.style.display === "block" ||
+              finSubCartao.style.display === "flex";
+            finSubCartao.style.display = open ? "none" : "block";
+            if (finCaretCartao) finCaretCartao.innerText = open ? "▼" : "▲";
+          });
+        }
+
+        var finBtnRel = document.getElementById("finBtnRelatorios");
+        var finSubRel = document.getElementById("finSubRelatorios");
+        var finCaretRel = document.getElementById("finCaretRel");
+        if (finBtnRel && finSubRel) {
+          finBtnRel.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              finSubRel.style.display === "block" ||
+              finSubRel.style.display === "flex";
+            finSubRel.style.display = open ? "none" : "block";
+            if (finCaretRel) finCaretRel.innerText = open ? "▼" : "▲";
+          });
+        }
+
+        // fechar ao clicar em outro lugar da sidebar (mantém outras opções)
+        document.addEventListener("click", function (e) {
+          if (!e.target.closest("#itemSubmenu")) {
+            if (leftSub) leftSub.style.display = "none";
+            if (leftCaret) leftCaret.innerText = "▼";
+            // também fechar o submenu pai (#itemSubmenu) se estiver aberto
+            try {
+              var parentSub = document.getElementById("itemSubmenu");
+              if (parentSub) {
+                if (
+                  parentSub.classList &&
+                  parentSub.classList.contains("open")
+                ) {
+                  parentSub.classList.remove("open");
+                  try {
+                    restoreSubmenu(parentSub);
+                  } catch (e) {}
+                } else {
+                  parentSub.style.display = "none";
+                }
+              }
+            } catch (e) {
+              console.warn("Erro ao fechar submenu pai", e);
+            }
+          }
+        });
+      })();
+    </script>
+    <script>
+      // Garantir que o header fique como filho direto de <body> e seja fixo no topo
+      // Isso evita que wrappers ou estilos de page-content empurrem o header para baixo.
+      (function () {
+        try {
+          document.addEventListener("DOMContentLoaded", function () {
+            var header = document.querySelector(".main-content > .header");
+            if (!header) header = document.querySelector(".header");
+            if (header && header.parentElement !== document.body) {
+              // mover para body (logo após a sidebar, se existe)
+              var sidebar = document.querySelector(".sidebar");
+              if (sidebar && sidebar.parentElement === document.body) {
+                document.body.insertBefore(header, sidebar.nextSibling);
+              } else {
+                document.body.insertBefore(header, document.body.firstChild);
+              }
+              // aplicar estilos finais defensivos e transição suave
+              header.style.position = "fixed";
+              header.style.top = "0";
+              header.style.right = "0";
+              // transição do left usa mesma curva/duração do sidebar
+              header.style.transition =
+                "left 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)";
+              header.style.willChange = "left";
+              // posiciona dinamicamente à direita da sidebar (ou 0 quando colapsada)
+              (function updateHeaderLeft() {
+                try {
+                  var sb = document.querySelector(".sidebar");
+                  var left =
+                    sb && !sb.classList.contains("collapsed")
+                      ? sb.offsetWidth + "px"
+                      : "0px";
+                  header.style.left = left;
+                } catch (e) {
+                  header.style.left = "120px";
+                }
+              })();
+              // garantir que o header fique abaixo do sidebar (sidebar z-index:1000)
+              header.style.zIndex = "900";
+              // ajustar padding do main-content para não ficar oculto
+              var mc = document.querySelector(".main-content");
+              if (mc) mc.style.paddingTop = header.offsetHeight + 8 + "px";
+              // atualizar posição do header quando o menu for toggled ou ao redimensionar
+              var menuToggleEl = document.querySelector(".menu-toggle");
+              if (menuToggleEl) {
+                menuToggleEl.addEventListener("click", function () {
+                  try {
+                    var sb2 = document.querySelector(".sidebar");
+                    var left2 =
+                      sb2 && !sb2.classList.contains("collapsed")
+                        ? sb2.offsetWidth + "px"
+                        : "0px";
+                    header.style.left = left2;
+                    if (mc)
+                      mc.style.paddingTop = header.offsetHeight + 8 + "px";
+                  } catch (e) {}
+                });
+              }
+              window.addEventListener("resize", function () {
+                try {
+                  var sb3 = document.querySelector(".sidebar");
+                  var left3 =
+                    sb3 && !sb3.classList.contains("collapsed")
+                      ? sb3.offsetWidth + "px"
+                      : "0px";
+                  header.style.left = left3;
+                  if (mc) mc.style.paddingTop = header.offsetHeight + 8 + "px";
+                } catch (e) {}
+              });
+            }
+          });
+        } catch (e) {
+          console.warn("header move failed", e);
+        }
+      })();
+    </script>
+    <script>
+      // Handler global de click fora que fecha dropdowns e painéis abertos
+      (function () {
+        function closeAllMenus() {
+          try {
+            var leftSub = document.getElementById("leftSubNovo");
+            var leftCaret = document.getElementById("leftCaretNovo");
+            if (leftSub) leftSub.style.display = "none";
+            if (leftCaret) leftCaret.innerText = "▼";
+            // reset carets dos submenus de Atendimento
+            try {
+              var aV = document.getElementById("attCaretVendas");
+              if (aV) aV.innerText = "▼";
+            } catch (e) {}
+            try {
+              var aC = document.getElementById("attCaretCaixa");
+              if (aC) aC.innerText = "▼";
+            } catch (e) {}
+            try {
+              var aR = document.getElementById("attCaretRel");
+              if (aR) aR.innerText = "▼";
+            } catch (e) {}
+            // reset caret do submenu de Compras -> Relatórios
+            try {
+              var cR = document.getElementById("compCaretRel");
+              if (cR) cR.innerText = "▼";
+            } catch (e) {}
+            // reset carets dos submenus de Financeiro
+            try {
+              var fR1 = document.getElementById("finCaretReceber");
+              if (fR1) fR1.innerText = "▼";
+            } catch (e) {}
+            try {
+              var fR2 = document.getElementById("finCaretPagar");
+              if (fR2) fR2.innerText = "▼";
+            } catch (e) {}
+            try {
+              var fR3 = document.getElementById("finCaretConta");
+              if (fR3) fR3.innerText = "▼";
+            } catch (e) {}
+            try {
+              var fR4 = document.getElementById("finCaretCartao");
+              if (fR4) fR4.innerText = "▼";
+            } catch (e) {}
+            try {
+              var fR5 = document.getElementById("finCaretRel");
+              if (fR5) fR5.innerText = "▼";
+            } catch (e) {}
+
+            // fechar todos os .submenu e remover classe open
+            document.querySelectorAll(".submenu").forEach(function (s) {
+              try {
+                s.classList.remove("open");
+              } catch (e) {}
+              try {
+                restoreSubmenu(s);
+              } catch (e) {}
+              s.style.display = "none";
+            });
+
+            // remover open dos containers
+            document
+              .querySelectorAll(".nav-item-with-submenu.open")
+              .forEach(function (c) {
+                c.classList.remove("open");
+              });
+
+            // fechar painéis
+            document.querySelectorAll(".panel").forEach(function (p) {
+              p.style.display = "none";
+            });
+          } catch (e) {
+            console.warn("closeAllMenus error", e);
+          }
+        }
+
+        document.addEventListener("click", function (ev) {
+          // esperar handlers internos processarem (por exemplo, abrir menus)
+          setTimeout(function () {
+            // se o clique ocorreu dentro da sidebar ou dentro de um submenu/painel, não fecha
+            if (
+              ev.target.closest(".sidebar") ||
+              ev.target.closest(".submenu") ||
+              ev.target.closest(".panel")
+            )
+              return;
+            closeAllMenus();
+          }, 20);
+        });
+      })();
+    </script>
+
+    <!-- Pedido de Venda: toast simples (azul claro) -->
+    <style>
+      .pedido-toast-container {
+        position: fixed;
+        top: 18px;
+        right: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        z-index: 99999;
+        pointer-events: none;
+      }
+      .pedido-toast {
+        pointer-events: auto;
+        background: linear-gradient(180deg, #e8f6ff, #d3efff);
+        color: #023047;
+        padding: 10px 14px;
+        border-radius: 8px;
+        box-shadow: 0 8px 24px rgba(2, 16, 26, 0.12);
+        min-width: 220px;
+        max-width: 380px;
+        font-weight: 300;
+        opacity: 0;
+        transform: translateY(-6px) scale(0.98);
+        transition:
+          opacity 0.18s,
+          transform 0.18s;
+      }
+    </style>
+    <script>
+      (function () {
+        if (window.__pedidoToastInstalled) return;
+        window.__pedidoToastInstalled = true;
+        function showPedidoToast(message) {
+          var c = document.querySelector(".pedido-toast-container");
+          if (!c) {
+            c = document.createElement("div");
+            c.className = "pedido-toast-container";
+            document.body.appendChild(c);
+          }
+          var t = document.createElement("div");
+          t.className = "pedido-toast";
+          t.textContent = message;
+          c.appendChild(t);
+          requestAnimationFrame(function () {
+            t.style.opacity = "1";
+            t.style.transform = "none";
+          });
+          setTimeout(function () {
+            t.style.opacity = "0";
+            t.style.transform = "translateY(-6px) scale(0.98)";
+            setTimeout(function () {
+              try {
+                t.remove();
+              } catch (e) {}
+            }, 220);
+          }, 5000);
+        }
+
+        document.addEventListener(
+          "click",
+          function (e) {
+            try {
+              var a = e.target && e.target.closest && e.target.closest("a");
+              if (!a) return;
+              var txt = (a.textContent || "").trim();
+              var href = a.getAttribute && (a.getAttribute("href") || "");
+              if (
+                txt === "Pedido de Venda" ||
+                (href && href.indexOf("pedido-venda") !== -1)
+              ) {
+                e.preventDefault();
+                e.stopPropagation();
+                showPedidoToast(
+                  "Pedido de Venda ainda está sendo desenvolvido",
+                );
+              }
+            } catch (err) {
+              /* silencioso */
+            }
+          },
+          true,
+        ); // usar capture para garantir execução antes de handlers que fazem stopPropagation
+      })();
+    </script>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <button class="menu-toggle">
+            <i class="fas fa-bars"></i>
+          </button>
+          <h1>Perfil do Pet</h1>
+        </div>
+
+        <div class="header-right">
+          <div class="calendar-widget">
+            <button
+              class="btn-calendar"
+              id="calendarioWidget"
+              onclick="abrirCalendarioSidebar()"
+            >
+              <i class="fas fa-calendar"></i>
+            </button>
+          </div>
+
+          <div class="dropdown">
+            <button class="btn-primary dropdown-toggle" id="inicioRapidoBtn">
+              <i class="fas fa-plus"></i>
+              Início Rápido
+              <i class="fas fa-chevron-down"></i>
+            </button>
+            <div class="dropdown-menu" id="inicioRapidoMenu">
+              <a href="/agendamentos-novo.html" class="dropdown-item">
+                <i class="fas fa-calendar-plus"></i>
+                Novo Atendimento
+              </a>
+              <a
+                href="/pets/cadastro-pet.html"
+                class="dropdown-item"
+                onclick="novoPet()"
+              >
+                <i class="fas fa-dog"></i>
+                Novo Pet
+              </a>
+              <a
+                href="/novo-cliente.html"
+                class="dropdown-item"
+                onclick="novoCliente()"
+              >
+                <i class="fas fa-user-plus"></i>
+                Novo Cliente
+              </a>
+              <!--<a
+                href="/atendimento/novo-contrato.html"
+                class="dropdown-item"
+                onclick="novoContrato()"
+              >
+                <i class="fas fa-file-contract"></i>
+                Novo Contrato
+              </a><-->
+              <a
+                href="/atendimento/nova-venda.html"
+                class="dropdown-item"
+                onclick="novaVenda()"
+              >
+                <i class="fas fa-shopping-bag"></i>
+                Nova Venda
+              </a>
+              <a href="../../financeiro/contas-a-receber/contas-a-pagar/pagamento-fornecedor.html" class="dropdown-item" onclick="novaContaPagar()">
+                <i class="fas fa-credit-card"></i>
+                Nova Conta a Pagar
+              </a>
+            </div>
+          </div>
+
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Pesquisar por menu" />
+          </div>
+
+          <div class="user-menu">
+            <i class="fas fa-user-circle"></i>
+            <span>...</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Perfil do Pet (conteúdo original preservado) -->
+      <div class="dashboard-content">
+        <div class="container">
+          <!-- Cabeçalho do Pet -->
+          <div class="pet-header">
+            <div class="pet-photo">
+              <div
+                class="pet-photo-wrapper"
+                role="button"
+                tabindex="0"
+                title="Clique para alterar a foto"
+              >
+                <!-- imagem do pet (preenchida via JS quando houver upload) -->
+                <img
+                  id="petPhotoImg"
+                  src=""
+                  alt="Foto do Pet"
+                  style="display: none"
+                />
+                <!-- fallback: ícone (paw) ou inicial do pet -->
+                <div id="petAvatar" class="pet-avatar-fallback">
+                  <i class="fas fa-paw"></i>
+                </div>
+                <!-- botão lápis sobre a foto -->
+                <button
+                  id="petPhotoEditBtn"
+                  class="pet-photo-edit"
+                  aria-label="Editar foto"
+                >
+                  <i class="fas fa-pen"></i>
+                </button>
+              </div>
+              <input
+                type="file"
+                id="petPhotoInput"
+                accept="image/*"
+                style="display: none"
+              />
+              <div
+                style="
+                  margin-top: 8px;
+                  display: flex;
+                  gap: 8px;
+                  align-items: center;
+                "
+              >
+                <button
+                  id="petPhotoRemoveBtn"
+                  class="btn btn-secondary"
+                  type="button"
+                >
+                  Remover foto
+                </button>
+              </div>
+            </div>
+            <div class="pet-info">
+              <h2 id="petName">
+                <span style="color: #aaa; font-style: italic"
+                  >... carregando</span
+                >
+              </h2>
+              <p class="pet-id">ID <span id="petId">—</span></p>
+              <p><strong>Cliente:</strong> <a id="petClient" href="#">—</a></p>
+              <div class="pet-tags" id="petTags"></div>
+              <div style="margin-top: 8px; display: flex; gap: 8px">
+                <a id="btnBack" class="btn btn-secondary" href="#">Voltar</a>
+                <a id="btnEdit" class="btn btn-primary" href="#">Editar</a>
+                <button id="btnInativar" class="btn btn-danger">
+                  Inativar
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Abas -->
+          <div class="tabs">
+            <button class="tab active" data-tab="detalhes">DETALHES</button>
+            <button class="tab" data-tab="vacinas">VACINAS</button>
+            <button class="tab" data-tab="vermifugos">VERMÍFUGOS</button>
+            <button class="tab" data-tab="antiparasitarios">
+              ANTIPARASITÁRIOS
+            </button>
+            <button class="tab" data-tab="documentos">DOCUMENTOS</button>
+            <button class="tab" data-tab="historico">HISTÓRICO</button>
+            <!-- ações específicas das abas (ex.: Vacinas) -- colocadas na mesma linha dos menus, no final -->
+            <div class="tabs-actions" id="tabsActions" style="display: none">
+              <div class="vacinas-actions" style="display: none">
+                <button id="btnAdd_vacinas" class="btn btn-vacinas">
+                  <i class="fas fa-plus"></i><span>MAIS VACINAS</span>
+                </button>
+                <a href="#" id="btnPeriodicos" class="link-periodicos"
+                  ><i class="fas fa-share-alt"></i><span>PERIÓDICOS</span></a
+                >
+              </div>
+              <div class="vermifugos-actions" style="display: none">
+                <button id="btnAdd_vermifugos" class="btn btn-vacinas">
+                  <i class="fas fa-plus"></i><span>MAIS VERMÍFUGOS</span>
+                </button>
+                <a
+                  href="#"
+                  id="btnPeriodicos_vermifugos"
+                  class="link-periodicos"
+                  ><i class="fas fa-share-alt"></i><span>PERIÓDICOS</span></a
+                >
+              </div>
+              <div class="antiparasitarios-actions" style="display: none">
+                <button id="btnAdd_antiparasitarios" class="btn btn-vacinas">
+                  <i class="fas fa-plus"></i><span>MAIS ANTIPARASITÁRIOS</span>
+                </button>
+                <a
+                  href="#"
+                  id="btnPeriodicos_antiparasitarios"
+                  class="link-periodicos"
+                  ><i class="fas fa-share-alt"></i><span>PERIÓDICOS</span></a
+                >
+              </div>
+            </div>
+          </div>
+
+          <!-- Conteúdo -->
+          <div class="content">
+            <!-- Detalhes -->
+            <div class="tab-content active" id="detalhes">
+              <div class="card">
+                <h3>Detalhes do Pet</h3>
+                <div class="info-grid">
+                  <p>
+                    <strong>Espécie:</strong> <span id="petEspecie">—</span>
+                  </p>
+                  <p><strong>Gênero:</strong> <span id="petGenero">—</span></p>
+                  <p><strong>Porte:</strong> <span id="petPorte">—</span></p>
+                  <p>
+                    <strong>Pelagem:</strong> <span id="petPelagem">—</span>
+                  </p>
+                  <p>
+                    <strong>Data de Nascimento:</strong>
+                    <span id="petDataNascimento">—</span>
+                  </p>
+                  <p><strong>Idade:</strong> <span id="petIdade">—</span></p>
+                  <p><strong>Chip:</strong> <span id="petChip">—</span></p>
+                  <p>
+                    <strong>Alimentação:</strong>
+                    <span id="petAlimentacao">—</span>
+                  </p>
+                  <p><strong>Ativo:</strong> <span id="petAtivo">—</span></p>
+                  <p>
+                    <strong>Observação:</strong>
+                    <span id="petObservacao">—</span>
+                  </p>
+                  <p>
+                    <strong>Alergias:</strong> <span id="petAlergias">—</span>
+                  </p>
+                </div>
+              </div>
+
+              <div class="card">
+                <h3>Contratos do Pet</h3>
+                <p class="empty">Pet não possui contrato ativo!</p>
+              </div>
+
+              <div class="card peso-card">
+                <div
+                  class="card-header-row"
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                  "
+                >
+                  <h3>Peso</h3>
+                  <div class="card-tools">
+                    <button id="btnShowChart" class="icon-btn" title="Gráfico">
+                      <i class="fas fa-chart-bar"></i>
+                    </button>
+                    <button id="btnShowList" class="icon-btn" title="Lista">
+                      <i class="fas fa-list"></i>
+                    </button>
+                    <button id="btnAddPeso" class="icon-btn" title="Adicionar">
+                      <i class="fas fa-plus"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="peso-chart" aria-label="Gráfico de peso do pet">
+                  <svg
+                    viewBox="0 0 600 240"
+                    preserveAspectRatio="xMidYMid meet"
+                    width="100%"
+                    height="240"
+                    role="img"
+                    aria-hidden="true"
+                  >
+                    <defs>
+                      <style>
+                        .grid-line {
+                          stroke: #ececec;
+                          stroke-width: 1;
+                        }
+                        .axis {
+                          stroke: #dcdcdc;
+                          stroke-width: 1.5;
+                        }
+                        .peso-line {
+                          fill: none;
+                          stroke: #0d6efd;
+                          stroke-width: 2;
+                          stroke-linejoin: round;
+                          stroke-linecap: round;
+                        }
+                      </style>
+                    </defs>
+                    <rect
+                      x="0"
+                      y="0"
+                      width="600"
+                      height="240"
+                      fill="transparent"
+                    ></rect>
+                    <!-- horizontal grid lines -->
+                    <g class="grid">
+                      <line
+                        class="grid-line"
+                        x1="0"
+                        y1="16"
+                        x2="600"
+                        y2="16"
+                      ></line>
+                      <line
+                        class="grid-line"
+                        x1="0"
+                        y1="48"
+                        x2="600"
+                        y2="48"
+                      ></line>
+                      <line
+                        class="grid-line"
+                        x1="0"
+                        y1="80"
+                        x2="600"
+                        y2="80"
+                      ></line>
+                      <line
+                        class="grid-line"
+                        x1="0"
+                        y1="112"
+                        x2="600"
+                        y2="112"
+                      ></line>
+                      <line
+                        class="grid-line"
+                        x1="0"
+                        y1="144"
+                        x2="600"
+                        y2="144"
+                      ></line>
+                      <line
+                        class="grid-line"
+                        x1="0"
+                        y1="176"
+                        x2="600"
+                        y2="176"
+                      ></line>
+                      <line
+                        class="grid-line"
+                        x1="0"
+                        y1="208"
+                        x2="600"
+                        y2="208"
+                      ></line>
+                    </g>
+                    <!-- central axis line -->
+                    <line class="axis" x1="0" y1="120" x2="600" y2="120"></line>
+                    <!-- empty data polyline (popule via JS se quiser) -->
+                    <polyline class="peso-line" points=""></polyline>
+                  </svg>
+                  <!-- Canvas Chart.js (oculto até ser usado) -->
+                  <canvas
+                    id="chartPeso"
+                    style="width: 100%; height: 240px; display: none"
+                  ></canvas>
+                  <!-- Mensagem quando não houver dados -- escondida por padrão (pode mostrar via JS) -->
+                  <div
+                    class="peso-empty"
+                    style="
+                      display: none;
+                      text-align: center;
+                      color: #9aa0a6;
+                      font-size: 0.95rem;
+                      padding: 10px 0;
+                    "
+                  >
+                    Não há registros de peso
+                  </div>
+                  <!-- Lista compacta com entradas de peso (exibida quando o usuário alterna para "lista") -->
+                  <div
+                    class="peso-list"
+                    style="display: none; padding-top: 8px"
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Outras Abas -->
+            <div class="tab-content" id="vacinas">
+              <div class="card"><p>Nenhuma vacina registrada.</p></div>
+            </div>
+
+            <div class="tab-content" id="vermifugos">
+              <div class="card"><p>Nenhum vermífugo registrado.</p></div>
+            </div>
+
+            <div class="tab-content" id="antiparasitarios">
+              <div class="card"><p>Nenhum antiparasitário registrado.</p></div>
+            </div>
+
+            <div class="tab-content" id="documentos">
+              <div class="card">
+                <div
+                  class="card-header"
+                  style="
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                  "
+                >
+                  <h3>Documentos</h3>
+                  <button id="btnAddDocumento" class="btn btn-primary">
+                    Adicionar
+                  </button>
+                </div>
+                <div class="card-body" style="padding: 0 16px 16px">
+                  <div id="docs-dynamic-list"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Histórico -->
+            <div class="tab-content" id="historico">
+              <!-- Controles do Histórico: opções (Clínico / Estético) à esquerda e ações (atualizar / filtro / mais) à direita -->
+              <div
+                class="historico-controls"
+                style="
+                  margin-bottom: 12px;
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                  gap: 12px;
+                "
+              >
+                <div class="historico-options">
+                  <button class="pill-button" data-historico-type="todos">
+                    Todos
+                  </button>
+                  <button class="pill-button" data-historico-type="clinico">
+                    Clínico
+                  </button>
+                  <button class="pill-button" data-historico-type="estetico">
+                    Estético
+                  </button>
+                </div>
+                <div
+                  class="historico-actions"
+                  style="display: flex; gap: 10px; align-items: center"
+                >
+                  <button
+                    id="btnHistoricoRefresh"
+                    class="icon-btn"
+                    title="Atualizar"
+                  >
+                    <i class="fas fa-sync-alt"></i>
+                  </button>
+                  <button
+                    id="btnHistoricoFilter"
+                    class="icon-btn"
+                    title="Filtrar"
+                  >
+                    <i class="fas fa-filter"></i>
+                  </button>
+                  <button class="icon-btn" title="Mais">
+                    <i class="fas fa-ellipsis-v"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="card">
+                <h3>Histórico de Atendimentos</h3>
+                <div class="historico-item">
+                  <p>
+                    <strong>Atendimento:</strong> 13374 - 24/10/2025 - há 6 dias
+                  </p>
+                  <p><strong>Serviço:</strong> Banho Porte Pequeno</p>
+                  <p><strong>Profissional:</strong> Ariane</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart.js (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="pet-details.js"></script>
+    <!-- Container para toasts/alerts customizados -->
+    <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Modal pequeno de filtros do Histórico -->
+    <div
+      id="historicoFilterModal"
+      class="small-filter-modal"
+      style="display: none"
+    >
+      <div class="small-filter-box">
+        <div class="small-filter-header">
+          <h4>Filtrar</h4>
+        </div>
+        <div class="small-filter-body">
+          <label
+            ><input type="checkbox" value="banhos" class="hf-item" checked />
+            Banhos</label
+          >
+          <label
+            ><input type="checkbox" value="tosas" class="hf-item" checked />
+            Tosas</label
+          >
+          <label
+            ><input
+              type="checkbox"
+              value="proc-esteticos"
+              class="hf-item"
+              checked
+            />
+            Proc. Estéticos</label
+          >
+          <label
+            ><input type="checkbox" value="consultas" class="hf-item" checked />
+            Consultas e Retornos</label
+          >
+          <label
+            ><input
+              type="checkbox"
+              value="procedimentos"
+              class="hf-item"
+              checked
+            />
+            Procedimentos</label
+          >
+          <label
+            ><input type="checkbox" value="exames" class="hf-item" checked />
+            Exames</label
+          >
+          <label
+            ><input type="checkbox" value="receitas" class="hf-item" checked />
+            Receitas</label
+          >
+          <label
+            ><input type="checkbox" value="vacinas" class="hf-item" checked />
+            Vacinas</label
+          >
+          <label
+            ><input
+              type="checkbox"
+              value="vermifugos"
+              class="hf-item"
+              checked
+            />
+            Vermífugos</label
+          >
+          <label
+            ><input
+              type="checkbox"
+              value="antiparasitas"
+              class="hf-item"
+              checked
+            />
+            Antiparasitas</label
+          >
+          <div class="hf-links" style="margin-top: 8px">
+            <a href="#" id="hf-select-all">Selecionar Todos</a> |
+            <a href="#" id="hf-clear">Limpar Filtros</a>
+          </div>
+        </div>
+        <div class="small-filter-footer">
+          <button id="hf-ok" class="btn btn-primary">OK</button>
+          <button id="hf-cancel" class="btn btn-secondary">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de novo registro de peso -->
+    <div id="pesoModal" class="small-filter-modal" style="display: none">
+      <div class="small-filter-box" style="width: 420px">
+        <div class="small-filter-header">
+          <h4>Novo Registro de Peso</h4>
+        </div>
+        <div class="small-filter-body" style="gap: 12px">
+          <label style="display: flex; flex-direction: column">
+            Data *
+            <input
+              type="date"
+              id="pesoData"
+              style="
+                padding: 8px;
+                margin-top: 6px;
+                border-radius: 6px;
+                border: 1px solid #e6e6e6;
+              "
+            />
+          </label>
+          <label style="display: flex; flex-direction: column">
+            Peso (Kg) *
+            <input
+              type="number"
+              step="0.01"
+              id="pesoKg"
+              placeholder="Ex.: 4.2"
+              style="
+                padding: 8px;
+                margin-top: 6px;
+                border-radius: 6px;
+                border: 1px solid #e6e6e6;
+              "
+            />
+          </label>
+          <div
+            style="
+              display: flex;
+              justify-content: flex-end;
+              gap: 10px;
+              margin-top: 6px;
+            "
+          >
+            <button id="pesoCancel" class="btn btn-secondary">Cancelar</button>
+            <button id="pesoSave" class="btn btn-primary">Salvar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de confirmação de inativação do pet -->
+    <div
+      id="confirmDeleteModal"
+      style="
+        display: none;
+        position: fixed;
+        inset: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 99999;
+        align-items: center;
+        justify-content: center;
+      "
+    >
+      <div
+        style="
+          background: #fff;
+          border-radius: 12px;
+          padding: 30px;
+          max-width: 400px;
+          width: 90%;
+          text-align: center;
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+          position: relative;
+        "
+      >
+        <div
+          style="
+            width: 60px;
+            height: 60px;
+            background: #ff6b6b;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+          "
+        >
+          <i
+            class="fas fa-exclamation-triangle"
+            style="color: white; font-size: 24px"
+          ></i>
+        </div>
+        <h3
+          style="
+            margin: 0 0 10px;
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+          "
+        >
+          Tem certeza que deseja inativar?
+        </h3>
+        <p
+          style="
+            margin: 0 0 25px;
+            color: #666;
+            font-size: 14px;
+            line-height: 1.4;
+          "
+        >
+          Você deseja inativar esse pet?<br />
+          <strong>Essa ação não poderá ser desfeita.</strong>
+        </p>
+        <div style="display: flex; gap: 12px; justify-content: center">
+          <button
+            type="button"
+            onclick="closeConfirmDeleteModal()"
+            style="
+              background: #f8f9fa;
+              color: #6c757d;
+              border: 1px solid #dee2e6;
+              padding: 10px 20px;
+              border-radius: 6px;
+              cursor: pointer;
+              font-size: 14px;
+              font-weight: 500;
+              min-width: 80px;
+            "
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            id="confirmDeleteBtn"
+            style="
+              background: #ff6b6b;
+              color: white;
+              border: none;
+              padding: 10px 20px;
+              border-radius: 6px;
+              cursor: pointer;
+              font-size: 14px;
+              font-weight: 500;
+              min-width: 80px;
+            "
+          >
+            <i class="fas fa-ban"></i> Inativar
+          </button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+
+

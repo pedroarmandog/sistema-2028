@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Menu Pet Cria</title>
+
+<style>
+    body {
+        margin: 0;
+        overflow-x: hidden; /* impede scroll horizontal */
+        background: #f5f5f5;
+        font-family: Arial, sans-serif;
+    }
+
+    /* MENU LATERAL */
+    .sidebar {
+        position: fixed;
+        width: 90px;
+        height: 100vh;
+        background: #22364a;
+        color: #fff;
+        padding-top: 20px;
+    }
+
+    .sidebar ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .sidebar .menu-item {
+        position: relative;
+        padding: 18px 10px;
+        cursor: pointer;
+        font-size: 15px;
+        color: #dbe6f0;
+    }
+
+    .sidebar .menu-item:hover {
+        background: rgba(255,255,255,0.1);
+    }
+
+    /* SUBMENU */
+    .submenu {
+        position: absolute;
+        top: 0;
+        left: 100%;  /* ENCOSTA NO MENU LATERAL */
+        width: 260px;
+        background: #2d4358;
+        padding: 20px 0;
+        display: none;
+        box-shadow: 2px 0 10px rgba(0,0,0,0.25);
+        z-index: 20;
+    }
+
+    .submenu li {
+        padding: 12px 25px;
+        font-size: 15px;
+        color: #fff;
+    }
+
+    .submenu li:hover {
+        background: rgba(255,255,255,0.1);
+    }
+
+    /* Quando o submenu está ativo */
+    .menu-item.active > .submenu {
+        display: block;
+    }
+</style>
+</head>
+
+<body>
+
+    <div class="sidebar">
+        <ul>
+            <li class="menu-item">
+                Item
+                <ul class="submenu">
+                    <li>Meus Itens</li>
+                    <li>Novo</li>
+                    <li>Marca</li>
+                    <li>Unidade</li>
+                    <li>Estoque</li>
+                </ul>
+            </li>
+
+            <li class="menu-item">
+                Pet
+                <ul class="submenu">
+                    <li>Meus Pets</li>
+                    <li>Novo Pet</li>
+                    <li>Espécie</li>
+                    <li>Pelagem</li>
+                    <li>Porte</li>
+                </ul>
+            </li>
+
+            <li class="menu-item">
+                Cliente
+                <ul class="submenu">
+                    <li>Lista</li>
+                    <li>Novo Cliente</li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const menus = document.querySelectorAll(".menu-item");
+
+            menus.forEach(menu => {
+                menu.addEventListener("click", function (e) {
+                    e.stopPropagation();
+
+                    // Fecha os outros menus
+                    menus.forEach(m => {
+                        if (m !== menu) m.classList.remove("active");
+                    });
+
+                    // Abre/fecha o clicado
+                    menu.classList.toggle("active");
+                });
+            });
+
+            // Fechar ao clicar fora
+            document.addEventListener("click", () => {
+                menus.forEach(menu => menu.classList.remove("active"));
+            });
+        });
+    </script>
+
+</body>
+</html>

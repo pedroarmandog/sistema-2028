@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - Painel PetHub</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .login-container {
+        display: flex;
+        width: 900px;
+        max-width: 95vw;
+        min-height: 520px;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+      }
+      .login-left {
+        flex: 1;
+        background: #fff;
+        padding: 50px 40px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+      .login-right {
+        flex: 1;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+        color: #fff;
+      }
+      .login-right img {
+        width: 180px;
+        margin-bottom: 20px;
+        filter: brightness(0) invert(1);
+      }
+      .login-right h2 {
+        font-size: 22px;
+        font-weight: 600;
+        margin-bottom: 10px;
+      }
+      .login-right p {
+        font-size: 14px;
+        opacity: 0.85;
+        text-align: center;
+        line-height: 1.6;
+      }
+      .login-left h1 {
+        font-size: 26px;
+        color: #1a1a2e;
+        margin-bottom: 8px;
+      }
+      .login-left .subtitle {
+        color: #888;
+        font-size: 14px;
+        margin-bottom: 30px;
+      }
+      .form-group {
+        margin-bottom: 20px;
+        position: relative;
+      }
+      .form-group label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: #555;
+        margin-bottom: 6px;
+      }
+      .form-group .input-wrapper {
+        position: relative;
+      }
+      .form-group .input-wrapper i {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #aaa;
+        font-size: 15px;
+      }
+      .form-group input {
+        width: 100%;
+        padding: 12px 14px 12px 42px;
+        border: 2px solid #e8e8e8;
+        border-radius: 10px;
+        font-size: 14px;
+        transition: border-color 0.3s;
+        outline: none;
+      }
+      .form-group input:focus {
+        border-color: #667eea;
+      }
+      .toggle-password {
+        position: absolute;
+        right: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: #aaa;
+        font-size: 15px;
+      }
+      .btn-login {
+        width: 100%;
+        padding: 14px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: #fff;
+        border: none;
+        border-radius: 10px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s;
+        margin-top: 10px;
+      }
+      .btn-login:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+      }
+      .btn-login:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+      }
+      .error-msg {
+        color: #e74c3c;
+        font-size: 13px;
+        margin-top: 10px;
+        display: none;
+        text-align: center;
+      }
+      .error-msg.show {
+        display: block;
+      }
+      /* Notification */
+      .notification-toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        min-width: 320px;
+        max-width: 400px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px;
+        z-index: 10000;
+        opacity: 0;
+        transform: translateX(400px);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .notification-toast.show {
+        opacity: 1;
+        transform: translateX(0);
+      }
+      .notification-toast.notification-error {
+        border-left: 4px solid #dc2626;
+      }
+      .notification-toast.notification-success {
+        border-left: 4px solid #10b981;
+      }
+      .notification-icon {
+        flex-shrink: 0;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+      }
+      .notification-error .notification-icon {
+        background: #fee2e2;
+        color: #dc2626;
+      }
+      .notification-success .notification-icon {
+        background: #d1fae5;
+        color: #10b981;
+      }
+      .notification-message {
+        flex: 1;
+        font-size: 14px;
+        color: #374151;
+        line-height: 1.5;
+      }
+      .notification-close {
+        flex-shrink: 0;
+        width: 28px;
+        height: 28px;
+        border: none;
+        background: #f3f4f6;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: #6b7280;
+      }
+      .notification-close:hover {
+        background: #e5e7eb;
+        color: #374151;
+      }
+
+      @media (max-width: 768px) {
+        .login-container {
+          flex-direction: column-reverse;
+        }
+        .login-right {
+          padding: 30px;
+          min-height: auto;
+        }
+        .login-left {
+          padding: 30px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login-container">
+      <div class="login-left">
+        <h1>Painel de Controle</h1>
+        <p class="subtitle">Acesso restrito para administradores PetHub</p>
+
+        <form id="loginForm" autocomplete="off">
+          <div class="form-group">
+            <label>Email</label>
+            <div class="input-wrapper">
+              <i class="fas fa-envelope"></i>
+              <input
+                type="email"
+                id="email"
+                placeholder="seu@email.com"
+                required
+              />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Senha</label>
+            <div class="input-wrapper">
+              <i class="fas fa-lock"></i>
+              <input
+                type="password"
+                id="senha"
+                placeholder="••••••••"
+                required
+              />
+              <i class="fas fa-eye toggle-password" id="toggleSenha"></i>
+            </div>
+          </div>
+          <div class="error-msg" id="errorMsg"></div>
+          <button type="submit" class="btn-login" id="btnLogin">
+            <i class="fas fa-sign-in-alt"></i> Entrar
+          </button>
+        </form>
+      </div>
+      <div class="login-right">
+        <img src="../../logos/Logo PetHub (4).svg" alt="PetHub Logo" />
+        <h2>PetHub Admin</h2>
+        <p>
+          Gerencie todas as empresas, controle pagamentos e mantenha o sistema
+          funcionando.
+        </p>
+      </div>
+    </div>
+
+    <script src="/api-config.js"></script>
+    <script>
+      // Usar VPS_URL centralizado (definido por api-config.js); fallback para origin
+      const API = (window.VPS_URL || window.location.origin) + "/api/admin";
+
+      // Toggle senha
+      document
+        .getElementById("toggleSenha")
+        .addEventListener("click", function () {
+          const input = document.getElementById("senha");
+          const isPassword = input.type === "password";
+          input.type = isPassword ? "text" : "password";
+          this.classList.toggle("fa-eye");
+          this.classList.toggle("fa-eye-slash");
+        });
+
+      // Notificação
+      function showNotification(message, type = "error") {
+        const existing = document.querySelector(".notification-toast");
+        if (existing) existing.remove();
+        const el = document.createElement("div");
+        el.className = `notification-toast notification-${type}`;
+        el.innerHTML = `
+                <div class="notification-icon"><i class="fas fa-${type === "error" ? "exclamation-circle" : "check-circle"}"></i></div>
+                <div class="notification-message">${message}</div>
+                <button class="notification-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+            `;
+        document.body.appendChild(el);
+        setTimeout(() => el.classList.add("show"), 10);
+        setTimeout(() => {
+          el.classList.remove("show");
+          setTimeout(() => el.remove(), 300);
+        }, 5000);
+      }
+
+      // Verificar se já está logado
+      (function checkAuth() {
+        const token = getCookie("admin_token");
+        if (token) {
+          window.location.href = "/painel-admin/admin-dashboard.html";
+        }
+      })();
+
+      function setCookie(name, value, days) {
+        const expires = new Date();
+        expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+        document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires.toUTCString()};path=/;SameSite=Strict`;
+      }
+
+      function getCookie(name) {
+        const nameEQ = name + "=";
+        const ca = document.cookie.split(";");
+        for (let i = 0; i < ca.length; i++) {
+          let c = ca[i].trim();
+          if (c.indexOf(nameEQ) === 0)
+            return decodeURIComponent(c.substring(nameEQ.length));
+        }
+        return null;
+      }
+
+      // Login
+      document
+        .getElementById("loginForm")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
+          const btn = document.getElementById("btnLogin");
+          const errorMsg = document.getElementById("errorMsg");
+          errorMsg.classList.remove("show");
+
+          const email = document.getElementById("email").value.trim();
+          const senha = document.getElementById("senha").value;
+
+          if (!email || !senha) {
+            showNotification("Preencha todos os campos", "error");
+            return;
+          }
+
+          btn.disabled = true;
+          btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Entrando...';
+
+          try {
+            const resp = await fetch(`${API}/login`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email, senha }),
+            });
+
+            const data = await resp.json();
+
+            if (!resp.ok) {
+              throw new Error(data.error || "Erro ao fazer login");
+            }
+
+            // Salvar token e dados no cookie
+            setCookie("admin_token", data.token, 1);
+            setCookie("admin_nome", data.admin.nome, 1);
+            setCookie("admin_id", data.admin.id, 1);
+
+            showNotification("Login realizado com sucesso!", "success");
+            setTimeout(() => {
+              window.location.href = "/painel-admin/admin-dashboard.html";
+            }, 800);
+          } catch (err) {
+            errorMsg.textContent = err.message;
+            errorMsg.classList.add("show");
+            showNotification(err.message, "error");
+          } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Entrar';
+          }
+        });
+    </script>
+  </body>
+</html>

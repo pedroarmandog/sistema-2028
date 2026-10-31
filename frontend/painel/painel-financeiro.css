@@ -1,0 +1,1482 @@
+/* Copiado de frontend/dashboard.css - estilos do menu e header */
+/* ========================================
+   DASHBOARD CSS - PET CRIA (snippet para menu)
+   ======================================== */
+
+@import url("../colors.css");
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--bg-body);
+  color: var(--text-primary);
+}
+
+/* Main Content */
+.main-content {
+  margin-left: 250px;
+  min-height: 100vh;
+  transition: margin-left 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  position: relative;
+  width: calc(100% - 250px);
+}
+
+.main-content.sidebar-collapsed {
+  margin-left: 0;
+  width: 100%;
+}
+
+/* Header */
+.header {
+  background: var(--bg-white);
+  padding: 15px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--shadow-medium);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.header-left h1 {
+  margin: 0;
+  font-size: 24px;
+  color: var(--text-primary);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.btn-calendar {
+  background: var(--bg-card);
+  border: 2px solid var(--border-primary);
+  color: var(--text-primary);
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 44px;
+}
+
+.btn-calendar:hover {
+  background: var(--btn-primary);
+  color: white;
+  border-color: var(--btn-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(44, 90, 160, 0.2);
+}
+
+.btn-calendar:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(44, 90, 160, 0.2);
+}
+
+.btn-primary {
+  background: var(--btn-success);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.3s ease;
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-box i {
+  position: absolute;
+  left: 12px;
+  color: #999;
+}
+
+.search-box input {
+  padding: 10px 15px 10px 40px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  width: 300px;
+  font-size: 14px;
+}
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: background-color 0.3s ease;
+}
+
+.user-menu:hover {
+  background-color: #f8f9fa;
+}
+
+/* Match dashboard profile icon style */
+.user-menu i {
+  font-size: 24px;
+  color: #3498db;
+}
+
+/* Dropdown */
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #e1e8ed;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.3s ease;
+  min-width: 200px;
+  margin-top: 5px;
+}
+
+.dropdown.open .dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  color: #333;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  border-bottom: 1px solid #f1f3f4;
+  transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+  background-color: #f8f9fa;
+  color: #27ae60;
+}
+
+/* Notification (light) */
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  min-width: 300px;
+  max-width: 500px;
+  padding: 15px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Responsivo básico */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .main-content {
+    margin-left: 0;
+  }
+  .search-box input {
+    width: 200px;
+  }
+}
+
+/* ========================================
+   ESTILOS DO PAINEL FINANCEIRO
+   ======================================== */
+
+.painel-financeiro-container {
+  padding: 20px;
+  max-width: 100%;
+}
+
+.painel-financeiro-header {
+  margin-bottom: 20px;
+}
+
+.painel-financeiro-titulo {
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* Abas de Navegação */
+.painel-tabs {
+  display: flex;
+  gap: 5px;
+  border-bottom: 2px solid var(--border-color);
+  margin-bottom: 30px;
+}
+
+.tab-btn {
+  padding: 12px 24px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  bottom: -2px;
+}
+
+.tab-btn:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
+}
+
+.tab-btn.active {
+  color: #fd7e14;
+  border-bottom-color: #fd7e14;
+}
+
+/* Conteúdo das Abas */
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+.tab-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  color: var(--text-secondary);
+}
+
+.tab-placeholder i {
+  font-size: 64px;
+  margin-bottom: 20px;
+  opacity: 0.3;
+}
+
+.tab-placeholder p {
+  font-size: 18px;
+}
+
+/* Grid Principal - Posição Atual */
+.painel-grid {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 30px;
+}
+
+/* Seção do Calendário */
+.calendario-section {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+}
+
+.calendario-header-bar {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 20px 25px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.btn-nav-mes {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.btn-nav-mes:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.mes-atual-info {
+  flex: 1;
+  text-align: center;
+}
+
+.mes-label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.mes-ano {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.btn-atualizar {
+  padding: 8px 16px;
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-atualizar:hover {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.btn-atualizar i {
+  font-size: 12px;
+}
+
+/* Grid do Calendário */
+.calendario-grid {
+  padding: 20px 25px;
+  flex: 1;
+}
+
+.calendario-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.weekday-header {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 8px 0;
+  text-transform: lowercase;
+}
+
+.calendario-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+}
+
+.calendario-day {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 10px;
+  min-height: 120px;
+  border: 1px solid #e9ecef;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.calendario-day:hover {
+  border-color: #3a7ca5;
+  box-shadow: 0 2px 8px rgba(58, 124, 165, 0.15);
+}
+
+.calendario-day.other-month {
+  opacity: 0.4;
+  background: #fafbfc;
+}
+
+.day-number {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.day-events {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.event-chip {
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: white;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.event-chip.saldo {
+  background-color: #3a7ca5;
+}
+
+.event-chip.cartao,
+.event-chip.crediario {
+  background-color: #71b27f;
+}
+
+.event-chip.pagar {
+  background-color: #d66a6a;
+}
+
+.event-chip-label {
+  display: block;
+  font-size: 9px;
+  opacity: 0.9;
+}
+
+.event-chip-valor {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+/* Gráficos */
+.graficos-section {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  padding: 25px;
+  border-top: 1px solid var(--border-color);
+  background-color: #fafafa;
+  width: 100%;
+}
+
+.grafico-card {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+}
+
+.grafico-card canvas {
+  max-height: 250px;
+  flex: 1;
+}
+
+.grafico-legend {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+/* Painéis Laterais */
+.paineis-laterais {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.painel-lateral {
+  background: var(--bg-card);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.painel-lateral.receber {
+  border-top: 4px solid #71b27f;
+}
+
+.painel-lateral.pagar {
+  border-top: 4px solid #d66a6a;
+}
+
+.painel-lateral-header {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.painel-lateral.receber .painel-lateral-header {
+  background-color: #e8f5e9;
+}
+
+.painel-lateral.pagar .painel-lateral-header {
+  background-color: #ffebee;
+}
+
+.painel-lateral-header i {
+  font-size: 18px;
+}
+
+.painel-lateral.receber .painel-lateral-header i {
+  color: #71b27f;
+}
+
+.painel-lateral.pagar .painel-lateral-header i {
+  color: #d66a6a;
+}
+
+.painel-lateral-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.painel-lateral-body {
+  padding: 0;
+}
+
+.painel-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.2s ease;
+}
+
+.painel-item:hover {
+  background-color: var(--bg-hover);
+}
+
+.painel-item:last-child {
+  border-bottom: none;
+}
+
+.painel-item.total {
+  background-color: #f8f9fa;
+  font-weight: 700;
+}
+
+.painel-item-label {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.painel-item-valor {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.painel-lateral.receber .painel-item-valor {
+  color: #71b27f;
+}
+
+.painel-lateral.pagar .painel-item-valor {
+  color: #d66a6a;
+}
+
+/* ========================================
+   FLUXO DE CAIXA
+   ======================================== */
+
+.fluxo-caixa-container {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Filtros do Fluxo de Caixa */
+.fluxo-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 25px;
+  align-items: flex-end;
+}
+
+.filtro-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 180px;
+}
+
+.filtro-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.filtro-select {
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 14px;
+  color: var(--text-primary);
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filtro-select:hover {
+  border-color: var(--primary-color);
+}
+
+.filtro-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.1);
+}
+
+.filtro-actions {
+  margin-left: auto;
+}
+
+.btn-download {
+  padding: 10px 20px;
+  background-color: white;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-download:hover {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.btn-download i {
+  font-size: 13px;
+}
+
+/* Tabela de Fluxo de Caixa */
+.fluxo-tabela-container {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.fluxo-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  font-size: 13px;
+}
+
+.fluxo-tabela thead {
+  background-color: #f8f9fa;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.fluxo-tabela th {
+  padding: 14px 12px;
+  text-align: center;
+  font-weight: 600;
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--border-color);
+  font-size: 12px;
+}
+
+.fluxo-tabela th.col-descricao {
+  text-align: left;
+  min-width: 300px;
+  position: sticky;
+  left: 0;
+  background-color: #f8f9fa;
+  z-index: 11;
+}
+
+.fluxo-tabela th.col-data {
+  min-width: 100px;
+  white-space: nowrap;
+}
+
+.fluxo-tabela .dia-semana {
+  display: block;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.fluxo-tabela tbody tr {
+  border-bottom: 1px solid #e9ecef;
+  transition: background-color 0.2s ease;
+}
+
+.fluxo-tabela tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.fluxo-tabela td {
+  padding: 12px;
+  text-align: right;
+}
+
+.fluxo-tabela td.col-descricao {
+  text-align: left;
+  font-weight: 500;
+  color: var(--text-primary);
+  position: sticky;
+  left: 0;
+  background-color: white;
+  border-right: 1px solid #e9ecef;
+}
+
+.fluxo-tabela tbody tr:hover td.col-descricao {
+  background-color: #f8f9fa;
+}
+
+.fluxo-tabela td.col-valor {
+  color: var(--text-secondary);
+  font-family: "Courier New", monospace;
+}
+
+/* Linhas de Seção */
+.fluxo-tabela .row-saldo-inicial {
+  background-color: #fff9e6;
+}
+
+.fluxo-tabela .row-saldo-inicial:hover {
+  background-color: #fff4d1;
+}
+
+.fluxo-tabela .row-saldo-inicial td.col-descricao {
+  background-color: #fff9e6;
+}
+
+.fluxo-tabela .row-saldo-inicial:hover td.col-descricao {
+  background-color: #fff4d1;
+}
+
+.fluxo-tabela .row-section.entradas {
+  background-color: #e8f5e9;
+}
+
+.fluxo-tabela .row-section.entradas:hover {
+  background-color: #d4edda;
+}
+
+.fluxo-tabela .row-section.entradas td.col-descricao {
+  background-color: #e8f5e9;
+}
+
+.fluxo-tabela .row-section.entradas:hover td.col-descricao {
+  background-color: #d4edda;
+}
+
+.fluxo-tabela .row-section.saidas {
+  background-color: #ffebee;
+}
+
+.fluxo-tabela .row-section.saidas:hover {
+  background-color: #f8d7da;
+}
+
+.fluxo-tabela .row-section.saidas td.col-descricao {
+  background-color: #ffebee;
+}
+
+.fluxo-tabela .row-section.saidas:hover td.col-descricao {
+  background-color: #f8d7da;
+}
+
+.fluxo-tabela .row-subsection td.col-descricao {
+  padding-left: 30px;
+  font-weight: 400;
+}
+
+.fluxo-tabela .row-saldo-final {
+  background-color: #fff9e6;
+  font-weight: 700;
+}
+
+.fluxo-tabela .row-saldo-final:hover {
+  background-color: #fff4d1;
+}
+
+.fluxo-tabela .row-saldo-final td.col-descricao {
+  background-color: #fff9e6;
+  font-weight: 700;
+}
+
+.fluxo-tabela .row-saldo-final:hover td.col-descricao {
+  background-color: #fff4d1;
+}
+
+.fluxo-tabela .row-saldo-final td.col-valor {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* Responsivo */
+@media (max-width: 1400px) {
+  .painel-grid {
+    grid-template-columns: 1fr 350px;
+  }
+
+  .calendario-day {
+    min-height: 100px;
+    padding: 8px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .painel-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .paineis-laterais {
+    flex-direction: row;
+  }
+
+  .graficos-section {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .painel-financeiro-container {
+    padding: 15px;
+  }
+
+  .painel-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tab-btn {
+    padding: 10px 16px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .calendario-header-bar {
+    flex-wrap: wrap;
+    padding: 15px;
+  }
+
+  .mes-atual-info {
+    order: -1;
+    width: 100%;
+    margin-bottom: 10px;
+  }
+
+  .btn-atualizar {
+    margin-left: auto;
+  }
+
+  .calendario-grid {
+    padding: 15px;
+  }
+
+  .calendario-day {
+    min-height: 80px;
+    padding: 6px;
+  }
+
+  .day-number {
+    font-size: 12px;
+  }
+
+  .event-chip {
+    font-size: 9px;
+    padding: 3px 6px;
+  }
+
+  .paineis-laterais {
+    flex-direction: column;
+  }
+
+  .graficos-section {
+    padding: 15px;
+  }
+
+  .fluxo-filtros {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .filtro-group {
+    width: 100%;
+  }
+
+  .filtro-actions {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .btn-download {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .fluxo-tabela {
+    font-size: 12px;
+  }
+
+  .fluxo-tabela th,
+  .fluxo-tabela td {
+    padding: 10px 8px;
+  }
+
+  .fluxo-tabela th.col-descricao {
+    min-width: 200px;
+  }
+}
+
+@media (max-width: 480px) {
+  .calendario-days {
+    gap: 5px;
+  }
+
+  .calendario-day {
+    min-height: 60px;
+    padding: 4px;
+  }
+
+  .day-number {
+    font-size: 11px;
+    margin-bottom: 4px;
+  }
+
+  .event-chip {
+    font-size: 8px;
+    padding: 2px 4px;
+  }
+
+  .fluxo-tabela {
+    font-size: 11px;
+  }
+
+  .fluxo-tabela th,
+  .fluxo-tabela td {
+    padding: 8px 6px;
+  }
+
+  .fluxo-tabela th.col-descricao {
+    min-width: 150px;
+  }
+
+  .fluxo-tabela th.col-data {
+    min-width: 80px;
+  }
+}
+
+/* ============================================
+   ESTILOS: PAGAMENTOS E RECEBIMENTOS
+   ============================================ */
+
+.pagamentos-recebimentos-container {
+  padding: 24px;
+  max-width: 100%;
+}
+
+/* Filtros */
+.pagamentos-filtros {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 32px;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.filtro-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 200px;
+}
+
+.filtro-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filtro-select {
+  padding: 10px 14px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #333;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filtro-select:hover {
+  border-color: #3a7ca5;
+}
+
+.filtro-select:focus {
+  outline: none;
+  border-color: #3a7ca5;
+  box-shadow: 0 0 0 3px rgba(58, 124, 165, 0.1);
+}
+
+/* Seções */
+.pagamentos-section,
+.recebimentos-section {
+  margin-bottom: 32px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.section-header {
+  padding: 20px 24px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.pagamentos-section .section-header {
+  background: linear-gradient(135deg, #ffebee 0%, #fff 100%);
+  border-left: 4px solid #d66a6a;
+}
+
+.recebimentos-section .section-header {
+  background: linear-gradient(135deg, #e8f5e9 0%, #fff 100%);
+  border-left: 4px solid #71b27f;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+  margin: 0 0 6px 0;
+}
+
+.pagamentos-section .section-title {
+  color: #d66a6a;
+}
+
+.recebimentos-section .section-title {
+  color: #71b27f;
+}
+
+.section-title i {
+  font-size: 20px;
+}
+
+.section-subtitle {
+  font-size: 13px;
+  color: #666;
+  margin: 0;
+  font-style: italic;
+}
+
+/* Containers das Tabelas */
+.pagamentos-tabela-container,
+.recebimentos-tabela-container {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+/* Tabelas */
+.pagamentos-tabela,
+.recebimentos-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+/* Cabeçalho das tabelas */
+.pagamentos-tabela thead,
+.recebimentos-tabela thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.pagamentos-tabela thead th,
+.recebimentos-tabela thead th {
+  background: #f8f9fa;
+  color: #333;
+  font-weight: 600;
+  text-align: center;
+  padding: 14px 12px;
+  border-bottom: 2px solid #dee2e6;
+  white-space: nowrap;
+}
+
+.pagamentos-tabela thead th:first-child,
+.recebimentos-tabela thead th:first-child {
+  text-align: left;
+  position: sticky;
+  left: 0;
+  z-index: 11;
+  background: #f8f9fa;
+  min-width: 200px;
+}
+
+/* Colunas */
+.col-descricao {
+  min-width: 200px;
+  max-width: 250px;
+  text-align: left;
+  font-weight: 500;
+  color: #444;
+  padding: 12px 16px !important;
+  background: white;
+  position: sticky;
+  left: 0;
+  z-index: 5;
+}
+
+.col-data {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+}
+
+.dia-semana {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: #888;
+  margin-top: 2px;
+}
+
+.col-valor {
+  text-align: center;
+  padding: 12px 10px;
+  font-family: "Courier New", monospace;
+  font-size: 13px;
+  color: #555;
+  white-space: nowrap;
+}
+
+/* Linhas */
+.pagamentos-tabela tbody tr,
+.recebimentos-tabela tbody tr {
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s;
+}
+
+.pagamentos-tabela tbody tr:hover,
+.recebimentos-tabela tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+/* Headers e Footers especiais */
+.row-header,
+.row-footer {
+  font-weight: 700;
+}
+
+.pagamentos-header .col-descricao,
+.pagamentos-header .col-valor {
+  background: #ffebee !important;
+  color: #d66a6a !important;
+  font-size: 14px;
+}
+
+.pagamentos-footer .col-descricao,
+.pagamentos-footer .col-valor {
+  background: #ffcdd2 !important;
+  color: #c62828 !important;
+  font-size: 14px;
+  border-top: 2px solid #d66a6a;
+}
+
+.recebimentos-header .col-descricao,
+.recebimentos-header .col-valor {
+  background: #e8f5e9 !important;
+  color: #71b27f !important;
+  font-size: 14px;
+}
+
+.recebimentos-footer .col-descricao,
+.recebimentos-footer .col-valor {
+  background: #c8e6c9 !important;
+  color: #2e7d32 !important;
+  font-size: 14px;
+  border-top: 2px solid #71b27f;
+}
+
+/* Sticky na primeira coluna para todas as linhas */
+.pagamentos-tabela tbody tr td:first-child,
+.recebimentos-tabela tbody tr td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+}
+
+/* Responsividade */
+@media (max-width: 1024px) {
+  .pagamentos-filtros {
+    flex-wrap: wrap;
+  }
+
+  .filtro-group {
+    min-width: 150px;
+    flex: 1;
+  }
+
+  .pagamentos-recebimentos-container {
+    padding: 16px;
+  }
+
+  .section-header {
+    padding: 16px 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .pagamentos-filtros {
+    flex-direction: column;
+  }
+
+  .filtro-group {
+    width: 100%;
+  }
+
+  .col-descricao {
+    min-width: 150px;
+    font-size: 12px;
+  }
+
+  .col-valor {
+    font-size: 11px;
+  }
+
+  .section-title {
+    font-size: 16px;
+  }
+
+  .section-subtitle {
+    font-size: 12px;
+  }
+}
+
+/* ── Date Picker Calendário ─────────────────────────────── */
+.date-picker-wrapper {
+  position: relative;
+}
+
+.date-picker-btn {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.date-picker-btn i {
+  color: var(--primary-color, #007acc);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.cal-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 9999;
+  background: #fff;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
+  padding: 16px;
+  min-width: 270px;
+}
+
+.cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.cal-mes-ano {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #333);
+}
+
+.cal-nav {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--primary-color, #007acc);
+  font-size: 13px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+  line-height: 1;
+}
+
+.cal-nav:hover {
+  background: rgba(0, 122, 204, 0.1);
+}
+
+.cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 6px;
+}
+
+.cal-weekdays span {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary, #888);
+  padding: 3px 0;
+}
+
+.cal-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.cal-day {
+  text-align: center;
+  padding: 7px 2px;
+  font-size: 13px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-primary, #333);
+  transition:
+    background 0.15s,
+    color 0.15s;
+  user-select: none;
+}
+
+.cal-day:hover:not(.outro-mes) {
+  background: var(--primary-color, #007acc);
+  color: #fff;
+}
+
+.cal-day.outro-mes {
+  color: #ccc;
+  cursor: default;
+}
+
+.cal-day.hoje {
+  font-weight: 700;
+  border: 2px solid var(--primary-color, #007acc);
+}
+
+.cal-day.selecionado {
+  background: var(--primary-color, #007acc);
+  color: #fff;
+  font-weight: 700;
+}
+
+.cal-day.selecionado.hoje {
+  border-color: transparent;
+}

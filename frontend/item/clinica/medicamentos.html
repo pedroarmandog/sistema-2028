@@ -1,0 +1,1298 @@
+﻿<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PetHub</title>
+  <script src="../../custom-colors.js"></script>
+  <link rel="icon" href="/fivecon/Design sem nome (17).png" type="image/png">
+  <!-- Font Awesome (icones) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Estilos do menu (copiar para sua página) -->
+  <link rel="stylesheet" href="./medicamentos.css">
+  <link rel="stylesheet" href="../../colors.css">
+  <link rel="stylesheet" href="../../dashboard.css">
+</head>
+<body>
+ <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="logo">
+            <!--<i class="fas fa-paw"></i>-->
+            <!--<span>Pet Cria</span>-->
+            <img src="/logos/Logo PetHub (2).svg" class="logo-pet-cria" alt="PetHub">
+        </div>
+        
+        <nav class="sidebar-nav">
+            <div class="nav-item-with-submenu">
+                <a href="#" class="nav-item" id="painelMenuItem">
+                    <i class="fas fa-th"></i>
+                    <span>Painel</span>
+                    <i class="fas fa-chevron-down submenu-arrow"></i>
+                </a>
+                <div class="submenu" id="painelSubmenu">
+                    <a href="../../dashboard.html" class="submenu-item">
+                        <span>Operacional</span>
+                    </a>
+                    <a href="../../painel/rel-faturamento.html" class="submenu-item">
+                        <span>Rel. Faturamento</span>
+                    </a>
+                    <!--<a href="../../painel/rel-demonstrativo-resultados.html" class="submenu-item">
+                        <span>Rel. Demonstrativo de resultados</span>
+                    </a>-->
+                    <!--<a href="../../painel/rel-recebiveis-produto.html" class="submenu-item">
+                        <span>Rel. Recebíveis por produto</span>
+                    </a>-->
+                    <a href="../../painel/posicao-caixa.html" class="submenu-item">
+                        <span>Posição de Caixa</span>
+                    </a>
+                    <a href="../../painel/painel-financeiro.html" class="submenu-item">
+                        <span>Painel Financeiro</span>
+                    </a>
+                </div>
+            </div>
+            
+            <a href="../../dashboard.html" class="nav-item active">
+                <i class="fas fa-chart-bar"></i>
+                <span>Dashboard</span>
+            </a>
+            
+            <div class="nav-item-with-submenu">
+                <a href="#" class="nav-item" id="itemMenuItem">
+                    <i class="fas fa-cube"></i>
+                    <span>Item</span>
+                    <i class="fas fa-chevron-down submenu-arrow"></i>
+                </a>
+                <div class="submenu" id="itemSubmenu">
+                    <a href="../../item/meus-itens.html" class="submenu-item">
+                        <span>Meus Itens</span>
+                    </a>
+                    <div class="submenu-item" id="leftBtnNovo" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <span>Novo</span>
+                        <span id="leftCaretNovo" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="leftSubNovo" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../../item/novo-produto.html" class="submenu-item"><span>Produto</span></a>
+                        <a href="../../item/novo-produto.html" class="submenu-item"><span>Serviço</span></a>
+                        <a href="../../item/novo-produto.html" class="submenu-item"><span>Plano</span></a>
+                    </div>
+                    <a href="../../item/agrupamento.html" class="submenu-item">
+                        <span>Agrupamento</span>
+                    </a>
+                    <a href="../../item/marca.html" class="submenu-item">
+                        <span>Marca</span>
+                    </a>
+                    <a href="../../item/unidade.html" class="submenu-item">
+                        <span>Unidade</span>
+                    </a>
+                    <a href="../../descontos/index.html" class="submenu-item">
+                        <span>Descontos</span>
+                    </a>
+                    <a href="../../item/comissao.html" class="submenu-item">
+                        <span>Comissão</span>
+                    </a>
+                    <a href="../../item/etiquetas.html" class="submenu-item">
+                        <span>Etiquetas</span>
+                    </a>
+                    <!--<a href="../../item/tributacao.html" class="submenu-item">
+                        <span>Tributação</span>
+                    </a>-->
+                    <div class="submenu-item" id="leftBtnEstoque" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <span>Estoque</span>
+                        <span id="leftCaretEstoque" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="leftSubEstoque" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../../item/estoque/outras-entradas.html" class="submenu-item"><span>Outras entradas</span></a>
+                        <a href="../../item/estoque/outras-saidas.html" class="submenu-item"><span>Outras saídas</span></a>
+                        <a href="#" class="submenu-item"><span>Transferência</span></a>
+                        <a href="../../item/estoque/contagem-estoque.html" class="submenu-item"><span>Contagem de estoque</span></a>
+                    </div>
+                    <div class="submenu-item" id="leftBtnClinica" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <span>Clínica</span>
+                        <span id="leftCaretClinica" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="leftSubClinica" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../../item/clinica/medicamentos.html" class="submenu-item"><span>Medicamentos</span></a>
+                        <a href="../../item/clinica/vacina.html" class="submenu-item"><span>Vacinas</span></a>
+                        <a href="../../item/clinica/periodicidade.html" class="submenu-item"><span>Periodicidade</span></a>
+                    </div>
+                    <a href="../../item/manutecao-produtos.html" class="submenu-item">
+                        <span>Manutenção geral de produtos</span>
+                    </a>
+                    <a href="../../item/controle-validade.html" class="submenu-item">
+                        <span>Controle de validade</span>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="nav-item-with-submenu">
+                <a href="#" class="nav-item" id="clienteMenuItem">
+                    <i class="fas fa-users"></i>
+                    <span>Cliente</span>
+                    <i class="fas fa-chevron-down submenu-arrow"></i>
+                </a>
+                <div class="submenu" id="clienteSubmenu">
+                    <a href="../../clientes.html" class="submenu-item">
+                        <span>Meus Clientes</span>
+                    </a>
+                    <a href="../../novo-cliente.html" class="submenu-item">
+                        <span>Novo Cliente</span>
+                    </a>
+                    <a href="../../grupos-clientes.html" class="submenu-item">
+                        <span>Grupo de cliente</span>
+                    </a>
+                    <a href="../../descontos/index.html" class="submenu-item">
+                        <span>Descontos</span>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="nav-item-with-submenu">
+                <a href="#" class="nav-item" id="petMenuItem">
+                    <i class="fas fa-dog"></i>
+                    <span>Pet</span>
+                    <i class="fas fa-chevron-down submenu-arrow"></i>
+                </a>
+                <div class="submenu" id="petSubmenu">
+                    <a href="../../pets/meus-pets.html" class="submenu-item">
+                        <span>Meus Pets</span>
+                    </a>
+                    <a href="../../pets/cadastro-pet.html" class="submenu-item">
+                        <span>Novo Pet</span>
+                    </a>
+                    <a href="../../pets/especie-raca.html" class="submenu-item">
+                        <span>Espécie/raça</span>
+                    </a>
+                    <a href="../../pets/pelagem.html" class="submenu-item">
+                        <span>Pelagem</span>
+                    </a>
+                    <a href="../../pets/porte.html" class="submenu-item">
+                        <span>Porte</span>
+                    </a>
+                    <a href="../../pets/box.html" class="submenu-item">
+                        <span>Box</span>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="nav-item-with-submenu">
+                <a href="#" class="nav-item" id="atendimentoMenuItem">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>Atendimento</span>
+                    <i class="fas fa-chevron-down submenu-arrow"></i>
+                </a>
+                <div class="submenu" id="atendimentoSubmenu">
+                    <a href="../../agendamentos-novo.html" class="submenu-item">
+                        <span>Minha Agenda</span>
+                    </a>
+
+                    <!-- Vendas (toggle + nested) -->
+                    <div class="submenu-item" id="attBtnVendas" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Vendas</span></a>
+                        <span id="attCaretVendas" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="attSubVendas" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../../atendimento/nova-venda.html" class="submenu-item"><span>Nova Venda</span></a>
+                        <!--<a href="#" class="submenu-item"><span>Pedido de Venda</span></a>-->
+                        <a href="../../atendimento/consultar-vendas.html" class="submenu-item"><span>Consultar vendas</span></a>
+                    </div>
+
+                    <!--<a href="../../atendimento/contratos.html" class="submenu-item">
+                        <span>Contratos</span>
+                    </a>-->
+                    <!--<a href="../../atendimento/devolucao-venda.html" class="submenu-item">
+                        <span>Devolução de venda</span>
+                    </a>-->
+
+                    <!-- Caixa (toggle + nested) -->
+                    <div class="submenu-item" id="attBtnCaixa" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Caixa</span></a>
+                        <span id="attCaretCaixa" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="attSubCaixa" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../../Caixa/abertura-fechamento.html" class="submenu-item"><span>Abertura/Fechamento</span></a>
+                        <a href="../../Caixa/suprimento-sangria.html" class="submenu-item"><span>Suprimento/Sangria</span></a>
+                        <a href="#" class="submenu-item"><span>Rel. Demonstrativo de caixa</span></a>
+                    </div>
+
+                    <a href="../../atendimento/orcamento.html" class="submenu-item">
+                        <span>Orçamento</span>
+                    </a>
+
+                    <!-- Relatórios (toggle + nested) -->
+                    <div class="submenu-item" id="attBtnRelatorios" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Relatórios</span></a>
+                        <span id="attCaretRel" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="attSubRelatorios" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../../atendimento/relatorios/venda-no-periodo.html" class="submenu-item"><span>Venda no período</span></a>
+                        <!--<a href="../../atendimento/relatorios/devolucao-no-periodo.html" class="submenu-item"><span>Devolução no período</span></a>-->
+                        <a href="../../atendimento/relatorios/atendimento-no-periodo.html" class="submenu-item"><span>Atendimento no período</span></a>
+                        <!--<a href="../../atendimento/relatorios/periodicos.html" class="submenu-item"><span>Periódico</span></a>-->
+                        <a href="../../atendimento/relatorios/comissao.html" class="submenu-item"><span>Comissão</span></a>
+                        <!--<a href="../../atendimento/relatorios/oportunidade-de-venda.html" class="submenu-item"><span>Oportunidade de Venda</span></a>-->
+                        <!--<a href="../../atendimento/relatorios/faturamento-cliente-produto.html" class="submenu-item"><span>Faturamento por Cliente/Produto</span></a>-->
+                    </div>
+                </div>
+            </div>
+            
+            <a href="../../marketing.html" class="nav-item" onclick="window.location.href='../../marketing.html'">
+                <i class="fas fa-heart"></i>
+                <span>Marketing</span>
+            </a>
+            
+            <div class="nav-item-with-submenu">
+                <a href="#" class="nav-item" id="comprasMenuItem">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>Compras</span>
+                    <i class="fas fa-chevron-down submenu-arrow"></i>
+                </a>
+                <div class="submenu" id="comprasSubmenu">
+                    <a href="../../compras/entrada-mercadoria.html" class="submenu-item">
+                        <span>Entrada de mercadoria</span>
+                    </a>
+                    <a href="../../compras/fornecedor.html" class="submenu-item">
+                        <span>Fornecedores</span>
+                    </a>
+                    <!-- Relatórios (toggle + nested) -->
+                    <div class="submenu-item" id="compBtnRelatorios" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Relatórios</span></a>
+                        <span id="compCaretRel" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="compSubRelatorios" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="#" class="submenu-item"><span>Entrada no período</span></a>
+                        <a href="#" class="submenu-item"><span>Entrada por produto</span></a>
+                        <a href="#" class="submenu-item"><span>Sugestão de compra</span></a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="nav-item-with-submenu">
+                <a href="#" class="nav-item" id="financeiroMenuItem">
+                    <i class="fas fa-dollar-sign"></i>
+                    <span>Financeiro</span>
+                    <i class="fas fa-chevron-down submenu-arrow"></i>
+                </a>
+                <div class="submenu" id="financeiroSubmenu">
+                    <!-- Contas a receber (toggle) -->
+                    <div class="submenu-item" id="finBtnReceber" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="" style="flex:1;text-decoration:none;color:inherit;"><span>Contas a receber</span></a>
+                        <span id="finCaretReceber" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="finSubReceber" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../../financeiro/contas-a-receber/recebimento-cliente.html" class="submenu-item"><span>Recebimento de cliente</span></a>
+                    </div>
+
+                    <!-- Contas a pagar (toggle) -->
+                    <div class="submenu-item" id="finBtnPagar" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Contas a pagar</span></a>
+                        <span id="finCaretPagar" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="finSubPagar" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../../financeiro/contas-a-receber/contas-a-pagar/pagamento-fornecedor.html" class="submenu-item"><span>Pagamento de fornecedor</span></a>
+                    </div>
+
+                    <!-- Conta (toggle) -->
+                    <!--<div class="submenu-item" id="finBtnConta" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Conta</span></a>
+                        <span id="finCaretConta" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="finSubConta" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../../financeiro/contas-a-receber/conta/minha-conta.html" class="submenu-item"><span>Minhas Contas</span></a>
+                        <a href="../../financeiro/contas-a-receber/conta/movimento-conta.html" class="submenu-item"><span>Movimento de conta</span></a>
+                        <a href="../../financeiro/contas-a-receber/conta/banco.html" class="submenu-item"><span>Banco</span></a>
+                        <a href="../../financeiro/contas-a-receber/conta/historico-padrao.html" class="submenu-item"><span>Histórico padrão</span></a>
+                    </div>-->
+
+                    <!--<a href="#" class="submenu-item">
+                        <span>Cheque</span>
+                    </a>-->
+
+                    <!-- Cartão (toggle) -->
+                    <!--<div class="submenu-item" id="finBtnCartao" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Cartão</span></a>
+                        <span id="finCaretCartao" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="finSubCartao" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="#" class="submenu-item"><span>Operadora de cartão</span></a>
+                        <a href="#" class="submenu-item"><span>Recebimento da operadora de cartão</span></a>
+                    </div>-->
+
+                    <!--<a href="#" class="submenu-item">
+                        <span>Condição de pagamento</span>
+                    </a>-->
+
+                    <!-- Relatórios (toggle) -->
+                    <!--<div class="submenu-item" id="finBtnRelatorios" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Relatórios</span></a>
+                        <span id="finCaretRel" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="finSubRelatorios" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="../../financeiro/relatorio/a-receber.html" class="submenu-item"><span>A receber</span></a>
+                        <a href="../../financeiro/relatorio/recebimentos.html" class="submenu-item"><span>Recebimentos</span></a>
+                        <a href="../../financeiro/relatorio/documentos-a-receber.html" class="submenu-item"><span>Documentos a receber emitidos</span></a>
+                        <a href="../../financeiro/relatorio/a-pagar.html" class="submenu-item"><span>A pagar</span></a>
+                        <a href="../../financeiro/relatorio/pagamentos.html" class="submenu-item"><span>Pagamentos</span></a>
+                        <a href="../../financeiro/relatorio/custos-adquiridos.html" class="submenu-item"><span>Custos adquiridos</span></a>
+                        <a href="../../financeiro/relatorio/custos-pagos.html" class="submenu-item"><span>Custos pagos</span></a>
+                        <a href="../../financeiro/relatorio/despesas-emitidas.html" class="submenu-item"><span>Despesas emitidas</span></a>
+                        <a href="../../financeiro/relatorio/extrato.html" class="submenu-item"><span>Extrato</span></a>
+                        <a href="../../financeiro/relatorio/movimentacao-historico.html" class="submenu-item"><span>Movimentação por Histórico</span></a>
+                        <a href="" class="submenu-item"><span>Cheque</span></a>
+                        <a href="" class="submenu-item"><span>Cartão</span></a>
+                    </div>-->
+                </div>
+            </div>
+            
+            <div class="nav-item-with-submenu">
+                <a href="#" class="nav-item" id="configuracaoMenuItem">
+                    <i class="fas fa-cog"></i>
+                    <span>Configuração</span>
+                    <i class="fas fa-chevron-down submenu-arrow"></i>
+                </a>
+                <div class="submenu" id="configuracaoSubmenu">
+                    <a href="../../configuracoes/empresa.html" class="submenu-item">
+                        <span>Empresa</span>
+                    </a>
+                    <a href="../../configuracoes/usuario.html" class="submenu-item">
+                        <span>Usuário</span>
+                    </a>
+                    <a href="../../configuracoes/grupo-usuario.html" class="submenu-item">
+                        <span>Grupo de usuário</span>
+                    </a>
+                    <a href="../../configuracoes/profissional.html" class="submenu-item">
+                        <span>Profissional</span>
+                    </a>
+                    <!--<a href="../../configuracoes/permissoes.html" class="submenu-item">
+                        <span>Permissões</span>
+                    </a>-->
+                    <a href="../../configuracoes/centro-resultado.html" class="submenu-item">
+                        <span>Centro de resultado</span>
+                    </a>
+                    <a href="../../configuracoes/categoria-financeira.html" class="submenu-item">
+                        <span>Categoria financeira</span>
+                    </a>
+                    <!--<a href="../../configuracoes/tipo-documento.html" class="submenu-item">
+                        <span>Tipo de documento</span>
+                    </a>-->
+                    <!--<a href="../../configuracoes/configuracoes-gerais.html" class="submenu-item">
+                        <span>Configurações Gerais</span>
+                    </a>-->
+                    <!--<a href="../../configuracoes/pdv.html" class="submenu-item">
+                        <span>PDV</span>
+                    </a>-->
+                    <!--<a href="../../configuracoes/formularios.html" class="submenu-item">
+                        <span>Formulários</span>
+                    </a>-->
+                    <!--<a href="../../configuracoes/feriado.html" class="submenu-item">
+                        <span>Feriado</span>
+                    </a>-->
+                    <!--<a href="../../configuracoes/ip.html" class="submenu-item">
+                        <span>IP</span>
+                    </a>-->
+                    <a href="../../configuracoes/cores.html" class="submenu-item">
+                        <span>Cores</span>
+                    </a>
+                    <a href="/configuracoes/configuracao-fiscal.html" class="submenu-item">
+                      <span>Configuração Fiscal</span>
+                    </a>
+                    <a href="/fiscal/central-fiscal.html" class="submenu-item">
+                      <span>Central Fiscal</span>
+                    </a>
+                </div>
+            </div>
+        </nav>
+    </div>
+
+    <script src="../../dashboard.js"></script>
+    <script src="../../logo-manager.js"></script>
+    
+    <script>
+        /* Styles para toasts (injetados aqui para simplicidade) */
+        (function(){
+            var css = '\n#globalToastContainer{position:fixed;top:18px;right:18px;z-index:99999;display:flex;flex-direction:column;gap:10px;align-items:flex-end}\n.gh-toast{min-width:220px;max-width:420px;padding:10px 14px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,0.12);opacity:0;transform:translateY(-6px) scale(0.98);transition:all 260ms ease;color:#0b3a1b;font-weight:600;font-family:inherit;border:1px solid rgba(0,0,0,0.06)}\n.gh-toast.visible{opacity:1;transform:translateY(0) scale(1)}\n.gh-toast.success{background:linear-gradient(180deg,#f0fff4,#e9fff1);border-color:#c7f0d0;color:#0b3a1b}\n.gh-toast.error{background:linear-gradient(180deg,#fff5f5,#fff1f1);border-color:#f2c0c0;color:#5a1b1b}\n.gh-toast.info{background:#f3f6ff;border-color:#d6defe;color:#092a66}\n';
+            var s = document.createElement('style'); s.appendChild(document.createTextNode(css)); document.head.appendChild(s);
+        })();
+    // Toggle para submenu aninhado à esquerda (Item -> Novo)
+    (function(){
+        var leftBtn = document.getElementById('leftBtnNovo');
+        var leftSub = document.getElementById('leftSubNovo');
+        var leftCaret = document.getElementById('leftCaretNovo');
+        if(leftBtn && leftSub){
+            leftBtn.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = leftSub.style.display === 'block' || leftSub.style.display === 'flex';
+                leftSub.style.display = open ? 'none' : 'block';
+                if(leftCaret) leftCaret.innerText = open ? '▼' : '▲';
+            });
+        }
+        // Toggle para submenu aninhado Estoque
+        var leftBtnEst = document.getElementById('leftBtnEstoque');
+        var leftSubEst = document.getElementById('leftSubEstoque');
+        var leftCaretEst = document.getElementById('leftCaretEstoque');
+        if(leftBtnEst && leftSubEst){
+            leftBtnEst.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = leftSubEst.style.display === 'block' || leftSubEst.style.display === 'flex';
+                leftSubEst.style.display = open ? 'none' : 'block';
+                if(leftCaretEst) leftCaretEst.innerText = open ? '▼' : '▲';
+            });
+        }
+        // Toggle para submenu aninhado Clínica
+        var leftBtnClin = document.getElementById('leftBtnClinica');
+        var leftSubClin = document.getElementById('leftSubClinica');
+        var leftCaretClin = document.getElementById('leftCaretClinica');
+        if(leftBtnClin && leftSubClin){
+            leftBtnClin.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = leftSubClin.style.display === 'block' || leftSubClin.style.display === 'flex';
+                leftSubClin.style.display = open ? 'none' : 'block';
+                if(leftCaretClin) leftCaretClin.innerText = open ? '▼' : '▲';
+            });
+        }
+        // Toggle para submenus em Atendimento: Vendas, Caixa, Relatórios
+        var attBtnVendas = document.getElementById('attBtnVendas');
+        var attSubVendas = document.getElementById('attSubVendas');
+        var attCaretVendas = document.getElementById('attCaretVendas');
+        if(attBtnVendas && attSubVendas){
+            attBtnVendas.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = attSubVendas.style.display === 'block' || attSubVendas.style.display === 'flex';
+                attSubVendas.style.display = open ? 'none' : 'block';
+                if(attCaretVendas) attCaretVendas.innerText = open ? '▼' : '▲';
+            });
+        }
+
+        var attBtnCaixa = document.getElementById('attBtnCaixa');
+        var attSubCaixa = document.getElementById('attSubCaixa');
+        var attCaretCaixa = document.getElementById('attCaretCaixa');
+        if(attBtnCaixa && attSubCaixa){
+            attBtnCaixa.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = attSubCaixa.style.display === 'block' || attSubCaixa.style.display === 'flex';
+                attSubCaixa.style.display = open ? 'none' : 'block';
+                if(attCaretCaixa) attCaretCaixa.innerText = open ? '▼' : '▲';
+            });
+        }
+
+        var attBtnRel = document.getElementById('attBtnRelatorios');
+        var attSubRel = document.getElementById('attSubRelatorios');
+        var attCaretRel = document.getElementById('attCaretRel');
+        if(attBtnRel && attSubRel){
+            attBtnRel.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = attSubRel.style.display === 'block' || attSubRel.style.display === 'flex';
+                attSubRel.style.display = open ? 'none' : 'block';
+                if(attCaretRel) attCaretRel.innerText = open ? '▼' : '▲';
+            });
+        }
+        // Toggle para submenu aninhado em Compras: Relatórios
+        var compBtnRel = document.getElementById('compBtnRelatorios');
+        var compSubRel = document.getElementById('compSubRelatorios');
+        var compCaretRel = document.getElementById('compCaretRel');
+        if(compBtnRel && compSubRel){
+            compBtnRel.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = compSubRel.style.display === 'block' || compSubRel.style.display === 'flex';
+                compSubRel.style.display = open ? 'none' : 'block';
+                if(compCaretRel) compCaretRel.innerText = open ? '▼' : '▲';
+            });
+        }
+        // Toggle para submenus em Financeiro
+        var finBtnReceber = document.getElementById('finBtnReceber');
+        var finSubReceber = document.getElementById('finSubReceber');
+        var finCaretReceber = document.getElementById('finCaretReceber');
+        if(finBtnReceber && finSubReceber){
+            finBtnReceber.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = finSubReceber.style.display === 'block' || finSubReceber.style.display === 'flex';
+                finSubReceber.style.display = open ? 'none' : 'block';
+                if(finCaretReceber) finCaretReceber.innerText = open ? '▼' : '▲';
+            });
+        }
+
+        var finBtnPagar = document.getElementById('finBtnPagar');
+        var finSubPagar = document.getElementById('finSubPagar');
+        var finCaretPagar = document.getElementById('finCaretPagar');
+        if(finBtnPagar && finSubPagar){
+            finBtnPagar.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = finSubPagar.style.display === 'block' || finSubPagar.style.display === 'flex';
+                finSubPagar.style.display = open ? 'none' : 'block';
+                if(finCaretPagar) finCaretPagar.innerText = open ? '▼' : '▲';
+            });
+        }
+
+        var finBtnConta = document.getElementById('finBtnConta');
+        var finSubConta = document.getElementById('finSubConta');
+        var finCaretConta = document.getElementById('finCaretConta');
+        if(finBtnConta && finSubConta){
+            finBtnConta.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = finSubConta.style.display === 'block' || finSubConta.style.display === 'flex';
+                finSubConta.style.display = open ? 'none' : 'block';
+                if(finCaretConta) finCaretConta.innerText = open ? '▼' : '▲';
+            });
+        }
+
+        var finBtnCartao = document.getElementById('finBtnCartao');
+        var finSubCartao = document.getElementById('finSubCartao');
+        var finCaretCartao = document.getElementById('finCaretCartao');
+        if(finBtnCartao && finSubCartao){
+            finBtnCartao.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = finSubCartao.style.display === 'block' || finSubCartao.style.display === 'flex';
+                finSubCartao.style.display = open ? 'none' : 'block';
+                if(finCaretCartao) finCaretCartao.innerText = open ? '▼' : '▲';
+            });
+        }
+
+        var finBtnRel = document.getElementById('finBtnRelatorios');
+        var finSubRel = document.getElementById('finSubRelatorios');
+        var finCaretRel = document.getElementById('finCaretRel');
+        if(finBtnRel && finSubRel){
+            finBtnRel.addEventListener('click', function(e){
+                e.preventDefault(); e.stopPropagation();
+                var open = finSubRel.style.display === 'block' || finSubRel.style.display === 'flex';
+                finSubRel.style.display = open ? 'none' : 'block';
+                if(finCaretRel) finCaretRel.innerText = open ? '▼' : '▲';
+            });
+        }
+        
+        // fechar ao clicar em outro lugar da sidebar (mantém outras opções)
+        document.addEventListener('click', function(e){
+            if(!e.target.closest('#itemSubmenu')){
+                if(leftSub) leftSub.style.display = 'none';
+                if(leftCaret) leftCaret.innerText = '▼';
+                // também fechar o submenu pai (#itemSubmenu) se estiver aberto
+                try{
+                    var parentSub = document.getElementById('itemSubmenu');
+                    if(parentSub){
+                        if(parentSub.classList && parentSub.classList.contains('open')){
+                            parentSub.classList.remove('open');
+                            try{ restoreSubmenu(parentSub); }catch(e){}
+                        } else {
+                            parentSub.style.display = 'none';
+                        }
+                    }
+                }catch(e){console.warn('Erro ao fechar submenu pai', e);}
+            }
+        });
+    })();
+    </script>
+    <script>
+    // Handler global de click fora que fecha dropdowns e painéis abertos
+    (function(){
+        function closeAllMenus(){
+            try{
+                var leftSub = document.getElementById('leftSubNovo');
+                var leftCaret = document.getElementById('leftCaretNovo');
+                if(leftSub) leftSub.style.display = 'none';
+                if(leftCaret) leftCaret.innerText = '▼';
+                // reset carets dos submenus de Atendimento
+                try{ var aV = document.getElementById('attCaretVendas'); if(aV) aV.innerText = '▼'; }catch(e){}
+                try{ var aC = document.getElementById('attCaretCaixa'); if(aC) aC.innerText = '▼'; }catch(e){}
+                try{ var aR = document.getElementById('attCaretRel'); if(aR) aR.innerText = '▼'; }catch(e){}
+                // reset caret do submenu de Compras -> Relatórios
+                try{ var cR = document.getElementById('compCaretRel'); if(cR) cR.innerText = '▼'; }catch(e){}
+                // reset carets dos submenus de Financeiro
+                try{ var fR1 = document.getElementById('finCaretReceber'); if(fR1) fR1.innerText = '▼'; }catch(e){}
+                try{ var fR2 = document.getElementById('finCaretPagar'); if(fR2) fR2.innerText = '▼'; }catch(e){}
+                try{ var fR3 = document.getElementById('finCaretConta'); if(fR3) fR3.innerText = '▼'; }catch(e){}
+                try{ var fR4 = document.getElementById('finCaretCartao'); if(fR4) fR4.innerText = '▼'; }catch(e){}
+                try{ var fR5 = document.getElementById('finCaretRel'); if(fR5) fR5.innerText = '▼'; }catch(e){}
+
+                // fechar todos os .submenu e remover classe open
+                document.querySelectorAll('.submenu').forEach(function(s){
+                    try{ s.classList.remove('open'); }catch(e){}
+                    try{ restoreSubmenu(s); }catch(e){}
+                    s.style.display = 'none';
+                });
+
+                // remover open dos containers
+                document.querySelectorAll('.nav-item-with-submenu.open').forEach(function(c){ c.classList.remove('open'); });
+
+                // fechar painéis
+                document.querySelectorAll('.panel').forEach(function(p){ p.style.display = 'none'; });
+            }catch(e){ console.warn('closeAllMenus error', e); }
+        }
+
+        document.addEventListener('click', function(ev){
+            // esperar handlers internos processarem (por exemplo, abrir menus)
+            setTimeout(function(){
+                // se o clique ocorreu dentro da sidebar ou dentro de um submenu/painel, não fecha
+                if(ev.target.closest('.sidebar') || ev.target.closest('.submenu') || ev.target.closest('.panel')) return;
+                closeAllMenus();
+            }, 20);
+        });
+    })();
+    </script>
+    
+    <!-- Pedido de Venda: toast simples (azul claro) -->
+    <style>
+        .pedido-toast-container{position:fixed;top:18px;right:18px;display:flex;flex-direction:column;gap:8px;z-index:99999;pointer-events:none}
+        .pedido-toast{pointer-events:auto;background:linear-gradient(180deg,#e8f6ff,#d3efff);color:#023047;padding:10px 14px;border-radius:8px;box-shadow:0 8px 24px rgba(2,16,26,0.12);min-width:220px;max-width:380px;font-weight:300;opacity:0;transform:translateY(-6px) scale(0.98);transition:opacity .18s,transform .18s}
+    </style>
+    <script>
+    (function(){
+        if(window.__pedidoToastInstalled) return; window.__pedidoToastInstalled = true;
+        function showPedidoToast(message){
+            var c = document.querySelector('.pedido-toast-container');
+            if(!c){ c = document.createElement('div'); c.className = 'pedido-toast-container'; document.body.appendChild(c); }
+            var t = document.createElement('div'); t.className = 'pedido-toast'; t.textContent = message; c.appendChild(t);
+            requestAnimationFrame(function(){ t.style.opacity = '1'; t.style.transform = 'none'; });
+            setTimeout(function(){ t.style.opacity = '0'; t.style.transform = 'translateY(-6px) scale(0.98)'; setTimeout(function(){ try{ t.remove(); }catch(e){} },220); }, 5000);
+        }
+
+        document.addEventListener('click', function(e){
+            try{
+                var a = e.target && e.target.closest && e.target.closest('a');
+                if(!a) return;
+                var txt = (a.textContent||'').trim();
+                var href = a.getAttribute && (a.getAttribute('href')||'');
+                if(txt === 'Pedido de Venda' || (href && href.indexOf('pedido-venda') !== -1)){
+                    e.preventDefault(); e.stopPropagation();
+                    showPedidoToast('Pedido de Venda ainda está sendo desenvolvido');
+                }
+            }catch(err){/* silencioso */}
+        }, true); // usar capture para garantir execução antes de handlers que fazem stopPropagation
+    })();
+    </script>
+
+    <script src="/frontend/inject-sidebar.js"></script>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-left">
+        <button class="menu-toggle">
+          <i class="fas fa-bars"></i>
+        </button>
+        <h1>Medicamentos</h1>
+      </div>
+      
+      <div class="header-right">
+        <div class="calendar-widget">
+          <button class="btn-calendar" id="calendarioWidget" onclick="abrirCalendarioSidebar()">
+            <i class="fas fa-calendar"></i>
+          </button>
+        </div>
+        
+        <div class="dropdown">
+          <button class="btn-primary dropdown-toggle" id="inicioRapidoBtn">
+            <i class="fas fa-plus"></i>
+            Início Rápido
+            <i class="fas fa-chevron-down"></i>
+          </button>
+          <div class="dropdown-menu" id="inicioRapidoMenu">
+            <a href="/agendamentos-novo.html" class="dropdown-item">
+              <i class="fas fa-calendar-plus"></i>
+              Novo Atendimento
+            </a>
+            <a href="/pets/cadastro-pet.html" class="dropdown-item" onclick="novoPet()">
+              <i class="fas fa-dog"></i>
+              Novo Pet
+            </a>
+            <a href="/novo-cliente.html" class="dropdown-item" onclick="novoCliente()">
+              <i class="fas fa-user-plus"></i>
+              Novo Cliente
+            </a>
+            <!--<a
+                href="/atendimento/novo-contrato.html"
+                class="dropdown-item"
+                onclick="novoContrato()"
+              >
+                <i class="fas fa-file-contract"></i>
+                Novo Contrato
+              </a><-->
+            <a href="/atendimento/nova-venda.html" class="dropdown-item" onclick="novaVenda()">
+              <i class="fas fa-shopping-bag"></i>
+              Nova Venda
+            </a>
+            <a href="../../financeiro/contas-a-receber/contas-a-pagar/pagamento-fornecedor.html" class="dropdown-item" onclick="novaContaPagar()">
+              <i class="fas fa-credit-card"></i>
+              Nova Conta a Pagar
+            </a>
+          </div>
+        </div>
+        
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input type="text" placeholder="Pesquisar por menu">
+        </div>
+        
+        <div class="user-menu">
+          <i class="fas fa-user-circle"></i>
+          <span>...</span>
+        </div>
+      </div>
+    </header>
+    <!-- Fim do bloco a ser copiado -->
+
+    <!-- Conteúdo da página Medicamentos -->
+    <div class="page-content medicamentos-page">
+      <div class="medicamentos-header">
+        <h1 class="page-title"></h1>
+        <div class="header-actions">
+          <button class="btn btn-primary" id="btnAdicionarMedicamento">
+            <i class="fas fa-plus"></i> Adicionar Medicamento
+          </button>
+          <button class="btn btn-secondary" id="btnMais">
+            <i class="fas fa-ellipsis-v"></i> Mais
+          </button>
+        </div>
+      </div>
+
+      <div class="medicamentos-search-area">
+        <div class="search-container-med">
+          <input 
+            type="text" 
+            id="searchMedicamentos" 
+            placeholder="Você pode pesquisar pela descrição"
+            class="search-input-med"
+          >
+          <button class="btn-search-med" id="btnPesquisar">
+            <i class="fas fa-search"></i> Pesquisar
+          </button>
+        </div>
+      </div>
+
+      <div class="medicamentos-table-container">
+        <table class="medicamentos-table">
+          <thead>
+            <tr>
+              <th>Código</th>
+              <th>Nome Comercial</th>
+              <th>Controlado</th>
+              <th>Ativo</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="medicamentosTableBody">
+            <!-- Dados serão inseridos via JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+    <!-- Modal Adicionar Medicamento -->
+    <div id="modalAdicionarMedicamento" class="modal-backdrop" aria-hidden="true">
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalMedicamentoTitle">
+            <div class="modal-header">
+                <h3 id="modalMedicamentoTitle">Novo Medicamento</h3>
+                <button id="modalCloseBtn" class="btn" aria-label="Fechar">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-left">
+                    <div class="form-row">
+                        <div class="form-field" style="flex:2">
+                            <label>Nome Comercial <span style="color:#d00">*</span></label>
+                            <input type="text" id="medNomeComercial" />
+                        </div>
+                            <div class="form-field" style="flex:0 0 140px">
+                            <label>Ativo</label>
+                            <div id="medToggleAtivo" class="toggle-group">
+                                <button type="button" class="toggle-btn active" data-target="ativo">Sim</button>
+                                <button type="button" class="toggle-btn" data-target="ativo">Não</button>
+                            </div>
+                            <input type="hidden" id="medAtivoValue" value="sim" />
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label>Tipo Farmácia</label>
+                            <select id="medTipoFarmacia"><option>Veterinária</option><option>Humana</option></select>
+                        </div>
+                        <div class="form-field" style="flex:0 0 140px">
+                            <label>Controlado</label>
+                            <div id="medToggleControlado" class="toggle-group">
+                                <button type="button" class="toggle-btn" data-target="controlado">Sim</button>
+                                <button type="button" class="toggle-btn active" data-target="controlado">Não</button>
+                            </div>
+                            <input type="hidden" id="medControladoValue" value="Não" />
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label>Princípio Ativo</label>
+                            <input type="text" id="medPrincipioAtivo" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-right">
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label>Forma Farmacêutica</label>
+                            <input type="text" id="medForma" />
+                        </div>
+                        <div class="form-field">
+                            <label>Apresentação</label>
+                            <input type="text" id="medApresentacao" />
+                        </div>
+                        <div class="form-field">
+                            <label>Via Adm.</label>
+                            <input type="text" id="medVia" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="modalSaveBtn" class="btn btn-primary">Salvar</button>
+                <button id="modalCancelBtn" class="btn btn-secondary">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script do menu (copiar para sua página) -->
+    <script>
+        // Stub rápido para showToast caso scripts externos chamem antes da definição completa.
+        if(!window.showToast){
+            window.showToast = function(message, type, timeout){
+                try{
+                    timeout = typeof timeout === 'number' ? timeout : 4000;
+                    var container = document.getElementById('globalToastContainer');
+                    if(!container){ container = document.createElement('div'); container.id = 'globalToastContainer'; document.body.appendChild(container); }
+                    var t = document.createElement('div'); t.className = 'gh-toast ' + (type || 'info'); t.textContent = message || '';
+                    container.appendChild(t);
+                    void t.offsetWidth; t.classList.add('visible');
+                    setTimeout(function(){ t.classList.remove('visible'); setTimeout(function(){ try{ container.removeChild(t); }catch(e){} }, 300); }, timeout);
+                }catch(e){ try{ alert(message); }catch(_){ console.error('showToast stub failed', e, _); } }
+            };
+        }
+        if(!window.showNotification){ window.showNotification = function(msg, type){ try{ window.showToast(msg, type, 4500); }catch(e){ try{ alert(msg); }catch(_){} } } }
+    </script>
+    <script src="./medicamentos.js"></script>
+        <!-- Modal de confirmação de exclusão (estilo do sistema, centralizado) -->
+        <div id="confirmDeleteModal" class="modal-backdrop" aria-hidden="true">
+            <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="confirmDeleteTitle" style="width:420px; max-width:calc(100% - 48px);">
+                <div class="modal-header">
+                    <h3 id="confirmDeleteTitle">Confirmar exclusão</h3>
+                </div>
+                <div class="modal-body">
+                    <p id="confirmDeleteMessage" style="color:#333; font-size:15px;">Tem certeza que deseja excluir este item?</p>
+                </div>
+                <div class="modal-footer" style="justify-content:center; gap:12px;">
+                    <button type="button" id="confirmDeleteCancelBtn" class="btn btn-secondary">Cancelar</button>
+                    <button type="button" id="confirmDeleteBtn" class="btn btn-danger">Excluir</button>
+                </div>
+            </div>
+        </div>
+    <script>
+        // Modal handler: abrir/fechar e comportamento básico
+        (function(){
+            var btn = document.getElementById('btnAdicionarMedicamento');
+            var modal = document.getElementById('modalAdicionarMedicamento');
+            var close = document.getElementById('modalCloseBtn');
+            var cancel = document.getElementById('modalCancelBtn');
+            var save = document.getElementById('modalSaveBtn');
+
+            function openModal(){ 
+                if(!modal) return;
+                // se não estamos em modo edição, resetar campos para novo item
+                try{
+                    if(!(modal.dataset && (modal.dataset.editing || modal.dataset.editingLocal))){
+                        resetModalFields();
+                    }
+                }catch(e){}
+                modal.classList.add('open');
+                modal.setAttribute('aria-hidden','false');
+                // focar primeiro campo para evitar que um botão permaneça com foco enquanto aria-hidden=true
+                try{ var first = modal.querySelector('input,select,button,textarea,[tabindex]'); if(first && typeof first.focus === 'function') first.focus(); }catch(e){}
+            }
+
+            // Reseta todos os campos do modal para o estado de "Novo Medicamento"
+            function resetModalFields(){
+                try{
+                    if(!modal) return;
+                    // limpar inputs, selects e textareas
+                    Array.from(modal.querySelectorAll('input,select,textarea')).forEach(function(el){
+                        try{
+                            var t = el.type || '';
+                            if(t === 'checkbox' || t === 'radio'){ el.checked = false; }
+                            else el.value = '';
+                        }catch(e){}
+                    });
+                    // resetar toggles visuais e definir valores padrão
+                    Array.from(modal.querySelectorAll('.toggle-btn')).forEach(function(tb){ tb.classList.remove('active','negative'); });
+                    // ativo -> marcar 'Sim' por padrão
+                    try{
+                        var atGroup = modal.querySelector('#medToggleAtivo');
+                        if(atGroup){
+                            var atBtns = Array.from(atGroup.querySelectorAll('.toggle-btn'));
+                            if(atBtns.length){
+                                var btnSim = atBtns.find(function(b){ return /sim/i.test((b.textContent||'').trim()); }) || atBtns[0];
+                                btnSim.classList.add('active');
+                                var hv = modal.querySelector('#medAtivoValue'); if(hv) hv.value = 'sim';
+                            }
+                        }
+                    }catch(e){}
+                    // controlado -> marcar 'Não' por padrão
+                    try{
+                        var ctGroup = modal.querySelector('#medToggleControlado');
+                        if(ctGroup){
+                            var ctBtns = Array.from(ctGroup.querySelectorAll('.toggle-btn'));
+                            if(ctBtns.length){
+                                var btnNao = ctBtns.find(function(b){ return /n[aã]o|nao/i.test((b.textContent||'').trim()); }) || ctBtns[0];
+                                btnNao.classList.add('active','negative');
+                                var hc = modal.querySelector('#medControladoValue'); if(hc) hc.value = 'Não';
+                            }
+                        }
+                    }catch(e){}
+                    // ajustar texto do título
+                    try{ var tit = modal.querySelector('#modalMedicamentoTitle'); if(tit) tit.textContent = 'Novo Medicamento'; }catch(e){}
+                    // remover flags de edição (caso tenham sobrado)
+                    try{ if(modal.dataset){ delete modal.dataset.editing; delete modal.dataset.editingLocal; delete modal.dataset.editingName; } }catch(e){}
+                }catch(e){ console.debug('[medicamentos] falha ao resetar modal', e); }
+            }
+
+            // Função de toast global (mensagens no canto superior direito)
+            function showToast(message, type, timeout){
+                try{
+                    timeout = typeof timeout === 'number' ? timeout : 4000;
+                    var container = document.getElementById('globalToastContainer');
+                    if(!container){
+                        container = document.createElement('div');
+                        container.id = 'globalToastContainer';
+                        document.body.appendChild(container);
+                    }
+                    var t = document.createElement('div');
+                    t.className = 'gh-toast ' + (type || 'info');
+                    t.setAttribute('role','status');
+                    t.setAttribute('aria-live','polite');
+                    t.textContent = message || '';
+                    container.appendChild(t);
+                    // trigger reflow for animation
+                    void t.offsetWidth;
+                    t.classList.add('visible');
+                    setTimeout(function(){
+                        t.classList.remove('visible');
+                        setTimeout(function(){ try{ container.removeChild(t); }catch(e){} }, 300);
+                    }, timeout);
+                }catch(e){ console.debug('showToast error', e); }
+            }
+
+            function closeModal(){ 
+                if(!modal) return;
+                // mover foco para o botão que abriu o modal (se existir) antes de esconder
+                try{ if(btn && typeof btn.focus === 'function') btn.focus(); else document.body.focus(); }catch(e){}
+                modal.classList.remove('open');
+                modal.setAttribute('aria-hidden','true');
+            }
+
+            if(btn) btn.addEventListener('click', function(e){ e.preventDefault(); openModal(); });
+            // também reagir a evento disparado por outros scripts
+            document.addEventListener('abrirAdicionarMedicamento', function(){ openModal(); });
+            if(close) close.addEventListener('click', function(e){ e.preventDefault(); closeModal(); });
+            if(cancel) cancel.addEventListener('click', function(e){ e.preventDefault(); closeModal(); });
+            // Não fechar o modal ao clicar fora (requisito: modal permanece aberto)
+            // if(modal) modal.addEventListener('click', function(e){ if(e.target===modal) closeModal(); });
+
+            // toggles simples (aplica classe 'negative' quando o botão é 'Não' do grupo 'ativo' ou 'controlado')
+            document.addEventListener('click', function(e){
+                try{
+                    var btn = e.target && e.target.closest ? e.target.closest('.toggle-btn') : null;
+                    if(!btn) return;
+                    var group = btn.closest ? btn.closest('.toggle-group') : (btn.parentElement || null);
+                    if(!group) return;
+                    Array.from(group.querySelectorAll('.toggle-btn')).forEach(function(c){ c.classList.remove('active','negative'); });
+                    btn.classList.add('active');
+                    var target = btn.getAttribute && btn.getAttribute('data-target');
+                    var val = (btn.textContent||'').trim().toLowerCase();
+                    if((target === 'ativo' || target === 'controlado') && (val === 'não' || val === 'nao')){
+                        btn.classList.add('negative');
+                    }
+                    // atualizar hidden inputs correspondentes para leitura segura no save
+                    try{
+                        if(target === 'ativo'){
+                            var hv = document.getElementById('medAtivoValue');
+                            if(hv) hv.value = (/^sim$/i.test(val) ? 'sim' : 'nao');
+                        }
+                        if(target === 'controlado'){
+                            var hc = document.getElementById('medControladoValue');
+                            if(hc) hc.value = (/^sim$/i.test(val) ? 'Sim' : 'Não');
+                        }
+                    }catch(err){}
+                }catch(err){ /* silencioso */ }
+            });
+
+            // aplicar classe 'negative' para estados iniciais onde 'Não' já está ativo
+            try{
+                Array.from(document.querySelectorAll('.toggle-group')).forEach(function(group){
+                    Array.from(group.children).forEach(function(btn){
+                        try{
+                            var t = btn;
+                            if(t.classList.contains('active')){
+                                var target = t.getAttribute && t.getAttribute('data-target');
+                                var val = (t.textContent||'').trim().toLowerCase();
+                                if((target === 'ativo' || target === 'controlado') && (val === 'não' || val === 'nao')){
+                                    t.classList.add('negative');
+                                }
+                            }
+                        }catch(e){}
+                    });
+                });
+            }catch(e){}
+
+            // helper para normalizar valor do campo 'ativo' em boolean
+            function __ativoToBool(v){
+                try{
+                    if (v === true) return true;
+                    if (v === false) return false;
+                    var s = String(v||'').toLowerCase();
+                    return (s === 'sim' || s === 'true' || s === '1');
+                }catch(e){ return false; }
+            }
+
+            if(save){
+                save.addEventListener('click', function(){
+                    var nome = (document.getElementById('medNomeComercial')||{}).value||'';
+                    if(!nome){ alert('Nome Comercial é obrigatório'); return; }
+
+                    // coletar campos do modal
+                    var payload = (function(){
+                        var m = modal || document.getElementById('modalAdicionarMedicamento') || document;
+                        // debug: listar todos os botões de toggle e seu estado (grupos específicos)
+                        try{
+                            var at = Array.from((m.querySelectorAll ? m.querySelectorAll('#medToggleAtivo .toggle-btn') : []));
+                            at.forEach(function(tb){ console.debug('[medicamentos] toggle state (ativo):', { text: (tb.textContent||'').trim(), classes: tb.className }); });
+                        }catch(e){ console.debug('[medicamentos] falha ao listar toggles ativo para debug', e); }
+                        try{
+                            var ct = Array.from((m.querySelectorAll ? m.querySelectorAll('#medToggleControlado .toggle-btn') : []));
+                            ct.forEach(function(tb){ console.debug('[medicamentos] toggle state (controlado):', { text: (tb.textContent||'').trim(), classes: tb.className }); });
+                        }catch(e){ console.debug('[medicamentos] falha ao listar toggles controlado para debug', e); }
+                        return {
+                            nome: nome,
+                            ativo: (m.querySelector('#medAtivoValue')||{}).value || ( (m.querySelector('#medToggleAtivo .toggle-btn.active')) ? ( (/(n[aã]o|nao)/i.test((m.querySelector('#medToggleAtivo .toggle-btn.active').textContent||'') ) ) ? 'nao' : 'sim' ) : 'sim' ),
+                            controlado: (m.querySelector('#medControladoValue')||{}).value || ( (m.querySelector('#medToggleControlado .toggle-btn.active')) ? ( (/(n[aã]o|nao)/i.test((m.querySelector('#medToggleControlado .toggle-btn.active').textContent||'') ) ) ? 'Não' : 'Sim' ) : 'Não' ),
+                            tipoFarmacia: (m.querySelector('#medTipoFarmacia')||{}).value||'',
+                            principioAtivo: (m.querySelector('#medPrincipioAtivo')||{}).value||'',
+                            formaFarmaceutica: (m.querySelector('#medForma')||{}).value||'',
+                            apresentacao: (m.querySelector('#medApresentacao')||{}).value||'',
+                            viaAdministracao: (m.querySelector('#medVia')||{}).value||'',
+                            agrupamento: 'MEDICAMENTOS',
+                            categoria: 'Medicamentos'
+                        };
+                    })();
+
+                    // detectar modo edição
+                    var editingId = modal && modal.dataset && modal.dataset.editing ? String(modal.dataset.editing) : null;
+                    var editingLocal = modal && modal.dataset && modal.dataset.editingLocal ? String(modal.dataset.editingLocal) : null;
+                    var url = editingId ? ('/api/itens/' + editingId) : '/api/itens';
+                    var method = editingId ? 'PUT' : 'POST';
+
+                    console.debug('[medicamentos] save request (pre)', { editingId: editingId, editingLocal: editingLocal, method: method, payload: payload });
+
+                    function doSend(finalUrl, finalMethod){
+                        // garantir que pegamos o valor efetivo do hidden antes de enviar
+                        try{
+                            var hv = document.getElementById('medAtivoValue');
+                            if(hv && hv.value) { payload.ativo = hv.value; }
+                            console.log('[medicamentos] enviando (stringified)', JSON.stringify(payload));
+                        }catch(e){ console.log('[medicamentos] enviando (obj)', { url: finalUrl, method: finalMethod, payload: payload }); }
+                        fetch(finalUrl, {
+                            method: finalMethod,
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        }).then(function(res){
+                            if(!res.ok) return res.json().then(function(err){ throw new Error(err && err.error ? err.error : 'Erro ao salvar'); });
+                            return res.json();
+                        }).then(function(result){
+                            try{ console.log('[medicamentos] save response -> ativo recebido:', result && result.ativo, 'full result:', result); }catch(e){ console.debug('[medicamentos] save response', { editingId: editingId, editingLocal: editingLocal, method: finalMethod, result: result }); }
+                            // Garantir atualização imediata do campo `ativo` no array local (robustez)
+                            try{
+                                var forcedAtivo = (typeof result.ativo !== 'undefined') ? __ativoToBool(result.ativo) : __ativoToBool(payload.ativo);
+                                if(Array.isArray(medicamentosData) && (result && (result.id || result.codigo || result.nome))){
+                                    for(var z=0; z<medicamentosData.length; z++){
+                                        try{
+                                            var mm = medicamentosData[z];
+                                            if(!mm) continue;
+                                            var match = false;
+                                            if(result.id && String(mm.id) === String(result.id)) match = true;
+                                            if(!match && result.codigo && String(mm.codigo) === String(result.codigo)) match = true;
+                                            if(!match && result.nome && String(mm.nome||'').trim().toLowerCase() === String(result.nome||'').trim().toLowerCase()) match = true;
+                                            if(match){ mm.ativo = forcedAtivo; console.debug('[medicamentos] atualizado local ativo for', mm.codigo || mm.id, '=>', mm.ativo); }
+                                        }catch(e){}
+                                    }
+                                }
+                            }catch(e){ console.debug('[medicamentos] falha ao forcar update local ativo', e); }
+                            try{
+                            if(editingId){
+                                // atualizar item existente no array local
+                                var idx = -1;
+                                for(var i=0;i<medicamentosData.length;i++){
+                                    var m = medicamentosData[i];
+                                    if(String(m.id) === String(editingId) || String(m.codigo) === String(editingId)) { idx = i; break; }
+                                }
+                                if(idx !== -1){
+                                    var m = medicamentosData[idx];
+                                    m.nome = result.nome || payload.nome || m.nome;
+                                    m.controlado = result.controlado || payload.controlado || m.controlado;
+                                    m.ativo = (typeof result.ativo !== 'undefined') ? __ativoToBool(result.ativo) : __ativoToBool(payload.ativo);
+                                    m.principioAtivo = result.principioAtivo || payload.principioAtivo || m.principioAtivo;
+                                    m.formaFarmaceutica = result.formaFarmaceutica || payload.formaFarmaceutica || m.formaFarmaceutica || m.forma;
+                                    m.apresentacao = result.apresentacao || payload.apresentacao || m.apresentacao;
+                                    m.viaAdministracao = result.viaAdministracao || payload.viaAdministracao || m.viaAdministracao || m.via;
+                                    m.tipoFarmacia = result.tipoFarmacia || payload.tipoFarmacia || m.tipoFarmacia;
+                                } else {
+                                    // se não encontrou, inserir no topo
+                                    var codigo = result.codigo || result.id || String(Date.now()).slice(-6);
+                                    var medNew = { id: result.id || null, codigo: codigo, nome: result.nome || payload.nome, controlado: result.controlado || payload.controlado || 'Não', ativo: (typeof result.ativo !== 'undefined' ? __ativoToBool(result.ativo) : __ativoToBool(payload.ativo)), agrupamento: 'MEDICAMENTOS' };
+                                    medicamentosData.unshift(medNew);
+                                }
+                            } else if(editingLocal){
+                                // caso edição de item local (sem id): não inserir duplicado — atualizar o item local correspondente
+                                var localIdx = -1;
+                                for(var j=0;j<medicamentosData.length;j++){
+                                    var mm = medicamentosData[j];
+                                    if(String(mm.codigo) === String(editingLocal) || String(mm.id||'') === String(editingLocal)) { localIdx = j; break; }
+                                }
+                                if(localIdx !== -1){
+                                    var lm = medicamentosData[localIdx];
+                                    lm.nome = result.nome || payload.nome || lm.nome;
+                                    lm.controlado = result.controlado || payload.controlado || lm.controlado;
+                                    lm.ativo = (typeof result.ativo !== 'undefined') ? __ativoToBool(result.ativo) : __ativoToBool(payload.ativo);
+                                    lm.principioAtivo = result.principioAtivo || payload.principioAtivo || lm.principioAtivo;
+                                    lm.formaFarmaceutica = result.formaFarmaceutica || payload.formaFarmaceutica || lm.formaFarmaceutica || lm.forma;
+                                    lm.apresentacao = result.apresentacao || payload.apresentacao || lm.apresentacao;
+                                    lm.viaAdministracao = result.viaAdministracao || payload.viaAdministracao || lm.viaAdministracao || lm.via;
+                                    lm.tipoFarmacia = result.tipoFarmacia || payload.tipoFarmacia || lm.tipoFarmacia;
+                                    // gravar id retornado pelo servidor, se houver
+                                    if(result.id) lm.id = result.id;
+                                } else {
+                                    // se não encontrar localmente, inserir como novo
+                                    var codigo2 = result.codigo || result.id || String(Date.now()).slice(-6);
+                                    medicamentosData.push({ id: result.id || null, codigo: codigo2, nome: result.nome || payload.nome, controlado: result.controlado || payload.controlado || 'Não', ativo: (typeof result.ativo !== 'undefined' ? __ativoToBool(result.ativo) : __ativoToBool(payload.ativo)), principioAtivo: result.principioAtivo || payload.principioAtivo || '', formaFarmaceutica: result.formaFarmaceutica || payload.formaFarmaceutica || '', apresentacao: result.apresentacao || payload.apresentacao || '', viaAdministracao: result.viaAdministracao || payload.viaAdministracao || '', tipoFarmacia: result.tipoFarmacia || payload.tipoFarmacia || '', agrupamento: 'MEDICAMENTOS' });
+                                }
+                            } else {
+                                // inserção normal
+                                var codigo = result.codigo || result.id || String(Date.now()).slice(-6);
+                                var med = { id: result.id || null, codigo: codigo, nome: result.nome || payload.nome, controlado: result.controlado || payload.controlado || 'Não', ativo: (typeof result.ativo !== 'undefined' ? __ativoToBool(result.ativo) : __ativoToBool(payload.ativo)), principioAtivo: result.principioAtivo || payload.principioAtivo || '', formaFarmaceutica: result.formaFarmaceutica || payload.formaFarmaceutica || '', apresentacao: result.apresentacao || payload.apresentacao || '', viaAdministracao: result.viaAdministracao || payload.viaAdministracao || '', tipoFarmacia: result.tipoFarmacia || payload.tipoFarmacia || '', agrupamento: 'MEDICAMENTOS' };
+                                try{ if(typeof medicamentosData !== 'undefined' && Array.isArray(medicamentosData)){ medicamentosData.push(med); } }
+                                catch(e){ console.warn('Não foi possível atualizar array local de medicamentos', e); }
+                            }
+                            try{ if(typeof renderizarTabelaMedicamentos === 'function') renderizarTabelaMedicamentos(); }catch(e){}
+
+                            // Quando um item é criado/atualizado com sucesso, remover qualquer bloqueio
+                            try{
+                                var unblockPayload = {};
+                                if(result && result.codigo) unblockPayload.codigo = result.codigo;
+                                if(result && result.nome) unblockPayload.nome = result.nome;
+                                if(Object.keys(unblockPayload).length){
+                                    try{
+                                        var q = [];
+                                        if(unblockPayload.codigo) q.push('codigo=' + encodeURIComponent(unblockPayload.codigo));
+                                        if(unblockPayload.nome) q.push('nome=' + encodeURIComponent(unblockPayload.nome));
+                                        var url = '/api/itens/blocked' + (q.length ? ('?' + q.join('&')) : '');
+                                        fetch(url, { method: 'DELETE' }).then(function(r){ if(r.ok) return r.json(); return r.text(); }).then(function(resp){ try{ console.debug('[medicamentos] unblock response', resp); }catch(e){}; try{ if(typeof renderizarTabelaMedicamentos === 'function') renderizarTabelaMedicamentos(); }catch(e){} }).catch(function(err){ console.warn('[medicamentos] falha ao remover bloqueio', err); });
+                                    }catch(e){ console.debug('[medicamentos] erro construindo unblock url', e); }
+                                }
+                            }catch(e){ console.debug('[medicamentos] erro ao tentar desbloquear item', e); }
+                            // Após salvar, recarregar lista do servidor para garantir persistência
+                            try{
+                                console.debug('[medicamentos] Atualizando lista do servidor após salvar');
+                                fetch('/api/itens').then(function(r){ if(!r.ok) return []; return r.json(); }).then(function(list){
+                                    try{
+                                        if(Array.isArray(list) && list.length){
+                                            // primeiro, tentar obter blocked list para filtrar itens que o usuário removeu localmente
+                                            fetch('/api/itens/blocked').then(function(br){ if(!br.ok) return []; return br.json(); }).then(function(blocked){
+                                                try{
+                                                    const blockedSetCodigo = new Set((blocked||[]).filter(b=>b.codigo).map(b=>String(b.codigo)));
+                                                    const blockedSetNome = new Set((blocked||[]).filter(b=>b.nome).map(b=>String(b.nome).trim().toLowerCase()));
+                                                    medicamentosData = list.filter(function(p){
+                                                        try{
+                                                            const agrup = String(p.agrupamento||p.categoria||'').toLowerCase();
+                                                            if(!(agrup.indexOf('medic') !== -1 || agrup.indexOf('med') !== -1)) return false;
+                                                            // excluir se estiver bloqueado por codigo ou nome
+                                                            if((p.codigo && blockedSetCodigo.has(String(p.codigo))) || (p.nome && blockedSetNome.has(String(p.nome).trim().toLowerCase()))) return false;
+                                                            return true;
+                                                        }catch(e){ return false; }
+                                                    });
+                                                    try{ if(typeof renderizarTabelaMedicamentos === 'function') renderizarTabelaMedicamentos(); }catch(e){}
+                                                    try{ window.location.reload(); }catch(e){}
+                                                }catch(e){ console.warn('[medicamentos] erro aplicando blocked filter', e); medicamentosData = list.filter(function(p){ try{ const agrup = String(p.agrupamento||p.categoria||'').toLowerCase(); return agrup.indexOf('medic') !== -1 || agrup.indexOf('med') !== -1; }catch(e){ return false; } }); try{ if(typeof renderizarTabelaMedicamentos === 'function') renderizarTabelaMedicamentos(); }catch(e){} try{ window.location.reload(); }catch(e){} }
+                                            }).catch(function(err){
+                                                // se falhar ao buscar blocked, aplicar filtro simplificado
+                                                console.warn('[medicamentos] falha ao obter blocked list, aplicando filtro simplificado', err);
+                                                medicamentosData = list.filter(function(p){ try{ const agrup = String(p.agrupamento||p.categoria||'').toLowerCase(); return agrup.indexOf('medic') !== -1 || agrup.indexOf('med') !== -1; }catch(e){ return false; } });
+                                                try{ if(typeof renderizarTabelaMedicamentos === 'function') renderizarTabelaMedicamentos(); }catch(e){}
+                                            });
+                                        } else {
+                                            try{ if(typeof renderizarTabelaMedicamentos === 'function') renderizarTabelaMedicamentos(); }catch(e){}
+                                            try{ window.location.reload(); }catch(e){}
+                                        }
+                                    }catch(e){ console.warn('[medicamentos] erro processando lista do servidor', e); }
+                                }).catch(function(err){ console.warn('[medicamentos] falha ao recarregar lista do servidor', err); });
+                            }catch(e){ console.debug('[medicamentos] falha ao atualizar lista após salvar', e); }
+                        }catch(e){ console.warn('Erro processando resposta do servidor:', e); }
+
+                        // fechar modal e resetar título/flag
+                        var wasEditing = editingId;
+                        closeModal();
+                        try{
+                            if(modal){
+                                try{ delete modal.dataset.editing; }catch(e){}
+                                try{ delete modal.dataset.editingLocal; }catch(e){}
+                                try{ delete modal.dataset.editingName; }catch(e){}
+                                var tit = modal.querySelector && modal.querySelector('#modalMedicamentoTitle'); if(tit) tit.textContent = 'Novo Medicamento';
+                                try{ resetModalFields(); }catch(e){}
+                            }
+                        }catch(e){}
+                        if(!wasEditing){ try{ showToast('Medicamento salvo com sucesso', 'success', 3500); }catch(e){ alert('Medicamento salvo com sucesso'); } }
+                        }).catch(function(err){
+                            console.error('Falha ao salvar medicamento:', err);
+                            try{ showToast('Falha ao salvar medicamento: ' + (err && err.message ? err.message : 'Erro desconhecido'), 'error', 6000); }
+                            catch(e){ alert('Falha ao salvar medicamento: ' + (err && err.message ? err.message : 'Erro desconhecido')); }
+                        });
+                    }
+
+                    // Se não temos editingId (PUT) mas temos editingLocal, tentar localizar no servidor um registro correspondente
+                    if(!editingId && editingLocal){
+                        // Priorizar busca por código quando editingLocal for apenas dígitos (evita muitos resultados por nome)
+                        var rawQ = (modal && modal.dataset && modal.dataset.editingName) ? modal.dataset.editingName : editingLocal;
+                        if (/^\d+$/.test(String(editingLocal))) rawQ = editingLocal;
+                        var q = encodeURIComponent(rawQ);
+                        fetch('/api/itens?q=' + q).then(function(r){
+                            if(!r.ok) return []; return r.json();
+                        }).then(function(list){
+                            try{
+                                if(Array.isArray(list) && list.length){
+                                    // procurar por correspondência por código ou nome exato
+                                    var found = list.find(function(p){
+                                        try{
+                                            if(String(p.id) && String(p.id) === String(editingLocal)) return true;
+                                            if(String(p.codigo) && String(p.codigo) === String(editingLocal)) return true;
+                                            if(String(p.nome||'').trim().toLowerCase() === String(modal.dataset.editingName||'').trim().toLowerCase()) return true;
+                                        }catch(e){}
+                                        return false;
+                                    });
+                                    if(found){
+                                        editingId = found.id || found.codigo;
+                                        var newUrl = '/api/itens/' + encodeURIComponent(editingId);
+                                        console.debug('[medicamentos] found server candidate, switching to PUT', { found: found, editingId: editingId });
+                                        return doSend('/api/itens/' + encodeURIComponent(editingId), 'PUT');
+                                    }
+                                }
+                            }catch(e){ console.warn('Erro buscando candidato no servidor', e); }
+                            // se não encontrou, seguir com criação (POST)
+                            return doSend(url, method);
+                        }).catch(function(e){
+                            console.warn('Erro ao buscar candidato no servidor, prosseguindo com envio:', e);
+                            return doSend(url, method);
+                        });
+                    } else {
+                        doSend(url, method);
+                    }
+                });
+            }
+        })();
+    </script>
+  <!-- Script global do calendário (copia do dashboard) -->
+  <script src="../novo-atendimento-global.js"></script>
+    
+</body>
+</html>
+
+

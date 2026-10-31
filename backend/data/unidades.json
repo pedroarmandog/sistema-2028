@@ -1,0 +1,49 @@
+[
+  {
+    "descricao": "Brinquedo",
+    "unidade": "36",
+    "pesavel": false,
+    "ativo": true,
+    "slug": "brinquedo"
+  },
+  {
+    "id": "1765197013843748",
+    "descricao": "Kilo",
+    "unidade": "KG",
+    "pesavel": true,
+    "ativo": true,
+    "slug": "kilo-1765197013843748"
+  },
+  {
+    "id": "1765197026681776",
+    "descricao": "Mililitro",
+    "unidade": "ml",
+    "pesavel": false,
+    "ativo": true,
+    "slug": "mililitro-1765197026681776"
+  },
+  {
+    "id": "1765197037847224",
+    "descricao": "Unidade",
+    "unidade": "UN",
+    "pesavel": false,
+    "ativo": true,
+    "slug": "unidade-1765197037847224"
+  },
+  {
+    "id": "1765197047433214",
+    "descricao": "Teste 5",
+    "unidade": "teste",
+    "pesavel": true,
+    "ativo": true,
+    "slug": "teste-5-1765197047433214"
+  },
+  {
+    "id": "1765199989001379",
+    "descricao": "teste 7",
+    "unidade": "sadsad",
+    "pesavel": false,
+    "ativo": true,
+    "slug": "teste-7-1765199989001379"
+  }
+]

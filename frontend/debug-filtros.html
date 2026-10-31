@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Filtros</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .debug { background: #f8f9fa; padding: 10px; margin: 10px 0; border-left: 4px solid #007bff; }
+        .status-tag { 
+            display: inline-block; 
+            padding: 8px 15px; 
+            margin: 5px; 
+            border: 2px solid #ccc; 
+            border-radius: 20px; 
+            cursor: pointer; 
+            background: #f5f5f5;
+            user-select: none;
+        }
+        .status-tag.active { 
+            background: #007bff; 
+            color: white; 
+            border-color: #007bff; 
+        }
+        .status-agendado.active { background: #28a745; border-color: #28a745; }
+        .status-checkin.active { background: #ffc107; border-color: #ffc107; color: #000; }
+        .status-pronto.active { background: #17a2b8; border-color: #17a2b8; }
+        .status-cancelado.active { background: #dc3545; border-color: #dc3545; }
+        
+        .btn { padding: 10px 15px; margin: 10px 5px; cursor: pointer; border: none; border-radius: 5px; }
+        .btn-primary { background: #007bff; color: white; }
+        .agendamento { border: 1px solid #ddd; margin: 5px 0; padding: 10px; border-radius: 5px; }
+        .log { font-family: monospace; font-size: 12px; background: #000; color: #0f0; padding: 10px; margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <h1>Debug Filtros de Status</h1>
+    
+    <div class="debug">
+        <h3>Status dos Filtros:</h3>
+        <div id="statusInfo">Carregando...</div>
+    </div>
+    
+    <div class="status-filters">
+        <span class="status-label">Situação:</span>
+        <div class="status-tags">
+            <span class="status-tag status-agendado active" data-status="agendado">Agendado</span>
+            <span class="status-tag status-checkin" data-status="checkin">Check-in</span>
+            <span class="status-tag status-pronto" data-status="pronto">Pronto</span>
+            <span class="status-tag status-cancelado" data-status="cancelado">Cancelado</span>
+        </div>
+        <button class="btn btn-primary" onclick="aplicarFiltros()">Aplicar Filtro</button>
+        <button class="btn" onclick="limparTodos()">Limpar Todos</button>
+        <button class="btn" onclick="carregarDados()">Recarregar API</button>
+    </div>
+
+    <div class="log" id="log"></div>
+    <div id="agendamentos"></div>
+
+    <script>
+        let agendamentosData = [];
+        let filtros = { status: ['agendado'] };
+
+        function log(message) {
+            console.log(message);
+            const logDiv = document.getElementById('log');
+            logDiv.innerHTML += new Date().toLocaleTimeString() + ': ' + message + '<br>';
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function updateStatusInfo() {
+            const activeTags = document.querySelectorAll('.status-tag.active');
+            const activeStatuses = Array.from(activeTags).map(tag => tag.dataset.status);
+            
+            document.getElementById('statusInfo').innerHTML = `
+                <strong>Tags ativas:</strong> ${activeTags.length}<br>
+                <strong>Status ativos:</strong> [${activeStatuses.join(', ')}]<br>
+                <strong>Filtros objeto:</strong> ${JSON.stringify(filtros)}<br>
+                <strong>Total agendamentos:</strong> ${agendamentosData.length}<br>
+                <strong>Filtrados:</strong> ${filterAgendamentos().length}
+            `;
+        }
+
+        // Event listeners para os filtros
+        document.querySelectorAll('.status-tag').forEach(tag => {
+            tag.addEventListener('click', (e) => {
+                log(`Clicou em: ${e.target.dataset.status}`);
+                
+                const isCurrentlyActive = e.target.classList.contains('active');
+                const activeTags = document.querySelectorAll('.status-tag.active');
+                
+                log(`Atualmente ativo: ${isCurrentlyActive}, Total ativos: ${activeTags.length}`);
+                
+                // Se está tentando desmarcar e é o único ativo, não permitir
+                if (isCurrentlyActive && activeTags.length === 1) {
+                    log('🚫 Não é possível desmarcar o último filtro ativo');
+                    return;
+                }
+                
+                // Toggle normal
+                e.target.classList.toggle('active');
+                log(`Status após toggle: ${e.target.classList.contains('active')}`);
+                
+                updateStatusFilters();
+                renderAgendamentos();
+            });
+        });
+
+        function updateStatusFilters() {
+            log('Atualizando filtros de status...');
+            
+            const activeTags = document.querySelectorAll('.status-tag.active');
+            const statusFilters = Array.from(activeTags).map(tag => tag.dataset.status);
+            
+            filtros.status = statusFilters;
+            log(`Filtros atualizados: ${JSON.stringify(filtros.status)}`);
+            updateStatusInfo();
+        }
+
+        function filterAgendamentos() {
+            let filtrados = [...agendamentosData];
+
+            if (filtros.status && filtros.status.length > 0) {
+                const antesDoFiltro = filtrados.length;
+                filtrados = filtrados.filter(agendamento => 
+                    filtros.status.includes(agendamento.status)
+                );
+                log(`Filtro aplicado: ${antesDoFiltro} → ${filtrados.length}`);
+            }
+
+            return filtrados;
+        }
+
+        function renderAgendamentos() {
+            const container = document.getElementById('agendamentos');
+            const filtrados = filterAgendamentos();
+
+            if (filtrados.length === 0) {
+                container.innerHTML = '<div class="agendamento" style="background:#ffebee;"><strong>Nenhum agendamento encontrado!</strong></div>';
+                return;
+            }
+
+            const html = filtrados.map(ag => `
+                <div class="agendamento">
+                    <strong>${ag.horario}</strong> - ${ag.petNome} - ${ag.servico} - 
+                    <span style="background: ${getStatusColor(ag.status)}; padding: 2px 8px; border-radius: 10px; color: white;">
+                        ${ag.status}
+                    </span>
+                </div>
+            `).join('');
+
+            container.innerHTML = html;
+        }
+
+        function getStatusColor(status) {
+            switch(status) {
+                case 'agendado': return '#28a745';
+                case 'checkin': return '#ffc107';
+                case 'pronto': return '#17a2b8';
+                case 'cancelado': return '#dc3545';
+                default: return '#6c757d';
+            }
+        }
+
+        async function carregarDados() {
+            try {
+                log('Carregando dados da API...');
+                const response = await fetch('/api/agendamentos');
+                if (response.ok) {
+                    agendamentosData = await response.json();
+                    log(`Carregados ${agendamentosData.length} agendamentos`);
+                    agendamentosData.forEach(ag => {
+                        log(`  - ID ${ag.id}: ${ag.status} - ${ag.petNome} - ${ag.servico}`);
+                    });
+                } else {
+                    log(`Erro na API: ${response.status}`);
+                }
+                renderAgendamentos();
+                updateStatusInfo();
+            } catch (error) {
+                log(`Erro: ${error.message}`);
+            }
+        }
+
+        function aplicarFiltros() {
+            updateStatusFilters();
+            renderAgendamentos();
+        }
+
+        function limparTodos() {
+            document.querySelectorAll('.status-tag').forEach(tag => {
+                tag.classList.remove('active');
+            });
+            // Ativar agendado por padrão
+            document.querySelector('.status-tag.status-agendado').classList.add('active');
+            updateStatusFilters();
+            renderAgendamentos();
+        }
+
+        // Inicializar
+        log('Iniciando debug...');
+        updateStatusFilters();
+        carregarDados();
+    </script>
+    <script src="/sidebar-component/inject-sidebar.js"></script>
+</body>
+</html>

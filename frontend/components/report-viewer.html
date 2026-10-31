@@ -1,0 +1,204 @@
+﻿<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Visualizador de Relatórios - Pet Cria</title>
+
+    <!-- Stimulsoft Reports CSS -->
+    <link
+      rel="stylesheet"
+      href="../../node_modules/stimulsoft-reports-js/css/stimulsoft.viewer.office2013.whiteblue.css"
+    />
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background-color: #f0f0f0;
+        overflow: hidden;
+      }
+
+      #viewerContent {
+        width: 100%;
+        height: 100vh;
+        position: relative;
+      }
+
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.95);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+      }
+
+      .loading-overlay.hidden {
+        display: none;
+      }
+
+      .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #007bff;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .loading-text {
+        margin-top: 20px;
+        font-size: 16px;
+        color: #333;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="spinner"></div>
+      <div class="loading-text">Carregando relatório...</div>
+    </div>
+
+    <!-- Viewer Container -->
+    <div id="viewerContent"></div>
+
+    <!-- Stimulsoft Reports JS -->
+    <script src="../../node_modules/stimulsoft-reports-js/scripts/stimulsoft.reports.js"></script>
+    <script src="../../node_modules/stimulsoft-reports-js/scripts/stimulsoft.viewer.js"></script>
+
+    <script>
+      // Configuração do Stimulsoft
+      console.log("🚀 Inicializando Stimulsoft Viewer");
+
+      // Criar opções do viewer
+      const options = new Stimulsoft.Viewer.StiViewerOptions();
+      options.appearance.fullScreenMode = true;
+      options.appearance.scrollbarsMode = true;
+      options.toolbar.showDesignButton = false;
+      options.toolbar.showAboutButton = false;
+      options.toolbar.showPrintButton = true;
+      options.toolbar.showOpenButton = false;
+      options.toolbar.showSaveButton = true;
+      options.toolbar.printDestination =
+        Stimulsoft.Viewer.StiPrintDestination.Pdf;
+      options.exports.showExportToPdf = true;
+      options.exports.showExportToExcel = true;
+      options.exports.showExportToExcel2007 = true;
+      options.exports.showExportToWord2007 = true;
+      options.exports.showExportToHtml = true;
+      options.appearance.theme =
+        Stimulsoft.Viewer.StiViewerTheme.Office2013WhiteBlue;
+
+      // Criar viewer
+      const viewer = new Stimulsoft.Viewer.StiViewer(
+        options,
+        "StiViewer",
+        false,
+      );
+
+      // Função para carregar relatório
+      async function loadReport(reportType, filters) {
+        console.log("📊 Carregando relatório:", reportType, filters);
+
+        try {
+          // Mostrar loading
+          document.getElementById("loadingOverlay").classList.remove("hidden");
+
+          // Buscar dados do backend
+          const response = await fetch(`/api/relatorios/${reportType}`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(filters),
+          });
+
+          if (!response.ok) {
+            throw new Error("Erro ao buscar dados do relatório");
+          }
+
+          const data = await response.json();
+          console.log("✅ Dados recebidos:", data);
+
+          // Criar relatório
+          const report = new Stimulsoft.Report.StiReport();
+
+          // Carregar template baseado no tipo
+          let templateUrl;
+          switch (reportType) {
+            case "faturamento":
+              templateUrl = "../reports/templates/faturamento.mrt";
+              break;
+            case "produtos":
+              templateUrl = "../reports/templates/produtos.mrt";
+              break;
+            default:
+              templateUrl = "../reports/templates/default.mrt";
+          }
+
+          // Carregar template
+          await report.loadFile(templateUrl);
+
+          // Registrar dados no relatório
+          const dataSet = new Stimulsoft.System.Data.DataSet("Data");
+          dataSet.readJson(data);
+          report.regData("Data", "Data", dataSet);
+
+          // Renderizar relatório
+          report.render();
+
+          // Exibir no viewer
+          viewer.report = report;
+
+          // Esconder loading
+          document.getElementById("loadingOverlay").classList.add("hidden");
+        } catch (error) {
+          console.error("❌ Erro ao carregar relatório:", error);
+          alert("Erro ao carregar relatório: " + error.message);
+          document.getElementById("loadingOverlay").classList.add("hidden");
+        }
+      }
+
+      // Renderizar viewer na página
+      viewer.renderHtml("viewerContent");
+
+      // Escutar mensagens do parent (quando abrir em modal)
+      window.addEventListener("message", function (event) {
+        if (event.data.action === "loadReport") {
+          loadReport(event.data.reportType, event.data.filters);
+        }
+      });
+
+      // Se tiver parâmetros na URL, carregar automaticamente
+      const urlParams = new URLSearchParams(window.location.search);
+      const reportType = urlParams.get("type");
+      if (reportType) {
+        const filters = JSON.parse(urlParams.get("filters") || "{}");
+        loadReport(reportType, filters);
+      }
+    </script>
+    <script src="/sidebar-component/inject-sidebar.js"></script>
+  </body>
+</html>

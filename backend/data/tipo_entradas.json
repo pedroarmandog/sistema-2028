@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1766092705805,
+    "descricao": "SEM CUSTO",
+    "ativo": true
+  },
+  {
+    "id": 1766092713752,
+    "descricao": "BRINDE",
+    "ativo": true
+  },
+  {
+    "id": 1766092765929,
+    "descricao": "GRANEL - ENTRADA",
+    "ativo": true
+  },
+  {
+    "id": 1766172269253,
+    "descricao": "TESTE AMIGOOOOOOOOOO",
+    "ativo": true
+  },
+  {
+    "id": 1766172882225,
+    "descricao": "Frango assado",
+    "ativo": true
+  },
+  {
+    "id": 1766429082284,
+    "descricao": "Quatree Carne",
+    "ativo": true
+  }
+]

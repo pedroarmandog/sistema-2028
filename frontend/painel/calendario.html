@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Calendário (corrigido)</title>
+
+  <!-- Flatpickr CSS (CDN) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+  <style>
+    /* --- Página e card --- */
+    :root{
+      --verde: #26a69a;
+      --verde-header: #2fb06f;
+      --cinza-escuro: #4b4b4b;
+    }
+    html,body{
+      height:100%;
+      margin:0;
+      font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background:#f5f5f5;
+      color:#333;
+    }
+    .container {
+      padding: 28px;
+      max-width: 1100px;
+      margin: 12px;
+    }
+    .card {
+      background:#fff;
+      border-radius:6px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+      padding:22px;
+      max-width:100%;
+    }
+    h2 { margin:0 0 12px 0; color:var(--cinza-escuro); font-weight:600; }
+
+    /* campo data (estilo limpo) */
+    .field {
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      max-width:420px;
+    }
+    label { font-size:13px; color:#666; }
+    input.date-input {
+      padding:10px 12px;
+      border:none;
+      border-bottom:2px solid #e6e6e6;
+      outline:none;
+      font-size:15px;
+      background:transparent;
+    }
+    input.date-input:focus { border-bottom-color:var(--verde); }
+
+    /* --- Correções para o Flatpickr --- */
+    .flatpickr-calendar {
+      /* força sobrepor tudo, evita ficar sob o card/sidebars */
+      z-index: 99999 !important;
+      border: none !important;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.12) !important;
+      border-radius: 4px !important;
+      overflow: visible !important;
+    }
+
+    /* container dos meses: garante largura fixa e gap */
+    .flatpickr-months {
+      display:flex !important;
+      gap: 10px !important;
+      padding: 0 !important;
+      align-items: stretch;
+      background: transparent !important;
+    }
+
+    /* cada mês recebe largura fixa para evitar encolhimento */
+    .flatpickr-month {
+      flex: 0 0 400px; /* largura de cada mês aumentada para evitar overflow */
+      display:flex;
+      flex-direction:column;
+      background: white;
+      border-radius: 0;
+      overflow: hidden;
+      box-shadow: none;
+    }
+
+    /* cabeçalho verde dos meses */
+    .flatpickr-month .flatpickr-monthname {
+      color: #fff;
+      font-weight:700;
+      font-size:15px;
+    }
+    .flatpickr-month .flatpickr-current-month {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:11px 14px;
+      background: var(--verde-header);
+      color: white;
+    }
+    .flatpickr-prev-month, .flatpickr-next-month {
+      color: #fff !important;
+      background: transparent !important;
+      border: none !important;
+      font-size: 18px;
+      opacity: 1;
+      cursor:pointer;
+    }
+
+    /* cabeçalho dos dias da semana */
+    .flatpickr-weekdays {
+      background: #fafafa;
+      padding: 8px 0;
+    }
+    .flatpickr-weekday {
+      display:inline-block;
+      width: 34px;
+      text-align:center;
+      font-size:12px;
+      color:#777;
+      font-weight:600;
+    }
+
+    /* dias: grid mais consistente e dimensões fixas */
+    .flatpickr-days .dayContainer {
+      padding: 12px 10px 18px 10px;
+      box-sizing: border-box;
+      /* usa grid para garantir colunas estáveis sem margins que estouram */
+      display: grid;
+      grid-template-columns: repeat(7, minmax(var(--fp-day-size,34px), 1fr));
+      gap: 8px;
+      align-items: start;
+    }
+
+    .flatpickr-day {
+      /* ocupa toda a célula da grid para evitar overflow do número */
+      width: 100%;
+      height: var(--fp-day-size,34px);
+      line-height: normal;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      margin: 0;
+      border-radius:6px;
+      box-sizing: border-box;
+      cursor:pointer;
+      font-size:13px;
+      padding: 6px 4px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    /* garante que os meses não ultrapassem o contêiner quando o popover for pequeno */
+    .flatpickr-months { overflow: hidden !important; }
+
+    /* dia selecionado e range */
+    .flatpickr-day.selected,
+    .flatpickr-day.startRange,
+    .flatpickr-day.endRange {
+      background: var(--verde) !important;
+      color: #fff !important;
+      border-radius: 50% !important;
+    }
+    .flatpickr-day.inRange {
+      background: rgba(38,166,154,0.12) !important;
+      color: #222 !important;
+      border-radius: 6px !important;
+    }
+
+    /* dias de outros meses mais discretos */
+    .flatpickr-day.prevMonthDay,
+    .flatpickr-day.nextMonthDay {
+      opacity: 0.5;
+    }
+
+    /* hoje (sem interferir no selecionado) */
+    .flatpickr-day.today {
+      font-weight:700;
+      box-shadow:none !important;
+    }
+
+    /* container responsivo: em telas pequenas empilha os meses */
+    @media (max-width:700px){
+      .flatpickr-month { flex: 1 1 auto; }
+      .flatpickr-months { flex-direction: column; gap:6px; }
+      .flatpickr-weekday, .flatpickr-day { width: 28px; height:28px; line-height:28px; margin:3px; font-size:12px; }
+    }
+
+    /* garante espaçamento interno do calendário (rodapé e corpo) */
+    .flatpickr-innerContainer {
+      display:flex;
+      padding:0;
+      gap:10px;
+    }
+
+    /* remove bordas internas estranhas do CSS padrão */
+    .flatpickr-rContainer,
+    .flatpickr-months .flatpickr-month {
+      border: none;
+      background: transparent;
+    }
+    .flatpickr-month .flatpickr-days {
+      background: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h2>Relatório de Faturamento — Selecione o Período</h2>
+
+      <div style="display:flex; gap:40px; align-items:flex-start;">
+        <div class="field">
+          <label for="dateRange">Período de Análise:</label>
+          <input id="dateRange" class="date-input" placeholder="Clique para selecionar o período" readonly />
+          <small style="color:#666; margin-top:8px;">Formato: dd/mm/yyyy - dd/mm/yyyy</small>
+        </div>
+
+        <div style="margin-left:auto; color:#777;">
+          <strong>Configurações</strong>
+          <div style="margin-top:8px; font-size:13px;">Considerar custo do cadastro no serviço prestado</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Flatpickr JS (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+  <script>
+    // inicializa o flatpickr com appendTo = document.body (evita corte dentro do card/containers)
+    flatpickr("#dateRange", {
+      mode: "range",
+      showMonths: 2,
+      dateFormat: "d/m/Y",
+      allowInput: false,
+      position: "auto",
+      // Anexa ao body para evitar clipping por overflow dos containers
+      appendTo: document.body,
+      // melhorei setas para ter ícone consistente
+      prevArrow: "←",
+      nextArrow: "→",
+      onReady: function(selectedDates, dateStr, instance) {
+        // remove width inline problem do flatpickr que às vezes encolhe o segundo mês
+        const months = instance.calendarContainer.querySelectorAll(".flatpickr-month");
+        months.forEach(m => m.style.minWidth = "320px");
+      },
+      onOpen: function(selectedDates, dateStr, instance) {
+        // força z-index alto (apenas garantia)
+        instance.calendarContainer.style.zIndex = 99999;
+      }
+    });
+  </script>
+</body>
+</html>

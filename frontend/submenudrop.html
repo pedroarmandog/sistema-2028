@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Menu Pet9</title>
+
+<style>
+    body {
+        margin: 0;
+        background: #131A2A;
+        font-family: Arial, sans-serif;
+        color: #CFE8E5;
+        display: flex;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+        width: 90px;
+        height: 100vh;
+        background: #0D1422;
+        padding-top: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .menu-btn {
+        width: 100%;
+        padding: 18px 0;
+        text-align: center;
+        cursor: pointer;
+        transition: .2s;
+        color: #57E0C1;
+        font-size: 14px;
+    }
+
+    .menu-btn.active {
+        background: #1B2336;
+        border-radius: 10px;
+        color: #57E0C1;
+    }
+
+    .menu-btn:hover {
+        opacity: 0.7;
+    }
+
+    /* PAINEL LATERAL */
+    .panel {
+        width: 260px;
+        background: #0D1422;
+        padding: 20px;
+        display: none;
+        flex-direction: column;
+        gap: 18px;
+        border-left: 1px solid #1B2336;
+    }
+
+    .panel-title {
+        font-size: 20px;
+        color: #57E0C1;
+        margin-bottom: 10px;
+    }
+
+    .panel-item {
+        cursor: pointer;
+        font-size: 15px;
+        padding: 5px 0;
+        display: flex;
+        justify-content: space-between;
+        transition: .2s;
+    }
+
+    .panel-item:hover {
+        opacity: 0.7;
+    }
+
+    /* SUBMENU */
+    .submenu {
+        display: none;
+        padding-left: 20px;
+        margin-top: -10px;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .submenu a {
+        font-size: 14px;
+        cursor: pointer;
+        opacity: 0.85;
+        transition: .2s;
+        padding: 3px 0;
+    }
+
+    .submenu a:hover {
+        opacity: 0.55;
+    }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+    <div id="btnPainel" class="menu-btn">Painel</div>
+    <div id="btnItem" class="menu-btn">Item</div>
+    <div id="btnCliente" class="menu-btn">Cliente</div>
+    <div id="btnPet" class="menu-btn">Pet</div>
+    <div id="btnAtendimento" class="menu-btn">Atendimento</div>
+    <div id="btnMarketing" class="menu-btn">Marketing</div>
+    <div id="btnCompras" class="menu-btn">Compras</div>
+    <div id="btnFinanceiro" class="menu-btn">Financeiro</div>
+    <div id="btnConfig" class="menu-btn">Configurações</div>
+</div>
+
+<!-- PAINEL ITEM -->
+<div id="panelItem" class="panel">
+    <div class="panel-title">Item</div>
+
+    <div class="panel-item">Meus Itens</div>
+
+    <div id="btnNovo" class="panel-item">Novo <span>▼</span></div>
+    <div id="submenuNovo" class="submenu">
+        <a>Produto</a>
+        <a>Serviço</a>
+        <a>Plano</a>
+    </div>
+
+    <div id="btnEstoqueItem" class="panel-item">Estoque <span>▼</span></div>
+    <div id="submenuEstoqueItem" class="submenu">
+        <a>Outras entradas</a>
+        <a>Outras saídas</a>
+        <a>Transferência</a>
+        <a>Contagem de estoque</a>
+    </div>
+
+    <div id="btnClinicaItem" class="panel-item">Clínica <span>▼</span></div>
+    <div id="submenuClinicaItem" class="submenu">
+        <a>Medicamentos</a>
+        <a>Vacinas</a>
+        <a>Periodicidade</a>
+    </div>
+</div>
+
+<!-- PAINEL ATENDIMENTO -->
+<div id="panelAtendimento" class="panel">
+    <div class="panel-title">Atendimento</div>
+
+    <div class="panel-item">Minha Agenda</div>
+
+    <div id="btnVendas" class="panel-item">Vendas <span>▼</span></div>
+    <div id="submenuVendas" class="submenu">
+        <a>Nova Venda</a>
+        <a>Pedido de Venda</a>
+        <a>Consultar Vendas</a>
+    </div>
+
+    <div class="panel-item">Contratos</div>
+
+    <div class="panel-item">Devolução de Venda</div>
+
+    <div id="btnCaixa" class="panel-item">Caixa <span>▼</span></div>
+    <div id="submenuCaixa" class="submenu">
+        <a>Abertura/Fechamento</a>
+        <a>Suprimento/Sangria</a>
+        <a>Relatório demonstrativo</a>
+    </div>
+
+    <div class="panel-item">Orçamento</div>
+
+    <div id="btnRelAtend" class="panel-item">Relatórios <span>▼</span></div>
+    <div id="submenuRelAtend" class="submenu">
+        <a>Venda no período</a>
+        <a>Devolução no período</a>
+        <a>Atendimento no período</a>
+        <a>Periódico</a>
+        <a>Comissão</a>
+        <a>Oportunidade de venda</a>
+        <a>Faturamento por Cliente/Produto</a>
+    </div>
+</div>
+
+<!-- PAINEL COMPRAS -->
+<div id="panelCompras" class="panel">
+    <div class="panel-title">Compras</div>
+
+    <div class="panel-item">Entrada de mercadoria</div>
+    <div class="panel-item">Fornecedores</div>
+
+    <div id="btnRelCompras" class="panel-item">Relatórios <span>▼</span></div>
+    <div id="submenuRelCompras" class="submenu">
+        <a>Entrada no período</a>
+        <a>Entrada por produto</a>
+        <a>Sugestão de compra</a>
+    </div>
+</div>
+
+<script>
+function closeAll() {
+    document.querySelectorAll(".menu-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".panel").forEach(p => p.style.display = "none");
+}
+
+function togglePanel(btnId, panelId) {
+    const btn = document.getElementById(btnId);
+    const panel = document.getElementById(panelId);
+
+    btn.addEventListener("click", () => {
+        const open = panel.style.display === "flex";
+        closeAll();
+        if (!open) {
+            btn.classList.add("active");
+            panel.style.display = "flex";
+        }
+    });
+}
+
+togglePanel("btnItem", "panelItem");
+togglePanel("btnAtendimento", "panelAtendimento");
+togglePanel("btnCompras", "panelCompras");
+
+function toggleSub(btnId, subId) {
+    const btn = document.getElementById(btnId);
+    const sub = document.getElementById(subId);
+
+    btn.addEventListener("click", () => {
+        sub.style.display = sub.style.display === "flex" ? "none" : "flex";
+    });
+}
+
+toggleSub("btnNovo", "submenuNovo");
+toggleSub("btnEstoqueItem", "submenuEstoqueItem");
+toggleSub("btnClinicaItem", "submenuClinicaItem");
+
+toggleSub("btnVendas", "submenuVendas");
+toggleSub("btnCaixa", "submenuCaixa");
+toggleSub("btnRelAtend", "submenuRelAtend");
+
+toggleSub("btnRelCompras", "submenuRelCompras");
+</script>
+
+    <script src="/inject-sidebar.js"></script>
+</body>
+</html>

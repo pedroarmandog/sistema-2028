@@ -1,0 +1,736 @@
+/* Copiado de frontend/dashboard.css - estilos do menu e header */
+/* ========================================
+   DASHBOARD CSS - PET CRIA (snippet para menu)
+   ======================================== */
+
+@import url('../colors.css');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--bg-body);
+    color: var(--text-primary);
+}
+
+
+
+/* Main Content */
+.main-content {
+    margin-left: 250px;
+    min-height: 100vh;
+    transition: margin-left 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
+    width: calc(100% - 250px);
+}
+
+.main-content.sidebar-collapsed {
+    margin-left: 0;
+    width: 100%;
+}
+
+/* Header */
+.header {
+    background: var(--bg-white);
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-medium);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.header-left h1 {
+    margin: 0;
+    font-size: 24px;
+    color: var(--text-primary);
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.btn-calendar {
+    background: var(--bg-card);
+    border: 2px solid var(--border-primary);
+    color: var(--text-primary);
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    height: 44px;
+}
+
+.btn-calendar:hover {
+    background: var(--btn-primary);
+    color: white;
+    border-color: var(--btn-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(44, 90, 160, 0.2);
+}
+
+.btn-calendar:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(44, 90, 160, 0.2);
+}
+
+.btn-primary {
+    background: var(--btn-success);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.3s ease;
+}
+
+.search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-box i {
+    position: absolute;
+    left: 12px;
+    color: #999;
+}
+
+.search-box input {
+    padding: 10px 15px 10px 40px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    width: 300px;
+    font-size: 14px;
+}
+
+.user-menu {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: background-color 0.3s ease;
+}
+
+.user-menu:hover {
+    background-color: #f8f9fa;
+}
+
+/* Match dashboard profile icon style */
+.user-menu i {
+    font-size: 24px;
+    color: #3498db;
+}
+
+/* Dropdown */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #e1e8ed;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    min-width: 200px;
+    margin-top: 5px;
+}
+
+.dropdown.open .dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    color: #333;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    border-bottom: 1px solid #f1f3f4;
+    transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+    color: var(--btn-success);
+}
+
+/* Notification (light) */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    min-width: 300px;
+    max-width: 500px;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+/* ========================================
+   EMISSÃO DE ETIQUETAS - LAYOUT
+   ======================================== */
+
+/* Page Content */
+.page-content {
+    padding: 30px 40px;
+    max-width: 1600px;
+    margin: 0 auto;
+}
+
+/* Page Header */
+.page-header {
+    margin-bottom: 30px;
+}
+
+.page-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+/* Layout em duas colunas */
+.etiquetas-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
+/* Section Card */
+.section-card {
+    background: white;
+    border-radius: 8px;
+    padding: 25px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 20px 0;
+}
+
+/* Tabs Container */
+.tabs-container {
+    margin-bottom: 25px;
+    border-bottom: 2px solid #f1f3f5;
+}
+
+.tabs {
+    display: flex;
+    gap: 0;
+}
+
+.tab-btn {
+    background: transparent;
+    border: none;
+    padding: 12px 24px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #6c757d;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s ease;
+    letter-spacing: 0.3px;
+}
+
+.tab-btn:hover {
+    color: #fd7e14;
+    background: #fff3e0;
+}
+
+.tab-btn.active {
+    color: var(--pet-orange);
+    border-bottom-color: var(--pet-orange);
+    background: var(--bg-white);
+    /* garantir contraste e legibilidade quando a aba estiver ativa */
+    font-weight: 700;
+}
+
+/* Reforçar estilo específico para as abas desta página (evita override por regras globais em dashboard.css) */
+.tabs-container .tab-btn.active {
+    color: var(--pet-orange) !important;
+    border-bottom-color: var(--pet-orange) !important;
+    background: var(--bg-white) !important;
+    font-weight: 700 !important;
+}
+
+/* Tab Content */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.tab-placeholder {
+    padding: 40px;
+    text-align: center;
+    color: #adb5bd;
+    font-style: italic;
+}
+
+/* Form Section */
+.form-section {
+    padding: 20px 0;
+}
+
+.form-row {
+    display: flex;
+    gap: 15px;
+    align-items: flex-end;
+}
+
+.form-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #495057;
+}
+
+.form-control {
+    padding: 10px 14px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    font-size: 14px;
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+.form-control:focus {
+    border-color: #007bff;
+}
+
+.form-control::placeholder {
+    color: #adb5bd;
+}
+
+.form-group-button {
+    display: flex;
+    align-items: flex-end;
+}
+
+.btn-buscar-notas {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 11px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.btn-buscar-notas:hover {
+    background: #007bff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(113, 178, 127, 0.3);
+}
+
+/* Autocomplete dropdown (fornecedor) - estilo do sistema */
+.autocomplete-list {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(2,16,26,0.08);
+    overflow: hidden;
+    z-index: 3000;
+    min-width: 220px;
+}
+.autocomplete-list {
+    /* limitar altura para evitar dropdown gigantes com muitos itens */
+    max-height: 300px;
+    overflow-y: auto;
+}
+.autocomplete-topline { height: 4px; background: #2c7be5; }
+.autocomplete-item { padding: 10px 12px; font-size: 14px; color: #333; cursor: pointer; }
+.autocomplete-item + .autocomplete-item { border-top: 1px solid #f1f1f1; }
+.autocomplete-item:hover { background: #f6fbff; }
+.autocomplete-sub { font-size:12px;color:#666;margin-top:4px }
+
+.form-control.readonly {
+    background: #f8f9fa;
+}
+
+/* Layout Section (Coluna direita) */
+.layout-section {
+    margin-bottom: 25px;
+}
+
+.layout-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid #dee2e6;
+    margin-bottom: 20px;
+}
+
+.layout-tab {
+    background: transparent;
+    border: none;
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #6c757d;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.layout-tab:hover {
+    color: #495057;
+    background: #f8f9fa;
+}
+
+.layout-tab.active {
+    color: var(--text-primary);
+    border-bottom-color: #007bff;
+}
+
+.layout-tab-content {
+    display: none;
+}
+
+.layout-tab-content.active {
+    display: block;
+}
+
+/* Layout Form */
+.layout-form {
+    padding: 15px 0;
+}
+
+.form-row-layout {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.form-group-small {
+    flex: 1;
+    min-width: 180px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group-small label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #495057;
+}
+
+.form-control-small {
+    padding: 8px 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-primary);
+    outline: none;
+    background: white;
+    cursor: pointer;
+}
+
+.form-control-small:focus {
+    border-color: #007bff;
+}
+
+/* Underline-style small input used under Impressora/Modelo Etiqueta */
+.form-control-underline{
+    border: none;
+    border-bottom: 1px solid #dee2e6;
+    background: transparent;
+    padding: 6px 4px;
+    font-size: 14px;
+    width: 200px;
+    outline: none;
+}
+.form-control-underline:focus{ border-bottom-color: #007bff; }
+
+.form-group-tiny {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 90px;
+}
+
+.form-group-tiny label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #495057;
+}
+
+.form-control-tiny {
+    padding: 8px 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-primary);
+    outline: none;
+    text-align: center;
+    width: 70px;
+}
+
+.form-control-tiny:focus {
+    border-color: #007bff;
+}
+
+.form-group-button-layout {
+    display: flex;
+    align-items: flex-end;
+}
+
+.btn-visualizar {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 9px 18px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.btn-visualizar:hover {
+    background: #007bff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(113, 178, 127, 0.3);
+}
+
+/* Generic button base used on this page */
+.btn {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+/* Danger / remove button */
+.btn-danger {
+    background: #e74c3c;
+    color: #fff;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.btn-danger:hover { background: #c0392b; }
+
+/* Estilo para o link 'Emitir etiquetas para o estoque' dentro da lista de etiquetas */
+.emitir-estoque{
+    color:#c00;
+    margin-left:8px;
+    font-size:12px;
+    cursor:pointer;
+    font-weight:600;
+}
+.emitir-estoque:hover{ text-decoration:underline; color:#a40d0d }
+
+/* Feedback visual breve ao preencher quantidade com o estoque */
+.qty-updated{ background: rgba(16,185,129,0.06); box-shadow: 0 0 0 3px rgba(16,185,129,0.12) inset; transition: box-shadow 260ms, background 260ms; }
+
+/* Impressora selector styles */
+.impressora-select { background:#fff; border-radius:6px; border:1px solid #e6eef8; padding:6px 10px; min-width:160px; box-shadow:0 4px 12px rgba(2,6,23,0.04); }
+.impressora-current { color:#1f2937; font-weight:600; cursor:pointer; padding:6px 2px; }
+.impressora-dropdown { background:#fff; border:1px solid #e6eef8; border-top:4px solid #0d6efd; border-radius:6px; min-width:160px; overflow:hidden }
+.impressora-item { padding:10px 12px; cursor:pointer; color:#333; border-bottom:1px solid #f1f5f9 }
+.impressora-item:hover { background:#f8fbff; color:#0d6efd }
+
+/* Etiquetas para impressão */
+.etiquetas-impressao {
+    border-top: 1px solid #dee2e6;
+    padding-top: 20px;
+    margin-top: 20px;
+}
+
+.etiquetas-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+.etiquetas-count {
+    font-size: 14px;
+    font-weight: 600;
+    color: #495057;
+}
+
+.etiquetas-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-icon-action {
+    background: transparent;
+    border: none;
+    color: #6c757d;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.btn-icon-action:hover {
+    background: #e9ecef;
+    color: #495057;
+}
+
+/* Responsivo */
+@media (max-width: 1200px) {
+    .etiquetas-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+    .sidebar.open {
+        transform: translateX(0);
+    }
+    .main-content { margin-left: 0; }
+    .search-box input { width: 200px; }
+    
+    .page-content {
+        padding: 20px;
+    }
+    
+    .form-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .form-group-button {
+        align-items: stretch;
+    }
+    
+    .btn-buscar-notas {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .form-row-layout {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .form-group-small,
+    .form-group-tiny {
+        min-width: 100%;
+    }
+    
+    .form-control-tiny {
+        width: 100%;
+    }
+    
+    .form-group-button-layout {
+        align-items: stretch;
+    }
+    
+    .btn-visualizar {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Estilos do calendário (copiados / adaptados para a página de Etiquetas) */
+.calendario-popup{position:fixed;inset:auto;background:var(--bg-white);border-radius:8px;box-shadow:0 12px 40px rgba(2,6,23,0.12);overflow:hidden;width:680px;max-width:calc(100% - 24px);}
+.calendario-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border-light);background:var(--bg-white)}
+.calendario-nav{background:transparent;border:0;padding:6px 8px;border-radius:6px;cursor:pointer}
+.calendario-weekdays{display:flex;gap:6px;padding:8px 12px;background:transparent}
+.calendario-weekdays .weekday{flex:1;text-align:center;font-size:12px;color:var(--text-secondary);font-weight:600}
+.calendario-days{padding:8px}
+.mes-container{display:inline-block;vertical-align:top;padding:8px 10px;box-sizing:border-box}
+.mes-container .mes-days-grid{display:grid;grid-template-columns:repeat(7,minmax(22px,1fr));grid-auto-rows:26px;gap:6px;width:100%;box-sizing:border-box;padding:4px}
+.dia{width:100%;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:4px;font-size:13px;transition:all .12s ease;position:relative;box-sizing:border-box;padding:4px 3px;overflow:hidden}
+.dia:hover{background:var(--bg-input-focus)}
+.dia.outros-mes{color:var(--text-muted)}
+.dia.hoje{background:rgba(0,123,255,0.08);color:var(--btn-primary);font-weight:600}
+.dia.inicio-periodo,.dia.fim-periodo{background:var(--btn-primary);color:white;font-weight:600}
+.dia.periodo-range{background:rgba(0,123,255,0.08);color:var(--btn-primary)}
+.dia.hover-range{background:rgba(16,185,129,0.08);color:var(--text-primary)}
+.dia.hover-target{box-shadow:0 0 0 2px rgba(16,185,129,0.12) inset;border-radius:6px}
+.calendario-actions{display:flex;gap:12px;padding:14px 20px;border-top:1px solid var(--border-color);justify-content:flex-end}
+.calendario-actions .btn{min-width:100px;padding:10px 16px;font-size:13px}
+

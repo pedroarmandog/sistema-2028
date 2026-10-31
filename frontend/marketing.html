@@ -1,0 +1,2531 @@
+﻿<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PetHub</title>
+    <script src="/custom-colors.js"></script>
+    <link
+      rel="icon"
+      href="/fivecon/Design sem nome (17).png"
+      type="image/png"
+    />
+    <link rel="stylesheet" href="colors.css" />
+    <link rel="stylesheet" href="dashboard.css" />
+    <link rel="stylesheet" href="marketing.css" />
+    <link rel="stylesheet" href="marketing-disparador.css" />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="logo">
+        <!--<i class="fas fa-paw"></i>-->
+        <!--<span>Pet Cria</span>-->
+        <img
+          src="/logos/Logo PetHub (2).svg"
+          class="logo-pet-cria"
+          alt="PetHub"
+        />
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="painelMenuItem">
+            <i class="fas fa-th"></i>
+            <span>Painel</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="painelSubmenu">
+            <a href="./dashboard.html" class="submenu-item">
+              <span>Operacional</span>
+            </a>
+            <a href="./painel/rel-faturamento.html" class="submenu-item">
+              <span>Rel. Faturamento</span>
+            </a>
+            <!--<a href="./painel/rel-demonstrativo-resultados.html" class="submenu-item">
+                        <span>Rel. Demonstrativo de resultados</span>
+                    </a>-->
+            <!--<a href="./painel/rel-recebiveis-produto.html" class="submenu-item">
+                        <span>Rel. Recebíveis por produto</span>
+                    </a>-->
+            <a href="./painel/posicao-caixa.html" class="submenu-item">
+              <span>Posição de Caixa</span>
+            </a>
+            <a href="./painel/painel-financeiro.html" class="submenu-item">
+              <span>Painel Financeiro</span>
+            </a>
+          </div>
+        </div>
+
+        <a href="dashboard.html" class="nav-item active">
+          <i class="fas fa-chart-bar"></i>
+          <span>Dashboard</span>
+        </a>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="itemMenuItem">
+            <i class="fas fa-cube"></i>
+            <span>Item</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="itemSubmenu">
+            <a href="./item/meus-itens.html" class="submenu-item">
+              <span>Meus Itens</span>
+            </a>
+            <div
+              class="submenu-item"
+              id="leftBtnNovo"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <span>Novo</span>
+              <span id="leftCaretNovo" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="leftSubNovo"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a href="./item/novo-produto.html" class="submenu-item"
+                ><span>Produto</span></a
+              >
+              <a href="./item/novo-produto.html" class="submenu-item"
+                ><span>Serviço</span></a
+              >
+              <a href="./item/novo-produto.html" class="submenu-item"
+                ><span>Plano</span></a
+              >
+            </div>
+            <a href="./item/agrupamento.html" class="submenu-item">
+              <span>Agrupamento</span>
+            </a>
+            <a href="./item/marca.html" class="submenu-item">
+              <span>Marca</span>
+            </a>
+            <a href="./item/unidade.html" class="submenu-item">
+              <span>Unidade</span>
+            </a>
+            <a href="./descontos/index.html" class="submenu-item">
+              <span>Descontos</span>
+            </a>
+            <a href="./item/comissao.html" class="submenu-item">
+              <span>Comissão</span>
+            </a>
+            <a href="./item/etiquetas.html" class="submenu-item">
+              <span>Etiquetas</span>
+            </a>
+            <!--<a href="./item/tributacao.html" class="submenu-item">
+                        <span>Tributação</span>
+                    </a>-->
+            <div
+              class="submenu-item"
+              id="leftBtnEstoque"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <span>Estoque</span>
+              <span id="leftCaretEstoque" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="leftSubEstoque"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a href="./item/estoque/outras-entradas.html" class="submenu-item"
+                ><span>Outras entradas</span></a
+              >
+              <a href="./item/estoque/outras-saidas.html" class="submenu-item"
+                ><span>Outras saídas</span></a
+              >
+              <a href="#" class="submenu-item"><span>Transferência</span></a>
+              <a
+                href="./item/estoque/contagem-estoque.html"
+                class="submenu-item"
+                ><span>Contagem de estoque</span></a
+              >
+            </div>
+            <div
+              class="submenu-item"
+              id="leftBtnClinica"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <span>Clínica</span>
+              <span id="leftCaretClinica" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="leftSubClinica"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a href="./item/clinica/medicamentos.html" class="submenu-item"
+                ><span>Medicamentos</span></a
+              >
+              <a href="./item/clinica/vacina.html" class="submenu-item"
+                ><span>Vacinas</span></a
+              >
+              <a href="./item/clinica/periodicidade.html" class="submenu-item"
+                ><span>Periodicidade</span></a
+              >
+            </div>
+            <a href="./item/manutecao-produtos.html" class="submenu-item">
+              <span>Manutenção geral de produtos</span>
+            </a>
+            <a href="./item/controle-validade.html" class="submenu-item">
+              <span>Controle de validade</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="clienteMenuItem">
+            <i class="fas fa-users"></i>
+            <span>Cliente</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="clienteSubmenu">
+            <a href="clientes.html" class="submenu-item">
+              <span>Meus Clientes</span>
+            </a>
+            <a href="novo-cliente.html" class="submenu-item">
+              <span>Novo Cliente</span>
+            </a>
+            <a href="grupos-clientes.html" class="submenu-item">
+              <span>Grupo de cliente</span>
+            </a>
+            <a href="/descontos/index.html" class="submenu-item">
+              <span>Descontos</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="petMenuItem">
+            <i class="fas fa-dog"></i>
+            <span>Pet</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="petSubmenu">
+            <a href="/pets/meus-pets.html" class="submenu-item">
+              <span>Meus Pets</span>
+            </a>
+            <a href="pets/cadastro-pet.html" class="submenu-item">
+              <span>Novo Pet</span>
+            </a>
+            <a href="/pets/especie-raca.html" class="submenu-item">
+              <span>Espécie/raça</span>
+            </a>
+            <a href="/pets/pelagem.html" class="submenu-item">
+              <span>Pelagem</span>
+            </a>
+            <a href="/pets/porte.html" class="submenu-item">
+              <span>Porte</span>
+            </a>
+            <a href="/pets/box.html" class="submenu-item">
+              <span>Box</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="atendimentoMenuItem">
+            <i class="fas fa-calendar-check"></i>
+            <span>Atendimento</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="atendimentoSubmenu">
+            <a href="/agendamentos-novo.html" class="submenu-item">
+              <span>Minha Agenda</span>
+            </a>
+
+            <!-- Vendas (toggle + nested) -->
+            <div
+              class="submenu-item"
+              id="attBtnVendas"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="#" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Vendas</span></a
+              >
+              <span id="attCaretVendas" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="attSubVendas"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a href="./atendimento/nova-venda.html" class="submenu-item"
+                ><span>Nova Venda</span></a
+              >
+              <!--<a href="#" class="submenu-item"><span>Pedido de Venda</span></a>-->
+              <a href="/atendimento/consultar-vendas.html" class="submenu-item"
+                ><span>Consultar vendas</span></a
+              >
+            </div>
+
+            <!--<a href="/atendimento/contratos.html" class="submenu-item">
+                        <span>Contratos</span>
+                    </a>-->
+            <!--<a href="/atendimento/devolucao-venda.html" class="submenu-item">
+                        <span>Devolução de venda</span>
+                    </a>-->
+
+            <!-- Caixa (toggle + nested) -->
+            <div
+              class="submenu-item"
+              id="attBtnCaixa"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="#" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Caixa</span></a
+              >
+              <span id="attCaretCaixa" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="attSubCaixa"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a href="/Caixa/abertura-fechamento.html" class="submenu-item"
+                ><span>Abertura/Fechamento</span></a
+              >
+              <a href="/Caixa/suprimento-sangria.html" class="submenu-item"
+                ><span>Suprimento/Sangria</span></a
+              >
+              <a href="#" class="submenu-item"
+                ><span>Rel. Demonstrativo de caixa</span></a
+              >
+            </div>
+
+            <a href="./atendimento/orcamento.html" class="submenu-item">
+              <span>Orçamento</span>
+            </a>
+
+            <!-- Relatórios (toggle + nested) -->
+            <div
+              class="submenu-item"
+              id="attBtnRelatorios"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="#" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Relatórios</span></a
+              >
+              <span id="attCaretRel" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="attSubRelatorios"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a
+                href="./atendimento/relatorios/venda-no-periodo.html"
+                class="submenu-item"
+                ><span>Venda no período</span></a
+              >
+              <!--<a href="./atendimento/relatorios/devolucao-no-periodo.html" class="submenu-item"><span>Devolução no período</span></a>-->
+              <a
+                href="./atendimento/relatorios/atendimento-no-periodo.html"
+                class="submenu-item"
+                ><span>Atendimento no período</span></a
+              >
+              <!--<a href="./atendimento/relatorios/periodicos.html" class="submenu-item"><span>Periódico</span></a>-->
+              <a
+                href="./atendimento/relatorios/comissao.html"
+                class="submenu-item"
+                ><span>Comissão</span></a
+              >
+              <!--<a href="./atendimento/relatorios/oportunidade-de-venda.html" class="submenu-item"><span>Oportunidade de Venda</span></a>-->
+              <!--<a href="./atendimento/relatorios/faturamento-cliente-produto.html" class="submenu-item"><span>Faturamento por Cliente/Produto</span></a>-->
+            </div>
+          </div>
+        </div>
+
+        <a
+          href="./marketing.html"
+          class="nav-item"
+          onclick="window.location.href = './marketing.html'"
+        >
+          <i class="fas fa-heart"></i>
+          <span>Marketing</span>
+        </a>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="comprasMenuItem">
+            <i class="fas fa-shopping-cart"></i>
+            <span>Compras</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="comprasSubmenu">
+            <a href="./compras/entrada-mercadoria.html" class="submenu-item">
+              <span>Entrada de mercadoria</span>
+            </a>
+            <a href="./compras/fornecedor.html" class="submenu-item">
+              <span>Fornecedores</span>
+            </a>
+            <!-- Relatórios (toggle + nested) -->
+            <div
+              class="submenu-item"
+              id="compBtnRelatorios"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="#" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Relatórios</span></a
+              >
+              <span id="compCaretRel" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="compSubRelatorios"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a href="#" class="submenu-item"
+                ><span>Entrada no período</span></a
+              >
+              <a href="#" class="submenu-item"
+                ><span>Entrada por produto</span></a
+              >
+              <a href="#" class="submenu-item"
+                ><span>Sugestão de compra</span></a
+              >
+            </div>
+          </div>
+        </div>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="financeiroMenuItem">
+            <i class="fas fa-dollar-sign"></i>
+            <span>Financeiro</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="financeiroSubmenu">
+            <!-- Contas a receber (toggle) -->
+            <div
+              class="submenu-item"
+              id="finBtnReceber"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Contas a receber</span></a
+              >
+              <span id="finCaretReceber" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="finSubReceber"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a
+                href="./financeiro/contas-a-receber/recebimento-cliente.html"
+                class="submenu-item"
+                ><span>Recebimento de cliente</span></a
+              >
+            </div>
+
+            <!-- Contas a pagar (toggle) -->
+            <div
+              class="submenu-item"
+              id="finBtnPagar"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="#" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Contas a pagar</span></a
+              >
+              <span id="finCaretPagar" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="finSubPagar"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a
+                href="./financeiro/contas-a-receber/contas-a-pagar/pagamento-fornecedor.html"
+                class="submenu-item"
+                ><span>Pagamento de fornecedor</span></a
+              >
+            </div>
+
+            <!-- Conta (toggle) -->
+            <!--<div class="submenu-item" id="finBtnConta" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Conta</span></a>
+                        <span id="finCaretConta" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="finSubConta" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="./financeiro/contas-a-receber/conta/minha-conta.html" class="submenu-item"><span>Minhas Contas</span></a>
+                        <a href="./financeiro/contas-a-receber/conta/movimento-conta.html" class="submenu-item"><span>Movimento de conta</span></a>
+                        <a href="./financeiro/contas-a-receber/conta/banco.html" class="submenu-item"><span>Banco</span></a>
+                        <a href="./financeiro/contas-a-receber/conta/historico-padrao.html" class="submenu-item"><span>Histórico padrão</span></a>
+                    </div>-->
+
+            <!--<a href="#" class="submenu-item">
+                        <span>Cheque</span>
+                    </a>-->
+
+            <!-- Cartão (toggle) -->
+            <!--<div class="submenu-item" id="finBtnCartao" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Cartão</span></a>
+                        <span id="finCaretCartao" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="finSubCartao" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="#" class="submenu-item"><span>Operadora de cartão</span></a>
+                        <a href="#" class="submenu-item"><span>Recebimento da operadora de cartão</span></a>
+                    </div>-->
+
+            <!--<a href="#" class="submenu-item">
+                        <span>Condição de pagamento</span>
+                    </a>-->
+
+            <!-- Relatórios (toggle) -->
+            <!--<div class="submenu-item" id="finBtnRelatorios" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Relatórios</span></a>
+                        <span id="finCaretRel" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="finSubRelatorios" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="./financeiro/relatorio/a-receber.html" class="submenu-item"><span>A receber</span></a>
+                        <a href="./financeiro/relatorio/recebimentos.html" class="submenu-item"><span>Recebimentos</span></a>
+                        <a href="./financeiro/relatorio/documentos-a-receber.html" class="submenu-item"><span>Documentos a receber emitidos</span></a>
+                        <a href="./financeiro/relatorio/a-pagar.html" class="submenu-item"><span>A pagar</span></a>
+                        <a href="./financeiro/relatorio/pagamentos.html" class="submenu-item"><span>Pagamentos</span></a>
+                        <a href="./financeiro/relatorio/custos-adquiridos.html" class="submenu-item"><span>Custos adquiridos</span></a>
+                        <a href="./financeiro/relatorio/custos-pagos.html" class="submenu-item"><span>Custos pagos</span></a>
+                        <a href="./financeiro/relatorio/despesas-emitidas.html" class="submenu-item"><span>Despesas emitidas</span></a>
+                        <a href="./financeiro/relatorio/extrato.html" class="submenu-item"><span>Extrato</span></a>
+                        <a href="./financeiro/relatorio/movimentacao-historico.html" class="submenu-item"><span>Movimentação por Histórico</span></a>
+                        <a href="" class="submenu-item"><span>Cheque</span></a>
+                        <a href="" class="submenu-item"><span>Cartão</span></a>
+                    </div>-->
+          </div>
+        </div>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="configuracaoMenuItem">
+            <i class="fas fa-cog"></i>
+            <span>Configuração</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="configuracaoSubmenu">
+            <a href="./configuracoes/empresa.html" class="submenu-item">
+              <span>Empresa</span>
+            </a>
+            <a href="./configuracoes/usuario.html" class="submenu-item">
+              <span>Usuário</span>
+            </a>
+            <a href="./configuracoes/grupo-usuario.html" class="submenu-item">
+              <span>Grupo de usuário</span>
+            </a>
+            <a href="./configuracoes/profissional.html" class="submenu-item">
+              <span>Profissional</span>
+            </a>
+            <!--<a href="./configuracoes/permissoes.html" class="submenu-item">
+                        <span>Permissões</span>
+                    </a>-->
+            <a
+              href="./configuracoes/centro-resultado.html"
+              class="submenu-item"
+            >
+              <span>Centro de resultado</span>
+            </a>
+            <a
+              href="./configuracoes/categoria-financeira.html"
+              class="submenu-item"
+            >
+              <span>Categoria financeira</span>
+            </a>
+            <!--<a href="./configuracoes/tipo-documento.html" class="submenu-item">
+                        <span>Tipo de documento</span>
+                    </a>-->
+            <!--<a href="./configuracoes/configuracoes-gerais.html" class="submenu-item">
+                        <span>Configurações Gerais</span>
+                    </a>-->
+            <!--<a href="./configuracoes/pdv.html" class="submenu-item">
+                        <span>PDV</span>
+                    </a>-->
+            <!--<a href="./configuracoes/formularios.html" class="submenu-item">
+                        <span>Formulários</span>
+                    </a>-->
+            <!--<a href="./configuracoes/feriado.html" class="submenu-item">
+                        <span>Feriado</span>
+                    </a>-->
+            <!--<a href="./configuracoes/ip.html" class="submenu-item">
+                        <span>IP</span>
+                    </a>-->
+            <a href="./configuracoes/cores.html" class="submenu-item">
+              <span>Cores</span>
+            </a>
+            <a href="/configuracoes/configuracao-fiscal.html" class="submenu-item">
+              <span>Configuração Fiscal</span>
+            </a>
+            <a href="/fiscal/central-fiscal.html" class="submenu-item">
+              <span>Central Fiscal</span>
+            </a>
+          </div>
+        </div>
+      </nav>
+    </div>
+
+    <script src="logo-manager.js"></script>
+    <script>
+      // Toggle para submenu aninhado à esquerda (Item -> Novo)
+      (function () {
+        var leftBtn = document.getElementById("leftBtnNovo");
+        var leftSub = document.getElementById("leftSubNovo");
+        var leftCaret = document.getElementById("leftCaretNovo");
+        if (leftBtn && leftSub) {
+          leftBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              leftSub.style.display === "block" ||
+              leftSub.style.display === "flex";
+            leftSub.style.display = open ? "none" : "block";
+            if (leftCaret) leftCaret.innerText = open ? "▼" : "▲";
+          });
+        }
+        // Toggle para submenu aninhado Estoque
+        var leftBtnEst = document.getElementById("leftBtnEstoque");
+        var leftSubEst = document.getElementById("leftSubEstoque");
+        var leftCaretEst = document.getElementById("leftCaretEstoque");
+        if (leftBtnEst && leftSubEst) {
+          leftBtnEst.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              leftSubEst.style.display === "block" ||
+              leftSubEst.style.display === "flex";
+            leftSubEst.style.display = open ? "none" : "block";
+            if (leftCaretEst) leftCaretEst.innerText = open ? "▼" : "▲";
+          });
+        }
+        // Toggle para submenu aninhado Clínica
+        var leftBtnClin = document.getElementById("leftBtnClinica");
+        var leftSubClin = document.getElementById("leftSubClinica");
+        var leftCaretClin = document.getElementById("leftCaretClinica");
+        if (leftBtnClin && leftSubClin) {
+          leftBtnClin.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              leftSubClin.style.display === "block" ||
+              leftSubClin.style.display === "flex";
+            leftSubClin.style.display = open ? "none" : "block";
+            if (leftCaretClin) leftCaretClin.innerText = open ? "▼" : "▲";
+          });
+        }
+        // Toggle para submenus em Atendimento: Vendas, Caixa, Relatórios
+        var attBtnVendas = document.getElementById("attBtnVendas");
+        var attSubVendas = document.getElementById("attSubVendas");
+        var attCaretVendas = document.getElementById("attCaretVendas");
+        if (attBtnVendas && attSubVendas) {
+          attBtnVendas.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              attSubVendas.style.display === "block" ||
+              attSubVendas.style.display === "flex";
+            attSubVendas.style.display = open ? "none" : "block";
+            if (attCaretVendas) attCaretVendas.innerText = open ? "▼" : "▲";
+          });
+        }
+
+        var attBtnCaixa = document.getElementById("attBtnCaixa");
+        var attSubCaixa = document.getElementById("attSubCaixa");
+        var attCaretCaixa = document.getElementById("attCaretCaixa");
+        if (attBtnCaixa && attSubCaixa) {
+          attBtnCaixa.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              attSubCaixa.style.display === "block" ||
+              attSubCaixa.style.display === "flex";
+            attSubCaixa.style.display = open ? "none" : "block";
+            if (attCaretCaixa) attCaretCaixa.innerText = open ? "▼" : "▲";
+          });
+        }
+
+        var attBtnRel = document.getElementById("attBtnRelatorios");
+        var attSubRel = document.getElementById("attSubRelatorios");
+        var attCaretRel = document.getElementById("attCaretRel");
+        if (attBtnRel && attSubRel) {
+          attBtnRel.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              attSubRel.style.display === "block" ||
+              attSubRel.style.display === "flex";
+            attSubRel.style.display = open ? "none" : "block";
+            if (attCaretRel) attCaretRel.innerText = open ? "▼" : "▲";
+          });
+        }
+        // Toggle para submenu aninhado em Compras: Relatórios
+        var compBtnRel = document.getElementById("compBtnRelatorios");
+        var compSubRel = document.getElementById("compSubRelatorios");
+        var compCaretRel = document.getElementById("compCaretRel");
+        if (compBtnRel && compSubRel) {
+          compBtnRel.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              compSubRel.style.display === "block" ||
+              compSubRel.style.display === "flex";
+            compSubRel.style.display = open ? "none" : "block";
+            if (compCaretRel) compCaretRel.innerText = open ? "▼" : "▲";
+          });
+        }
+        // Toggle para submenus em Financeiro
+        var finBtnReceber = document.getElementById("finBtnReceber");
+        var finSubReceber = document.getElementById("finSubReceber");
+        var finCaretReceber = document.getElementById("finCaretReceber");
+        if (finBtnReceber && finSubReceber) {
+          finBtnReceber.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              finSubReceber.style.display === "block" ||
+              finSubReceber.style.display === "flex";
+            finSubReceber.style.display = open ? "none" : "block";
+            if (finCaretReceber) finCaretReceber.innerText = open ? "▼" : "▲";
+          });
+        }
+
+        var finBtnPagar = document.getElementById("finBtnPagar");
+        var finSubPagar = document.getElementById("finSubPagar");
+        var finCaretPagar = document.getElementById("finCaretPagar");
+        if (finBtnPagar && finSubPagar) {
+          finBtnPagar.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              finSubPagar.style.display === "block" ||
+              finSubPagar.style.display === "flex";
+            finSubPagar.style.display = open ? "none" : "block";
+            if (finCaretPagar) finCaretPagar.innerText = open ? "▼" : "▲";
+          });
+        }
+
+        var finBtnConta = document.getElementById("finBtnConta");
+        var finSubConta = document.getElementById("finSubConta");
+        var finCaretConta = document.getElementById("finCaretConta");
+        if (finBtnConta && finSubConta) {
+          finBtnConta.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              finSubConta.style.display === "block" ||
+              finSubConta.style.display === "flex";
+            finSubConta.style.display = open ? "none" : "block";
+            if (finCaretConta) finCaretConta.innerText = open ? "▼" : "▲";
+          });
+        }
+
+        var finBtnCartao = document.getElementById("finBtnCartao");
+        var finSubCartao = document.getElementById("finSubCartao");
+        var finCaretCartao = document.getElementById("finCaretCartao");
+        if (finBtnCartao && finSubCartao) {
+          finBtnCartao.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              finSubCartao.style.display === "block" ||
+              finSubCartao.style.display === "flex";
+            finSubCartao.style.display = open ? "none" : "block";
+            if (finCaretCartao) finCaretCartao.innerText = open ? "▼" : "▲";
+          });
+        }
+
+        var finBtnRel = document.getElementById("finBtnRelatorios");
+        var finSubRel = document.getElementById("finSubRelatorios");
+        var finCaretRel = document.getElementById("finCaretRel");
+        if (finBtnRel && finSubRel) {
+          finBtnRel.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var open =
+              finSubRel.style.display === "block" ||
+              finSubRel.style.display === "flex";
+            finSubRel.style.display = open ? "none" : "block";
+            if (finCaretRel) finCaretRel.innerText = open ? "▼" : "▲";
+          });
+        }
+
+        // fechar ao clicar em outro lugar da sidebar (mantém outras opções)
+        document.addEventListener("click", function (e) {
+          if (!e.target.closest("#itemSubmenu")) {
+            if (leftSub) leftSub.style.display = "none";
+            if (leftCaret) leftCaret.innerText = "▼";
+            // também fechar o submenu pai (#itemSubmenu) se estiver aberto
+            try {
+              var parentSub = document.getElementById("itemSubmenu");
+              if (parentSub) {
+                if (
+                  parentSub.classList &&
+                  parentSub.classList.contains("open")
+                ) {
+                  parentSub.classList.remove("open");
+                  try {
+                    restoreSubmenu(parentSub);
+                  } catch (e) {}
+                } else {
+                  parentSub.style.display = "none";
+                }
+              }
+            } catch (e) {
+              console.warn("Erro ao fechar submenu pai", e);
+            }
+          }
+        });
+      })();
+    </script>
+    <script>
+      // Handler global de click fora que fecha dropdowns e painéis abertos
+      (function () {
+        function closeAllMenus() {
+          try {
+            var leftSub = document.getElementById("leftSubNovo");
+            var leftCaret = document.getElementById("leftCaretNovo");
+            if (leftSub) leftSub.style.display = "none";
+            if (leftCaret) leftCaret.innerText = "▼";
+            // reset carets dos submenus de Atendimento
+            try {
+              var aV = document.getElementById("attCaretVendas");
+              if (aV) aV.innerText = "▼";
+            } catch (e) {}
+            try {
+              var aC = document.getElementById("attCaretCaixa");
+              if (aC) aC.innerText = "▼";
+            } catch (e) {}
+            try {
+              var aR = document.getElementById("attCaretRel");
+              if (aR) aR.innerText = "▼";
+            } catch (e) {}
+            // reset caret do submenu de Compras -> Relatórios
+            try {
+              var cR = document.getElementById("compCaretRel");
+              if (cR) cR.innerText = "▼";
+            } catch (e) {}
+            // reset carets dos submenus de Financeiro
+            try {
+              var fR1 = document.getElementById("finCaretReceber");
+              if (fR1) fR1.innerText = "▼";
+            } catch (e) {}
+            try {
+              var fR2 = document.getElementById("finCaretPagar");
+              if (fR2) fR2.innerText = "▼";
+            } catch (e) {}
+            try {
+              var fR3 = document.getElementById("finCaretConta");
+              if (fR3) fR3.innerText = "▼";
+            } catch (e) {}
+            try {
+              var fR4 = document.getElementById("finCaretCartao");
+              if (fR4) fR4.innerText = "▼";
+            } catch (e) {}
+            try {
+              var fR5 = document.getElementById("finCaretRel");
+              if (fR5) fR5.innerText = "▼";
+            } catch (e) {}
+
+            // fechar todos os .submenu e remover classe open
+            document.querySelectorAll(".submenu").forEach(function (s) {
+              try {
+                s.classList.remove("open");
+              } catch (e) {}
+              try {
+                restoreSubmenu(s);
+              } catch (e) {}
+              s.style.display = "none";
+            });
+
+            // remover open dos containers
+            document
+              .querySelectorAll(".nav-item-with-submenu.open")
+              .forEach(function (c) {
+                c.classList.remove("open");
+              });
+
+            // fechar painéis
+            document.querySelectorAll(".panel").forEach(function (p) {
+              p.style.display = "none";
+            });
+          } catch (e) {
+            console.warn("closeAllMenus error", e);
+          }
+        }
+
+        document.addEventListener("click", function (ev) {
+          // esperar handlers internos processarem (por exemplo, abrir menus)
+          setTimeout(function () {
+            // se o clique ocorreu dentro da sidebar ou dentro de um submenu/painel, não fecha
+            if (
+              ev.target.closest(".sidebar") ||
+              ev.target.closest(".submenu") ||
+              ev.target.closest(".panel")
+            )
+              return;
+            closeAllMenus();
+          }, 20);
+        });
+      })();
+    </script>
+
+    <!-- Pedido de Venda: toast simples (azul claro) -->
+    <style>
+      .pedido-toast-container {
+        position: fixed;
+        top: 18px;
+        right: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        z-index: 99999;
+        pointer-events: none;
+      }
+      .pedido-toast {
+        pointer-events: auto;
+        background: linear-gradient(180deg, #e8f6ff, #d3efff);
+        color: #023047;
+        padding: 10px 14px;
+        border-radius: 8px;
+        box-shadow: 0 8px 24px rgba(2, 16, 26, 0.12);
+        min-width: 220px;
+        max-width: 380px;
+        font-weight: 300;
+        opacity: 0;
+        transform: translateY(-6px) scale(0.98);
+        transition:
+          opacity 0.18s,
+          transform 0.18s;
+      }
+    </style>
+    <script>
+      (function () {
+        if (window.__pedidoToastInstalled) return;
+        window.__pedidoToastInstalled = true;
+        function showPedidoToast(message) {
+          var c = document.querySelector(".pedido-toast-container");
+          if (!c) {
+            c = document.createElement("div");
+            c.className = "pedido-toast-container";
+            document.body.appendChild(c);
+          }
+          var t = document.createElement("div");
+          t.className = "pedido-toast";
+          t.textContent = message;
+          c.appendChild(t);
+          requestAnimationFrame(function () {
+            t.style.opacity = "1";
+            t.style.transform = "none";
+          });
+          setTimeout(function () {
+            t.style.opacity = "0";
+            t.style.transform = "translateY(-6px) scale(0.98)";
+            setTimeout(function () {
+              try {
+                t.remove();
+              } catch (e) {}
+            }, 220);
+          }, 5000);
+        }
+
+        document.addEventListener(
+          "click",
+          function (e) {
+            try {
+              var a = e.target && e.target.closest && e.target.closest("a");
+              if (!a) return;
+              var txt = (a.textContent || "").trim();
+              var href = a.getAttribute && (a.getAttribute("href") || "");
+              if (
+                txt === "Pedido de Venda" ||
+                (href && href.indexOf("pedido-venda") !== -1)
+              ) {
+                e.preventDefault();
+                e.stopPropagation();
+                showPedidoToast(
+                  "Pedido de Venda ainda está sendo desenvolvido",
+                );
+              }
+            } catch (err) {
+              /* silencioso */
+            }
+          },
+          true,
+        ); // usar capture para garantir execução antes de handlers que fazem stopPropagation
+      })();
+    </script>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <button class="menu-toggle">
+            <i class="fas fa-bars"></i>
+          </button>
+          <h1>Marketing</h1>
+        </div>
+
+        <div class="header-right">
+          <div class="calendar-widget">
+            <button
+              class="btn-calendar"
+              id="calendarioWidget"
+              onclick="abrirCalendarioSidebar()"
+            >
+              <i class="fas fa-calendar"></i>
+            </button>
+          </div>
+
+          <div class="dropdown">
+            <button class="btn-primary dropdown-toggle" id="inicioRapidoBtn">
+              <i class="fas fa-plus"></i>
+              Início Rápido
+              <i class="fas fa-chevron-down"></i>
+            </button>
+            <div class="dropdown-menu" id="inicioRapidoMenu">
+              <a href="/agendamentos-novo.html" class="dropdown-item">
+                <i class="fas fa-calendar-plus"></i>
+                Novo Atendimento
+              </a>
+              <a
+                href="/pets/cadastro-pet.html"
+                class="dropdown-item"
+                onclick="novoPet()"
+              >
+                <i class="fas fa-dog"></i>
+                Novo Pet
+              </a>
+              <a
+                href="/novo-cliente.html"
+                class="dropdown-item"
+                onclick="novoCliente()"
+              >
+                <i class="fas fa-user-plus"></i>
+                Novo Cliente
+              </a>
+              <!--<a
+                href="/atendimento/novo-contrato.html"
+                class="dropdown-item"
+                onclick="novoContrato()"
+              >
+                <i class="fas fa-file-contract"></i>
+                Novo Contrato
+              </a><-->
+              <a
+                href="/atendimento/nova-venda.html"
+                class="dropdown-item"
+                onclick="novaVenda()"
+              >
+                <i class="fas fa-shopping-bag"></i>
+                Nova Venda
+              </a>
+              <a
+                href="../../financeiro/contas-a-receber/contas-a-pagar/pagamento-fornecedor.html"
+                class="dropdown-item"
+                onclick="novaContaPagar()"
+              >
+                <i class="fas fa-credit-card"></i>
+                Nova Conta a Pagar
+              </a>
+            </div>
+          </div>
+
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input type="text" placeholder="Pesquisar por menu" />
+          </div>
+
+          <div class="user-menu">
+            <i class="fas fa-user-circle"></i>
+            <span>...</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Content -->
+      <div class="content">
+        <!-- Phone Number Section -->
+        <div class="phone-section">
+          <div
+            class="phone-card"
+            id="whatsappStatusCard"
+            onclick="abrirModalConexaoWhatsapp()"
+            style="cursor: pointer"
+          >
+            <div class="phone-status">
+              <i
+                class="fas fa-circle status-icon"
+                id="wppStatusIcon"
+                style="color: #ccc; font-size: 12px"
+              ></i>
+              <span class="phone-number" id="wppNumeroExibido"
+                >Clique para conectar WhatsApp</span
+              >
+              <i class="fas fa-chevron-right"></i>
+            </div>
+            <span
+              id="wppStatusLabel"
+              style="font-size: 11px; color: #999; margin-left: 8px"
+              >Desconectado</span
+            >
+          </div>
+          <!-- Botão Disparador de Mensagens (logo abaixo do número conectado) -->
+          <div style="margin-top: 10px">
+            <button
+              id="btnDisparador"
+              class="btn-ghost"
+              style="
+                width: 100%;
+                padding: 10px 12px;
+                border-radius: 6px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                justify-content: center;
+              "
+            >
+              <i class="fas fa-bullhorn"></i>
+              Disparador de Mensagens
+            </button>
+          </div>
+
+          <!-- Alerta de fila pendente (WhatsApp desconectado) -->
+          <div id="filaPendenteAlerta" style="display: none; margin-top: 10px">
+            <div
+              style="
+                background: #fff5f5;
+                border: 1px solid #feb2b2;
+                border-left: 4px solid #e53e3e;
+                border-radius: 8px;
+                padding: 14px 16px;
+              "
+            >
+              <div
+                style="
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  margin-bottom: 10px;
+                "
+              >
+                <i
+                  class="fas fa-exclamation-triangle"
+                  style="color: #e53e3e; font-size: 16px"
+                ></i>
+                <span
+                  id="filaPendenteMensagem"
+                  style="color: #c53030; font-weight: 600; font-size: 13px"
+                ></span>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap">
+                <button
+                  id="btnFilaEnviarUm"
+                  style="
+                    flex: 1;
+                    min-width: 100px;
+                    padding: 8px 12px;
+                    border: 1px solid #e53e3e;
+                    background: #fff;
+                    color: #e53e3e;
+                    border-radius: 6px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 6px;
+                  "
+                >
+                  <i class="fas fa-paper-plane"></i> Enviar 1
+                </button>
+                <button
+                  id="btnFilaEnviarTodos"
+                  style="
+                    flex: 1;
+                    min-width: 100px;
+                    padding: 8px 12px;
+                    border: none;
+                    background: #e53e3e;
+                    color: #fff;
+                    border-radius: 6px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 6px;
+                  "
+                >
+                  <i class="fas fa-forward"></i> Enviar Todos
+                </button>
+                <button
+                  id="btnFilaCancelarTodos"
+                  style="
+                    flex: 1;
+                    min-width: 100px;
+                    padding: 8px 12px;
+                    border: 1px solid #a0aec0;
+                    background: #fff;
+                    color: #718096;
+                    border-radius: 6px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 6px;
+                  "
+                >
+                  <i class="fas fa-times-circle"></i> Cancelar Todos
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Messages Container -->
+        <div class="messages-container">
+          <!-- Active Messages -->
+          <div class="messages-section active-messages">
+            <div class="section-header">
+              <div class="section-badge" id="badgeMensagensAtivas">
+                0 mensagens ativas
+              </div>
+            </div>
+            <div id="listaMensagensAtivas">
+              <!-- Gerado dinamicamente por marketing.js -->
+              <div style="color: #aaa; padding: 16px; font-size: 13px">
+                Carregando...
+              </div>
+            </div>
+          </div>
+
+          <!-- Inactive Messages -->
+          <div class="messages-section inactive-messages">
+            <div class="section-header">
+              <div class="section-badge inactive" id="badgeMensagensInativas">
+                0 mensagens inativas
+              </div>
+            </div>
+            <div id="listaMensagensInativas">
+              <!-- Gerado dinamicamente por marketing.js -->
+              <div style="color: #aaa; padding: 16px; font-size: 13px">
+                Carregando...
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ─────────────────────────────────────────────────
+             PRODUTO RECORRENTE — seção separada
+        ─────────────────────────────────────────────────── -->
+        <div class="produto-recorrente-section" id="produtoRecorrenteSection">
+          <div class="produto-recorrente-header">
+            <div class="pr-icon-wrap">
+              <i class="fas fa-box-open"></i>
+            </div>
+            <div class="pr-title-group">
+              <h3 class="pr-title">Produto Recorrente</h3>
+              <p class="pr-subtitle">
+                Lembrete automático de reposição de produto para cada cliente
+              </p>
+            </div>
+            <div class="pr-badges" id="prBadges">
+              <span class="pr-badge pr-badge-ativos" id="prBadgeAtivos">
+                <i class="fas fa-users"></i>
+                <span id="prTotalAtivos">—</span> clientes ativos
+              </span>
+              <span class="pr-badge pr-badge-proximos" id="prBadgeProximos">
+                <i class="fas fa-clock"></i>
+                <span id="prProximosDisparo">—</span> disparos nos próximos 7
+                dias
+              </span>
+            </div>
+          </div>
+
+          <div class="pr-body">
+            <div class="pr-info-card">
+              <i
+                class="fas fa-info-circle"
+                style="color: #0ea5e9; margin-right: 8px"
+              ></i>
+              <div>
+                <strong>Como funciona:</strong> quando um cliente com lembrete
+                automático ativo realiza uma compra, o sistema agenda
+                automaticamente uma mensagem WhatsApp para o dia configurado
+                (ex: dia 29 de um ciclo de 30 dias), lembrando da reposição do
+                produto. O ciclo se repete infinitamente até ser desativado.
+              </div>
+            </div>
+
+            <div class="pr-actions">
+              <a
+                href="clientes.html"
+                class="pr-btn pr-btn-outline"
+                style="display: none"
+              >
+                <i class="fas fa-users"></i> Ver Clientes com Lembrete
+              </a>
+              <button
+                class="pr-btn pr-btn-primary"
+                onclick="abrirModalEditarProdutoRecorrente()"
+              >
+                <i class="fas fa-edit"></i> Editar Mensagem
+              </button>
+            </div>
+
+            <div class="pr-table-wrap" id="prTableWrap">
+              <div class="pr-table-loading" id="prTableLoading">
+                <i class="fas fa-spinner fa-spin"></i> Carregando lembretes...
+              </div>
+              <table class="pr-table" id="prTable" style="display: none">
+                <thead>
+                  <tr>
+                    <th>Cliente</th>
+                    <th>Produto</th>
+                    <th>Ciclo</th>
+                    <th>Próximo Disparo</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="prTableBody"></tbody>
+              </table>
+              <div
+                id="prTableEmpty"
+                class="pr-table-empty"
+                style="display: none"
+              >
+                <i
+                  class="fas fa-box-open"
+                  style="font-size: 32px; color: #0ea5e9; opacity: 0.5"
+                ></i>
+                <p>
+                  Nenhum lembrete de produto recorrente ativo.<br />Ative o
+                  lembrete automático nos cadastros de cliente.
+                </p>
+              </div>
+            </div>
+
+            <!-- Banner de atrasados — visível só quando há disparos pendentes -->
+            <div
+              id="prAtrasadosBanner"
+              class="pr-atrasados-banner"
+              style="display: none"
+            >
+              <div class="pr-atrasados-icon">
+                <i class="fas fa-exclamation"></i>
+              </div>
+              <div class="pr-atrasados-text">
+                <strong id="prAtrasadosTexto"
+                  >Lembretes com disparo atrasado</strong
+                >
+                <span
+                  >WhatsApp conectado — clique em "Enviar todos" para disparar
+                  agora.</span
+                >
+              </div>
+              <div class="pr-atrasados-actions">
+                <button
+                  class="pr-btn-enviar-todos"
+                  id="prBtnEnviarTodos"
+                  onclick="dispararTodosAtrasadosPR()"
+                >
+                  <i class="fas fa-paper-plane"></i> Enviar todos
+                </button>
+                <button
+                  class="pr-btn-fechar-banner"
+                  onclick="fecharBannerAtrasadosPR()"
+                >
+                  <i class="fas fa-times"></i> Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         MODAL 1: CONEXÃO WHATSAPP (QR CODE)
+    ═══════════════════════════════════════════════════════ -->
+    <div id="modalQRCode" class="modal-overlay" style="display: none">
+      <div class="modal-box" style="max-width: 480px; text-align: center">
+        <button class="modal-close" onclick="fecharModal('modalQRCode')">
+          &times;
+        </button>
+        <div style="margin-bottom: 20px">
+          <div
+            style="
+              width: 56px;
+              height: 56px;
+              border-radius: 50%;
+              background: #f0eaff;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              margin: 0 auto 12px;
+            "
+          >
+            <i
+              class="fab fa-whatsapp"
+              style="font-size: 28px; color: #7c3aed"
+            ></i>
+          </div>
+          <h2 style="margin: 0; font-size: 18px">Conectar WhatsApp</h2>
+          <p style="color: #666; font-size: 13px; margin-top: 6px">
+            Escaneie o QR Code com o WhatsApp do celular
+          </p>
+        </div>
+
+        <!-- Status: aguardando conexão -->
+        <div id="qrStatusConectado" style="display: none; padding: 20px 0">
+          <i
+            class="fas fa-check-circle"
+            style="font-size: 48px; color: #22c55e; margin-bottom: 12px"
+          ></i>
+          <p
+            style="font-size: 16px; font-weight: 600; color: #16a34a; margin: 0"
+          >
+            WhatsApp Conectado!
+          </p>
+          <p
+            id="qrNumeroConectado"
+            style="color: #666; font-size: 13px; margin-top: 6px"
+          ></p>
+          <button
+            onclick="fecharModal('modalQRCode')"
+            class="btn-ativar"
+            style="margin-top: 16px; width: 200px"
+          >
+            Fechar
+          </button>
+        </div>
+
+        <!-- Status: gerando QR -->
+        <div id="qrStatusAguardando" style="display: none; padding: 20px 0">
+          <div
+            style="
+              width: 240px;
+              height: 240px;
+              margin: 0 auto;
+              background: #f5f5f5;
+              border-radius: 8px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            "
+          >
+            <div
+              class="spinner"
+              style="
+                width: 40px;
+                height: 40px;
+                border: 4px solid #e5e7eb;
+                border-top-color: #7c3aed;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+              "
+            ></div>
+          </div>
+          <p style="color: #666; font-size: 13px; margin-top: 12px">
+            Gerando QR Code...
+          </p>
+        </div>
+
+        <!-- QR Code image -->
+        <div id="qrImageContainer" style="display: none; padding: 10px 0">
+          <img
+            id="qrCodeImg"
+            src=""
+            alt="QR Code"
+            style="
+              width: 240px;
+              height: 240px;
+              border-radius: 8px;
+              border: 2px solid #e5e7eb;
+            "
+          />
+          <p style="color: #666; font-size: 12px; margin-top: 10px">
+            Abra o WhatsApp → Aparelhos Conectados → Conectar aparelho
+          </p>
+        </div>
+
+        <!-- Status: desconectado (inicial) -->
+        <div id="qrStatusDesconectado">
+          <p style="color: #666; font-size: 13px; margin-bottom: 16px">
+            Clique em "Iniciar Conexão" para gerar o QR Code.
+          </p>
+          <button
+            onclick="iniciarConexaoWhatsapp()"
+            class="btn-ativar"
+            style="width: 200px"
+            id="btnIniciarConexao"
+          >
+            <i class="fab fa-whatsapp"></i> Iniciar Conexão
+          </button>
+        </div>
+
+        <!-- Botão desconectar (exibido quando conectado) -->
+        <div id="qrBtnDesconectar" style="display: none; margin-top: 12px">
+          <button
+            onclick="desconectarWhatsapp()"
+            style="
+              background: none;
+              border: 1px solid #ef4444;
+              color: #ef4444;
+              padding: 8px 20px;
+              border-radius: 6px;
+              cursor: pointer;
+              font-size: 13px;
+            "
+          >
+            <i class="fas fa-times-circle"></i> Desconectar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         MODAL 2: EDITAR MENSAGEM (Texto + Variáveis + Imagem)
+    ═══════════════════════════════════════════════════════ -->
+    <div id="modalEditarMensagem" class="modal-overlay" style="display: none">
+      <div class="modal-box" style="max-width: 700px">
+        <button
+          class="modal-close"
+          onclick="fecharModal('modalEditarMensagem')"
+        >
+          &times;
+        </button>
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+          "
+        >
+          <div
+            style="
+              width: 48px;
+              height: 48px;
+              border-radius: 50%;
+              background: #f0eaff;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            "
+          >
+            <i
+              class="fas fa-calendar"
+              id="modalMsgIcone"
+              style="font-size: 20px; color: #7c3aed"
+            ></i>
+          </div>
+          <h2 style="margin: 0; font-size: 16px" id="modalMsgTitulo">
+            Mensagem
+          </h2>
+        </div>
+
+        <p style="font-size: 12px; color: #999; margin-bottom: 6px">
+          Whatsapp Web
+        </p>
+        <input type="hidden" id="modalMsgId" />
+
+        <!-- Editor de texto -->
+        <textarea
+          id="modalMsgConteudo"
+          rows="10"
+          style="
+            width: 100%;
+            padding: 14px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: vertical;
+            font-family: inherit;
+            box-sizing: border-box;
+          "
+        >
+        </textarea>
+
+        <!-- Toolbar: variáveis -->
+        <div style="display: flex; justify-content: flex-end; margin-top: 10px">
+          <button onclick="mostrarVariaveis()" class="btn-variaveis">
+            Variáveis
+          </button>
+        </div>
+
+        <!-- Seção de imagem da campanha -->
+        <input
+          type="file"
+          id="modalMsgImagem"
+          accept="image/jpeg,image/jpg,image/png"
+          style="display: none"
+          onchange="previewImagem(this)"
+        />
+
+        <div
+          style="
+            margin-top: 14px;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+          "
+        >
+          <!-- Cabeçalho -->
+          <div
+            style="
+              background: #f8f4ff;
+              padding: 9px 14px;
+              border-bottom: 1px solid #e5e7eb;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+            "
+          >
+            <i class="fas fa-image" style="color: #7c3aed; font-size: 13px"></i>
+            <span style="font-size: 13px; font-weight: 600; color: #374151"
+              >Imagem da Campanha</span
+            >
+            <span style="font-size: 11px; color: #9ca3af"
+              >(opcional — JPG, JPEG, PNG)</span
+            >
+          </div>
+
+          <!-- Estado: sem imagem -->
+          <div
+            id="imgSemImagem"
+            style="
+              padding: 16px;
+              display: flex;
+              align-items: center;
+              gap: 12px;
+              flex-wrap: wrap;
+            "
+          >
+            <label
+              for="modalMsgImagem"
+              style="
+                cursor: pointer;
+                background: #7c3aed;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 7px;
+                font-size: 13px;
+                font-weight: 600;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+              "
+            >
+              <i class="fas fa-upload"></i> Selecionar Imagem
+            </label>
+            <span style="font-size: 12px; color: #9ca3af"
+              >Nenhuma imagem — campanha será enviada apenas com texto</span
+            >
+          </div>
+
+          <!-- Estado: com imagem (preview) -->
+          <div id="modalMsgImagemPreview" style="display: none; padding: 14px">
+            <div
+              style="
+                display: flex;
+                align-items: flex-start;
+                gap: 14px;
+                flex-wrap: wrap;
+              "
+            >
+              <img
+                id="modalMsgImagemImg"
+                src=""
+                alt="Preview"
+                style="
+                  max-height: 100px;
+                  max-width: 150px;
+                  border-radius: 8px;
+                  border: 1px solid #e5e7eb;
+                  object-fit: cover;
+                "
+              />
+              <div>
+                <div
+                  style="
+                    font-size: 12px;
+                    font-weight: 600;
+                    color: #374151;
+                    margin-bottom: 3px;
+                  "
+                >
+                  Imagem selecionada
+                </div>
+                <span
+                  id="modalMsgImagemNome"
+                  style="
+                    font-size: 11px;
+                    color: #6b7280;
+                    display: block;
+                    margin-bottom: 12px;
+                    word-break: break-all;
+                    max-width: 300px;
+                  "
+                ></span>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap">
+                  <label
+                    for="modalMsgImagem"
+                    style="
+                      cursor: pointer;
+                      background: #f3f4f6;
+                      color: #374151;
+                      border: 1px solid #d1d5db;
+                      padding: 6px 13px;
+                      border-radius: 6px;
+                      font-size: 12px;
+                      font-weight: 600;
+                      display: inline-flex;
+                      align-items: center;
+                      gap: 5px;
+                    "
+                  >
+                    <i class="fas fa-exchange-alt"></i> Trocar Imagem
+                  </label>
+                  <button
+                    onclick="removerImagem()"
+                    type="button"
+                    style="
+                      background: #fef2f2;
+                      color: #ef4444;
+                      border: 1px solid #fecaca;
+                      padding: 6px 13px;
+                      border-radius: 6px;
+                      font-size: 12px;
+                      font-weight: 600;
+                      cursor: pointer;
+                      display: inline-flex;
+                      align-items: center;
+                      gap: 5px;
+                    "
+                  >
+                    <i class="fas fa-trash-alt"></i> Remover Imagem
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Painel de variáveis (toggle) -->
+        <div
+          id="painelVariaveis"
+          style="
+            display: none;
+            background: #f8f4ff;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 10px;
+          "
+        >
+          <p
+            style="
+              font-size: 12px;
+              color: #7c3aed;
+              font-weight: 600;
+              margin: 0 0 8px;
+            "
+          >
+            Variáveis disponíveis — clique para inserir:
+          </p>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px">
+            <button
+              onclick="inserirVariavel('{nome_tutor}')"
+              class="btn-variavel"
+            >
+              {nome_tutor}
+            </button>
+            <button
+              onclick="inserirVariavel('{nome_pet}')"
+              class="btn-variavel"
+            >
+              {nome_pet}
+            </button>
+            <button
+              onclick="inserirVariavel('{data_agendamento}')"
+              class="btn-variavel"
+            >
+              {data_agendamento}
+            </button>
+            <button
+              onclick="inserirVariavel('{hora_agendamento}')"
+              class="btn-variavel"
+            >
+              {hora_agendamento}
+            </button>
+            <button onclick="inserirVariavel('{servico}')" class="btn-variavel">
+              {servico}
+            </button>
+            <button
+              onclick="inserirVariavel('{nome_empresa}')"
+              class="btn-variavel"
+            >
+              {nome_empresa}
+            </button>
+            <button
+              onclick="inserirVariavel('{produto_nome}')"
+              class="btn-variavel"
+            >
+              {produto_nome}
+            </button>
+            <button onclick="inserirVariavel('{dias}')" class="btn-variavel">
+              {dias}
+            </button>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: center; margin-top: 20px">
+          <button
+            onclick="avancarParaConfiguracao()"
+            class="btn-ativar"
+            style="min-width: 200px"
+          >
+            Avançar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         MODAL 3: CONFIGURAR ENVIO (Horário / Ativar)
+    ═══════════════════════════════════════════════════════ -->
+    <div id="modalConfigurarEnvio" class="modal-overlay" style="display: none">
+      <div class="modal-box" style="max-width: 500px">
+        <button
+          class="modal-close"
+          onclick="fecharModal('modalConfigurarEnvio')"
+        >
+          &times;
+        </button>
+        <div
+          style="
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+          "
+        >
+          <div
+            style="
+              width: 48px;
+              height: 48px;
+              border-radius: 50%;
+              background: #f0eaff;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            "
+          >
+            <i class="fas fa-clock" style="font-size: 20px; color: #7c3aed"></i>
+          </div>
+          <h2 style="margin: 0; font-size: 16px" id="modalConfTitulo">
+            Configurar Envio
+          </h2>
+        </div>
+
+        <p style="font-size: 12px; color: #999; margin-bottom: 12px">
+          Whatsapp Web
+        </p>
+
+        <div style="margin-bottom: 16px">
+          <p
+            style="
+              font-size: 13px;
+              font-weight: 600;
+              color: #333;
+              margin-bottom: 10px;
+            "
+          >
+            Quando enviar
+          </p>
+
+          <label class="radio-opcao">
+            <input type="checkbox" name="diasEnvio" value="0" checked />
+            <span>No dia</span>
+          </label>
+
+          <label class="radio-opcao">
+            <input type="checkbox" name="diasEnvio" value="1" />
+            <span>1 Dia antes</span>
+          </label>
+
+          <label class="radio-opcao">
+            <input type="checkbox" name="diasEnvio" value="2" />
+            <span>2 Dias antes</span>
+          </label>
+
+          <label class="radio-opcao">
+            <input type="checkbox" name="diasEnvio" value="3" />
+            <span>3 Dias antes</span>
+          </label>
+
+          <label class="radio-opcao">
+            <input type="checkbox" name="diasEnvio" value="5" />
+            <span>5 Dias antes</span>
+          </label>
+
+          <label class="radio-opcao">
+            <input type="checkbox" name="diasEnvio" value="7" />
+            <span>7 Dias antes</span>
+          </label>
+
+          <div
+            style="
+              margin-top: 10px;
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              padding-left: 4px;
+            "
+          >
+            <label style="font-size: 13px; color: #555; white-space: nowrap"
+              >Horário do envio:</label
+            >
+            <input
+              type="time"
+              id="horaEnvio"
+              value="09:00"
+              class="input-hora"
+            />
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: center; margin-top: 24px">
+          <button
+            onclick="ativarMensagemConfirmado()"
+            class="btn-ativar"
+            id="btnAtivarConfirmado"
+            style="min-width: 200px"
+          >
+            Ativar
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         MODAL 4: DISPARADOR DE MENSAGENS (INTEGRADO)
+    ═══════════════════════════════════════════════════════ -->
+    <div id="modalDisparador" class="modal-overlay" style="display: none">
+      <div
+        class="modal-box"
+        style="max-width: 1100px; width: 95%; height: 82vh"
+      >
+        <button class="modal-close" onclick="fecharModal('modalDisparador')">
+          &times;
+        </button>
+        <div style="display: flex; height: 100%; gap: 12px">
+          <div
+            style="
+              width: 42%;
+              background: #fff;
+              padding: 12px;
+              border-radius: 8px;
+              overflow: auto;
+              display: flex;
+              flex-direction: column;
+            "
+          >
+            <div
+              style="
+                display: flex;
+                gap: 8px;
+                align-items: center;
+                margin-bottom: 8px;
+              "
+            >
+              <input
+                type="file"
+                id="fileImportLista"
+                accept=".csv,.xls,.xlsx,.xlsm"
+              />
+              <button
+                id="btnImportarLista"
+                class="btn-ativar"
+                style="padding: 6px 14px; font-size: 13px"
+              >
+                Importar
+              </button>
+              <button
+                id="btnLimparLista"
+                class="btn-ghost"
+                style="padding: 6px 14px; font-size: 13px"
+              >
+                Limpar
+              </button>
+            </div>
+            <div
+              style="
+                flex: 1;
+                overflow: auto;
+                border-top: 1px solid #eee;
+                padding-top: 8px;
+              "
+            >
+              <table
+                id="tblContatos"
+                style="width: 100%; border-collapse: collapse; font-size: 13px"
+              >
+                <thead
+                  style="
+                    background: #007bff;
+                    color: #fff;
+                    position: sticky;
+                    top: 0;
+                  "
+                >
+                  <tr>
+                    <th style="text-align: left; padding: 8px">Nome</th>
+                    <th style="text-align: left; padding: 8px">Número</th>
+                    <th style="text-align: left; padding: 8px">Status</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div
+            style="
+              width: 58%;
+              background: #fff;
+              padding: 12px;
+              border-radius: 8px;
+              display: flex;
+              flex-direction: column;
+            "
+          >
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                gap: 8px;
+                align-items: center;
+                margin-bottom: 8px;
+              "
+            >
+              <div style="font-weight: 600">Instâncias WhatsApp</div>
+              <div>
+                <button
+                  id="btnNovaInstancia"
+                  class="btn-ativar"
+                  style="padding: 6px 12px; font-size: 13px"
+                >
+                  Nova Instância
+                </button>
+              </div>
+            </div>
+            <!-- Progresso do disparador -->
+            <div id="disparadorProgress" style="display: none; margin: 8px 0">
+              <div style="display: flex; gap: 12px; align-items: center">
+                <div><strong id="dp_total">0</strong> contatos</div>
+                <div><strong id="dp_sent">0</strong> enviados</div>
+                <div><strong id="dp_pending">0</strong> pendentes</div>
+                <div><strong id="dp_error">0</strong> erros</div>
+                <div style="margin-left: auto">
+                  <span id="dp_percent">0%</span>
+                </div>
+              </div>
+              <div
+                style="
+                  background: #e6e6e6;
+                  height: 10px;
+                  border-radius: 6px;
+                  overflow: hidden;
+                  margin-top: 6px;
+                "
+              >
+                <div
+                  id="dp_bar"
+                  style="
+                    height: 100%;
+                    width: 0%;
+                    background: linear-gradient(90deg, #34d399, #10b981);
+                  "
+                ></div>
+              </div>
+            </div>
+            <div
+              id="instanciasList"
+              style="
+                display: flex;
+                gap: 8px;
+                flex-direction: column;
+                margin-bottom: 10px;
+                max-height: 80px;
+                overflow: auto;
+              "
+            ></div>
+            <!-- Submodal para criar instância (custom, evita prompt nativo) -->
+            <div
+              id="submodalNovaInstancia"
+              style="
+                display: none;
+                position: fixed;
+                inset: 0;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+              "
+            >
+              <div
+                style="
+                  background: rgba(0, 0, 0, 0.5);
+                  position: absolute;
+                  inset: 0;
+                "
+              ></div>
+              <div
+                style="
+                  position: relative;
+                  width: 420px;
+                  background: #fff;
+                  border-radius: 8px;
+                  padding: 16px;
+                  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+                  margin: auto;
+                "
+              >
+                <h3 style="margin: 0 0 8px 0">Nova Instância</h3>
+                <div style="margin-bottom: 8px">
+                  <label
+                    style="display: block; font-size: 13px; margin-bottom: 6px"
+                    >Nome</label
+                  >
+                  <input
+                    id="inputNomeInstancia"
+                    type="text"
+                    style="
+                      width: 100%;
+                      padding: 8px;
+                      border: 1px solid #ddd;
+                      border-radius: 6px;
+                    "
+                  />
+                  <div
+                    id="submodalError"
+                    style="
+                      color: #b91c1c;
+                      font-size: 13px;
+                      margin-top: 6px;
+                      display: none;
+                    "
+                  ></div>
+                </div>
+                <div style="display: flex; gap: 8px; justify-content: flex-end">
+                  <button id="btnCancelarInstancia" class="btn-ghost">
+                    Cancelar
+                  </button>
+                  <button id="btnCriarInstancia" class="btn-ativar">
+                    Criar
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div style="flex: 1; display: flex; flex-direction: column">
+              <label style="font-weight: 600; margin-bottom: 6px"
+                >Mensagem</label
+              >
+              <textarea
+                id="txtMensagemDisparo"
+                style="
+                  flex: 1;
+                  padding: 10px;
+                  border-radius: 6px;
+                  border: 1px solid #ddd;
+                  resize: none;
+                "
+              ></textarea>
+              <div
+                style="
+                  display: flex;
+                  gap: 8px;
+                  align-items: center;
+                  margin-top: 8px;
+                "
+              >
+                <div>
+                  <label style="font-weight: 600">Anexo (imagem)</label>
+                  <input type="file" id="fileAnexoImagem" accept="image/*" />
+                </div>
+                <div
+                  style="
+                    margin-left: auto;
+                    display: flex;
+                    gap: 8px;
+                    align-items: center;
+                  "
+                >
+                  <button
+                    id="btnIniciarDisparo"
+                    class="btn-ativar"
+                    style="padding: 8px 18px; font-size: 13px"
+                  >
+                    Iniciar
+                  </button>
+                  <button
+                    id="btnPausarDisparo"
+                    class="btn-ghost"
+                    style="padding: 8px 18px; font-size: 13px"
+                  >
+                    Pausar
+                  </button>
+                  <button
+                    id="btnContinuarDisparo"
+                    class="btn-ghost"
+                    style="padding: 8px 18px; font-size: 13px"
+                  >
+                    Continuar
+                  </button>
+                </div>
+              </div>
+
+              <div
+                style="
+                  margin-top: 12px;
+                  border-top: 1px solid #eee;
+                  padding-top: 12px;
+                  display: flex;
+                  gap: 12px;
+                  align-items: flex-end;
+                "
+              >
+                <div
+                  style="
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                    flex: 1;
+                  "
+                >
+                  <label style="font-size: 12px; white-space: nowrap"
+                    >Intervalo entre msg (s)</label
+                  >
+                  <input
+                    type="number"
+                    id="cfgIntervalo"
+                    value="5"
+                    min="0"
+                    style="
+                      width: 100%;
+                      padding: 6px;
+                      border: 1px solid #ddd;
+                      border-radius: 6px;
+                      box-sizing: border-box;
+                    "
+                  />
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                    flex: 1;
+                  "
+                >
+                  <label style="font-size: 12px; white-space: nowrap"
+                    >Delay inicial (s)</label
+                  >
+                  <input
+                    type="number"
+                    id="cfgDelayInicial"
+                    value="2"
+                    min="0"
+                    style="
+                      width: 100%;
+                      padding: 6px;
+                      border: 1px solid #ddd;
+                      border-radius: 6px;
+                      box-sizing: border-box;
+                    "
+                  />
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                    flex: 1;
+                  "
+                >
+                  <label style="font-size: 12px; white-space: nowrap"
+                    >Limite por ciclo</label
+                  >
+                  <input
+                    type="number"
+                    id="cfgLimite"
+                    value="0"
+                    min="0"
+                    style="
+                      width: 100%;
+                      padding: 6px;
+                      border: 1px solid #ddd;
+                      border-radius: 6px;
+                      box-sizing: border-box;
+                    "
+                  />
+                </div>
+                <div
+                  style="
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                    flex: 1;
+                  "
+                >
+                  <label style="font-size: 12px; white-space: nowrap"
+                    >Delay aleatório (s)</label
+                  >
+                  <input
+                    type="number"
+                    id="cfgDelayRand"
+                    value="2"
+                    min="0"
+                    style="
+                      width: 100%;
+                      padding: 6px;
+                      border: 1px solid #ddd;
+                      border-radius: 6px;
+                      box-sizing: border-box;
+                    "
+                  />
+                </div>
+              </div>
+
+              <div
+                style="
+                  margin-top: 12px;
+                  flex: 0 0 140px;
+                  overflow: auto;
+                  border-top: 1px solid #eee;
+                  padding-top: 12px;
+                "
+              >
+                <h4 style="margin: 0 0 8px 0">Log de envios</h4>
+                <div
+                  id="logEnvios"
+                  style="
+                    height: 100px;
+                    overflow: auto;
+                    background: #fafafa;
+                    padding: 8px;
+                    border-radius: 6px;
+                    border: 1px solid #f0f0f0;
+                    font-size: 13px;
+                  "
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         ESTILOS INLINE DOS MODAIS
+    ═══════════════════════════════════════════════════════ -->
+    <style>
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+      .modal-box {
+        background: #fff;
+        border-radius: 12px;
+        padding: 28px;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+        position: relative;
+      }
+      .modal-close {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        background: none;
+        border: none;
+        font-size: 22px;
+        cursor: pointer;
+        color: #666;
+        line-height: 1;
+      }
+      .btn-ativar {
+        background: #007bff;
+        color: #fff;
+        border: none;
+        padding: 12px 28px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .btn-ativar:hover {
+        background: #0056b3;
+      }
+      .btn-ativar:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+      .btn-variaveis {
+        background: #7c3aed;
+        color: #fff;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      .btn-variavel {
+        background: #f0eaff;
+        color: #7c3aed;
+        border: 1px solid #d8b4fe;
+        padding: 4px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+      }
+      .btn-variavel:hover {
+        background: #ede9fe;
+      }
+      .radio-opcao {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 12px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        color: #333;
+      }
+      .radio-opcao:hover {
+        background: #f9fafb;
+      }
+      .radio-opcao input[type="radio"] {
+        accent-color: #7c3aed;
+      }
+      .radio-opcao input[type="checkbox"] {
+        accent-color: #7c3aed;
+      }
+      .input-hora {
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 13px;
+        width: 80px;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Cards de mensagens ativas */
+      #listaMensagensAtivas .message-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 16px;
+        margin-bottom: 12px;
+      }
+      #listaMensagensAtivas .message-card .card-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      #listaMensagensAtivas .message-card .btn-editar {
+        background: none;
+        border: 1px solid #7c3aed;
+        color: #7c3aed;
+        padding: 6px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+      }
+      #listaMensagensAtivas .message-card .btn-desativar {
+        background: none;
+        border: 1px solid #ef4444;
+        color: #ef4444;
+        padding: 6px 14px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+      }
+    </style>
+
+    <script src="dashboard.js"></script>
+    <script src="marketing.js"></script>
+    <script src="novo-atendimento-global.js"></script>
+    <!-- SheetJS (XLSX) para parsing no client-side -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="marketing-disparador.js"></script>
+  </body>
+</html>

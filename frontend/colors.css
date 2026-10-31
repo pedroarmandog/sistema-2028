@@ -1,0 +1,312 @@
+/* ========================================
+   SISTEMA DE CORES GLOBAIS - PET CRIA
+   ======================================== */
+
+:root {
+    /* ========================================
+       CORES PRINCIPAIS DO SISTEMA
+       ======================================== */
+    
+    /* Cor principal - Azul primário do sistema */
+    --color-primary: #007bff;
+    --color-primary-hover: #030303;
+    --color-primary-light: #3498db;
+    
+    /* Cor secundária - Verde de sucesso */
+    --color-secondary: #28a745;
+    --color-secondary-hover: #218838;
+    
+    /* ========================================
+       CORES DE FUNDO E ESTRUTURA
+       ======================================== */
+    
+    /* Backgrounds principais */
+    --bg-body: #f8f9fa;
+    --bg-white: #ffffff;
+    --bg-light: #f8f9fa;
+    --bg-transparent: transparent;
+    
+    /* Sidebar gradient */
+    --bg-sidebar-start: #2c3e50;
+    --bg-sidebar-end: #34495e;
+    --bg-sidebar: linear-gradient(180deg, var(--bg-sidebar-start) 0%, var(--bg-sidebar-end) 100%);
+    
+    /* ========================================
+       CORES DE TEXTO
+       ======================================== */
+    
+    /* Textos principais */
+    --text-primary: #333;
+    --text-secondary: #6c757d;
+    --text-muted: #495057;
+    --text-light: rgba(255, 255, 255, 0.8);
+    --text-white: #ffffff;
+    
+    /* Cores especiais de texto */
+    --text-link: #007bff;
+    --text-success: #28a745;
+    --text-danger: #dc3545;
+    --text-info: #17a2b8;
+    
+    /* ========================================
+       CORES DE STATUS E ESTADOS
+       ======================================== */
+    
+    /* Estados de sucesso */
+    --color-success: #28a745;
+    --color-success-light: #d4edda;
+    --color-success-text: #155724;
+    --color-success-bg: #e8f5e8;
+    
+    /* Estados de perigo/erro */
+    --color-danger: #dc3545;
+    --color-danger-light: #f8d7da;
+    --color-danger-text: #721c24;
+    --color-danger-bg: #ffebee;
+    
+    /* Estados de informação */
+    --color-info: #17a2b8;
+    --color-info-light: #d1ecf1;
+    --color-info-text: #0c5460;
+    --color-info-bg: #e3f2fd;
+    
+    /* Estados de aviso */
+    --color-warning: #ffc107;
+    --color-warning-light: #fff3e0;
+    --color-warning-text: #856404;
+    --color-warning-bg: #fff3e0;
+    
+    /* ========================================
+       CORES DE ELEMENTOS INTERATIVOS
+       ======================================== */
+    
+    /* Botões */
+    --btn-primary: #28a745;
+    --btn-primary-hover: #1e7e34;
+    --btn-secondary: #6c757d;
+    --btn-secondary-hover: #545b62;
+    --btn-success: #28a745;
+    --btn-success-hover: #218838;
+    --btn-danger: #e74c3c;
+    --btn-danger-hover: #c0392b;
+    
+    /* ========================================
+       CORES DE BORDAS E DIVISORES
+       ======================================== */
+    
+    /* Bordas principais */
+    --border-color: #dee2e6;
+    --border-light: #e9ecef;
+    --border-muted: #f0f0f0;
+    
+    /* Bordas especiais */
+    --border-sidebar: rgba(255, 255, 255, 0.1);
+    --border-active: #3498db;
+    
+    /* ========================================
+       CORES DE OVERLAY E TRANSPARÊNCIAS
+       ======================================== */
+    
+    /* Overlays e transparências */
+    --overlay-dark: rgba(0, 0, 0, 0.2);
+    --overlay-light: rgba(255, 255, 255, 0.1);
+    --overlay-medium: rgba(255, 255, 255, 0.15);
+    --overlay-strong: rgba(0, 0, 0, 0.5);
+    
+    /* Transparências de texto */
+    --text-sidebar: rgba(255, 255, 255, 0.8);
+    --text-sidebar-muted: rgba(255, 255, 255, 0.7);
+    
+    /* ========================================
+       CORES ESPECIAIS PARA CARDS E ESTATÍSTICAS
+       ======================================== */
+    
+    /* Cards coloridos */
+    --card-cyan: #17a2b8;
+    --card-yellow: #ffc107;
+    --card-purple: #6f42c1;
+    --card-red: #dc3545;
+    --card-green: #28a745;
+    
+    /* Backgrounds especiais */
+    --bg-marketing-light: #f8fff9;
+    --bg-input: #f8f9fa;
+    --bg-input-focus: #e9ecef;
+    
+    /* ========================================
+       CORES DE SOMBRA
+       ======================================== */
+    
+    /* Sombras */
+    --shadow-light: 0 2px 4px rgba(0, 0, 0, 0.05);
+    --shadow-medium: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --shadow-strong: 0 4px 8px rgba(0, 0, 0, 0.08);
+    --shadow-card: 0 2px 4px rgba(0, 0, 0, 0.1);
+    
+    /* ========================================
+       CORES PERSONALIZADAS DO PET CRIA
+       ======================================== */
+    
+    /* Cores específicas do sistema */
+    --pet-orange: #fd7e14;
+    --pet-blue: #007bff;
+    --pet-green: #28a745;
+    --pet-gray: #6c757d;
+    
+    /* ========================================
+       VARIÁVEIS DE FÁCIL CUSTOMIZAÇÃO
+       ======================================== */
+    
+    /* Para mudanças rápidas no tema */
+    --theme-primary: var(--color-primary);
+    --theme-secondary: var(--color-secondary);
+    --theme-accent: var(--color-primary-light);
+    --theme-background: var(--bg-body);
+    --theme-surface: var(--bg-white);
+    --theme-text: var(--text-primary);
+    --theme-text-secondary: var(--text-secondary);
+}
+
+/* ========================================
+   VARIÁVEIS PARA MODO ESCURO (FUTURO)
+   ======================================== */
+/*
+[data-theme="dark"] {
+    --bg-body: #1a1a1a;
+    --bg-white: #2d2d2d;
+    --text-primary: #ffffff;
+    --text-secondary: #b0b0b0;
+    --bg-sidebar-start: #1e1e1e;
+    --bg-sidebar-end: #2a2a2a;
+}
+*/
+
+/* ========================================
+   CLASSES UTILITÁRIAS DE CORES
+   ======================================== */
+
+.text-primary { color: var(--color-primary) !important; }
+.text-secondary { color: var(--color-secondary) !important; }
+.text-success { color: var(--color-success) !important; }
+.text-danger { color: var(--color-danger) !important; }
+.text-info { color: var(--color-info) !important; }
+.text-warning { color: var(--color-warning) !important; }
+.text-muted { color: var(--text-muted) !important; }
+.text-white { color: var(--text-white) !important; }
+
+.bg-primary { background-color: var(--color-primary) !important; }
+.bg-secondary { background-color: var(--color-secondary) !important; }
+.bg-success { background-color: var(--color-success) !important; }
+.bg-danger { background-color: var(--color-danger) !important; }
+.bg-info { background-color: var(--color-info) !important; }
+.bg-warning { background-color: var(--color-warning) !important; }
+.bg-light { background-color: var(--bg-light) !important; }
+.bg-white { background-color: var(--bg-white) !important; }
+
+/* ===== Estilos globais para dropdowns customizados usados nos formulários ===== */
+.select-dropdown {
+   position: absolute;
+   z-index: 9999;
+   background: var(--bg-white);
+   box-shadow: var(--shadow-strong);
+   border-radius: 6px;
+   padding: 6px 0;
+   max-height: 320px;
+   overflow: auto;
+}
+.select-item {
+   padding: 8px 12px;
+   cursor: pointer;
+   color: var(--theme-text);
+   white-space: pre-wrap;
+}
+.select-item.no-results { color: var(--text-muted); cursor: default; }
+
+/* ===== Botões de ação padrão usados em várias telas (editar/excluir) ===== */
+.btn-action {
+   background: none;
+   border: none;
+   padding: 8px;
+   border-radius: 4px;
+   cursor: pointer;
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   transition: all 0.2s ease;
+   width: 32px;
+   height: 32px;
+}
+.btn-action i { font-size: 14px; }
+.btn-edit {
+   color: var(--theme-primary);
+   background-color: rgba(0, 123, 255, 0.08);
+}
+.btn-edit:hover {
+   background-color: rgba(0, 123, 255, 0.14);
+   color: var(--color-primary-hover);
+}
+.btn-delete {
+   color: var(--color-danger);
+   background-color: rgba(220, 53, 69, 0.08);
+}
+.btn-delete:hover {
+   background-color: rgba(220, 53, 69, 0.14);
+   color: #c82333;
+}
+
+/* Modal genérico usado em formulários (ex: Novo Fornecedor) */
+.modal-overlay {
+   position: fixed;
+   inset: 0;
+   background: rgba(0,0,0,0.32);
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   z-index: 10000;
+}
+.modal {
+   background: var(--bg-white);
+   border-radius: 8px;
+   width: 640px;
+   max-width: calc(100% - 40px);
+   box-shadow: var(--shadow-strong);
+   overflow: hidden;
+}
+.modal-header { padding: 16px 20px; border-bottom: 1px solid var(--border-light); display:flex; align-items:center; justify-content:space-between; }
+.modal-header h3 { margin:0; font-size:18px; color:var(--text-primary); }
+.modal-close { background: transparent; border: none; font-size:20px; cursor:pointer; color:var(--text-muted); }
+.modal-body { padding: 18px 20px; display:block; }
+.modal-body .form-group { margin-bottom: 14px; }
+.modal-actions { padding: 14px 20px; display:flex; justify-content:flex-end; gap:12px; border-top:1px solid var(--border-light); }
+.modal input[type="text"], .modal input[type="number"], .modal textarea { width:100%; padding:10px 12px; border:1px solid var(--border-color); border-radius:6px; font-size:14px; }
+
+/* Toast / notificações sutis no canto superior direito */
+.toast-container {
+   position: fixed;
+   top: 18px;
+   right: 18px;
+   display: flex;
+   flex-direction: column;
+   gap: 10px;
+   z-index: 11000;
+}
+.toast {
+   min-width: 220px;
+   max-width: 360px;
+   padding: 10px 14px;
+   border-radius: 8px;
+   box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+   color: var(--text-primary);
+   background: var(--bg-white);
+   border: 1px solid rgba(0,0,0,0.06);
+   opacity: 0;
+   transform: translateY(-6px);
+   transition: all 220ms ease;
+   font-size: 13px;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+.toast-warning { background: #fff8e1; border-color: #ffe8a8; color: #856404; }
+.toast-info { background: #e9f7ff; border-color: #cfeefb; color: #0c5460; }
+.toast-success { background: #eafbea; border-color: #d6f5d6; color: #155724; }
+.toast-error { background: #fff0f0; border-color: #ffd6d6; color: #721c24; }
+

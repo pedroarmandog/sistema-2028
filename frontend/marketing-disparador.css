@@ -1,0 +1,116 @@
+/* Estilos básicos para o modal Disparador */
+
+.modal-overlay {
+  background: rgba(0, 0, 0, 0.55);
+}
+.modal-box {
+  padding: 16px;
+  box-sizing: border-box;
+}
+.modal-box .modal-inner {
+  display: flex;
+  gap: 12px;
+}
+#tblContatos {
+  width: 100%;
+  table-layout: auto;
+  border-collapse: collapse;
+}
+#tblContatos tbody tr td {
+  padding: 8px;
+  border-bottom: 1px solid #f0f0f0;
+  white-space: nowrap;
+}
+#tblContatos thead th {
+  padding: 8px;
+  font-weight: 600;
+  text-align: left;
+}
+.btn-ghost {
+  background: #fff;
+  border: 1px solid #ccc;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #333;
+  font-size: 14px;
+  font-weight: 500;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.btn-ghost:hover {
+  background: #f5f5f5;
+  border-color: #999;
+}
+
+/* Botão Disparador de Mensagens */
+#btnDisparador {
+  background: #007bff;
+  color: #fff;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.15s;
+}
+#btnDisparador:hover {
+  background: #0056b3;
+}
+
+/* Botão Pausar */
+#btnPausarDisparo {
+  background: #f59e0b;
+  color: #fff;
+  border: none;
+  font-weight: 600;
+}
+#btnPausarDisparo:hover {
+  background: #d97706;
+}
+
+/* Botão Continuar */
+#btnContinuarDisparo {
+  background: #22c55e;
+  color: #fff;
+  border: none;
+  font-weight: 600;
+}
+#btnContinuarDisparo:hover {
+  background: #16a34a;
+}
+
+/* Botão Limpar */
+#btnLimparLista {
+  background: #fff;
+  border: 1px solid #dc3545;
+  color: #dc3545;
+  font-weight: 600;
+}
+#btnLimparLista:hover {
+  background: #dc3545;
+  color: #fff;
+}
+#logEnvios {
+  font-family: monospace;
+  font-size: 13px;
+}
+
+/* garantir que o painel esquerdo tenha scroll e não corte */
+.modal-box > .panel-left {
+  overflow: auto;
+  max-width: 48%;
+}
+.modal-box > .panel-right {
+  overflow: auto;
+  flex: 1;
+}
+
+/* cores do Pet Hub */
+.btn-ativar {
+  background: #0f5132 !important;
+}
+/* garantir que input de arquivo seja visível e responsivo */
+#fileImportLista {
+  display: inline-block;
+  max-width: 60%;
+}

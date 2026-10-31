@@ -1,0 +1,385 @@
+/* ========================================
+   DASHBOARD CSS - PET CRIA
+   ======================================== */
+
+/* Importar cores globais */
+@import url('./colors.css');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: var(--bg-body);
+    color: var(--text-primary);
+}
+
+/* Sidebar */
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 120px; /* diminuído para ficar mais compacto */
+    height: 100vh;
+    background: var(--bg-sidebar);
+    color: white;
+    overflow-x: hidden !important; /* remove scroll horizontal */
+    z-index: 1000;
+    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), width 0.25s ease;
+    transform: translateX(0);
+}
+
+.sidebar.collapsed {
+    transform: translateX(-100%);
+}
+
+.menu-toggle {
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 10px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin-right: 15px;
+}
+
+.menu-toggle:hover {
+    background: var(--bg-light);
+    color: var(--text-link);
+    transform: scale(1.05);
+}
+
+.menu-toggle:active {
+    transform: scale(0.95);
+}
+
+/* Centraliza o bloco de logo no sidebar sem alterar tamanho da imagem */
+.logo {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 6px 0; /* reduzir espaço superior para subir os ícones */
+}
+
+.logo-pet-cria {
+    height: 36px; /* diminuir um pouco a logo para caber melhor */
+    border-radius: 6px;
+    margin: 2px auto 4px auto; /* reduzir margem inferior para aproximar itens */
+}
+
+.logo i {
+    font-size: 24px;
+    color: var(--color-primary-light);
+}
+
+.sidebar-nav {
+    padding: 6px 0;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px; /* aumentar espaço entre ícone e texto */
+    padding: 15px 8px; /* aumentar espaçamento vertical */
+    color: var(--text-sidebar);
+    text-decoration: none;
+    transition: all 0.22s ease;
+    border-left: 0;
+    min-height: 58px; /* aumentar altura mínima */
+}
+
+.nav-item:hover {
+    background-color: transparent; /* evitar blocos largos no menu estreito */
+    color: white;
+}
+
+.nav-item.active {
+    background-color: transparent;
+    color: white;
+}
+
+.nav-item i {
+    width: auto;
+    font-size: 22px; /* ícones um pouco menores para caber mais itens */
+    display: block;
+}
+
+.nav-item span {
+    display: block;
+    font-size: 13px; /* aumentar levemente a fonte dos rótulos */
+    line-height: 1.1;
+    margin-top: 6px;
+    text-align: center;
+    white-space: nowrap;
+    font-weight: 600; /* deixar mais gordinho */
+}
+
+/* Submenu Styles */
+.nav-item-with-submenu {
+    position: relative;
+}
+/* Esconder setinhas de submenu (remover chevrons que aparecem abaixo)
+   Aplicar !important para garantir que desapareçam em todas as páginas
+   que importam este CSS. */
+.nav-item .submenu-arrow {
+    display: none !important;
+}
+
+.nav-item-with-submenu.open .submenu-arrow {
+    display: none !important;
+    transform: none !important;
+}
+
+/* Submenu como painel lateral à direita do sidebar */
+/* Painel lateral: usar position:fixed para evitar clipping por overflow do sidebar
+   e garantir que o painel fique visível ao lado da sidebar mesmo quando a
+   sidebar tem overflow oculto. Também adicionamos um destaque visual temporário
+   para facilitar o debug (remover se tudo funcionar). */
+.nav-item-with-submenu .submenu {
+    position: fixed;
+    left: 140px; /* corresponde à largura atual da sidebar */
+    top: 0;
+    width: 240px; /* largura do painel lateral (reduzida) */
+    height: 100vh; /* painel ocupa altura completa */
+    max-height: none;
+    overflow-y: auto;
+    background: var(--bg-sidebar); /* usar o mesmo gradiente do sidebar */
+    transition: none;
+    margin: 0;
+    border-radius: 0 6px 6px 0;
+    display: none;
+    padding: 20px 18px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+    z-index: 2500; /* maior que o sidebar para garantir visibilidade */
+}
+
+/* Quando o submenu for movido para o body, aplicamos esta classe para garantir
+   que ocupe toda a altura da viewport e mantenha o mesmo background do sidebar. */
+.submenu-fixed {
+    position: fixed !important;
+    top: 0 !important;
+    height: 100vh !important;
+    overflow-y: auto !important;
+    width: 240px !important;
+    padding: 20px 18px !important;
+    background: var(--bg-sidebar) !important;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.18) !important;
+    border-radius: 0 6px 6px 0 !important;
+    z-index: 2500 !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.submenu-fixed-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    color: var(--text-white);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+}
+.submenu-fixed-header-title {
+    color: var(--btn-success);
+    font-size: 15px;
+}
+
+/* Mostrar painel ao hover ou quando a classe .open for aplicada via JS */
+.nav-item-with-submenu:hover > .submenu,
+.nav-item-with-submenu.open > .submenu {
+    display: block;
+}
+
+.submenu.open { display: block; }
+
+.submenu-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 20px;
+    color: #ffffff; /* forçar branco para legibilidade */
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    border-left: 2px solid transparent;
+}
+
+.submenu-item:hover {
+    background: var(--overlay-light);
+    color: white;
+    border-left-color: var(--border-active);
+}
+
+.submenu-item span {
+    margin-left: 10px;
+}
+
+/* Main Content */
+.main-content {
+    margin-left: 110px;
+    min-height: 100vh;
+    transition: margin-left 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    position: relative;
+    width: calc(100% - 110px);
+}
+
+.main-content.sidebar-collapsed {
+    margin-left: 0;
+    width: 100%;
+}
+
+/* Header */
+.header {
+    background: var(--bg-white);
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-medium);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.header-left h1 {
+    margin: 0;
+    font-size: 24px;
+    color: var(--text-primary);
+}
+
+.header h1 {
+    font-size: 24px;
+    color: var(--bg-sidebar-start);
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+/* Calendar Widget */
+.calendar-widget {
+    position: relative;
+}
+
+.btn-calendar {
+    background: var(--bg-card);
+    border: 2px solid var(--border-primary);
+    color: var(--text-primary);
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    height: 44px;
+}
+
+.btn-calendar:hover {
+    background: var(--btn-primary);
+    color: white;
+    border-color: var(--btn-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(44, 90, 160, 0.2);
+}
+
+.btn-calendar:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(44, 90, 160, 0.2);
+}
+
+.btn-primary {
+    background: var(--btn-success);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.3s ease;
+}
+
+.btn-primary:hover {
+    background: var(--btn-success-hover);
+}
+
+.btn-primary-small {
+    background: var(--btn-success);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background-color 0.3s ease;
+    font-size: 14px;
+}
+
+.btn-primary-small:hover {
+    background: #007bff;
+}
+
+.search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-box i {
+    position: absolute;
+    left: 12px;
+    color: #999;
+}
+
+.search-box input {
+    padding: 10px 15px 10px 40px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    width: 300px;
+    font-size: 14px;
+}
+
+.user-menu {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: background-color 0.3s ease;
+}
+
+.user-menu:hover {
+    background-color: #f8f9fa;
+}
+
+.user-menu i {
+    font-size: 24px;
+    color: #007bff;
+}

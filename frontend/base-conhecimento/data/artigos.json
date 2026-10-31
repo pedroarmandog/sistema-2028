@@ -1,0 +1,856 @@
+{
+  "version": "1.0",
+  "updatedAt": "2026-07-26",
+  "artigos": [
+    {
+      "slug": "visao-geral-dashboard",
+      "title": "Visão Geral do Dashboard",
+      "description": "Conheça o painel principal do PetHub e entenda cada indicador do seu negócio.",
+      "category": "dashboard",
+      "readingTime": "3 min",
+      "level": "Iniciante",
+      "icon": "📊",
+      "tags": ["dashboard", "indicadores", "painel", "métricas"]
+    },
+    {
+      "slug": "criar-agendamento",
+      "title": "Como criar um agendamento",
+      "description": "Aprenda passo a passo como agendar serviços de banho, tosa e consultas.",
+      "category": "agenda",
+      "readingTime": "4 min",
+      "level": "Iniciante",
+      "icon": "📅",
+      "tags": ["agendamento", "agenda", "criar", "novo"]
+    },
+    {
+      "slug": "editar-agendamento",
+      "title": "Como editar um agendamento",
+      "description": "Saiba como alterar dados de um agendamento existente.",
+      "category": "agenda",
+      "readingTime": "2 min",
+      "level": "Iniciante",
+      "icon": "✏️",
+      "tags": ["agendamento", "editar", "alterar"]
+    },
+    {
+      "slug": "cancelar-agendamento",
+      "title": "Como cancelar um agendamento",
+      "description": "Veja como cancelar agendamentos e configurar motivos de cancelamento.",
+      "category": "agenda",
+      "readingTime": "2 min",
+      "level": "Iniciante",
+      "icon": "❌",
+      "tags": ["agendamento", "cancelar", "excluir"]
+    },
+    {
+      "slug": "check-in",
+      "title": "Como fazer check-in de um agendamento",
+      "description": "Aprenda a realizar o check-in e iniciar o atendimento do pet.",
+      "category": "agenda",
+      "readingTime": "3 min",
+      "level": "Iniciante",
+      "icon": "✅",
+      "tags": ["check-in", "agendamento", "atendimento"]
+    },
+    {
+      "slug": "check-out",
+      "title": "Como fazer check-out e finalizar atendimento",
+      "description": "Saiba como finalizar o atendimento, gerar a venda e liberar o pet.",
+      "category": "agenda",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "🏁",
+      "tags": ["check-out", "finalizar", "atendimento", "venda"]
+    },
+    {
+      "slug": "imprimir-ficha",
+      "title": "Como imprimir a ficha do agendamento",
+      "description": "Veja como gerar e imprimir a ficha resumo do agendamento.",
+      "category": "agenda",
+      "readingTime": "1 min",
+      "level": "Iniciante",
+      "icon": "🖨️",
+      "tags": ["imprimir", "ficha", "agendamento"]
+    },
+    {
+      "slug": "faq-agenda",
+      "title": "Perguntas frequentes sobre a Agenda",
+      "description": "Respostas para as dúvidas mais comuns sobre o módulo de agenda.",
+      "category": "agenda",
+      "readingTime": "4 min",
+      "level": "Iniciante",
+      "icon": "❓",
+      "tags": ["faq", "agenda", "duvidas", "perguntas"]
+    },
+    {
+      "slug": "cadastrar-cliente",
+      "title": "Como cadastrar um cliente",
+      "description": "Aprenda a cadastrar novos clientes no sistema PetHub.",
+      "category": "clientes",
+      "readingTime": "3 min",
+      "level": "Iniciante",
+      "icon": "👤",
+      "tags": ["cliente", "cadastrar", "novo"]
+    },
+    {
+      "slug": "editar-cliente",
+      "title": "Como editar dados de um cliente",
+      "description": "Saiba como alterar informações cadastrais de clientes.",
+      "category": "clientes",
+      "readingTime": "2 min",
+      "level": "Iniciante",
+      "icon": "✏️",
+      "tags": ["cliente", "editar", "alterar"]
+    },
+    {
+      "slug": "excluir-cliente",
+      "title": "Como excluir um cliente",
+      "description": "Veja como remover clientes do sistema com segurança.",
+      "category": "clientes",
+      "readingTime": "2 min",
+      "level": "Intermediário",
+      "icon": "🗑️",
+      "tags": ["cliente", "excluir", "remover"]
+    },
+    {
+      "slug": "pesquisar-cliente",
+      "title": "Como pesquisar clientes",
+      "description": "Aprenda a usar os filtros de busca para encontrar clientes rapidamente.",
+      "category": "clientes",
+      "readingTime": "2 min",
+      "level": "Iniciante",
+      "icon": "🔍",
+      "tags": ["cliente", "pesquisar", "buscar", "filtro"]
+    },
+    {
+      "slug": "grupos-clientes",
+      "title": "Como gerenciar grupos de clientes",
+      "description": "Organize seus clientes em grupos para campanhas e descontos segmentados.",
+      "category": "clientes",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "👥",
+      "tags": ["grupo", "cliente", "segmentação"]
+    },
+    {
+      "slug": "cadastrar-pet",
+      "title": "Como cadastrar um pet",
+      "description": "Aprenda a cadastrar os pets dos seus clientes com todas as informações.",
+      "category": "pets",
+      "readingTime": "3 min",
+      "level": "Iniciante",
+      "icon": "🐶",
+      "tags": ["pet", "cadastrar", "novo"]
+    },
+    {
+      "slug": "editar-pet",
+      "title": "Como editar dados de um pet",
+      "description": "Saiba como alterar informações cadastrais dos pets.",
+      "category": "pets",
+      "readingTime": "2 min",
+      "level": "Iniciante",
+      "icon": "✏️",
+      "tags": ["pet", "editar", "alterar"]
+    },
+    {
+      "slug": "especies-racas",
+      "title": "Como gerenciar espécies e raças",
+      "description": "Configure as espécies e raças disponíveis no sistema.",
+      "category": "pets",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "🐾",
+      "tags": ["espécie", "raça", "configurar"]
+    },
+    {
+      "slug": "pelagem-porte-box",
+      "title": "Como configurar pelagem, porte e box",
+      "description": "Aprenda a gerenciar os atributos físicos dos pets e boxes de atendimento.",
+      "category": "pets",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "📏",
+      "tags": ["pelagem", "porte", "box", "configurar"]
+    },
+    {
+      "slug": "cadastrar-produto",
+      "title": "Como cadastrar um produto",
+      "description": "Aprenda a cadastrar produtos para venda no seu pet shop.",
+      "category": "produtos",
+      "readingTime": "4 min",
+      "level": "Iniciante",
+      "icon": "📦",
+      "tags": ["produto", "cadastrar", "novo", "item"]
+    },
+    {
+      "slug": "cadastrar-servico",
+      "title": "Como cadastrar um serviço",
+      "description": "Saiba como cadastrar serviços como banho, tosa e consultas.",
+      "category": "produtos",
+      "readingTime": "3 min",
+      "level": "Iniciante",
+      "icon": "✂️",
+      "tags": ["serviço", "cadastrar", "banho", "tosa"]
+    },
+    {
+      "slug": "cadastrar-plano",
+      "title": "Como cadastrar um plano",
+      "description": "Crie planos de serviços recorrentes para fidelizar clientes.",
+      "category": "produtos",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "📋",
+      "tags": ["plano", "cadastrar", "recorrente"]
+    },
+    {
+      "slug": "editar-produto",
+      "title": "Como editar um produto",
+      "description": "Veja como alterar dados de produtos, preços e configurações.",
+      "category": "produtos",
+      "readingTime": "2 min",
+      "level": "Iniciante",
+      "icon": "✏️",
+      "tags": ["produto", "editar", "alterar", "preço"]
+    },
+    {
+      "slug": "agrupamento",
+      "title": "Como criar agrupamentos de itens",
+      "description": "Organize produtos e serviços em agrupamentos para facilitar a gestão.",
+      "category": "produtos",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "📁",
+      "tags": ["agrupamento", "organizar", "categoria"]
+    },
+    {
+      "slug": "marcas",
+      "title": "Como gerenciar marcas",
+      "description": "Cadastre e gerencie as marcas dos produtos do seu pet shop.",
+      "category": "produtos",
+      "readingTime": "2 min",
+      "level": "Iniciante",
+      "icon": "🏷️",
+      "tags": ["marca", "cadastrar", "produto"]
+    },
+    {
+      "slug": "unidades",
+      "title": "Como configurar unidades de medida",
+      "description": "Configure as unidades de medida para seus produtos.",
+      "category": "produtos",
+      "readingTime": "2 min",
+      "level": "Iniciante",
+      "icon": "⚖️",
+      "tags": ["unidade", "medida", "configurar"]
+    },
+    {
+      "slug": "comissao-produtos",
+      "title": "Como configurar comissão por produto",
+      "description": "Defina comissões para profissionais sobre produtos e serviços.",
+      "category": "produtos",
+      "readingTime": "3 min",
+      "level": "Avançado",
+      "icon": "💰",
+      "tags": ["comissão", "comissao", "profissional"]
+    },
+    {
+      "slug": "etiquetas",
+      "title": "Como imprimir etiquetas de produtos",
+      "description": "Aprenda a gerar e imprimir etiquetas com códigos e preços.",
+      "category": "produtos",
+      "readingTime": "2 min",
+      "level": "Iniciante",
+      "icon": "🏷️",
+      "tags": ["etiqueta", "imprimir", "código"]
+    },
+    {
+      "slug": "tributacao",
+      "title": "Como configurar tributação de produtos",
+      "description": "Configure NCM, CST e outras informações fiscais dos produtos.",
+      "category": "produtos",
+      "readingTime": "3 min",
+      "level": "Avançado",
+      "icon": "📑",
+      "tags": ["tributação", "ncm", "cst", "fiscal"]
+    },
+    {
+      "slug": "entrada-mercadoria",
+      "title": "Como registrar entrada de mercadoria",
+      "description": "Aprenda a registrar a entrada de produtos no estoque.",
+      "category": "estoque",
+      "readingTime": "4 min",
+      "level": "Intermediário",
+      "icon": "📥",
+      "tags": ["entrada", "mercadoria", "estoque", "compras"]
+    },
+    {
+      "slug": "outras-entradas",
+      "title": "Como registrar outras entradas no estoque",
+      "description": "Registre ajustes manuais de entrada como acertos e brindes.",
+      "category": "estoque",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "➕",
+      "tags": ["entrada", "estoque", "ajuste", "brinde"]
+    },
+    {
+      "slug": "outras-saidas",
+      "title": "Como registrar outras saídas do estoque",
+      "description": "Registre saídas manuais como perdas, quebras e doações.",
+      "category": "estoque",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "➖",
+      "tags": ["saída", "estoque", "perda", "ajuste"]
+    },
+    {
+      "slug": "transferencia-estoque",
+      "title": "Como transferir produtos entre estoques",
+      "description": "Saiba como realizar transferências de produtos entre locais.",
+      "category": "estoque",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "🔄",
+      "tags": ["transferência", "estoque", "movimentação"]
+    },
+    {
+      "slug": "contagem-estoque",
+      "title": "Como realizar contagem de estoque",
+      "description": "Aprenda a fazer inventário e ajustar o estoque físico.",
+      "category": "estoque",
+      "readingTime": "4 min",
+      "level": "Avançado",
+      "icon": "📋",
+      "tags": ["contagem", "inventário", "estoque", "ajuste"]
+    },
+    {
+      "slug": "controle-validade",
+      "title": "Como controlar validade de produtos",
+      "description": "Gerencie prazos de validade e receba alertas de vencimento.",
+      "category": "estoque",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "⏰",
+      "tags": ["validade", "vencimento", "controle"]
+    },
+    {
+      "slug": "medicamentos",
+      "title": "Como gerenciar medicamentos",
+      "description": "Cadastre e controle medicamentos para uso clínico.",
+      "category": "clinica",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "💊",
+      "tags": ["medicamento", "clínica", "cadastrar"]
+    },
+    {
+      "slug": "vacinas",
+      "title": "Como gerenciar vacinas",
+      "description": "Cadastre vacinas e configure protocolos de vacinação.",
+      "category": "clinica",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "💉",
+      "tags": ["vacina", "clínica", "protocolo"]
+    },
+    {
+      "slug": "periodicidade",
+      "title": "Como configurar periodicidade de serviços",
+      "description": "Configure a periodicidade recomendada para cada serviço clínico.",
+      "category": "clinica",
+      "readingTime": "2 min",
+      "level": "Intermediário",
+      "icon": "🔄",
+      "tags": ["periodicidade", "clínica", "serviço"]
+    },
+    {
+      "slug": "nova-venda",
+      "title": "Como realizar uma venda",
+      "description": "Aprenda a registrar vendas de produtos e serviços no atendimento.",
+      "category": "vendas",
+      "readingTime": "4 min",
+      "level": "Iniciante",
+      "icon": "🛒",
+      "tags": ["venda", "vender", "atendimento", "pdv"]
+    },
+    {
+      "slug": "consultar-vendas",
+      "title": "Como consultar vendas realizadas",
+      "description": "Veja como pesquisar e visualizar o histórico de vendas.",
+      "category": "vendas",
+      "readingTime": "2 min",
+      "level": "Iniciante",
+      "icon": "🔍",
+      "tags": ["venda", "consultar", "histórico"]
+    },
+    {
+      "slug": "devolucao-venda",
+      "title": "Como registrar devolução de venda",
+      "description": "Saiba como processar devoluções e estornar itens do estoque.",
+      "category": "vendas",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "↩️",
+      "tags": ["devolução", "venda", "estorno"]
+    },
+    {
+      "slug": "orcamento",
+      "title": "Como criar um orçamento",
+      "description": "Aprenda a criar orçamentos para clientes antes da venda.",
+      "category": "vendas",
+      "readingTime": "3 min",
+      "level": "Iniciante",
+      "icon": "📄",
+      "tags": ["orçamento", "orcamento", "proposta"]
+    },
+    {
+      "slug": "abertura-fechamento-caixa",
+      "title": "Como abrir e fechar o caixa",
+      "description": "Aprenda a realizar a abertura e fechamento do caixa diário.",
+      "category": "caixa",
+      "readingTime": "3 min",
+      "level": "Iniciante",
+      "icon": "💰",
+      "tags": ["caixa", "abertura", "fechamento"]
+    },
+    {
+      "slug": "suprimento-sangria",
+      "title": "Como registrar suprimento e sangria",
+      "description": "Registre entradas e saídas extras no caixa.",
+      "category": "caixa",
+      "readingTime": "2 min",
+      "level": "Iniciante",
+      "icon": "💵",
+      "tags": ["suprimento", "sangria", "caixa"]
+    },
+    {
+      "slug": "demonstrativo-caixa",
+      "title": "Relatório demonstrativo de caixa",
+      "description": "Veja como gerar o relatório detalhado de movimentações do caixa.",
+      "category": "caixa",
+      "readingTime": "2 min",
+      "level": "Iniciante",
+      "icon": "📊",
+      "tags": ["relatório", "caixa", "demonstrativo"]
+    },
+    {
+      "slug": "entrada-mercadoria-compras",
+      "title": "Como registrar entrada de mercadoria (Compras)",
+      "description": "Registre notas fiscais de compra e atualize o estoque automaticamente.",
+      "category": "compras",
+      "readingTime": "4 min",
+      "level": "Intermediário",
+      "icon": "📥",
+      "tags": ["compra", "entrada", "nota fiscal", "fornecedor"]
+    },
+    {
+      "slug": "cadastrar-fornecedor",
+      "title": "Como cadastrar um fornecedor",
+      "description": "Cadastre os fornecedores do seu pet shop no sistema.",
+      "category": "compras",
+      "readingTime": "3 min",
+      "level": "Iniciante",
+      "icon": "🏢",
+      "tags": ["fornecedor", "cadastrar", "compra"]
+    },
+    {
+      "slug": "contas-receber",
+      "title": "Como gerenciar contas a receber",
+      "description": "Acompanhe e gerencie os recebíveis do seu negócio.",
+      "category": "financeiro",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "📈",
+      "tags": ["contas a receber", "recebível", "financeiro"]
+    },
+    {
+      "slug": "contas-pagar",
+      "title": "Como gerenciar contas a pagar",
+      "description": "Controle os pagamentos a fornecedores e despesas do negócio.",
+      "category": "financeiro",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "📉",
+      "tags": ["contas a pagar", "pagamento", "despesa"]
+    },
+    {
+      "slug": "cartao",
+      "title": "Como gerenciar cartão",
+      "description": "Configure e gerencie as bandeiras de cartão aceitas.",
+      "category": "financeiro",
+      "readingTime": "2 min",
+      "level": "Iniciante",
+      "icon": "💳",
+      "tags": ["cartão", "bandeira", "pagamento"]
+    },
+    {
+      "slug": "haver",
+      "title": "Como gerenciar Haver",
+      "description": "Controle valores em haver (créditos) dos clientes.",
+      "category": "financeiro",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "💵",
+      "tags": ["haver", "crédito", "cliente"]
+    },
+    {
+      "slug": "crediario",
+      "title": "Como gerenciar Crediário",
+      "description": "Gerencie o crediário e parcelamentos para clientes.",
+      "category": "financeiro",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "📋",
+      "tags": ["crediário", "parcelamento", "cliente"]
+    },
+    {
+      "slug": "painel-financeiro",
+      "title": "Painel Financeiro",
+      "description": "Visão consolidada das finanças do seu pet shop em tempo real.",
+      "category": "financeiro",
+      "readingTime": "3 min",
+      "level": "Iniciante",
+      "icon": "📊",
+      "tags": ["painel", "financeiro", "indicadores"]
+    },
+    {
+      "slug": "conectar-whatsapp",
+      "title": "Como conectar o WhatsApp",
+      "description": "Aprenda a conectar uma instância do WhatsApp para disparo de mensagens.",
+      "category": "marketing",
+      "readingTime": "4 min",
+      "level": "Intermediário",
+      "icon": "📱",
+      "tags": ["whatsapp", "conectar", "instância"]
+    },
+    {
+      "slug": "enviar-mensagens",
+      "title": "Como enviar mensagens no WhatsApp",
+      "description": "Dispare mensagens em massa para seus clientes pelo WhatsApp.",
+      "category": "marketing",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "💬",
+      "tags": ["mensagem", "whatsapp", "disparo", "marketing"]
+    },
+    {
+      "slug": "automacoes-marketing",
+      "title": "Como criar automações de marketing",
+      "description": "Automatize o envio de mensagens para campanhas de marketing.",
+      "category": "marketing",
+      "readingTime": "4 min",
+      "level": "Avançado",
+      "icon": "🤖",
+      "tags": ["automação", "marketing", "campanha"]
+    },
+    {
+      "slug": "mensagens-automaticas",
+      "title": "Como configurar mensagens automáticas",
+      "description": "Configure mensagens que serão enviadas automaticamente em eventos.",
+      "category": "marketing",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "⚡",
+      "tags": ["automático", "mensagem", "evento"]
+    },
+    {
+      "slug": "aniversario-automatico",
+      "title": "Como configurar aniversário automático",
+      "description": "Envie mensagens automáticas de aniversário para pets e tutores.",
+      "category": "marketing",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "🎂",
+      "tags": ["aniversário", "automático", "mensagem"]
+    },
+    {
+      "slug": "venda-periodo",
+      "title": "Relatório de vendas no período",
+      "description": "Gere relatórios de vendas filtrando por período.",
+      "category": "relatorios",
+      "readingTime": "2 min",
+      "level": "Iniciante",
+      "icon": "📊",
+      "tags": ["relatório", "venda", "período"]
+    },
+    {
+      "slug": "devolucao-periodo",
+      "title": "Relatório de devoluções no período",
+      "description": "Acompanhe as devoluções realizadas em um período.",
+      "category": "relatorios",
+      "readingTime": "2 min",
+      "level": "Iniciante",
+      "icon": "📉",
+      "tags": ["relatório", "devolução", "período"]
+    },
+    {
+      "slug": "atendimento-periodo",
+      "title": "Relatório de atendimentos no período",
+      "description": "Veja o resumo de atendimentos realizados em um período.",
+      "category": "relatorios",
+      "readingTime": "2 min",
+      "level": "Iniciante",
+      "icon": "📋",
+      "tags": ["relatório", "atendimento", "período"]
+    },
+    {
+      "slug": "relatorio-periodico",
+      "title": "Relatório periódico",
+      "description": "Relatório detalhado com análises periódicas do negócio.",
+      "category": "relatorios",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "📈",
+      "tags": ["relatório", "periódico", "análise"]
+    },
+    {
+      "slug": "comissao-relatorio",
+      "title": "Relatório de comissão",
+      "description": "Acompanhe as comissões dos profissionais por período.",
+      "category": "relatorios",
+      "readingTime": "2 min",
+      "level": "Intermediário",
+      "icon": "💰",
+      "tags": ["relatório", "comissão", "profissional"]
+    },
+    {
+      "slug": "oportunidade-venda",
+      "title": "Relatório de oportunidade de venda",
+      "description": "Identifique clientes com potencial para novas vendas.",
+      "category": "relatorios",
+      "readingTime": "3 min",
+      "level": "Avançado",
+      "icon": "🎯",
+      "tags": ["relatório", "oportunidade", "venda"]
+    },
+    {
+      "slug": "faturamento-cliente-produto",
+      "title": "Relatório de faturamento por cliente/produto",
+      "description": "Analise o faturamento detalhado por cliente e por produto.",
+      "category": "relatorios",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "📊",
+      "tags": ["relatório", "faturamento", "cliente", "produto"]
+    },
+    {
+      "slug": "cadastrar-empresa",
+      "title": "Como configurar os dados da empresa",
+      "description": "Configure as informações da sua empresa no sistema.",
+      "category": "configuracoes",
+      "readingTime": "4 min",
+      "level": "Iniciante",
+      "icon": "🏢",
+      "tags": ["empresa", "configurar", "dados"]
+    },
+    {
+      "slug": "gerenciar-usuarios",
+      "title": "Como gerenciar usuários",
+      "description": "Cadastre e gerencie os usuários que acessam o sistema.",
+      "category": "configuracoes",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "👤",
+      "tags": ["usuário", "cadastrar", "gerenciar"]
+    },
+    {
+      "slug": "grupos-usuario",
+      "title": "Como gerenciar grupos de usuário",
+      "description": "Organize usuários em grupos com permissões específicas.",
+      "category": "configuracoes",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "👥",
+      "tags": ["grupo", "usuário", "permissão"]
+    },
+    {
+      "slug": "profissionais",
+      "title": "Como cadastrar profissionais",
+      "description": "Cadastre os profissionais que realizam atendimentos.",
+      "category": "configuracoes",
+      "readingTime": "3 min",
+      "level": "Iniciante",
+      "icon": "👨‍⚕️",
+      "tags": ["profissional", "cadastrar", "atendente"]
+    },
+    {
+      "slug": "permissoes",
+      "title": "Como configurar permissões",
+      "description": "Defina permissões de acesso para cada grupo de usuário.",
+      "category": "configuracoes",
+      "readingTime": "4 min",
+      "level": "Avançado",
+      "icon": "🔐",
+      "tags": ["permissão", "acesso", "segurança"]
+    },
+    {
+      "slug": "centro-resultado",
+      "title": "Como configurar centro de resultado",
+      "description": "Configure centros de resultado para análise financeira.",
+      "category": "configuracoes",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "📊",
+      "tags": ["centro", "resultado", "financeiro"]
+    },
+    {
+      "slug": "categoria-financeira",
+      "title": "Como configurar categorias financeiras",
+      "description": "Organize receitas e despesas por categorias financeiras.",
+      "category": "configuracoes",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "🏷️",
+      "tags": ["categoria", "financeira", "receita", "despesa"]
+    },
+    {
+      "slug": "tipo-documento",
+      "title": "Como configurar tipos de documento",
+      "description": "Configure os tipos de documento fiscal utilizados.",
+      "category": "configuracoes",
+      "readingTime": "2 min",
+      "level": "Intermediário",
+      "icon": "📄",
+      "tags": ["documento", "fiscal", "tipo"]
+    },
+    {
+      "slug": "configuracoes-gerais",
+      "title": "Configurações Gerais do sistema",
+      "description": "Ajuste as configurações globais do PetHub.",
+      "category": "configuracoes",
+      "readingTime": "4 min",
+      "level": "Intermediário",
+      "icon": "⚙️",
+      "tags": ["configuração", "geral", "sistema"]
+    },
+    {
+      "slug": "pdv",
+      "title": "Como configurar o PDV",
+      "description": "Configure as opções do ponto de venda (PDV).",
+      "category": "configuracoes",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "🖥️",
+      "tags": ["pdv", "ponto de venda", "configurar"]
+    },
+    {
+      "slug": "formularios",
+      "title": "Como configurar formulários",
+      "description": "Personalize os formulários de cadastro do sistema.",
+      "category": "configuracoes",
+      "readingTime": "3 min",
+      "level": "Avançado",
+      "icon": "📝",
+      "tags": ["formulário", "personalizar", "cadastro"]
+    },
+    {
+      "slug": "feriados",
+      "title": "Como configurar feriados",
+      "description": "Cadastre feriados para controle de agenda e ponto.",
+      "category": "configuracoes",
+      "readingTime": "2 min",
+      "level": "Iniciante",
+      "icon": "🎉",
+      "tags": ["feriado", "agenda", "calendário"]
+    },
+    {
+      "slug": "ip",
+      "title": "Como configurar IP de acesso",
+      "description": "Restrinja o acesso ao sistema por IP para maior segurança.",
+      "category": "configuracoes",
+      "readingTime": "2 min",
+      "level": "Avançado",
+      "icon": "🔒",
+      "tags": ["ip", "segurança", "acesso", "restringir"]
+    },
+    {
+      "slug": "cores-tema",
+      "title": "Como personalizar as cores do sistema",
+      "description": "Personalize as cores do PetHub para sua marca.",
+      "category": "configuracoes",
+      "readingTime": "2 min",
+      "level": "Iniciante",
+      "icon": "🎨",
+      "tags": ["cor", "tema", "personalizar", "marca"]
+    },
+    {
+      "slug": "app-gestor-overview",
+      "title": "Visão geral do App do Gestor",
+      "description": "Conheça o aplicativo mobile do PetHub para gestão remota.",
+      "category": "mobile",
+      "readingTime": "3 min",
+      "level": "Iniciante",
+      "icon": "📱",
+      "tags": ["app", "mobile", "gestor", "visão geral"]
+    },
+    {
+      "slug": "mobile-agenda",
+      "title": "Usando a Agenda no App do Gestor",
+      "description": "Acompanhe e gerencie agendamentos pelo celular.",
+      "category": "mobile",
+      "readingTime": "3 min",
+      "level": "Iniciante",
+      "icon": "📅",
+      "tags": ["app", "mobile", "agenda", "agendamento"]
+    },
+    {
+      "slug": "mobile-pets",
+      "title": "Consultando Pets no App do Gestor",
+      "description": "Visualize informações dos pets diretamente do celular.",
+      "category": "mobile",
+      "readingTime": "2 min",
+      "level": "Iniciante",
+      "icon": "🐶",
+      "tags": ["app", "mobile", "pets", "consulta"]
+    },
+    {
+      "slug": "mobile-financeiro",
+      "title": "Acompanhando Financeiro no App do Gestor",
+      "description": "Veja indicadores financeiros pelo aplicativo mobile.",
+      "category": "mobile",
+      "readingTime": "2 min",
+      "level": "Iniciante",
+      "icon": "📈",
+      "tags": ["app", "mobile", "financeiro", "indicadores"]
+    },
+    {
+      "slug": "mobile-configuracoes",
+      "title": "Configurações no App do Gestor",
+      "description": "Ajuste preferências e configurações pelo celular.",
+      "category": "mobile",
+      "readingTime": "2 min",
+      "level": "Iniciante",
+      "icon": "⚙️",
+      "tags": ["app", "mobile", "configurações"]
+    },
+    {
+      "slug": "push-notifications",
+      "title": "Como configurar notificações push",
+      "description": "Ative notificações push para receber alertas no celular.",
+      "category": "notificacoes",
+      "readingTime": "3 min",
+      "level": "Iniciante",
+      "icon": "🔔",
+      "tags": ["notificação", "push", "alerta", "celular"]
+    },
+    {
+      "slug": "lembretes-recorrentes",
+      "title": "Como configurar lembretes recorrentes",
+      "description": "Configure lembretes automáticos para produtos e serviços recorrentes.",
+      "category": "notificacoes",
+      "readingTime": "3 min",
+      "level": "Intermediário",
+      "icon": "⏰",
+      "tags": ["lembrete", "recorrente", "automático"]
+    },
+    {
+      "slug": "painel-controle-empresas",
+      "title": "Painel de Controle de Empresas (Admin)",
+      "description": "Gerencie empresas, acessos e faturamento pelo painel administrativo.",
+      "category": "painel-admin",
+      "readingTime": "4 min",
+      "level": "Avançado",
+      "icon": "🛡️",
+      "tags": ["admin", "painel", "empresa", "controle"]
+    }
+  ]
+}

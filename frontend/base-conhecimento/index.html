@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Base de Conhecimento - PetHub</title>
+    <meta name="description" content="Central de Ajuda PetHub — Encontre respostas rápidas para todas as funcionalidades do sistema.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="/dashboard.css">
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/colors.css">
+    <link rel="stylesheet" href="/base-conhecimento/base-conhecimento.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="/fivecon/Design sem nome (17).png" type="image/png">
+</head>
+<body>
+    <!-- Sidebar será injetada automaticamente pelo inject-sidebar.js -->
+    
+    <div class="kb-wrapper">
+        <!-- ═══ NAVBAR SUPERIOR PREMIUM ═══ -->
+        <nav class="kb-navbar" id="kbNavbar">
+            <div class="kb-navbar-inner">
+                <div class="kb-navbar-left">
+                    <a href="/base-conhecimento/index.html" class="kb-navbar-brand">
+                        <img src="/logos/Logo PetHub (2).svg" alt="PetHub" class="kb-navbar-logo" height="32">
+                        <span class="kb-navbar-brand-text">Central de Ajuda</span>
+                    </a>
+                </div>
+                <div class="kb-navbar-center">
+                    <a href="#" class="kb-nav-link active" data-section="home">Base de Conhecimento</a>
+                    <a href="#" class="kb-nav-link" data-section="videos">Tutoriais em Vídeo</a>
+                    <a href="#" class="kb-nav-link" data-section="novidades">Novidades</a>
+                    <a href="#" class="kb-nav-link" data-section="status">
+                        <span class="kb-status-dot"></span>
+                        Status do Sistema
+                    </a>
+                </div>
+                <div class="kb-navbar-right">
+                    <a href="/dashboard.html" class="kb-btn kb-btn-primary kb-btn-sm">
+                        <i class="fas fa-arrow-left"></i>
+                        Voltar ao Sistema
+                    </a>
+                </div>
+                <button class="kb-navbar-toggle" id="kbNavToggle" aria-label="Menu">
+                    <span></span><span></span><span></span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- ═══ CONTEÚDO PRINCIPAL ═══ -->
+        <div class="kb-content-area">
+            <div class="kb-container" id="kbApp">
+                <!-- Breadcrumb -->
+                <nav class="kb-breadcrumb" id="kbBreadcrumb" aria-label="Breadcrumb">
+                    <a href="/base-conhecimento/index.html">Início</a>
+                </nav>
+                
+                <!-- Conteúdo renderizado dinamicamente -->
+                <div id="kbContent">
+                    <!-- Loading state -->
+                    <div class="kb-loading" id="kbLoading">
+                        <div class="kb-loading-spinner"></div>
+                        <p>Carregando base de conhecimento...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ OVERLAY MOBILE ═══ -->
+    <div class="kb-mobile-overlay" id="kbMobileOverlay"></div>
+
+    <!-- Scripts -->
+    <script src="/config/help-center-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="/base-conhecimento/base-conhecimento.js"></script>
+</body>
+</html>

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clientes - Sistema Pet Cria</title>
+    <script src="/custom-colors.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 2.2rem;
+        }
+        .controls {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #2980b9;
+        }
+        .btn-refresh {
+            background: #27ae60;
+        }
+        .btn-refresh:hover {
+            background: #229954;
+        }
+        .status {
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-weight: 500;
+            margin-left: auto;
+        }
+        .status.loading {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .table-container {
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            text-align: left;
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+        tr:hover {
+            background: #f8f9fa;
+        }
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            margin-right: 12px;
+        }
+        .client-name {
+            display: flex;
+            align-items: center;
+            font-weight: 500;
+        }
+        .newest-badge {
+            background: #27ae60;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-users"></i> Gestão de Clientes</h1>
+        </div>
+        
+        <div class="controls">
+            <button class="btn" onclick="novoCliente()">
+                <i class="fas fa-plus"></i> Novo Cliente
+            </button>
+            <button class="btn btn-refresh" onclick="carregarClientes()">
+                <i class="fas fa-sync-alt"></i> Atualizar
+            </button>
+            <div id="status" class="status loading">
+                <i class="fas fa-spinner fa-spin"></i> Carregando...
+            </div>
+        </div>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Email</th>
+                        <th>Telefone</th>
+                        <th>Cadastrado em</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="clientsTableBody">
+                    <tr>
+                        <td colspan="5" class="empty-state">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <div>Carregando clientes...</div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Log de debug
+        console.log('🚀 Script carregado');
+
+        // Status
+        function updateStatus(message, type = 'loading') {
+            const status = document.getElementById('status');
+            const icons = {
+                loading: 'fas fa-spinner fa-spin',
+                success: 'fas fa-check-circle',
+                error: 'fas fa-exclamation-circle'
+            };
+            
+            status.className = `status ${type}`;
+            status.innerHTML = `<i class="${icons[type]}"></i> ${message}`;
+        }
+
+        // Função para carregar clientes
+        async function carregarClientes() {
+            console.log('🔍 Iniciando carregamento de clientes...');
+            updateStatus('Carregando clientes...', 'loading');
+            
+            try {
+                console.log('📡 Fazendo fetch para /api/clientes');
+                const response = await fetch('/api/clientes');
+                console.log('📡 Resposta recebida:', response.status, response.statusText);
+                
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('📦 Dados recebidos:', data);
+                
+                if (data.success && Array.isArray(data.clientes)) {
+                    console.log('✅ Exibindo', data.clientes.length, 'clientes');
+                    exibirClientes(data.clientes);
+                    updateStatus(`${data.clientes.length} clientes carregados`, 'success');
+                } else {
+                    throw new Error('Formato de dados inválido');
+                }
+                
+            } catch (error) {
+                console.error('❌ Erro ao carregar clientes:', error);
+                updateStatus('Erro ao carregar clientes', 'error');
+                
+                const tbody = document.getElementById('clientsTableBody');
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="empty-state">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <div>Erro ao carregar clientes</div>
+                            <div style="font-size: 12px; color: #999; margin-top: 5px;">${error.message}</div>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Função para exibir clientes
+        function exibirClientes(clientes) {
+            console.log('📋 Exibindo clientes na tabela');
+            const tbody = document.getElementById('clientsTableBody');
+            
+            if (clientes.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="empty-state">
+                            <i class="fas fa-users"></i>
+                            <div>Nenhum cliente encontrado</div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            tbody.innerHTML = clientes.map((cliente, index) => {
+                const isNewest = index === 0;
+                const avatar = cliente.imagem_perfil ? 
+                    `<img src="/uploads/${cliente.imagem_perfil}" class="avatar" style="object-fit: cover;">` :
+                    `<div class="avatar" style="background: #3498db;">${cliente.nome.charAt(0).toUpperCase()}</div>`;
+                
+                return `
+                    <tr onclick="verCliente(${cliente.id})" style="cursor: pointer;">
+                        <td>
+                            <div class="client-name">
+                                ${avatar}
+                                <div>
+                                    ${cliente.nome}
+                                    ${isNewest ? '<span class="newest-badge">MAIS RECENTE</span>' : ''}
+                                </div>
+                            </div>
+                        </td>
+                        <td>${cliente.email || '---'}</td>
+                        <td>${cliente.telefone || '---'}</td>
+                        <td>${new Date(cliente.createdAt).toLocaleDateString('pt-BR')}</td>
+                        <td>
+                            <button class="btn" onclick="event.stopPropagation(); editarCliente(${cliente.id})" style="padding: 6px 12px; font-size: 12px;">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            
+            console.log('✅ Tabela atualizada com sucesso');
+        }
+
+        // Funções de ação
+        function novoCliente() {
+            console.log('➕ Novo cliente');
+            // window.location.href = 'novo-cliente.html';
+        }
+
+        function verCliente(id) {
+            console.log('👁️ Ver cliente:', id);
+            // window.location.href = `cliente-detalhes.html?id=${id}`;
+        }
+
+        function editarCliente(id) {
+            console.log('✏️ Editar cliente:', id);
+            // window.location.href = `editar-cliente.html?id=${id}`;
+        }
+
+        // Carregar ao inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 DOM carregado, iniciando aplicação');
+            carregarClientes();
+        });
+    </script>
+    <script src="/sidebar-component/inject-sidebar.js"></script>
+</body>
+</html>
