@@ -20,6 +20,14 @@ router.post(
   usuarioController.login,
 );
 
+// Alias para compatibilidade com frontend (frontend em Cloudflare Pages / Render)
+// Reutiliza a mesma implementação de /login, sem duplicar lógica
+router.post(
+  "/usuarios/login",
+  rateLimit({ windowMs: 60000, max: 150 }),
+  usuarioController.login,
+);
+
 // Rota de heartbeat: chamada a cada 60s pelo frontend para manter a sessão viva.
 // Atualiza ultima_atividade e verifica se a sessão não foi encerrada remotamente.
 router.post("/heartbeat", async (req, res) => {
