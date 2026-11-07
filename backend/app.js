@@ -132,6 +132,7 @@ app.use(
         "https://www.pethubflow.pages.dev",
         "http://72.60.244.46:3000",
         "https://72.60.244.46:3000",
+        "https://pethub-api-wdna.onrender.com",
       ];
       if (
         allowed.includes(origin) ||
@@ -1570,8 +1571,14 @@ async function runFiscalMigrations() {
         ["protocolo_nfe", "VARCHAR(15) NULL"],
         ["xml_nfe", "LONGTEXT NULL"],
         ["indicador_presenca", "TINYINT NULL DEFAULT 1"],
-        ["status_fiscal", "ENUM('pendente','emitida','cancelada','erro','aguardando_correcao','nao_aplicavel') NULL DEFAULT 'pendente'"],
-        ["modo_emissao", "ENUM('automatico','manual','lote','confirmacao') NULL"],
+        [
+          "status_fiscal",
+          "ENUM('pendente','emitida','cancelada','erro','aguardando_correcao','nao_aplicavel') NULL DEFAULT 'pendente'",
+        ],
+        [
+          "modo_emissao",
+          "ENUM('automatico','manual','lote','confirmacao') NULL",
+        ],
       ],
     };
 
