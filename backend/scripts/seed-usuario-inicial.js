@@ -14,7 +14,7 @@ async function criarUsuarioInicial() {
             await Usuario.create({
                 nome: 'LOGIN INICIAL',
                 usuario: 'admin',
-                senha: 'admin123', // Será hasheado automaticamente
+                senha: process.env.ERP_SEED_PASSWORD, // Será hasheado automaticamente
                 grupoUsuario: 'Acesso Total',
                 grupoUsuarioId: '1',
                 ativo: true,
