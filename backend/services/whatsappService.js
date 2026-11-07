@@ -649,9 +649,9 @@ async function inicializarCliente(empresaId, opts = {}) {
       dataPath: localAuthPath,
     }),
     puppeteer: {
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-    },
+      ...puppeteerOptions,
+      dumpio: true,
+},
   });
 
   // Estado local do cliente
