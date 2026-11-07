@@ -87,6 +87,10 @@ if (!global.__SEQUELIZE__) {
     port: dbPort,
     dialect: "mysql",
     dialectModule: require("mysql2"),
+    dialectOptions:
+      process.env.DB_SSL === "true"
+        ? { ssl: { rejectUnauthorized: true } }
+        : {},
     pool: {
       max: Number(process.env.SEQUELIZE_POOL_MAX) || 5,
       min: 0,
