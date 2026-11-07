@@ -540,17 +540,6 @@ async function inicializarCliente(empresaId, opts = {}) {
   // userDataDir. A isolação de sessão é feita via `LocalAuth.dataPath`
   // (veja mais abaixo) que cria pastas separadas por instância.
 
-  console.log(
-    `[WhatsApp][${chave}] puppeteerOptions: ${util.inspect(puppeteerOptions, {
-      depth: 2,
-    })}`,
-  );
-
-  // Log mais explícito do binário decidido
-  console.log(
-    `[WhatsApp][${chave}] Usando Chrome executável: ${puppeteerOptions.executablePath || "(nenhum)"}`,
-  );
-
   // Ajustar puppeteerOptions com o executável detectado (se houver) e
   // sincronizar headless/args com as variáveis calculadas acima.
   try {
@@ -565,6 +554,16 @@ async function inicializarCliente(empresaId, opts = {}) {
 
     // Ajustar headless conforme variável calculada
     puppeteerOptions.headless = headless ? "new" : false;
+
+    // Log explícito do binário decidido (após atribuição)
+    console.log(
+      `[WhatsApp][${chave}] Usando Chrome executável: ${puppeteerOptions.executablePath || "(nenhum)"}`,
+    );
+    console.log(
+      `[WhatsApp][${chave}] puppeteerOptions: ${util.inspect(puppeteerOptions, {
+        depth: 2,
+      })}`,
+    );
 
     // Garantir que os args mínimos estejam presentes e adicionar extras quando headful
     puppeteerOptions.args = Array.isArray(puppeteerOptions.args)
