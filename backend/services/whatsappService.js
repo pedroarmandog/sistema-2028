@@ -651,7 +651,7 @@ async function inicializarCliente(empresaId, opts = {}) {
     puppeteer: {
       ...puppeteerOptions,
       dumpio: true,
-},
+    },
   });
 
   // Estado local do cliente
@@ -670,6 +670,7 @@ async function inicializarCliente(empresaId, opts = {}) {
   // Evento: QR Code gerado
   client.on("qr", async (qr) => {
     console.log(`[WhatsApp][empresa:${chave}] QR Code gerado`);
+    if (estado.status === "inicializando") prazoPareamento.refresh();
     estado.status = "aguardando_qr";
 
     // Converter QR para imagem base64
@@ -1135,11 +1136,11 @@ async function inicializarCliente(empresaId, opts = {}) {
     });
 
   // Timeout de segurança: se não conectar em 90s, limpar para evitar Chrome zumbi
-  setTimeout(async () => {
+  const prazoPareamento = setTimeout(async () => {
     const atual = clientsMap.get(chave);
     if (atual && atual === estado && atual.status !== "conectado") {
       console.warn(
-        `[WhatsApp][empresa:${chave}] Timeout de 90s — status ainda "${atual.status}". Limpando...`,
+        `[WhatsApp][empresa:${chave}] Timeout de 180s — status ainda "${atual.status}". Limpando...`,
       );
       try {
         await client.destroy();
@@ -1151,7 +1152,7 @@ async function inicializarCliente(empresaId, opts = {}) {
         mensagem: "Timeout: não foi possível conectar. Tente novamente.",
       });
     }
-  }, 90000);
+  }, 180000);
 
   return { status: "inicializando" };
 }
