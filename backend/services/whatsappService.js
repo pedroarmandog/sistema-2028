@@ -745,10 +745,22 @@ async function inicializarCliente(empresaId, opts = {}) {
     console.log(`[WhatsApp][empresa:${chave}] Mudança de estado:`, state);
   });
 
-  // Evento: Autenticado
-  client.on("authenticated", () => {
+  // Evento: Autenticado (QR escaneado, sessão válida)
+  client.on("authenticated", async () => {
     console.log(`[WhatsApp][empresa:${chave}] Autenticado com sucesso`);
     estado.status = "autenticado";
+    estado.qrBase64 = null; // QR não é mais necessário após autenticação
+
+    try {
+      await atualizarStatusNoBanco(chave, "autenticado", null);
+      emitirSSE(chave, "autenticado", {
+        mensagem: "Autenticado com sucesso. Aguardando conexão completa...",
+      });
+    } catch (e) {
+      console.error(
+        `[WhatsApp][${chave}] Erro ao notificar autenticado: ${e && e.message}`,
+      );
+    }
   });
 
   // Evento: Pronto (conectado)
