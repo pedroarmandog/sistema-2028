@@ -12,7 +12,7 @@
   var VPS_URL =
     window.VPS_URL !== undefined && window.VPS_URL !== null
       ? window.VPS_URL
-      : "https://api.pethubflow.com.br";
+      : "";
 
   // ── Helpers ──
   function $(sel) {

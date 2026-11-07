@@ -16,7 +16,7 @@ console.log("[Marketing] Módulo carregado");
 const VPS_URL =
   window.VPS_URL !== undefined && window.VPS_URL !== null
     ? window.VPS_URL
-    : "https://api.pethubflow.com.br";
+    : "";
 const API = VPS_URL + "/api/marketing";
 
 // Converte caminho relativo de imagem para URL absoluta da VPS
