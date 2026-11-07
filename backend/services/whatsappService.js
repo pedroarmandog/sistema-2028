@@ -8,12 +8,63 @@
  * - Anti-spam: delay aleatório entre envios + limite por minuto.
  */
 
-// Não forçar variáveis de ambiente aqui — respeitar o que o ambiente fornece
+// Verificar se o Chrome/Chromium está disponível e definir caminho correto para o Render (Node 18+ / Puppeteer).
+// No Render, o Chrome pode não estar em /usr/bin/google-chrome; preferir o cache do Puppeteer.
+function obterExecutableChrome() {
+  const candidatos = [];
+
+  // 1) Variável de ambiente explícita
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    candidatos.push(process.env.PUPPETEER_EXECUTABLE_PATH);
+  }
+  if (process.env.CHROME_PATH) {
+    candidatos.push(process.env.CHROME_PATH);
+  }
+
+  // 2) Path de fallback do Puppeteer
+  try {
+    const p = require("puppeteer");
+    const exec =
+      typeof p.executablePath === "function" ? p.executablePath() : p.executablePath;
+    if (exec) candidatos.push(exec);
+  } catch (_) {}
+
+  // 3) Caminhos clássicos de Linux
+  candidatos.push(
+    "/usr/bin/google-chrome",
+    "/usr/bin/chromium",
+    "/usr/bin/chromium-browser",
+    "/opt/google/chrome/chrome",
+  );
+
+  const seen = new Set();
+  const filtrados = candidatos.filter((c) => {
+    if (!c || seen.has(c)) return false;
+    seen.add(c);
+    try {
+      return fs.existsSync(c);
+    } catch (_) {
+      return false;
+    }
+  });
+
+  return filtrados[0] || null;
+}
+
+// Verifica se o binário é executável (--version retorna 0)
 
 // Não sobrescrever se já definido pela configuração global (app.js / ambiente)
 if (!process.env.PUPPETEER_EXECUTABLE_PATH && !process.env.CHROME_PATH) {
   try {
-    process.env.PUPPETEER_EXECUTABLE_PATH = "/usr/bin/google-chrome";
+    const chrome = "/usr/bin/google-chrome";
+    if (fs.existsSync(chrome)) {
+      process.env.PUPPETEER_EXECUTABLE_PATH = chrome;
+      process.env.CHROME_PATH = chrome;
+    } else {
+      // Sem Chrome instalado em /usr/bin, deixar vazio e resolver no Client
+      delete process.env.PUPPETEER_EXECUTABLE_PATH;
+      delete process.env.CHROME_PATH;
+    }
   } catch (_) {}
 }
 
@@ -22,81 +73,6 @@ const path = require("path");
 const fs = require("fs");
 const { spawnSync } = require("child_process");
 const util = require("util");
-
-// Diagnóstico: inspeciona caminhos mencionados em erro de executablePath
-function diagnosticarExecPath(msg, chave) {
-  try {
-    const match = msg && msg.match && msg.match(/\((\/[^)]+)\)/);
-    const pathReported = match ? match[1] : null;
-    console.log(`[WhatsApp][${chave}] diagnosticarExecPath: msg='${msg}'`);
-    console.log(
-      `[WhatsApp][${chave}] process.env.CHROME_PATH='${process.env.CHROME_PATH || "(undef)"}'`,
-    );
-    console.log(
-      `[WhatsApp][${chave}] process.env.PUPPETEER_EXECUTABLE_PATH='${process.env.PUPPETEER_EXECUTABLE_PATH || "(undef)"}'`,
-    );
-    if (pathReported) {
-      try {
-        console.log(
-          `[WhatsApp][${chave}] Caminho reportado pelo erro: ${pathReported}`,
-        );
-        console.log(
-          `[WhatsApp][${chave}] exists: ${fs.existsSync(pathReported)}`,
-        );
-        try {
-          const s = fs.statSync(pathReported);
-          console.log(`[WhatsApp][${chave}] stat: ${JSON.stringify(s)}`);
-        } catch (e) {
-          console.log(
-            `[WhatsApp][${chave}] stat falhou para ${pathReported}: ${e && e.message}`,
-          );
-        }
-        // listar pasta pai para ver conteúdo
-        const parent = require("path").dirname(pathReported);
-        try {
-          const files = fs.readdirSync(parent);
-          console.log(
-            `[WhatsApp][${chave}] Conteúdo de ${parent}: ${files.join(", ")}`,
-          );
-        } catch (e) {
-          console.log(
-            `[WhatsApp][${chave}] Falha ao listar ${parent}: ${e && e.message}`,
-          );
-        }
-      } catch (e) {
-        console.log(
-          `[WhatsApp][${chave}] Erro diagnosticando caminho reportado: ${e && e.message}`,
-        );
-      }
-    } else {
-      console.log(
-        `[WhatsApp][${chave}] Nenhum caminho entre parênteses encontrado na mensagem de erro`,
-      );
-    }
-
-    // Tentar inspecionar puppeteer local (se presente)
-    try {
-      const p = require("puppeteer");
-      const exec =
-        typeof p.executablePath === "function"
-          ? p.executablePath()
-          : p.executablePath;
-      console.log(`[WhatsApp][${chave}] puppeteer.executablePath() => ${exec}`);
-      if (exec)
-        console.log(
-          `[WhatsApp][${chave}] fs.existsSync(exec) => ${fs.existsSync(exec)}`,
-        );
-    } catch (e) {
-      console.log(
-        `[WhatsApp][${chave}] puppeteer não disponível ou falha ao obter executablePath: ${e && e.message}`,
-      );
-    }
-  } catch (e) {
-    console.log(
-      `[WhatsApp][${chave}] diagnosticarExecPath error: ${e && e.message}`,
-    );
-  }
-}
 
 // Debug: identificar qual arquivo foi carregado e PID do processo
 console.log(
@@ -463,7 +439,36 @@ async function inicializarCliente(empresaId, opts = {}) {
     }
   } catch (_) {}
 
-  // Forçar fallback para /usr/bin/google-chrome se nenhum executável válido foi encontrado
+  // Fallback 1: tentar descobrir via obterExecutableChrome() (env vars ou cache do Puppeteer)
+  if (!executablePath) {
+    try {
+      const autoChrome = obterExecutableChrome();
+      if (autoChrome) {
+        try {
+          const checkAuto = spawnSync(autoChrome, ["--version"], {
+            encoding: "utf8",
+            timeout: 3000,
+          });
+          if (!checkAuto.error && checkAuto.status === 0) {
+            executablePath = autoChrome;
+            console.log(
+              `[WhatsApp][${chave}] Executável descoberto automaticamente: ${autoChrome}`,
+            );
+          } else {
+            console.warn(
+              `[WhatsApp][${chave}] Auto-executável ${autoChrome} falhou no teste: ${checkAuto.error ? checkAuto.error.message : checkAuto.stderr || checkAuto.stdout}`,
+            );
+          }
+        } catch (e) {
+          console.warn(
+            `[WhatsApp][${chave}] Erro ao testar auto-executável ${autoChrome}: ${e && e.message}`,
+          );
+        }
+      }
+    } catch (_) {}
+  }
+
+  // Fallback 2: /usr/bin/google-chrome (Linux padrão)
   if (!executablePath) {
     try {
       const fallback = "/usr/bin/google-chrome";
