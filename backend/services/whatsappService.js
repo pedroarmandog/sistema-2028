@@ -876,7 +876,9 @@ async function inicializarCliente(empresaId, opts = {}) {
     })
     .catch(async (err) => {
       const msg = err && err.message ? err.message : String(err);
-      console.error(`[WhatsApp][empresa:${chave}] initialize() catch: ${msg}`);
+      console.error(
+        `[WhatsApp][empresa:${chave}] initialize() catch: ${err && err.stack ? err.stack : msg}`,
+      );
 
       // Tratamento específico: conflito de userDataDir / SingletonLock
       if (
@@ -1131,7 +1133,17 @@ async function inicializarCliente(empresaId, opts = {}) {
       console.error(`[WhatsApp][empresa:${chave}] Erro ao inicializar:`, msg);
       estado.status = "erro";
       emitirSSE(chave, "erro", { mensagem: msg });
-      clientsMap.delete(chave);
+      clearTimeout(prazoPareamento);
+      try {
+        await client.destroy();
+      } catch (cleanupError) {
+        console.warn(
+          `[WhatsApp][${chave}] Falha ao encerrar cliente após erro de inicialização: ${cleanupError && cleanupError.message}`,
+        );
+      }
+      if (clientsMap.get(chave) === estado) {
+        clientsMap.delete(chave);
+      }
     });
 
   // Timeout de segurança: se não conectar em 90s, limpar para evitar Chrome zumbi
