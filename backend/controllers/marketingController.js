@@ -236,11 +236,40 @@ exports.resetarWhatsapp = async (req, res) => {
  * Polling endpoint: retorna status atual + QR Base64 se disponível.
  * Usado como fallback confiável ao SSE.
  */
-exports.obterQRStatus = (req, res) => {
+exports.obterQRStatus = async (req, res) => {
   const empresaId = req.user?.empresaId;
   if (!empresaId) return res.status(403).json({ erro: "Empresa não identificada" });
   const statusAtual = whatsappService.obterStatus(String(empresaId));
-  return res.json(statusAtual);
+
+  // Se o cliente em memória tem status útil, retornar diretamente
+  if (
+    statusAtual &&
+    (statusAtual.status === "conectado" ||
+      statusAtual.status === "aguardando_qr" ||
+      statusAtual.status === "inicializando" ||
+      statusAtual.status === "autenticado")
+  ) {
+    return res.json(statusAtual);
+  }
+
+  // Cliente não existe em memória — verificar o banco (útil após suspensão do Render Free)
+  try {
+    const { WhatsappSession } = require("../models");
+    const session = await WhatsappSession.findOne({
+      where: { empresaId: Number(empresaId) },
+    });
+
+    if (session) {
+      return res.json({
+        status: session.status || "desconectado",
+        numero: session.numero,
+        qrBase64: null,
+        ultimaConexao: session.ultimaConexao,
+      });
+    }
+  } catch (_) {}
+
+  return res.json({ status: "desconectado", numero: null, qrBase64: null });
 };
 
 /**

@@ -151,7 +151,8 @@ async function authUser(req, res, next) {
     req.headers.authorization.startsWith("Bearer ")
       ? req.headers.authorization.split(" ")[1]
       : null;
-  const tokenFromCookie = req.cookies?.pethub_token || null;
+  const tokenFromCookie =
+    req.cookies?.pethub_token || req.cookies?.admin_token || null;
 
   // DEBUG: Log detalhado de cookies recebidos
   console.log(`[authUser] 🔍 Auth check: ${req.method} ${req.path}`);
