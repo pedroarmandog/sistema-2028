@@ -1586,11 +1586,6 @@ async function reconectarSessoesAtivas() {
   try {
     const { WhatsappSession } = require("../models");
 
-    // Matar Chrome zumbis de restartes anteriores antes de reconectar
-    matarChromeZumbis();
-    // Aguardar um pouco para o SO liberar locks nos arquivos de sessão
-    await new Promise((r) => setTimeout(r, 1500));
-
     // Buscar todas as sessões de marketing (não apenas "conectado" — podem ter crashado como "desconectado")
     // Se existe sessão em disco, vale a pena tentar reconectar
     const { Op } = require("sequelize");
