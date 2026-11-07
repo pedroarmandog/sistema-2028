@@ -487,16 +487,18 @@ async function iniciarConexaoWhatsapp() {
   document.getElementById("qrStatusAguardando").style.display = "block";
 
   try {
-    // Primeiro tenta resetar sessão (limpa corrompida se existir) e conectar
-    const res = await fetch(`${API}/whatsapp/resetar`, {
+    const res = await fetch(`${API}/whatsapp/conectar`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       credentials: "include",
     });
     const data = await res.json();
-    console.log("[Marketing] Resposta ao conectar (via resetar):", data);
-
-    // Iniciar polling de QR (método confiável, complementar ao SSE)
+    if (!res.ok || !data.sucesso) {
+      throw new Error(data.erro || `HTTP ${res.status}`);
+    }
+    if (data.resultado?.status === "ja_conectado") {
+      await carregarStatusWhatsapp();
+      return;
+    }
     iniciarPollingQR();
   } catch (err) {
     console.error("[Marketing] Erro ao iniciar conexão:", err.message);

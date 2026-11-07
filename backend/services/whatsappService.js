@@ -380,10 +380,11 @@ async function inicializarCliente(empresaId, opts = {}) {
       } catch (_) {}
       clientsMap.delete(chave);
     }
-    if (
-      existente.status === "inicializando" ||
-      existente.status === "autenticado"
-    ) {
+    // pupBrowser pode ainda não existir enquanto initialize() abre o Chrome.
+    if (existente.status === "inicializando") {
+      return { status: existente.status };
+    }
+    if (existente.status === "autenticado") {
       // Verificar se o browser ainda está vivo; se travou, limpar e recriar
       let browserVivo = false;
       try {
@@ -678,11 +679,9 @@ async function inicializarCliente(empresaId, opts = {}) {
       const qrBase64 = await QRCode.toDataURL(qr);
       estado.qrBase64 = qrBase64;
 
-      // Salvar status no banco
-      await atualizarStatusNoBanco(chave, "aguardando_qr", null);
-
-      // Emitir para frontend via SSE
+      if (clientsMap.get(chave) !== estado || estado.status !== "aguardando_qr") return;
       emitirSSE(chave, "qr", { qrBase64 });
+      await atualizarStatusNoBanco(chave, "aguardando_qr", null);
     } catch (err) {
       console.error("[WhatsApp] Erro ao gerar QR base64:", err.message);
     }

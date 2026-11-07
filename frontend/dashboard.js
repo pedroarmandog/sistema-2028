@@ -209,15 +209,13 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
-  // Inicializar o DashboardApp
-  DashboardApp.init();
-
-  // Atualizar dados a cada 30 segundos (só se não estiver atualizando)
-  setInterval(() => {
-    if (!isRefreshing) {
-      DashboardApp.refreshAll();
-    }
-  }, 30000);
+  // Marketing usa o menu compartilhado, mas não exibe os indicadores do dashboard.
+  if (!document.getElementById("modalQRCode")) {
+    DashboardApp.init();
+    setInterval(() => {
+      if (!isRefreshing) DashboardApp.refreshAll();
+    }, 30000);
+  }
 
   // Garantir que submenus abram por clique (painel lateral) mesmo que a função de persistência não exista
   try {
