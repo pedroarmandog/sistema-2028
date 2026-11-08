@@ -38,6 +38,7 @@ const upload = multer({
 });
 
 // ── WhatsApp ──────────────────────────────────────
+router.get("/sessao", (req, res) => res.json({ empresaId: req.user.empresaId }));
 router.get("/whatsapp/status", marketingController.statusWhatsapp);
 router.get("/whatsapp/qr-status", marketingController.obterQRStatus); // polling QR
 router.post("/whatsapp/conectar", marketingController.conectarWhatsapp);
