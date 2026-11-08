@@ -1,6 +1,12 @@
 // Adaptador exclusivo do laboratório: expõe ao Sequelize 6 a interface
 // callback de sqlite3 usando o SQLite integrado ao Node 22.13+/24.
 const { DatabaseSync } = require("node:sqlite");
+// O Sequelize passa booleanos JavaScript. O node:sqlite do Node 22 exige
+// inteiros para esses parâmetros, tanto no INSERT quanto nas consultas.
+function valorSQLite(valor) {
+  return typeof valor === "boolean" ? Number(valor) : valor;
+}
+
 class Statement {}
 class Database {
   constructor(filename, mode, done) {
@@ -18,7 +24,9 @@ class Database {
     let result;
     try {
       const stmt = this.db.prepare(sql);
-      const args = Array.isArray(params) ? params : [params || {}];
+      const args = Array.isArray(params)
+        ? params.map(valorSQLite)
+        : [Object.fromEntries(Object.entries(params || {}).map(([chave, valor]) => [chave, valorSQLite(valor)]))];
       result = stmt[method](...args);
       if (method === "run") Object.assign(meta, { changes: result.changes, lastID: result.lastInsertRowid });
     } catch (err) {
