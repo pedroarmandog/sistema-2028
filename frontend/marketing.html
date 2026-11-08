@@ -1400,11 +1400,11 @@
          MODAL 1: CONEXÃO WHATSAPP (QR CODE)
     ═══════════════════════════════════════════════════════ -->
     <div id="modalQRCode" class="modal-overlay" style="display: none">
-      <div class="modal-box" style="max-width: 480px; text-align: center">
-        <button class="modal-close" onclick="fecharModal('modalQRCode')">
+      <div class="modal-box" role="dialog" aria-modal="true" aria-label="Conexão do WhatsApp" style="max-width: 480px; text-align: center">
+        <button type="button" aria-label="Fechar" class="modal-close" onclick="fecharModal('modalQRCode')">
           &times;
         </button>
-        <div style="margin-bottom: 20px">
+        <div class="wpp-pair-heading" style="margin-bottom: 20px">
           <div
             style="
               width: 56px;
@@ -1429,33 +1429,12 @@
         </div>
 
         <p id="wppErroConexao" role="alert"></p>
-        <!-- Status: aguardando conexão -->
-        <div id="qrStatusConectado" style="display: none; padding: 20px 0">
-          <i
-            class="fas fa-check-circle"
-            style="font-size: 48px; color: #22c55e; margin-bottom: 12px"
-          ></i>
-          <p
-            style="font-size: 16px; font-weight: 600; color: #16a34a; margin: 0"
-          >
-            WhatsApp Conectado!
-          </p>
-          <p
-            id="qrNumeroConectado"
-            style="color: #666; font-size: 13px; margin-top: 6px"
-          ></p>
-          <label>Telefone com DDD <input type="tel" id="wppTesteTelefone" autocomplete="off"></label>
-          <label>Mensagem <input type="text" id="wppTesteTexto" maxlength="4096"></label>
-          <button type="button" class="btn-ativar" id="btnEnviarTesteWhatsapp" onclick="enviarTesteWhatsApp()">Enviar mensagem</button>
-          <p id="wppTesteStatus" role="status"></p>
-          <button
-            onclick="fecharModal('modalQRCode')"
-            class="btn-ativar"
-            style="margin-top: 16px; width: 200px"
-          >
-            Fechar
-          </button>
-        </div>
+        <section id="qrStatusConectado" style="display: none" aria-labelledby="wppConnectedTitle">
+          <span class="wpp-success-icon" aria-hidden="true"><i class="fab fa-whatsapp"></i></span>
+          <h2 id="wppConnectedTitle">WhatsApp conectado</h2>
+          <p class="wpp-success-message"><i class="fas fa-check-circle" aria-hidden="true"></i> Conectado com sucesso</p>
+          <p id="qrNumeroConectado" dir="ltr" aria-label="Número conectado"></p>
+        </section>
 
         <!-- Status: gerando QR -->
         <div id="qrStatusAguardando" style="display: none; padding: 20px 0">
@@ -1521,22 +1500,11 @@
           </button>
         </div>
 
-        <!-- Botão desconectar (exibido quando conectado) -->
-        <div id="qrBtnDesconectar" style="display: none; margin-top: 12px">
-          <button
-            onclick="desconectarWhatsapp()"
-            style="
-              background: none;
-              border: 1px solid #ef4444;
-              color: #ef4444;
-              padding: 8px 20px;
-              border-radius: 6px;
-              cursor: pointer;
-              font-size: 13px;
-            "
-          >
-            <i class="fas fa-times-circle"></i> Desconectar
-          </button>
+        <div id="qrBtnDesconectar" style="display: none">
+          <div class="wpp-actions">
+            <button type="button" class="wpp-disconnect" onclick="desconectarWhatsapp()">Desconectar</button>
+            <button type="button" class="wpp-dismiss" onclick="fecharModal('modalQRCode')">Fechar</button>
+          </div>
         </div>
       </div>
     </div>
@@ -2523,6 +2491,39 @@
         border-radius: 6px;
         cursor: pointer;
         font-size: 12px;
+      }
+      #modalQRCode.whatsapp-online .wpp-pair-heading,
+      #modalQRCode.whatsapp-online .modal-close,
+      #modalQRCode:not(.whatsapp-online) .wpp-dismiss { display: none; }
+      #modalQRCode.whatsapp-online .modal-box {
+        box-sizing: border-box; max-width: 430px !important; padding: 30px clamp(16px, 5vw, 30px) 22px;
+        border-radius: 20px; background: #fff; box-shadow: 0 16px 50px rgba(12, 55, 38, .16);
+      }
+      #modalQRCode .wpp-success-icon {
+        display: inline-grid; place-items: center; width: 60px; height: 60px;
+        border-radius: 18px; background: #e0f5e9; color: #137245; font-size: 32px;
+      }
+      #modalQRCode #wppConnectedTitle { margin: 16px 0 6px; font-size: 22px; line-height: 1.25; color: #193b2c; }
+      #modalQRCode .wpp-success-message { margin: 0; color: #377251; font-size: 14px; }
+      #modalQRCode #qrNumeroConectado {
+        margin: 14px 0 0; font-size: 19px; font-weight: 600; color: #20372c;
+        letter-spacing: .025em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere;
+      }
+      #modalQRCode #qrNumeroConectado:empty, #modalQRCode #wppErroConexao:empty { display: none; }
+      #modalQRCode .wpp-actions { display: flex; justify-content: center; gap: 10px; margin-top: 20px; }
+      #modalQRCode.whatsapp-online .wpp-actions { padding-top: 18px; border-top: 1px solid #dfe9e3; }
+      #modalQRCode .wpp-actions button {
+        box-sizing: border-box; min-height: 44px; padding: 9px 14px; border-radius: 10px;
+        font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+      }
+      #modalQRCode.whatsapp-online .wpp-actions button { flex: 1; }
+      #modalQRCode .wpp-disconnect { background: white; border: 1px solid #a1baaa; color: #28553e; }
+      #modalQRCode .wpp-disconnect:hover { background: #f0f7f3; }
+      #modalQRCode .wpp-dismiss { color: white; background: #15583a; border: 1px solid #15583a; }
+      #modalQRCode .wpp-dismiss:hover { background: #10452d; }
+      #modalQRCode .wpp-actions button:focus-visible { outline: 3px solid #50a77a; outline-offset: 2px; }
+      @media (max-width: 340px) {
+        #modalQRCode.whatsapp-online .wpp-actions { flex-direction: column; }
       }
     </style>
 

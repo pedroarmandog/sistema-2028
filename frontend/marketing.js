@@ -33,9 +33,10 @@ function resolveImgPath(p) {
 // ISOLAMENTO MULTI-TENANT: a empresa do usuário vem do backend, nunca de cookie
 // legado ou de dados públicos (/api/usuarios/:id era público e expunha empresas).
 let EMPRESA_ID = null;
+let loginNecessario = false;
 let _empresaIdPromise = (async function detectarEmpresaId() {
   try {
-    const sessRes = await fetch(VPS_URL + "/api/usuarios/me", {
+    const sessRes = await fetch(API + "/sessao", {
       credentials: "include",
     });
     if (sessRes.ok) {
@@ -49,7 +50,8 @@ let _empresaIdPromise = (async function detectarEmpresaId() {
         "[Marketing] /me respondeu mas sem empresaId. Sessão antiga?",
       );
     } else {
-      console.warn("[Marketing] /me não autenticado (HTTP", sessRes.status, ")");
+      if (sessRes.status === 401) loginNecessario = true;
+      console.warn("[Marketing] Sessão não autorizada (HTTP", sessRes.status, ")");
     }
   } catch (e) {
     console.warn("[Marketing] Falha ao consultar /me:", e && e.message);
@@ -77,7 +79,7 @@ async function inicializarMarketing() {
   if (!EMPRESA_ID) {
     console.warn("[Marketing] Nenhuma empresa identificada. Página não será carregada.");
     document.getElementById("listaMensagensAtivas").innerHTML =
-      '<div style="color:#ef4444;padding:16px;font-size:13px;">Sessão não identificada. Faça login novamente.</div>';
+      loginNecessario ? '<p>Sua sessão do ERP expirou. <a href="/login/login.html">Entrar novamente</a></p>' : '<p>Não foi possível identificar a empresa. Atualize a página para tentar novamente.</p>';
     return;
   }
   carregarStatusWhatsapp().catch(err => console.warn(err.message));
@@ -267,6 +269,7 @@ function exibirWhatsapp(data) {
   revisaoWhatsapp++;
   if (data.status !== "desconectado") avisarWhatsApp("");
   const conectado = data.status === "conectado";
+  document.getElementById("modalQRCode").classList.toggle("whatsapp-online", conectado);
   const aguardando = data.status === "aguardando_qr" && !!data.qrBase64;
   const iniciando = data.status === "inicializando";
   const visivel = (id, flag) => { document.getElementById(id).style.display = flag ? "block" : "none"; };
@@ -358,22 +361,6 @@ function pararPollingQR() {
   _qrPollingTimer = null;
 }
 
-async function enviarTesteWhatsApp() {
-  const btn = document.getElementById("btnEnviarTesteWhatsapp");
-  btn.disabled = true;
-  try {
-    const telefone = document.getElementById("wppTesteTelefone").value;
-    const texto = document.getElementById("wppTesteTexto").value;
-    const res = await fetch(`${API}/whatsapp/enviar`, { method: "POST", credentials: "include",
-      headers: { "Content-Type": "application/json" }, body: JSON.stringify({ telefone, texto }) });
-    const resultado = await res.json();
-    if (!res.ok || !resultado.sucesso) throw new Error(resultado.erro || "Envio falhou.");
-    document.getElementById("wppTesteStatus").textContent = "Mensagem enviada.";
-  } catch (err) {
-    document.getElementById("wppTesteStatus").textContent = err.message;
-  } finally { btn.disabled = false; }
-}
-
 async function desconectarWhatsapp() {
   if (!(await confirmar("Deseja desconectar o WhatsApp?"))) return;
 
@@ -398,7 +385,7 @@ async function desconectarWhatsapp() {
 async function carregarMensagens() {
   if (!EMPRESA_ID) {
     document.getElementById("listaMensagensAtivas").innerHTML =
-      '<div style="color:#ef4444;padding:16px;font-size:13px;">Sessão não identificada. Faça login novamente.</div>';
+      loginNecessario ? '<p>Sua sessão do ERP expirou. <a href="/login/login.html">Entrar novamente</a></p>' : '<p>Não foi possível identificar a empresa. Atualize a página para tentar novamente.</p>';
     return;
   }
   try {
