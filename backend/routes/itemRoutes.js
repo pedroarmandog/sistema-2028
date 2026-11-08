@@ -10,6 +10,17 @@ const { authUser } = require("../middleware/authUser");
 // Todas as rotas de itens requerem autenticação (multi-tenant)
 router.use(authUser);
 
+// Uma edição parcial deve considerar o código que já existe no cadastro.
+function validarCodigosICMS(dados, atual = {}) {
+  if (!Object.hasOwn(dados, "csosn") && !Object.hasOwn(dados, "cst_icms")) return;
+  for (const campo of ["csosn", "cst_icms"]) {
+    if (Object.hasOwn(dados, campo)) dados[campo] = String(dados[campo] ?? "").trim() || null;
+  }
+  const cadastro = { ...atual, ...dados };
+  if (cadastro.csosn && cadastro.cst_icms)
+    return "Preencha apenas CST ICMS ou CSOSN. Limpe o outro campo antes de salvar.";
+}
+
 // arquivo para armazenar exclusões locais (bloqueio de itens que existem apenas no frontend)
 const blockedFilePath = path.join(
   __dirname,
@@ -361,7 +372,8 @@ router.delete("/blocked", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const id = String(req.params.id);
-    const produto = await Produto.findByPk(id);
+    if (!req.user?.empresaId) return res.status(403).json({error:"Empresa não identificada."});
+    const produto = await Produto.findOne({where:{id, empresa_id:req.user.empresaId}});
     if (!produto)
       return res.status(404).json({ error: "Produto não encontrado" });
     res.json(produto);
@@ -430,6 +442,8 @@ router.post("/", async (req, res) => {
 
     // preparar payload coerente para o modelo
     const payload = { ...data, nome };
+    const erroFiscal = validarCodigosICMS(payload);
+    if (erroFiscal) return res.status(400).json({error:erroFiscal});
     // Adicionar empresa_id para isolamento multi-tenant
     if (req.user?.empresaId) payload.empresa_id = req.user.empresaId;
     // gerar um código simples quando não fornecido para evitar registros com codigo=null
@@ -589,9 +603,15 @@ router.put("/:id", async (req, res) => {
       );
     } catch (e) {}
 
-    const produto = await Produto.findByPk(id);
+    if (!req.user?.empresaId) return res.status(403).json({error:"Empresa não identificada."});
+    const produto = await Produto.findOne({where:{id, empresa_id:req.user.empresaId}});
     if (!produto)
       return res.status(404).json({ error: "Produto não encontrado" });
+
+    delete data.empresa_id;
+    delete data.id;
+    const erroFiscal = validarCodigosICMS(data, produto.get({plain:true}));
+    if (erroFiscal) return res.status(400).json({error:erroFiscal});
 
     // Log para debug de validade
     if (data.validade !== undefined) {

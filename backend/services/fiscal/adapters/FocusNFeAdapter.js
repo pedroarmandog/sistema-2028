@@ -225,10 +225,11 @@ class FocusNFeAdapter extends FiscalService {
     return xml;
   }
   static _baseICMS(item) {
-    if (item?.csosn && item?.cst_icms) throw new Error("CST ICMS e CSOSN informados simultaneamente. Confira o cadastro fiscal do item.");
+    const identificacao = item.descricao + " (código " + item.codigo_produto + ")";
+    if (item?.csosn && item?.cst_icms) throw new Error("CST ICMS e CSOSN informados simultaneamente em " + identificacao + ". Em Editar Produto → Tributação do produto, mantenha apenas o código aplicável.");
     if (item && item.csosn) return String(item.csosn).padStart(3, "0");
     if (item && item.cst_icms) return String(item.cst_icms);
-    throw new Error("Informe CST ICMS ou CSOSN no cadastro do item " + (item.descricao || "") + ".");
+    throw new Error("Informe CST ICMS ou CSOSN no cadastro do item " + identificacao + ". Abra Editar Produto → Tributação do produto, salve e tente emitir esta mesma nota novamente.");
   }
 
   static montarPayloadNFe(payload, config = null, tipoDocumento = "nfe") {
@@ -432,7 +433,7 @@ class FocusNFeAdapter extends FiscalService {
    * O tipo do documento vem de payload._notaTipo (gravado pelo servico fiscal);
    * cai em "nfe" quando ausente.
    */
-  async transmitir(payload) {
+  prepararTransmissao(payload) {
     if (![undefined, "nfe", "nfce"].includes(payload?._notaTipo) || payload?.tipo === "nfse") throw new Error("A integração Focus do PetHub suporta NF-e e NFC-e. NFS-e requer integração municipal ou nacional específica.");
     const doc =
       payload && (payload._notaTipo === "nfce" || payload.tipo === "nfce")
@@ -491,6 +492,11 @@ class FocusNFeAdapter extends FiscalService {
     const totalItens = corpo.itens.reduce((s, i) => s + Number(i.valor_bruto) - Number(i.valor_desconto), 0);
     if (Math.abs(totalItens - Number(corpo.valor_total)) > 0.011) throw new Error(
       "Total dos itens diverge da venda. Confira descontos globais, frete e acréscimos antes de emitir.");
+    return { doc, ref, corpo };
+  }
+
+  async transmitir(payload, preparado = this.prepararTransmissao(payload)) {
+    const { doc, ref, corpo } = preparado;
     const resposta = await this._request(
       "POST",
       `/${doc}?ref=${encodeURIComponent(ref)}`,

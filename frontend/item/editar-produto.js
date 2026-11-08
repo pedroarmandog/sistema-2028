@@ -4043,6 +4043,7 @@ function preencherFormulario(dados) {
     }
     if (dados.ncm) setVal("ncm", dados.ncm);
     if (dados.cest) setVal("cest", dados.cest);
+    for (const campo of ["cfop_padrao", "cst_icms", "csosn", "cst_pis", "cst_cofins"]) setVal(campo, dados[campo]);
 
     // Precificação - Converter DECIMAL strings para números
     if (dados.custoBase !== undefined && dados.custoBase !== null) {
@@ -4495,6 +4496,12 @@ async function salvarProduto(e) {
       // Campos fiscais do formulario (NCM/CEST obrigatorios para emissao)
       ncm: (dados.ncm || "").toString().trim(),
       cest: (dados.cest || "").toString().trim(),
+      cfop_padrao: dados.cfop_padrao?.trim() || null,
+      cst_icms: dados.cst_icms?.trim() || null,
+      csosn: dados.csosn?.trim() || null,
+      cst_pis: dados.cst_pis?.trim() || null,
+      cst_cofins: dados.cst_cofins?.trim() || null,
+
     };
 
     // Anexar lista completa de códigos de barras (frontend-only field); backend precisa suportar para persistir

@@ -117,6 +117,38 @@ test("Ciclo fiscal interno, sem TiDB e sem transmissão externa", async t=>{
       assert.throws(() => F.montarPayloadNFe({itens:[{...item,...alteracao}]}), /cálculo/);
     }
   });
+  await t.test("corrigir tributação no cadastro e emitir a mesma venda sem duplicar a nota", async () => {
+    lab.app.use("/api/itens", require("../../routes/itemRoutes"));
+    assert.equal((await api(config,{ativo:true,emitir_nfce:true,emitir_nfe:false})).code,200);
+    lab.setCenario("autorizado");
+    const modelo = await lab.models.Produto.findByPk("RACAO-A");
+    const produto = await lab.models.Produto.create({...modelo.toJSON(), id:"HOT-CAT", nome:"HOT CAT PEIXE 20KG", csosn:null});
+    const origem = await lab.models.Venda.findByPk(1);
+    const venda = await lab.models.Venda.create({empresa_id:1, clienteId:origem.clienteId,
+      itens:[{...origem.itens[0],produto:{id:produto.id,nome:produto.nome}}],totais:origem.totais,pagamentos:origem.pagamentos});
+    const existente = await api(notas+"/pendente",{venda_id:venda.id});
+    const id = existente.data.nota.id, emitir = () => api(notas+"/"+id+"/emitir",{});
+    const chamadas = lab.chamadas.length;
+    const falha = await emitir();
+    assert.equal(falha.data.status,"erro");
+    assert.match(falha.data.motivo,/HOT CAT PEIXE 20KG.*HOT-CAT/);
+    assert.equal(falha.data.nota.numero_requisicao,null);
+    assert.equal(lab.chamadas.length,chamadas);
+    const url="/api/itens/HOT-CAT";
+    assert.equal((await api(url,{csosn:"102",cst_icms:"40"},1,"PUT")).code,400);
+    assert.equal((await api(url,{csosn:"102"},2,"PUT")).code,404);
+    assert.equal((await api(url,{csosn:"102",cst_icms:null},1,"PUT")).code,200);
+    assert.equal((await api(url)).data.csosn,"102");
+    assert.equal((await api(url,{cst_icms:"40"},1,"PUT")).code,400);
+    assert.equal((await api(url,{csosn:null,cst_icms:"40"},1,"PUT")).code,200);
+    assert.equal((await api(url)).data.cst_icms,"40");
+    assert.equal((await emitir()).data.status,"aguardando");
+    assert.equal(lab.registros.get("nfce/"+id).body.itens[0].icms_situacao_tributaria,"40");
+    const fim=await emitir();
+    assert.equal(fim.data.status,"autorizada");
+    assert.equal(fim.data.nota.id,id);
+    assert.equal(await lab.models.NotaFiscal.count({where:{venda_id:venda.id}}),1);
+  });
   await t.test("consulta e configurações restritas à empresa e às permissões",async()=>{
     await lab.models.Usuario.update({permissoes:["vendas"]},{where:{id:1}});
     assert.equal((await api(config)).code,403);

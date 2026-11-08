@@ -98,6 +98,12 @@ function resolveTipoNota(venda, config, agendamentoId, cliente) {
  * NCM/CEST/CFOP cadastrados DEPOIS da venda não teriam os dados fiscais na
  * hora da emissão.
  */
+function idProdutoVendido(item) {
+  // No PDV, item.id é o ID temporário da linha. Formatos antigos sem
+  // objeto produto também podem guardar o ID do catálogo no próprio item.
+  return item.produto?.id ?? item.produtoId ?? item.itemId ?? (item.produto ? null : item.id);
+}
+
 function _mesclarCadastroNosItens(itens, produtos) {
   const mapa = new Map();
   for (const p of Array.isArray(produtos) ? produtos : []) {
@@ -110,9 +116,7 @@ function _mesclarCadastroNosItens(itens, produtos) {
 
   for (const it of Array.isArray(itens) ? itens : []) {
     if (!it || typeof it !== "object") continue;
-    const pid = String(
-      (it.produto && it.produto.id) ?? it.produtoId ?? it.id,
-    );
+    const pid = String(idProdutoVendido(it));
     const cadastro = mapa.get(pid);
     if (!cadastro) continue;
     it.produto = {
@@ -129,8 +133,7 @@ function _mesclarCadastroNosItens(itens, produtos) {
  */
 async function _enriquecerItensVendaComCadastro(venda, { produtoModel, transaction } = {}) {
   const itens = _asArray(venda.itens);
-  const idItem = it => it.produto?.id ?? it.produtoId ?? it.id;
-  const ids = itens.filter(Boolean).map(idItem).filter(id => id != null).map(String);
+  const ids = itens.filter(Boolean).map(idProdutoVendido).filter(id => id != null).map(String);
   const produtos = ids.length ? await (produtoModel || Produto).findAll({
     transaction,
     where: { empresa_id: venda.empresa_id, id: { [Op.in]: [...new Set(ids)] } }
@@ -189,12 +192,13 @@ async function _emitirNotaRecord(nota) {
       const payload = FiscalPayloadBuilder.buildNFe(venda, empresa, config, cliente);
       payload._notaId = ref;
       payload._notaTipo = nota.tipo;
+      const preparado = service.prepararTransmissao(payload);
       const [reservada] = await NotaFiscal.update({ status: "aguardando", numero_requisicao: ref }, {
         where: { id: nota.id, empresa_id: nota.empresa_id, status: estadoAnterior, updatedAt: nota.updatedAt }
       });
       if (!reservada) { await nota.reload(); return resultado("Outro pedido já processou esta nota."); }
       await nota.reload();
-      resposta = await service.transmitir(payload);
+      resposta = await service.transmitir(payload, preparado);
     }
   } catch (err) {
     // Uma falha de transporte pode ocorrer após o provedor aceitar a requisição.
