@@ -3,7 +3,7 @@ const whatsappService = require("../services/whatsappService");
 const { Op } = require("sequelize");
 
 // Prefixo para isolar instâncias do disparador do sistema principal de marketing
-const DISP_PREFIX = "disp_";
+
 
 /**
  * Retorna o próximo numeroOrdem disponível para uma empresa.
@@ -51,9 +51,9 @@ async function criarInstancia(req, res) {
       status: "aguardando_qr",
     });
 
-    // Iniciar cliente Puppeteer usando chave com prefixo para isolar do sistema principal
+    // Reutilizar a conexão da empresa
     try {
-      whatsappService.inicializarCliente(DISP_PREFIX + sess.id);
+      await whatsappService.inicializarCliente(empresaId);
     } catch (e) {
       console.warn("[Instancia] falha ao inicializar cliente", e && e.message);
     }
@@ -83,13 +83,11 @@ async function listarInstancias(req, res) {
 
     // Retornar o status real do clientsMap (memória) para evitar informação desatualizada
     const result = list.map((s) => {
-      const real = whatsappService.obterStatus(DISP_PREFIX + s.id);
+      const real = whatsappService.obterStatus(empresaId);
       const json = s.toJSON();
-      // Se o banco diz "conectado" mas a memória diz outra coisa, usar o status real
-      if (json.status === "conectado" && real.status !== "conectado") {
-        json.status =
-          real.status === "desconectado" ? "desconectado" : real.status;
-      }
+      delete json.sessionData;
+      json.status = real.status;
+      json.numero = real.numero;
       return json;
     });
 
@@ -116,7 +114,7 @@ async function conectarInstancia(req, res) {
       { status: "aguardando_qr" },
       { where: { id } },
     );
-    whatsappService.inicializarCliente(DISP_PREFIX + id);
+    await whatsappService.inicializarCliente(empresaId);
     return res.json({ success: true });
   } catch (err) {
     console.error("conectarInstancia error", err && err.message);
@@ -137,7 +135,7 @@ async function desconectarInstancia(req, res) {
       return res.status(403).json({ error: "Instância não pertence à sua empresa" });
 
     try {
-      await whatsappService.desconectar(DISP_PREFIX + id);
+      await whatsappService.desconectar(empresaId);
     } catch (e) {}
     await WhatsappSession.update({ status: "desconectado" }, { where: { id } });
     return res.json({ success: true });
@@ -159,9 +157,6 @@ async function excluirInstancia(req, res) {
     if (sess.empresaId !== Number(empresaId))
       return res.status(403).json({ error: "Instância não pertence à sua empresa" });
 
-    try {
-      await whatsappService.desconectar(DISP_PREFIX + id);
-    } catch (e) {}
     await sess.destroy();
     return res.json({ success: true });
   } catch (err) {
@@ -182,20 +177,18 @@ async function resetarInstancia(req, res) {
     if (sess.empresaId !== Number(empresaId))
       return res.status(403).json({ error: "Instância não pertence à sua empresa" });
 
-    const chave = DISP_PREFIX + id;
+    const chave = empresaId;
     // Destruir cliente existente
     try {
       await whatsappService.desconectar(chave);
     } catch (_) {}
-    // Limpar sessão corrompida do disco
-    whatsappService.limparSessaoDoDisco(chave);
     // Atualizar banco
     await WhatsappSession.update(
       { status: "aguardando_qr" },
       { where: { id } },
     );
     // Reconectar (gera QR novo)
-    whatsappService.inicializarCliente(chave);
+    await whatsappService.inicializarCliente(chave);
     return res.json({ success: true });
   } catch (err) {
     console.error("resetarInstancia error", err && err.message);
@@ -210,5 +203,4 @@ module.exports = {
   desconectarInstancia,
   excluirInstancia,
   resetarInstancia,
-  DISP_PREFIX,
 };

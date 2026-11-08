@@ -17,7 +17,6 @@ const MAX_TENTATIVAS = 3;
 let cronJob = null;
 let processando = false;
 const BATCH_SIZE = 10; // buscar 10 mensagens por vez
-let queueBuffer = [];
 let lastRunAt = 0;
 
 /**
@@ -55,241 +54,49 @@ function iniciarAgendador() {
 /**
  * Processa todos os envios pendentes que já passaram da data agendada.
  */
-async function processarFila() {
+async function processarFila(empresaId) {
   const { EnvioAgendado, LogEnvio } = require("../models");
-  const { Op } = require("sequelize");
-
-  const agora = new Date();
-  // contador estimado de queries desta execução
-  const queriesThisRun = { count: 0 };
-
-  // Recuperar envios presos em "enviando" há mais de 5 minutos
-  const cincoMinAtras = new Date(agora.getTime() - 5 * 60 * 1000);
-  // recuperar envios que ficaram presos (1 query)
-  try {
-    queriesThisRun.count++;
-    await EnvioAgendado.update(
-      { status: "pendente" },
-      {
-        where: {
-          status: "enviando",
-          updatedAt: { [Op.lt]: cincoMinAtras },
-        },
-      },
-    );
-  } catch (_) {}
-
-  // Buscar em lote apenas quando o buffer estiver vazio
-  let pendentes = [];
-  if (queueBuffer.length === 0) {
-    queriesThisRun.count++;
-    const fetched = await EnvioAgendado.findAll({
-      where: {
-        status: "pendente",
-        dataAgendada: { [Op.lte]: agora },
-        tentativas: { [Op.lt]: MAX_TENTATIVAS },
-      },
-      order: [["dataAgendada", "ASC"]],
-      limit: BATCH_SIZE,
-    });
-    if (!fetched || fetched.length === 0) {
-      console.log("[Queue] Nenhum envio pendente encontrado.");
-      console.log(
-        `[Queue] Queries estimadas nesta execução: ${queriesThisRun.count}`,
-      );
-      return;
-    }
-    queueBuffer = fetched;
-  }
-
-  // Processar o lote atual (até BATCH_SIZE) sem consultar o DB novamente
-  pendentes = queueBuffer.splice(0, BATCH_SIZE);
-  if (pendentes.length === 0) return;
-
-  console.log(`[Queue] Processando lote de ${pendentes.length} envio(s)`);
-
-  // Tentar reconexão uma única vez por empresa (não por envio)
-  const empresasVerificadas = new Set();
-
+  const { Op, literal } = require("sequelize");
+  const filtro = {
+    [Op.and]: literal("JSON_EXTRACT(contexto, '$.campanhaId') IS NULL"),
+    empresaId: empresaId || { [Op.in]: whatsappService.empresasConectadas() }
+  };
+  await EnvioAgendado.update({ status: "pendente" }, { where: {
+    ...filtro, status: "enviando", updatedAt: { [Op.lt]: new Date(Date.now() - 300000) }
+  } });
+  const pendentes = await EnvioAgendado.findAll({ where: {
+    ...filtro, status: "pendente", dataAgendada: { [Op.lte]: new Date() },
+    tentativas: { [Op.lt]: MAX_TENTATIVAS }
+  }, order: [["dataAgendada", "ASC"]], limit: BATCH_SIZE });
   for (const envio of pendentes) {
-    const empId = String(envio.empresaId || 1);
-    if (!empresasVerificadas.has(empId)) {
-      empresasVerificadas.add(empId);
-      await tentarReconectar(empId);
-    }
-    console.log(
-      `[Queue] Iniciando processamento do envio #${envio.id} (empresa ${empId})`,
-    );
-    await processarEnvio(envio, LogEnvio, queriesThisRun);
-    // Delay mínimo entre envios para evitar bursts
-    await new Promise((r) => setTimeout(r, 2000));
-  }
-
-  console.log(
-    `[Queue] Processado lote de ${pendentes.length} envio(s). Queries estimadas nesta execução: ${queriesThisRun.count}`,
-  );
-}
-
-/**
- * Tenta reconectar o WhatsApp de uma empresa (chamado 1x por empresa por ciclo).
- */
-async function tentarReconectar(empresaId) {
-  if (whatsappService.isConectado(empresaId)) return;
-
-  const fs = require("fs");
-  const path = require("path");
-  const SESSION_DIR = path.join(__dirname, "../../tmp/whatsapp-sessions");
-  const sessionDir = [
-    path.join(SESSION_DIR, `session-empresa_${empresaId}`),
-    path.join(SESSION_DIR, `empresa_${empresaId}`),
-  ].find((d) => fs.existsSync(d));
-
-  if (!sessionDir) {
-    console.warn(
-      `[Queue] WhatsApp empresa ${empresaId} nunca foi conectado. Conecte pelo painel de Marketing.`,
-    );
-    return;
-  }
-
-  try {
-    const status = whatsappService.obterStatus(empresaId);
-    if (
-      !status ||
-      status.status === "desconectado" ||
-      status.status === "erro"
-    ) {
-      console.log(
-        `[Queue] Tentando reconectar empresa ${empresaId} automaticamente...`,
-      );
-      // Dispara reconexão em background — não bloqueia o ciclo da fila.
-      // As mensagens pendentes serão processadas no próximo ciclo (5 min),
-      // quando a reconexão já terá concluído.
-      whatsappService.inicializarCliente(empresaId).catch((e) => {
-        console.warn(
-          `[Queue] Falha ao reconectar empresa ${empresaId}:`,
-          e.message,
-        );
-      });
-    }
-  } catch (e) {
-    console.warn(
-      `[Queue] Falha ao reconectar empresa ${empresaId}:`,
-      e.message,
-    );
+    await processarEnvio(envio, LogEnvio);
+    await new Promise(resolve => setTimeout(resolve, 2000));
   }
 }
 
-/**
- * Processa um único envio da fila.
- */
-async function processarEnvio(envio, LogEnvio, queriesCounter = { count: 0 }) {
-  const empresaId = String(envio.empresaId || 1);
-
-  if (!whatsappService.isConectado(empresaId)) {
-    // Silencioso — o frontend mostra o alerta de fila pendente
-    return;
+async function processarEnvio(envio, LogEnvio) {
+  const empresaId = envio.empresaId;
+  if (!empresaId || !whatsappService.isConectado(empresaId)) {
+    return { sucesso: false, erro: "WhatsApp não está conectado." };
   }
-
-  // Marcar como "enviando" para evitar processamento duplicado
-  try {
-    queriesCounter.count++;
-    await envio.update({
-      status: "enviando",
-      tentativas: envio.tentativas + 1,
-    });
-  } catch (_) {}
-
-  try {
-    // Registrar log de início (não-crítico)
-    try {
-      queriesCounter.count++;
-      await LogEnvio.create({
-        empresaId: envio.empresaId,
-        envioAgendadoId: envio.id,
-        evento: "envio_iniciado",
-        detalhes: {
-          telefone: envio.telefoneDestino,
-          tentativa: envio.tentativas,
-        },
-        mensagem: `Iniciando envio #${envio.id} para ${envio.telefoneDestino}`,
-      }).catch(() => {});
-    } catch (_) {}
-
-    // Enviar mensagem
-    const resultado = await whatsappService.enviarMensagem(
-      empresaId,
-      envio.telefoneDestino,
-      envio.conteudoFinal,
-      envio.imagemPath || null,
-    );
-
-    if (resultado.sucesso) {
-      try {
-        queriesCounter.count++;
-        await envio.update({ status: "enviado", dataEnvio: new Date() });
-      } catch (_) {}
-
-      try {
-        queriesCounter.count++;
-        await LogEnvio.create({
-          empresaId: envio.empresaId,
-          envioAgendadoId: envio.id,
-          evento: "envio_sucesso",
-          detalhes: { telefone: envio.telefoneDestino },
-          mensagem: `Mensagem enviada com sucesso para ${envio.telefoneDestino}`,
-        }).catch(() => {});
-      } catch (_) {}
-
-      console.log(
-        `[Queue] ✅ Envio #${envio.id} enviado para ${envio.telefoneDestino}`,
-      );
-    } else {
-      // Verificar se deve cancelar (máximo de tentativas)
-      const novoStatus =
-        envio.tentativas >= MAX_TENTATIVAS ? "erro" : "pendente";
-      try {
-        queriesCounter.count++;
-        await envio.update({
-          status: novoStatus,
-          erroMensagem: resultado.erro,
-        });
-      } catch (_) {}
-
-      try {
-        queriesCounter.count++;
-        await LogEnvio.create({
-          empresaId: envio.empresaId,
-          envioAgendadoId: envio.id,
-          evento: "envio_erro",
-          detalhes: { telefone: envio.telefoneDestino, erro: resultado.erro },
-          mensagem: `Falha no envio #${envio.id}: ${resultado.erro}`,
-        }).catch(() => {});
-      } catch (_) {}
-
-      console.error(
-        `[Queue] ❌ Falha no envio #${envio.id}: ${resultado.erro}`,
-      );
-    }
-  } catch (err) {
-    const novoStatus = envio.tentativas >= MAX_TENTATIVAS ? "erro" : "pendente";
-    try {
-      queriesCounter.count++;
-      await envio.update({ status: novoStatus, erroMensagem: err.message });
-    } catch (_) {}
-
-    try {
-      queriesCounter.count++;
-      await LogEnvio.create({
-        empresaId: envio.empresaId,
-        envioAgendadoId: envio.id,
-        evento: "envio_erro",
-        detalhes: { erro: err.message },
-        mensagem: `Exceção no envio #${envio.id}: ${err.message}`,
-      }).catch(() => {});
-    } catch (_) {}
-
-    console.error(`[Queue] Exceção no envio #${envio.id}:`, err.message);
+  const anteriores = envio.tentativas;
+  const [reservado] = await envio.constructor.update({
+    status: "enviando", tentativas: anteriores + 1
+  }, { where: { id: envio.id, empresaId, status: "pendente", tentativas: anteriores } });
+  if (!reservado) return { sucesso: false, erro: "Envio já processado ou em andamento." };
+  const resultado = await whatsappService.enviarMensagem(empresaId, envio.telefoneDestino, envio.conteudoFinal, envio.imagemPath);
+  if (resultado.sucesso) {
+    await envio.update({ status: "enviado", dataEnvio: new Date(), tentativas: anteriores + 1 });
+  } else {
+    const tentativas = resultado.temporario ? anteriores : anteriores + 1;
+    await envio.update({ status: tentativas >= MAX_TENTATIVAS ? "erro" : "pendente",
+      tentativas, erroMensagem: resultado.erro });
   }
+  await LogEnvio.create({ empresaId, envioAgendadoId: envio.id,
+    evento: resultado.sucesso ? "envio_sucesso" : "envio_erro",
+    mensagem: resultado.sucesso ? "Enviado pelo WhatsApp" : resultado.erro
+  }).catch(() => {});
+  return resultado;
 }
 
 /**
@@ -324,6 +131,7 @@ async function agendarEnvio(params) {
       // Montar WHERE incluindo o contexto (clienteId/petId/agendamentoId) para
       // permitir envios do mesmo tipo para telefones iguais de clientes diferentes.
       const whereClause = {
+        empresaId: params.empresaId,
         mensagemAutomaticaId: params.mensagemAutomaticaId,
         telefoneDestino: String(params.telefone).replace(/\D/g, ""),
         status: { [Op.in]: ["enviado", "pendente", "enviando"] },
@@ -440,4 +248,5 @@ module.exports = {
   agendarEnvio,
   pararAgendador,
   processarFila,
+  processarEnvio,
 };

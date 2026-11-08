@@ -1428,6 +1428,7 @@
           </p>
         </div>
 
+        <p id="wppErroConexao" role="alert"></p>
         <!-- Status: aguardando conexão -->
         <div id="qrStatusConectado" style="display: none; padding: 20px 0">
           <i
@@ -1443,6 +1444,10 @@
             id="qrNumeroConectado"
             style="color: #666; font-size: 13px; margin-top: 6px"
           ></p>
+          <label>Telefone com DDD <input type="tel" id="wppTesteTelefone" autocomplete="off"></label>
+          <label>Mensagem <input type="text" id="wppTesteTexto" maxlength="4096"></label>
+          <button type="button" class="btn-ativar" id="btnEnviarTesteWhatsapp" onclick="enviarTesteWhatsApp()">Enviar mensagem</button>
+          <p id="wppTesteStatus" role="status"></p>
           <button
             onclick="fecharModal('modalQRCode')"
             class="btn-ativar"
@@ -1479,7 +1484,7 @@
             ></div>
           </div>
           <p style="color: #666; font-size: 13px; margin-top: 12px">
-            Gerando QR Code...
+            Conectando ao WhatsApp…
           </p>
         </div>
 

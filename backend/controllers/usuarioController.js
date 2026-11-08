@@ -168,13 +168,6 @@ exports.login = async (req, res) => {
       "🔍 Verificando senha para usuário:",
       usuarioEncontrado.usuario,
     );
-    console.log(
-      "🔍 Hash armazenado no banco:",
-      usuarioEncontrado.senha
-        ? usuarioEncontrado.senha.substring(0, 20) + "..."
-        : "VAZIO",
-    );
-
     // Comparar senha com hash do banco
     try {
       senhaValida = await bcrypt.compare(senha, usuarioEncontrado.senha);
@@ -291,7 +284,7 @@ exports.login = async (req, res) => {
     const _rootDomain =
       _hostParts.length >= 3 ? "." + _hostParts.slice(-2).join(".") : null;
     const _cookieDomain = !_isLocalhost
-      ? process.env.COOKIE_DOMAIN || _rootDomain
+      ? process.env.COOKIE_DOMAIN || (req.hostname.endsWith(".onrender.com") ? null : _rootDomain)
       : null;
     const _cookieSecure = !_isLocalhost
       ? process.env.COOKIE_SECURE === "1"

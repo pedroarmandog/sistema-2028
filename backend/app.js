@@ -1,103 +1,3 @@
-// Configuração segura do Puppeteer cache/executável:
-// Tentamos usar o cache apontado pelo domínio apenas se ele realmente
-// contiver um binário do Chrome/Chromium executável; caso contrário
-// não definimos a variável para evitar que o Puppeteer tente usar
-// um cache vazio/íntil (comportamento observado em hospedagem compartilhada).
-console.log("CHROME USADO:", process.env.PUPPETEER_EXECUTABLE_PATH);
-(function configurePuppeteer() {
-  const requestedCacheDir =
-    "/home/u779602851/domains/pethubflow.com.br/.cache/puppeteer";
-
-  function findExecutableInDir(dir, maxDepth = 4) {
-    try {
-      if (!require("fs").existsSync(dir)) return false;
-      const stack = [{ p: dir, depth: 0 }];
-      while (stack.length) {
-        const { p, depth } = stack.pop();
-        if (depth > maxDepth) continue;
-        const entries = require("fs").readdirSync(p);
-        for (const e of entries) {
-          const full = require("path").join(p, e);
-          try {
-            const st = require("fs").statSync(full);
-            if (st.isFile()) {
-              const name = require("path").basename(full).toLowerCase();
-              if (
-                name.includes("chrome") ||
-                name.includes("chromium") ||
-                name.includes("chrome.exe")
-              ) {
-                try {
-                  require("fs").accessSync(full, require("fs").constants.X_OK);
-                  return true;
-                } catch (_) {}
-              }
-            } else if (st.isDirectory()) {
-              stack.push({ p: full, depth: depth + 1 });
-            }
-          } catch (_) {
-            // ignorar erros ao inspecionar arquivos
-          }
-        }
-      }
-    } catch (_) {}
-    return false;
-  }
-
-  try {
-    if (!process.env.PUPPETEER_CACHE_DIR) {
-      if (findExecutableInDir(requestedCacheDir, 4)) {
-        process.env.PUPPETEER_CACHE_DIR = requestedCacheDir;
-        console.log(
-          `[app] PUPPETEER_CACHE_DIR definido para ${requestedCacheDir}`,
-        );
-      } else {
-        console.log(
-          `[app] PUPPETEER_CACHE_DIR ${requestedCacheDir} não parece conter Chrome/Chromium executável — não definindo. Para forçar uso, defina ALLOW_PUPPETEER_CACHE=1 e instale o browser no cache.`,
-        );
-      }
-    } else {
-      // validar valor já presente no ambiente
-      try {
-        if (!findExecutableInDir(process.env.PUPPETEER_CACHE_DIR, 4)) {
-          console.warn(
-            `[app] PUPPETEER_CACHE_DIR (${process.env.PUPPETEER_CACHE_DIR}) não contém executável Chromium — removendo a variável para evitar falha na detecção. Para forçar, defina ALLOW_PUPPETEER_CACHE=1.`,
-          );
-          try {
-            delete process.env.PUPPETEER_CACHE_DIR;
-          } catch (_) {}
-        }
-      } catch (_) {}
-    }
-
-    // Preferir um binário do sistema se disponível
-    const systemCandidates = [
-      "/usr/bin/google-chrome-stable",
-      "/usr/bin/google-chrome",
-      "/usr/bin/chromium",
-      "/usr/bin/chromium-browser",
-      "/snap/bin/chromium",
-    ];
-    for (const p of systemCandidates) {
-      try {
-        if (require("fs").existsSync(p)) {
-          try {
-            require("fs").accessSync(p, require("fs").constants.X_OK);
-            process.env.PUPPETEER_EXECUTABLE_PATH = p;
-            console.log(`[app] PUPPETEER_EXECUTABLE_PATH definido para ${p}`);
-            break;
-          } catch (_) {}
-        }
-      } catch (_) {}
-    }
-  } catch (e) {
-    console.warn(
-      "[app] Falha ao validar configuração do Puppeteer:",
-      e && e.message,
-    );
-  }
-})();
-
 /* @ts-nocheck */
 // @ts-nocheck
 require("dotenv").config({
@@ -319,7 +219,7 @@ const pushNotificationRoutes = require("./routes/pushNotificationRoutes");
 // ISOLAMENTO MULTI-TENANT: módulo agora exige usuário autenticado
 // (antes estava público, permitindo acesso a campanhas/contatos de qualquer empresa).
 app.use("/api/disparador", authUser, disparadorRoutes);
-// Instâncias de WhatsApp (Puppeteer / sessões)
+// Instâncias de WhatsApp por empresa
 app.use("/api/instancias", authUser, instanciaRoutes);
 // Integrar módulo Entrada de Mercadoria (Prisma + TypeScript)
 // entrada-mercadoria (compiled router)
@@ -1107,17 +1007,6 @@ app.get("/api/test", (req, res) => {
 const petTagsRoutes = require("./routes/petTagsRoutes");
 // Rotas do módulo de Marketing/WhatsApp
 const marketingRoutes = require("./routes/marketingRoutes");
-// Rota SSE para disparador de mensagens (bypass authUser quando empresaId começa com "disp_")
-// O EventSource não envia cookies cross-origin, então o authUser falharia com 401.
-// O controller eventoSSE já valida o empresaId internamente.
-const marketingController = require("./controllers/marketingController");
-app.get("/api/marketing/whatsapp/eventos", (req, res, next) => {
-  const q = req.query.empresaId;
-  if (q && typeof q === "string" && q.startsWith("disp_")) {
-    return marketingController.eventoSSE(req, res);
-  }
-  next();
-});
 app.use("/api/marketing", authUser, marketingRoutes);
 
 app.use("/api/clientes", clienteRoutes);
@@ -1752,46 +1641,8 @@ app.post("/api/modelo-etiqueta", async (req, res) => {
   }
 });
 
-// ── Handler global: evita crash por erros do Puppeteer/WhatsApp ──────────────
-process.on("unhandledRejection", (reason, promise) => {
-  const msg = reason && reason.message ? reason.message : String(reason);
-  // TargetCloseError é comportamento normal do WhatsApp Web (navegação após auth)
-  if (
-    msg.includes("Target closed") ||
-    msg.includes("TargetCloseError") ||
-    msg.includes("Session closed") ||
-    msg.includes("Protocol error") ||
-    msg.includes("detached Frame") ||
-    msg.includes("Execution context was destroyed")
-  ) {
-    console.warn(
-      "[WhatsApp] Puppeteer error ignorado (comportamento normal):",
-      msg,
-    );
-    return;
-  }
-  console.error("⚠️ [UnhandledRejection]", msg);
-});
-
-process.on("uncaughtException", (err) => {
-  const msg = err && err.message ? err.message : String(err);
-  if (
-    msg.includes("Target closed") ||
-    msg.includes("TargetCloseError") ||
-    msg.includes("Session closed") ||
-    msg.includes("Protocol error") ||
-    msg.includes("detached Frame") ||
-    msg.includes("Execution context was destroyed")
-  ) {
-    console.warn(
-      "[WhatsApp] Puppeteer exception ignorada (comportamento normal):",
-      msg,
-    );
-    return;
-  }
-  console.error("💥 [UncaughtException]", msg);
-  // Não encerrar o processo para erros não críticos
-});
+process.on("unhandledRejection", err => console.error("[UnhandledRejection]", err?.message));
+process.on("uncaughtException", err => console.error("[UncaughtException]", err?.message));
 
 // Iniciar o servidor SOMENTE após sync do banco
 function startServer() {
@@ -1997,21 +1848,6 @@ function startServer() {
         err.message,
       );
     }
-
-    // Auto-reconectar sessões WhatsApp ativas após 30s (evita impacto no startup)
-    setTimeout(async () => {
-      try {
-        const {
-          reconectarSessoesAtivas,
-        } = require("./services/whatsappService");
-        await reconectarSessoesAtivas();
-      } catch (err) {
-        console.warn(
-          "⚠️ Erro ao reconectar sessões WhatsApp no startup:",
-          err.message,
-        );
-      }
-    }, 30000);
 
     // Limpeza periódica de sessões inativas (a cada 60 segundos).
     // Com SESSAO_TIMEOUT_SECONDS = 90s, sessões expiram em no máximo 150s após browser fechar.

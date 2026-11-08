@@ -29,7 +29,8 @@ const TEMPLATE_PRODUTO_RECORRENTE = {
 async function garantirTemplateProdutoRecorrente(empresaId) {
   try {
     const { MensagemAutomatica } = require("../models");
-    const empId = Number(empresaId) || 1;
+    const empId = Number(empresaId);
+    if (!empId) return;
     const existe = await MensagemAutomatica.findOne({
       where: { tipo: "produto_recorrente", empresaId: empId },
     });
@@ -162,7 +163,7 @@ exports.listarPorCliente = async (req, res) => {
     const { clienteId } = req.params;
 
     const lembretes = await ProdutoLembreteRecorrente.findAll({
-      where: { cliente_id: Number(clienteId) },
+      where: { cliente_id: Number(clienteId), empresa_id: req.user.empresaId },
       order: [["createdAt", "DESC"]],
     });
 
@@ -213,9 +214,15 @@ exports.criarOuAtualizar = async (req, res) => {
         .json({ success: false, error: "Empresa não identificada" });
     }
 
+    const { Cliente } = require("../models");
+    if (!await Cliente.findOne({ where: { id: cliente_id, empresa_id: empId }, attributes: ["id"] })) {
+      return res.status(404).json({ error: "Cliente não encontrado" });
+    }
+
     // Verificar se já existe lembrete ativo para este cliente+produto
     const existing = await ProdutoLembreteRecorrente.findOne({
       where: {
+        empresa_id: empId,
         cliente_id: Number(cliente_id),
         produto_nome,
         status: { [Op.ne]: "cancelado" },
@@ -281,7 +288,7 @@ exports.desativar = async (req, res) => {
     const { sequelize } = require("../models/Cliente");
     const { id } = req.params;
 
-    const lembrete = await ProdutoLembreteRecorrente.findByPk(id);
+    const lembrete = await ProdutoLembreteRecorrente.findOne({ where: { id, empresa_id: req.user.empresaId } });
     if (!lembrete) {
       return res
         .status(404)
@@ -296,7 +303,7 @@ exports.desativar = async (req, res) => {
         const template = await MensagemAutomatica.findOne({
           where: {
             tipo: "produto_recorrente",
-            empresaId: lembrete.empresa_id || 1,
+            empresaId: req.user.empresaId,
           },
         });
         if (template) {
@@ -330,7 +337,7 @@ exports.desativar = async (req, res) => {
           lembrete_produto_nome: null,
           lembrete_automatico_dias: 30,
         },
-        { where: { id: lembrete.cliente_id } },
+        { where: { id: lembrete.cliente_id, empresa_id: req.user.empresaId } },
       );
     }
 
@@ -351,7 +358,7 @@ exports.atualizarStatus = async (req, res) => {
     const { id } = req.params;
     const { ativo, status } = req.body;
 
-    const lembrete = await ProdutoLembreteRecorrente.findByPk(id);
+    const lembrete = await ProdutoLembreteRecorrente.findOne({ where: { id, empresa_id: req.user.empresaId } });
     if (!lembrete) {
       return res
         .status(404)
@@ -547,7 +554,7 @@ exports.saveConfigCliente = async (req, res) => {
         // Fire-and-forget: não bloqueia a resposta ao cliente
         setImmediate(async () => {
           try {
-            await exports.processarLembretes();
+            await exports.processarLembretes(empId);
           } catch (e) {
             console.warn(
               "[ProdutoLembrete] Erro no disparo imediato:",
@@ -667,7 +674,7 @@ exports.estatisticas = async (req, res) => {
 // Processar lembretes do dia (chamado pelo cron job)
 // Verifica lembretes cujo data_proximo_disparo é hoje e dispara mensagem
 // ─────────────────────────────────────────────────────────────
-exports.processarLembretes = async function processarLembretes() {
+exports.processarLembretes = async function processarLembretes(empresaFiltro) {
   console.log("[ProdutoLembrete] Processando lembretes do dia...");
 
   try {
@@ -703,6 +710,7 @@ exports.processarLembretes = async function processarLembretes() {
         ativo: true,
         status: "ativo",
         data_proximo_disparo: { [Op.lte]: fimDia },
+        ...(empresaFiltro ? { empresa_id: empresaFiltro } : {}),
       },
       include: [
         {
@@ -755,7 +763,8 @@ exports.processarLembretes = async function processarLembretes() {
           continue;
         }
 
-        const empresaId = lembrete.empresa_id || cliente.empresa_id || 1;
+        const empresaId = Number(lembrete.empresa_id);
+        if (!empresaId || Number(cliente.empresa_id) !== empresaId) continue;
         const primeiroPet = cliente.pets && cliente.pets[0];
 
         // Garantir template existe
@@ -824,7 +833,8 @@ exports.processarLembretes = async function processarLembretes() {
 // ─────────────────────────────────────────────────────────────
 exports.dispararManual = async function dispararManual(req, res) {
   try {
-    await exports.processarLembretes();
+    if (!req.user?.empresaId) return res.sendStatus(403);
+    await exports.processarLembretes(req.user.empresaId);
     res.json({
       success: true,
       message: "Processamento de lembretes concluído.",
@@ -854,7 +864,7 @@ exports.dispararIndividual = async function dispararIndividual(req, res) {
     }
 
     const lembrete = await ProdutoLembreteRecorrente.findOne({
-      where: { id, ativo: true },
+      where: { id, ativo: true, empresa_id: empresaAuth },
       include: [
         {
           model: Cliente,
@@ -886,8 +896,8 @@ exports.dispararIndividual = async function dispararIndividual(req, res) {
         .json({ success: false, error: "Cliente sem telefone cadastrado." });
     }
 
-    const empresaId = lembrete.empresa_id || cliente.empresa_id || 1;
-    if (Number(empresaId) !== empresaAuth) {
+    const empresaId = Number(lembrete.empresa_id);
+    if (empresaId !== empresaAuth || Number(cliente.empresa_id) !== empresaAuth) {
       return res.status(403).json({
         success: false,
         error: "Lembrete não pertence à sua empresa",
@@ -957,7 +967,8 @@ exports.criarLembretesDeVenda = async function criarLembretesDeVenda(
     if (!clienteId) return;
 
     // Buscar cliente para verificar se tem lembrete automático ativo
-    const cliente = await Cliente.findByPk(clienteId, {
+    const cliente = await Cliente.findOne({
+      where: { id: clienteId, empresa_id: empresaId },
       attributes: [
         "id",
         "nome",
@@ -987,7 +998,8 @@ exports.criarLembretesDeVenda = async function criarLembretesDeVenda(
     if (!Array.isArray(itens) || itens.length === 0) return;
 
     const dataVenda = venda.data ? new Date(venda.data) : new Date();
-    const empId = Number(empresaId) || 1;
+    const empId = Number(empresaId);
+    if (!empId) return;
 
     for (const item of itens) {
       const produtoNome = (
@@ -1008,6 +1020,7 @@ exports.criarLembretesDeVenda = async function criarLembretesDeVenda(
       const existing = await ProdutoLembreteRecorrente.findOne({
         where: {
           cliente_id: clienteId,
+          empresa_id: empId,
           produto_nome: produtoNome,
           status: { [Op.ne]: "cancelado" },
         },

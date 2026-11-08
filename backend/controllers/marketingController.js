@@ -136,40 +136,7 @@ const MENSAGENS_PADRAO = [
 exports.statusWhatsapp = async (req, res) => {
   const empresaId = req.user?.empresaId;
   if (!empresaId) return res.status(403).json({ erro: "Empresa não identificada" });
-  const statusAtual = whatsappService.obterStatus(empresaId);
-
-  // Se o cliente em memória está conectado, confiar nele (fonte da verdade)
-  if (statusAtual && statusAtual.status === "conectado") {
-    return res.json(statusAtual);
-  }
-  if (
-    statusAtual &&
-    (statusAtual.status === "aguardando_qr" ||
-      statusAtual.status === "inicializando" ||
-      statusAtual.status === "autenticado")
-  ) {
-    return res.json(statusAtual);
-  }
-
-  // Cliente não existe em memória — verificar o banco
-  try {
-    const { WhatsappSession } = require("../models");
-    const session = await WhatsappSession.findOne({
-      where: { empresaId: Number(empresaId) },
-    });
-
-    if (session) {
-      return res.json({
-        status: "desconectado",
-        numero: session.numero,
-        ultimaConexao: session.ultimaConexao,
-      });
-    }
-  } catch (_) {}
-
-  return res.json(
-    statusAtual || { status: "desconectado", numero: null, qrBase64: null },
-  );
+  return res.json(whatsappService.obterStatus(empresaId));
 };
 
 /**
@@ -236,53 +203,29 @@ exports.resetarWhatsapp = async (req, res) => {
  * Polling endpoint: retorna status atual + QR Base64 se disponível.
  * Usado como fallback confiável ao SSE.
  */
-exports.obterQRStatus = async (req, res) => {
+exports.obterQRStatus = (req, res) => {
   const empresaId = req.user?.empresaId;
   if (!empresaId) return res.status(403).json({ erro: "Empresa não identificada" });
   const statusAtual = whatsappService.obterStatus(String(empresaId));
-
-  // Se o cliente em memória tem status útil, retornar diretamente
-  if (
-    statusAtual &&
-    (statusAtual.status === "conectado" ||
-      statusAtual.status === "aguardando_qr" ||
-      statusAtual.status === "inicializando" ||
-      statusAtual.status === "autenticado")
-  ) {
-    return res.json(statusAtual);
-  }
-
-  // Cliente não existe em memória — verificar o banco (útil após suspensão do Render Free)
-  try {
-    const { WhatsappSession } = require("../models");
-    const session = await WhatsappSession.findOne({
-      where: { empresaId: Number(empresaId) },
-    });
-
-    if (session) {
-      return res.json({
-        status: session.status || "desconectado",
-        numero: session.numero,
-        qrBase64: null,
-        ultimaConexao: session.ultimaConexao,
-      });
-    }
-  } catch (_) {}
-
-  return res.json({ status: "desconectado", numero: null, qrBase64: null });
+  return res.json(statusAtual);
 };
 
 /**
  * GET /api/marketing/whatsapp/eventos
  * Server-Sent Events: stream de atualizações de QR Code e status.
  */
-exports.eventoSSE = (req, res) => {
-  // Aceitar empresaId do query param quando for instância do disparador (prefixo disp_)
-  // ou do JWT para marketing normal.
-  const empresaId = req.query.empresaId && String(req.query.empresaId).startsWith("disp_")
-    ? req.query.empresaId
-    : req.user?.empresaId;
+exports.eventoSSE = async (req, res) => {
+  const empresaId = req.user?.empresaId;
   if (!empresaId) return res.status(403).json({ erro: "Empresa não identificada" });
+  if (req.query.empresaId !== undefined) {
+    const match = /^disp_([1-9]\d*)$/.exec(String(req.query.empresaId));
+    if (!match) return res.status(403).end();
+    const { WhatsappSession } = require("../models");
+    const instancia = await WhatsappSession.findOne({
+      where: { id: match[1], empresaId }, attributes: ["id"]
+    });
+    if (!instancia) return res.status(403).end();
+  }
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -688,13 +631,14 @@ async function dispararMensagemAutomatica(
   telefone,
   dataAgendada,
   contexto,
-  empresaId = 1,
+  empresaId,
 ) {
   try {
     const { MensagemAutomatica } = require("../models");
     const { agendarEnvio } = require("../services/whatsappQueue");
 
-    const empId = Number(empresaId) || 1;
+    const empId = Number(empresaId);
+    if (!Number.isSafeInteger(empId) || empId <= 0) return null;
 
     // Garantir que a empresa tenha registros de mensagens automáticas (seed lazy)
     const totalMsgs = await MensagemAutomatica.count({

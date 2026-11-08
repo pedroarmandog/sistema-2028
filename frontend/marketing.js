@@ -80,7 +80,7 @@ async function inicializarMarketing() {
       '<div style="color:#ef4444;padding:16px;font-size:13px;">Sessão não identificada. Faça login novamente.</div>';
     return;
   }
-  carregarStatusWhatsapp();
+  carregarStatusWhatsapp().catch(err => console.warn(err.message));
   carregarMensagens();
   conectarSSE();
   iniciarMonitorFilaPendente();
@@ -259,299 +259,119 @@ function mostrarNotificacaoFila(texto, tipo) {
 // STATUS WHATSAPP
 // ─────────────────────────────────────────────────────────────────
 
+let revisaoWhatsapp = 0;
+let _qrPollingTimer = null;
+let pollEmAndamento = false;
+
+function exibirWhatsapp(data) {
+  revisaoWhatsapp++;
+  if (data.status !== "desconectado") avisarWhatsApp("");
+  const conectado = data.status === "conectado";
+  const aguardando = data.status === "aguardando_qr" && !!data.qrBase64;
+  const iniciando = data.status === "inicializando";
+  const visivel = (id, flag) => { document.getElementById(id).style.display = flag ? "block" : "none"; };
+  visivel("qrStatusConectado", conectado);
+  visivel("qrStatusAguardando", iniciando);
+  visivel("qrImageContainer", aguardando);
+  visivel("qrStatusDesconectado", !conectado && !aguardando && !iniciando);
+  visivel("qrBtnDesconectar", conectado || aguardando || iniciando);
+  const img = document.getElementById("qrCodeImg");
+  if (aguardando) img.src = data.qrBase64;
+  else img.removeAttribute("src");
+  const rotulo = conectado ? "Conectado" : aguardando ? "Aguardando QR" : iniciando ? "Conectando…" : "Desconectado";
+  const cor = conectado ? "#22c55e" : aguardando || iniciando ? "#b45309" : "#777";
+  const label = document.getElementById("wppStatusLabel");
+  label.textContent = rotulo;
+  label.style.color = cor;
+  document.getElementById("wppStatusIcon").style.color = cor;
+  document.getElementById("wppNumeroExibido").textContent = conectado && data.numero ? "+" + data.numero : rotulo;
+  document.getElementById("qrNumeroConectado").textContent = data.numero ? "+" + data.numero : "";
+  document.getElementById("btnIniciarConexao").disabled = conectado || aguardando || iniciando;
+}
+
+function avisarWhatsApp(mensagem) {
+  document.getElementById("wppErroConexao").textContent = mensagem;
+}
+
 async function carregarStatusWhatsapp() {
   if (!EMPRESA_ID) return;
-  try {
-    const res = await fetch(`${API}/whatsapp/status`, { credentials: "include" });
-    const data = await res.json();
-    atualizarUIWhatsapp(data);
-  } catch (err) {
-    console.warn(
-      "[Marketing] Não foi possível obter status WhatsApp:",
-      err.message,
-    );
-  }
+  const revisao = revisaoWhatsapp;
+  const res = await fetch(`${API}/whatsapp/status`, { credentials: "include", cache: "no-store" });
+  if (!res.ok) throw new Error("Sessão do ERP indisponível.");
+  const data = await res.json();
+  if (revisao === revisaoWhatsapp) exibirWhatsapp(data);
 }
-
-function atualizarUIWhatsapp(data) {
-  const icon = document.getElementById("wppStatusIcon");
-  const numero = document.getElementById("wppNumeroExibido");
-  const label = document.getElementById("wppStatusLabel");
-
-  if (!icon) return;
-
-  if (data.status === "conectado") {
-    icon.style.color = "#22c55e";
-    numero.textContent = data.numero ? `+${data.numero}` : "Conectado";
-    label.textContent = "Conectado";
-    label.style.color = "#22c55e";
-  } else if (data.status === "aguardando_qr") {
-    icon.style.color = "#f59e0b";
-    numero.textContent = "Aguardando QR Code...";
-    label.textContent = "Aguardando";
-    label.style.color = "#f59e0b";
-  } else {
-    icon.style.color = "#ccc";
-    numero.textContent = "Clique para conectar WhatsApp";
-    label.textContent = "Desconectado";
-    label.style.color = "#999";
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────
-// SERVER-SENT EVENTS (tempo real)
-// ─────────────────────────────────────────────────────────────────
 
 function conectarSSE() {
-  if (_sseSource) {
-    _sseSource.close();
-    _sseSource = null;
-  }
-
-  try {
-    // SSE não envia cookies automaticamente, mas agora o backend obtém empresaId do JWT via cookie
-    _sseSource = new EventSource(
-      `${API}/whatsapp/eventos`,
-    );
-
-    _sseSource.onmessage = function (event) {
-      try {
-        const data = JSON.parse(event.data);
-        tratarEventoSSE(data);
-      } catch (_) {}
-    };
-
-    _sseSource.onerror = function () {
-      console.warn(
-        "[Marketing SSE] Conexão perdida. Tentando reconectar em 10s...",
-      );
-      _sseSource.close();
-      _sseSource = null;
-      setTimeout(conectarSSE, 10000);
-    };
-  } catch (err) {
-    console.warn("[Marketing SSE] Erro ao conectar SSE:", err.message);
-  }
+  _sseSource?.close();
+  _sseSource = new EventSource(`${API}/whatsapp/eventos`, { withCredentials: true });
+  _sseSource.onmessage = event => {
+    const data = JSON.parse(event.data);
+    if (data.evento === "erro") avisarWhatsApp(data.mensagem || "Falha na conexão", "error");
+    exibirWhatsapp(data);
+  };
+  // O EventSource reconecta automaticamente e recebe novo snapshot.
 }
 
-function tratarEventoSSE(data) {
-  console.log("[Marketing SSE] Evento:", data.evento, data);
-
-  switch (data.evento) {
-    case "qr":
-      mostrarQRCodeImagem(data.qrBase64);
-      break;
-    case "conectado":
-      onWhatsappConectado(data);
-      break;
-    case "desconectado":
-      onWhatsappDesconectado(data);
-      break;
-    case "erro":
-      onWhatsappErro(data);
-      break;
-    case "status":
-      // Status intermediário (ex: "Sessão expirada. Gerando novo QR Code...")
-      if (data.status === "inicializando") {
-        document.getElementById("qrStatusDesconectado").style.display = "none";
-        document.getElementById("qrStatusAguardando").style.display = "block";
-        document.getElementById("qrImageContainer").style.display = "none";
-        document.getElementById("qrStatusConectado").style.display = "none";
-      }
-      break;
-    case "status_inicial":
-      atualizarUIWhatsapp(data);
-      if (data.status === "aguardando_qr" && data.qrBase64) {
-        mostrarQRCodeImagem(data.qrBase64);
-      }
-      break;
-  }
+async function abrirModalConexaoWhatsapp() {
+  document.getElementById("modalQRCode").style.display = "flex";
+  iniciarPollingQR();
+  try { await carregarStatusWhatsapp(); }
+  catch (err) { avisarWhatsApp(err.message, "error"); }
 }
-
-function mostrarQRCodeImagem(qrBase64) {
-  document.getElementById("qrStatusDesconectado").style.display = "none";
-  document.getElementById("qrStatusAguardando").style.display = "none";
-  document.getElementById("qrStatusConectado").style.display = "none";
-  document.getElementById("qrImageContainer").style.display = "block";
-  document.getElementById("qrCodeImg").src = qrBase64;
-  document.getElementById("qrBtnDesconectar").style.display = "none";
-}
-
-function onWhatsappConectado(data) {
-  atualizarUIWhatsapp({ status: "conectado", numero: data.numero });
-
-  // Atualizar modal se aberto
-  const modal = document.getElementById("modalQRCode");
-  if (modal && modal.style.display !== "none") {
-    document.getElementById("qrStatusDesconectado").style.display = "none";
-    document.getElementById("qrStatusAguardando").style.display = "none";
-    document.getElementById("qrImageContainer").style.display = "none";
-    document.getElementById("qrStatusConectado").style.display = "block";
-    document.getElementById("qrNumeroConectado").textContent = data.numero
-      ? `Número: +${data.numero}`
-      : "";
-    document.getElementById("qrBtnDesconectar").style.display = "block";
-  }
-}
-
-function onWhatsappDesconectado(data) {
-  atualizarUIWhatsapp({ status: "desconectado" });
-  pararPollingQR();
-
-  const modal = document.getElementById("modalQRCode");
-  if (modal && modal.style.display !== "none") {
-    document.getElementById("qrStatusDesconectado").style.display = "block";
-    document.getElementById("qrStatusAguardando").style.display = "none";
-    document.getElementById("qrImageContainer").style.display = "none";
-    document.getElementById("qrStatusConectado").style.display = "none";
-    document.getElementById("qrBtnDesconectar").style.display = "none";
-    document.getElementById("btnIniciarConexao").disabled = false;
-    document.getElementById("btnIniciarConexao").textContent =
-      "Iniciar Conexão";
-  }
-}
-
-function onWhatsappErro(data) {
-  console.warn("[Marketing] Erro WhatsApp:", data.mensagem);
-  pararPollingQR();
-
-  const modal = document.getElementById("modalQRCode");
-  if (modal && modal.style.display !== "none") {
-    document.getElementById("qrStatusAguardando").style.display = "none";
-    document.getElementById("qrImageContainer").style.display = "none";
-    document.getElementById("qrStatusConectado").style.display = "none";
-    document.getElementById("qrStatusDesconectado").style.display = "block";
-    const btn = document.getElementById("btnIniciarConexao");
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = '<i class="fab fa-whatsapp"></i> Tentar Novamente';
-    }
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────
-// MODAL: CONEXÃO WHATSAPP
-// ─────────────────────────────────────────────────────────────────
-
-function abrirModalConexaoWhatsapp() {
-  carregarStatusWhatsapp().then(() => {
-    const status = whatsappStatusAtual();
-    resetarModalQR();
-
-    if (status === "conectado") {
-      // Exibir tela de conectado
-      document.getElementById("qrStatusConectado").style.display = "block";
-      document.getElementById("qrStatusDesconectado").style.display = "none";
-      document.getElementById("qrBtnDesconectar").style.display = "block";
-
-      const num = document.getElementById("wppNumeroExibido").textContent;
-      document.getElementById("qrNumeroConectado").textContent =
-        `Número: ${num}`;
-    }
-
-    document.getElementById("modalQRCode").style.display = "flex";
-  });
-}
-
-function whatsappStatusAtual() {
-  const label = document.getElementById("wppStatusLabel");
-  if (!label) return "desconectado";
-  const t = label.textContent.toLowerCase();
-  if (t === "conectado") return "conectado";
-  if (t === "aguardando") return "aguardando_qr";
-  return "desconectado";
-}
-
-function resetarModalQR() {
-  document.getElementById("qrStatusDesconectado").style.display = "block";
-  document.getElementById("qrStatusAguardando").style.display = "none";
-  document.getElementById("qrImageContainer").style.display = "none";
-  document.getElementById("qrStatusConectado").style.display = "none";
-  document.getElementById("qrBtnDesconectar").style.display = "none";
-  const btn = document.getElementById("btnIniciarConexao");
-  if (btn) {
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fab fa-whatsapp"></i> Iniciar Conexão';
-  }
-}
-
-// Variável para controlar o polling de QR
-let _qrPollingTimer = null;
 
 async function iniciarConexaoWhatsapp() {
   const btn = document.getElementById("btnIniciarConexao");
-  btn.disabled = true;
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Conectando...';
-
-  document.getElementById("qrStatusDesconectado").style.display = "none";
-  document.getElementById("qrStatusAguardando").style.display = "block";
-
+  if (btn.disabled) return;
+  exibirWhatsapp({ status: "inicializando" });
   try {
-    const res = await fetch(`${API}/whatsapp/conectar`, {
-      method: "POST",
-      credentials: "include",
-    });
+    const res = await fetch(`${API}/whatsapp/conectar`, { method: "POST", credentials: "include" });
     const data = await res.json();
-    if (!res.ok || !data.sucesso) {
-      throw new Error(data.erro || `HTTP ${res.status}`);
-    }
-    if (data.resultado?.status === "ja_conectado") {
-      await carregarStatusWhatsapp();
-      return;
-    }
+    if (!res.ok || !data.sucesso) throw new Error(data.erro || "Falha ao conectar.");
     iniciarPollingQR();
+    await carregarStatusWhatsapp();
   } catch (err) {
-    console.error("[Marketing] Erro ao iniciar conexão:", err.message);
-    alert("Erro ao iniciar conexão WhatsApp. Verifique o servidor.");
-    resetarModalQR();
+    exibirWhatsapp({ status: "desconectado" });
+    avisarWhatsApp(err.message, "error");
   }
 }
 
 function iniciarPollingQR() {
-  pararPollingQR();
-  let tentativas = 0;
-  const MAX_TENTATIVAS = 90; // 90 x 2s = 3 minutos
-
+  if (_qrPollingTimer) return;
   _qrPollingTimer = setInterval(async () => {
-    tentativas++;
-    if (tentativas > MAX_TENTATIVAS) {
-      pararPollingQR();
-      console.warn("[Marketing] Timeout ao aguardar QR Code (3 min)");
-      onWhatsappErro({
-        mensagem: "Timeout ao aguardar QR Code. Tente novamente.",
-      });
-      return;
-    }
+    if (pollEmAndamento) return;
+    pollEmAndamento = true;
+    const revisao = revisaoWhatsapp;
     try {
-      const res = await fetch(
-        `${API}/whatsapp/qr-status`, { credentials: "include" },
-      );
-      const data = await res.json();
-      console.log("[Marketing Polling] Status:", data.status);
-
-      if (data.status === "aguardando_qr" && data.qrBase64) {
-        pararPollingQR();
-        mostrarQRCodeImagem(data.qrBase64);
-      } else if (data.status === "conectado") {
-        pararPollingQR();
-        onWhatsappConectado(data);
-      } else if (data.status === "erro" || data.status === "desconectado") {
-        if (tentativas > 5 && data.status === "desconectado") {
-          pararPollingQR();
-          onWhatsappErro({ mensagem: "Conexão falhou. Tente novamente." });
-        }
+      const res = await fetch(`${API}/whatsapp/qr-status`, { credentials: "include", cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (revisao === revisaoWhatsapp) exibirWhatsapp(data);
       }
-    } catch (err) {
-      console.warn("[Marketing Polling] Erro:", err.message);
-    }
-  }, 2000);
+    } catch { /* SSE e polling retomam com a rede. */ }
+    finally { pollEmAndamento = false; }
+  }, 2500);
 }
 
 function pararPollingQR() {
-  if (_qrPollingTimer) {
-    clearInterval(_qrPollingTimer);
-    _qrPollingTimer = null;
-  }
+  clearInterval(_qrPollingTimer);
+  _qrPollingTimer = null;
+}
+
+async function enviarTesteWhatsApp() {
+  const btn = document.getElementById("btnEnviarTesteWhatsapp");
+  btn.disabled = true;
+  try {
+    const telefone = document.getElementById("wppTesteTelefone").value;
+    const texto = document.getElementById("wppTesteTexto").value;
+    const res = await fetch(`${API}/whatsapp/enviar`, { method: "POST", credentials: "include",
+      headers: { "Content-Type": "application/json" }, body: JSON.stringify({ telefone, texto }) });
+    const resultado = await res.json();
+    if (!res.ok || !resultado.sucesso) throw new Error(resultado.erro || "Envio falhou.");
+    document.getElementById("wppTesteStatus").textContent = "Mensagem enviada.";
+  } catch (err) {
+    document.getElementById("wppTesteStatus").textContent = err.message;
+  } finally { btn.disabled = false; }
 }
 
 async function desconectarWhatsapp() {

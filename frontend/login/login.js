@@ -116,7 +116,6 @@ async function realizarLogin(usuario, senha) {
     }
 
     const data = await response.json();
-    console.log("Dados recebidos:", data);
 
     // Se empresa bloqueada, retornar com flag para o handler redirecionar
     if (data.bloqueado) {

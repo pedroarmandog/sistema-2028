@@ -522,11 +522,11 @@
       try {
         var data = JSON.parse(event.data);
 
-        if (data.evento === "qr" && data.qrBase64) {
+        if ((data.evento === "qr" || data.evento === "status_inicial") && data.qrBase64) {
           showQRModal(data.qrBase64, instanciaId);
         }
 
-        if (data.evento === "conectado") {
+        if (data.evento === "conectado" || (data.evento === "status_inicial" && data.status === "conectado")) {
           appendLog(
             "✅ Instância #" +
               instanciaId +
@@ -536,6 +536,11 @@
           hideQRModal();
           closeQRStream();
           fetchInstancias();
+        }
+
+        if (data.evento === "status" && data.status === "inicializando") {
+          hideQRModal();
+          appendLog("Conectando ao WhatsApp…");
         }
 
         if (data.evento === "erro") {

@@ -9,7 +9,7 @@ const {
   WhatsappSession,
 } = require("../models");
 const whatsappService = require("../services/whatsappService");
-const { DISP_PREFIX } = require("./instanciaController");
+
 
 function normalizeNumber(raw) {
   if (!raw) return null;
@@ -228,62 +228,6 @@ async function criarCampanha(req, res) {
 }
 
 /**
- * Aguarda até que uma instância WhatsApp esteja conectada.
- * Se não estiver conectada, reinicializa (abre Chrome) e aguarda até 25s.
- * Retorna true se conectou, false se timeout.
- */
-async function aguardarConexao(chaveWpp, opts = {}) {
-  // Já conectado? Retorna imediatamente
-  if (whatsappService.isConectado(chaveWpp)) return true;
-
-  console.log(
-    `[Disparador] Instância ${chaveWpp} não conectada. Reinicializando...`,
-  );
-
-  // Reinicializar (abre Chrome e tenta usar sessão salva)
-  try {
-    const result = await whatsappService.inicializarCliente(chaveWpp, opts);
-    console.log(
-      `[Disparador] inicializarCliente retornou:`,
-      JSON.stringify(result),
-    );
-  } catch (err) {
-    console.error(
-      `[Disparador] Erro ao reinicializar ${chaveWpp}:`,
-      err && err.message,
-    );
-    return false;
-  }
-
-  // Aguardar até 90 segundos pela conexão (polling a cada 2s)
-  const MAX_ESPERA = 90000;
-  const INTERVALO = 2000;
-  let esperado = 0;
-  while (esperado < MAX_ESPERA) {
-    await new Promise((r) => setTimeout(r, INTERVALO));
-    esperado += INTERVALO;
-    const statusAtual = whatsappService.obterStatus(chaveWpp);
-    console.log(
-      `[Disparador] Polling ${chaveWpp}: ${esperado}ms - status: ${statusAtual.status}`,
-    );
-    if (whatsappService.isConectado(chaveWpp)) {
-      console.log(
-        `[Disparador] Instância ${chaveWpp} reconectada após ${esperado}ms`,
-      );
-      return true;
-    }
-    // Se status virou 'erro', desistir imediatamente
-    if (statusAtual.status === "erro") {
-      console.warn(`[Disparador] Instância ${chaveWpp} com erro. Desistindo.`);
-      return false;
-    }
-  }
-
-  console.warn(`[Disparador] Timeout aguardando conexão de ${chaveWpp}`);
-  return false;
-}
-
-/**
  * Inicia o worker de disparo para uma campanha.
  * Recebe opcionalmente instanciaId no body para escolher sessão WhatsApp.
  * Se o WhatsApp não estiver conectado, reinicializa automaticamente.
@@ -337,9 +281,7 @@ async function iniciarCampanha(req, res) {
     }
 
     // Verificar/reconectar o cliente WhatsApp (chave validada)
-    const chaveWpp = DISP_PREFIX + String(instanciaValida.id);
-    // Ao iniciar campanha manualmente, abrir o Chrome (headful) para monitoramento
-    const conectado = await aguardarConexao(chaveWpp, { headless: false });
+    const conectado = whatsappService.isConectado(empresaAuth);
     if (!conectado) {
       return res.status(400).json({
         error:
@@ -374,7 +316,7 @@ function startWorker(campanha, instanciaId) {
     );
     return;
   }
-  const empresaId = DISP_PREFIX + String(instanciaId);
+  const empresaId = String(campanha.empresaId);
 
   if (activeWorkers.has(campId)) return;
 
@@ -449,19 +391,6 @@ function startWorker(campanha, instanciaId) {
         // Verificar se o WhatsApp está conectado
         if (!whatsappService.isConectado(empresaId)) {
           desconectadoRetries++;
-          if (desconectadoRetries === 1) {
-            console.log(
-              `[Disparador] WhatsApp ${empresaId} desconectado. Tentando reinicializar...`,
-            );
-            try {
-              await whatsappService.inicializarCliente(empresaId);
-            } catch (err) {
-              console.error(
-                `[Disparador] Erro ao reinicializar:`,
-                err && err.message,
-              );
-            }
-          }
           if (desconectadoRetries >= MAX_DESCONECTADO_RETRIES) {
             console.warn(
               `[Disparador] WhatsApp desconectado por muito tempo. Pausando campanha ${campId}.`,
@@ -492,7 +421,7 @@ function startWorker(campanha, instanciaId) {
         const { Op, literal } = require("sequelize");
         const envio = await EnvioAgendado.findOne({
           where: {
-            status: "pendente",
+            status: "pendente", empresaId: campanha.empresaId,
             [Op.and]: literal(
               `JSON_EXTRACT(contexto, '$.campanhaId') = ${Number(campId)}`,
             ),
@@ -559,7 +488,7 @@ function startWorker(campanha, instanciaId) {
           envio.telefoneDestino,
           textoEnvio,
           envio.imagemPath
-            ? path.join(__dirname, "../../", envio.imagemPath)
+            ? (path.isAbsolute(envio.imagemPath) && !envio.imagemPath.startsWith("/uploads/") ? envio.imagemPath : path.join(__dirname, "../../", envio.imagemPath))
             : null,
         );
 
@@ -613,7 +542,7 @@ function startWorker(campanha, instanciaId) {
           const erroMsg = resultado.erro || "Falha desconhecida";
 
           if (
-            erroMsg.includes("Erro temporário") ||
+            resultado.temporario || erroMsg.includes("Erro temporário") ||
             erroMsg.includes("WhatsApp não está conectado")
           ) {
             envio.status = "pendente";
@@ -774,8 +703,7 @@ async function continuarCampanha(req, res) {
     }
 
     // Verificar/reconectar o cliente WhatsApp (chave validada)
-    const chaveWpp = DISP_PREFIX + String(instanciaValida.id);
-    const conectado = await aguardarConexao(chaveWpp);
+    const conectado = whatsappService.isConectado(empresaAuth);
     if (!conectado) {
       return res.status(400).json({
         error:

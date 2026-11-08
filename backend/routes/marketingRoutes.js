@@ -45,6 +45,17 @@ router.post("/whatsapp/desconectar", marketingController.desconectarWhatsapp);
 router.post("/whatsapp/resetar", marketingController.resetarWhatsapp);
 router.get("/whatsapp/eventos", marketingController.eventoSSE); // SSE
 
+router.post("/whatsapp/enviar", async (req, res) => {
+  const id = req.user?.empresaId;
+  if (!id) return res.sendStatus(403);
+  const { telefone, texto } = req.body || {};
+  if (typeof telefone !== "string" || typeof texto !== "string" || !texto.trim() || texto.length > 4096) {
+    return res.status(400).json({ erro: "Informe um telefone e uma mensagem de até 4096 caracteres." });
+  }
+  const resultado = await require("../services/whatsappService").enviarMensagem(id, telefone, texto);
+  return res.status(resultado.sucesso ? 200 : (resultado.temporario ? 409 : 400)).json(resultado);
+});
+
 // ── Mensagens Automáticas ─────────────────────────
 router.get("/mensagens", marketingController.listarMensagens);
 router.get("/mensagens/:id", marketingController.obterMensagem);
@@ -76,6 +87,7 @@ router.get("/fila-pendente", async (req, res) => {
     const pendentes = await EnvioAgendado.findAll({
       where: {
         empresaId: Number(empresaId),
+        [Op.and]: require("sequelize").literal("JSON_EXTRACT(contexto, '$.campanhaId') IS NULL"),
         status: "pendente",
         dataAgendada: { [Op.lte]: new Date() },
       },
@@ -112,6 +124,7 @@ router.post("/fila-pendente/enviar-um", async (req, res) => {
     const envio = await EnvioAgendado.findOne({
       where: {
         empresaId: Number(empresaId),
+        [Op.and]: require("sequelize").literal("JSON_EXTRACT(contexto, '$.campanhaId') IS NULL"),
         status: "pendente",
         dataAgendada: { [Op.lte]: new Date() },
       },
@@ -121,40 +134,12 @@ router.post("/fila-pendente/enviar-um", async (req, res) => {
       return res.json({ message: "Nenhum envio pendente", enviado: false });
     }
     const whatsappService = require("../services/whatsappService");
-    const empresaIdStr = String(envio.empresaId || 1);
-    if (!whatsappService.isConectado(empresaIdStr)) {
-      return res.status(400).json({ error: "WhatsApp não conectado" });
-    }
-    // Processar o envio
-    await envio.update({
-      status: "enviando",
-      tentativas: envio.tentativas + 1,
+    const { processarEnvio } = require("../services/whatsappQueue");
+    const resultado = await processarEnvio(envio, LogEnvio);
+    return res.status(resultado.sucesso ? 200 : 409).json({
+      enviado: resultado.sucesso, envioId: envio.id, error: resultado.erro,
+      message: resultado.sucesso ? "Enviado com sucesso" : resultado.erro
     });
-    const resultado = await whatsappService.enviarMensagem(
-      empresaIdStr,
-      envio.telefoneDestino,
-      envio.conteudoFinal,
-      envio.imagemPath || null,
-    );
-    if (resultado.sucesso) {
-      await envio.update({ status: "enviado", dataEnvio: new Date() });
-      await LogEnvio.create({
-        empresaId: envio.empresaId,
-        envioAgendadoId: envio.id,
-        evento: "envio_sucesso",
-        detalhes: { telefone: envio.telefoneDestino },
-        mensagem: `Envio manual #${envio.id} para ${envio.telefoneDestino}`,
-      }).catch(() => {});
-      return res.json({
-        message: "Enviado com sucesso",
-        enviado: true,
-        envioId: envio.id,
-      });
-    } else {
-      const novoStatus = envio.tentativas >= 3 ? "erro" : "pendente";
-      await envio.update({ status: novoStatus, erroMensagem: resultado.erro });
-      return res.status(400).json({ error: resultado.erro, enviado: false });
-    }
   } catch (err) {
     console.error("[Marketing] Erro ao enviar um:", err.message);
     res.status(500).json({ error: "Erro ao processar envio" });
@@ -168,6 +153,7 @@ router.post("/fila-pendente/enviar-todos", async (req, res) => {
     if (!empresaId) return res.status(403).json({ erro: "Empresa não identificada" });
     const { processarFila } = require("../services/whatsappQueue");
     // processarFila já filtra por empresaId atualmente (ver whatsappQueue)
+    if (!require("../services/whatsappService").isConectado(empresaId)) return res.status(409).json({ error: "WhatsApp não conectado" });
     await processarFila(empresaId);
     res.json({ message: "Fila processada" });
   } catch (err) {

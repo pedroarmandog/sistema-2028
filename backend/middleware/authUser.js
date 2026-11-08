@@ -151,15 +151,7 @@ async function authUser(req, res, next) {
     req.headers.authorization.startsWith("Bearer ")
       ? req.headers.authorization.split(" ")[1]
       : null;
-  const tokenFromCookie =
-    req.cookies?.pethub_token || req.cookies?.admin_token || null;
-
-  // DEBUG: Log detalhado de cookies recebidos
-  console.log(`[authUser] 🔍 Auth check: ${req.method} ${req.path}`);
-  console.log(`[authUser]   Origin: ${req.headers.origin || 'none'}`);
-  console.log(`[authUser]   Cookies recebidos: ${Object.keys(req.cookies || {}).join(', ') || 'NENHUM'}`);
-  console.log(`[authUser]   tokenFromCookie: ${tokenFromCookie ? 'SIM (' + tokenFromCookie.substring(0, 20) + '...)' : 'NÃO'}`);
-  console.log(`[authUser]   tokenFromHeader: ${tokenFromHeader ? 'SIM' : 'NÃO'}`);
+  const tokenFromCookie = req.cookies?.pethub_token || null;
 
   if (REQUIRE_HEADER && !tokenFromHeader) {
     return res
@@ -231,7 +223,7 @@ async function authUser(req, res, next) {
             `Isolamento multi-tenant não é possível sem empresa_id. ` +
             `Token pode estar corrompido ou usuário não pertence a nenhuma empresa.`
           );
-          console.error(`[authUser] Decoded completo do token:`, JSON.stringify(decoded));
+
           return res.status(403).json({
             mensagem: "Usuário não associado a uma empresa. Contate o suporte.",
             semEmpresa: true,
@@ -357,6 +349,10 @@ async function authUser(req, res, next) {
       }
       // token inválido/expirado — continua para fallback quando header não for obrigatório
     }
+  }
+
+  if (["/api/marketing", "/api/instancias", "/api/disparador", "/api/produto-lembrete"].includes(req.baseUrl)) {
+    return res.status(401).json({ mensagem: "Faça login novamente no ERP." });
   }
 
   // 2. Fallback: cookie legado usuarioLogadoId (sessão anterior ao JWT)
