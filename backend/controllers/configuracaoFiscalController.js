@@ -17,6 +17,7 @@ const { FiscalServiceFactory } = require("../services/fiscal");
  */
 
 // Campos sensíveis que NÃO devem ser retornados nas respostas GET
+const { proteger } = require("../services/fiscal/credencial");
 const CAMPOS_SENSIVEIS = [
   "certificado_digital",
   "senha_certificado_hash",
@@ -47,6 +48,7 @@ async function getConfiguracao(req, res) {
       // Retorna defaults sem criar registro — empresa ainda não configurou
       return res.json({
         configurado: false,
+        ativo: true,
         empresa_id,
         ambiente: "homologacao",
         modo_emissao: "manual",
@@ -77,6 +79,7 @@ async function salvarConfiguracao(req, res) {
   try {
     const empresa_id = req.user.empresaId;
 
+    if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) return res.status(400).json({erro:"Configuração inválida."});
     const normalizarOpcional = (valor) => {
       return valor === "" || valor === undefined ? null : valor;
     };
@@ -138,29 +141,39 @@ async function salvarConfiguracao(req, res) {
       dados[campo] = valor;
     }
 
-    // Campos sensíveis (token/certificado/senha) só são alterados quando um
-    // NOVO valor é enviado. Se o campo vier vazio/ausente (frontend deixa em
-    // branco para manter o atual), o valor persistido é PRESERVADO — evita
-    // que um save simples (ex.: mudar a série) apague o token do provedor.
-    const CAMPOS_SENSIVEIS = [
-      "token_api",
-      "certificado_digital",
-      "senha_certificado_hash",
-    ];
-    for (const campo of CAMPOS_SENSIVEIS) {
-      delete dados[campo]; // remove o que veio do spread inicial
-      const valor = req.body[campo];
-      if (valor !== undefined && valor !== null && valor !== "") {
-        dados[campo] = valor;
-      }
+    if (dados.ambiente !== undefined && !["homologacao", "producao"].includes(dados.ambiente))
+      return res.status(400).json({ erro: "Ambiente fiscal inválido." });
+    if (dados.modo_emissao !== undefined && !["automatico","manual","confirmacao","lote"].includes(dados.modo_emissao))
+      return res.status(400).json({ erro: "Modo de emissão inválido." });
+    if (dados.provedor_api && !FiscalServiceFactory.provedoresDisponiveis().includes(dados.provedor_api))
+      return res.status(400).json({ erro: "Este provedor ainda não possui integração de emissão." });
+    for (const campo of CAMPOS_BOOLEANOS) {
+      if (campo in dados && typeof dados[campo] !== "boolean") return res.status(400).json({ erro: "Valor inválido para " + campo });
     }
-
-    // Remover campos que não devem ser gravados diretamente sem criptografia
-    // (proteção enquanto criptografia não está implementada)
-    // Quando a criptografia for implementada, remover este bloco
-    delete dados.id;
-    delete dados.createdAt;
-    delete dados.updatedAt;
+    for (const campo of CAMPOS_NUMERICOS) {
+      if (req.body[campo] != null && req.body[campo] !== "" &&
+          (!Number.isSafeInteger(dados[campo]) || dados[campo] < 1))
+        return res.status(400).json({ erro: "Número inválido em " + campo });
+    }
+    for (const campo of ["serie_nfe","serie_nfce","serie_nfse"]) {
+      if (dados[campo] != null && !/^\d{1,3}$/.test(dados[campo])) return res.status(400).json({erro:"Série inválida em " + campo});
+    }
+    if (dados.municipio_ibge && !/^\d{7}$/.test(dados.municipio_ibge)) return res.status(400).json({erro:"Código IBGE deve ter 7 dígitos."});
+    if (dados.cfop_padrao_saida && !/^\d{4}$/.test(dados.cfop_padrao_saida)) return res.status(400).json({erro:"CFOP deve ter 4 dígitos."});
+    if (req.body.certificado_digital || req.body.senha_certificado_hash)
+      return res.status(400).json({ erro: "O certificado A1 é configurado no provedor. Não envie o certificado ou a senha ao PetHub." });
+    const anterior = await ConfiguracaoFiscal.findOne({ where: { empresa_id } });
+    const token = req.body.token_api;
+    const novoToken = typeof token === "string" && token.trim() && token !== "***";
+    if (anterior?.token_api && dados.ambiente && dados.ambiente !== anterior.ambiente && !novoToken)
+      return res.status(400).json({ erro: "Para trocar de ambiente, informe o token correspondente." });
+    try {
+      if (novoToken) dados.token_api = proteger(token.trim(), empresa_id);
+      else if (anterior?.token_api && !anterior.token_api.startsWith("ph1:"))
+        dados.token_api = proteger(anterior.token_api, empresa_id);
+    } catch (err) {
+      return res.status(400).json({ erro: err.message });
+    }
 
     const [config, criado] = await ConfiguracaoFiscal.findOrCreate({
       where: { empresa_id },
@@ -179,7 +192,7 @@ async function salvarConfiguracao(req, res) {
       config: mascarar(config),
     });
   } catch (err) {
-    console.error("[fiscal/configuracao] POST:", err);
+    console.error("[fiscal/configuracao] POST:", err.name);
     return res.status(500).json({ erro: "Erro ao salvar configuração fiscal" });
   }
 }

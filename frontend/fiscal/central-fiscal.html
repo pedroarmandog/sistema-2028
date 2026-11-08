@@ -1461,6 +1461,9 @@
       const API = window.API_BASE_URL || "";
       let paginaAtual = 1;
 
+      function escapar(v) {
+        return String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
+      }
       function badgeStatus(status) {
         const labels = {
           pendente: "Pendente",
@@ -1570,13 +1573,13 @@
                 badgeTipo(n.tipo) +
                 "</td>" +
                 "<td>" +
-                (n.numero ? n.numero + " / " + (n.serie || "001") : "—") +
+                (n.numero ? n.numero + " / " + escapar(n.serie || "001") : "—") +
                 "</td>" +
                 "<td>" +
                 formatData(n.data_emissao) +
                 "</td>" +
                 '<td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' +
-                (n.destinatario_nome || "—") +
+                escapar(n.destinatario_nome || "—") +
                 "</td>" +
                 "<td>" +
                 formatMoeda(n.valor_total) +
@@ -1593,12 +1596,12 @@
                     n.id +
                     ')"><i class="fas fa-file-pdf"></i></button>'
                   : "") +
-                (["rascunho", "erro", "denegada", "aguardando"].indexOf(n.status) !== -1
+                (["rascunho", "erro", "aguardando"].indexOf(n.status) !== -1
                   ? '<button class="cf-btn" title="Emitir nota" onclick="emitirNota(' +
                     n.id +
                     ')"><i class="fas fa-paper-plane"></i></button>'
                   : "") +
-                '<button class="cf-btn disabled" title="Download XML (disponível futuramente)"><i class="fas fa-code"></i></button>' +
+                (n.status === "autorizada" ? '<a class="cf-btn" title="Baixar XML autorizado" href="' + API + '/api/notas-fiscais/' + Number(n.id) + '/xml"><i class="fas fa-code"></i></a>' : "") +
                 "</div></td>" +
                 "</tr>"
               );
@@ -1638,7 +1641,7 @@
         } catch (e) {
           tbody.innerHTML =
             '<tr><td colspan="8" class="cf-empty"><div style="color:#dc2626;"><i class="fas fa-exclamation-circle"></i><br>Erro ao carregar: ' +
-            e.message +
+            escapar(e.message) +
             "</div></td></tr>";
         }
       }
@@ -1717,11 +1720,12 @@
             return r.json();
           })
           .then(function (data) {
+            if (data.erro) throw new Error(data.erro);
             var msg =
               "Processadas: " +
               (data.processadas || 0) +
               "\nEmitidas: " +
-              (data.emitidas || 0) +
+              (data.emitidas || 0) + "\nAguardando: " + (data.aguardando || 0) +
               "\nCom erro: " +
               (data.comErro || 0);
             alert(msg);

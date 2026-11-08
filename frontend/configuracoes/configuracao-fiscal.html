@@ -1625,7 +1625,7 @@
             >Configuração Fiscal
           </h1>
           <p style="font-size: 13px; color: #666; margin: 4px 0 0">
-            Configure os parâmetros para futura emissão de NF-e, NFC-e e NFS-e.
+            Configure as vendas de produtos e os rascunhos de serviços da empresa.
           </p>
         </div>
         <button class="btn-salvar-fiscal" id="btnSalvarFiscal">
@@ -1635,9 +1635,8 @@
 
       <div class="info-box">
         <i class="fas fa-info-circle"></i>
-        <strong>Módulo fiscal em preparação.</strong> Nenhuma nota será emitida
-        enquanto o módulo não estiver ativado. Preencha os dados abaixo para
-        quando a integração com o provedor for contratada.
+        A Focus transmite NF-e e NFC-e quando configurada. Para testar sem empresa real,
+        use o laboratório local. A opção Homologação deste formulário acessa o provedor externo.
       </div>
 
       <!-- Seção: Certificado Digital e Provedor -->
@@ -1647,19 +1646,17 @@
         </h3>
         <div class="aviso-box">
           <i class="fas fa-lock"></i>
-          O <strong>certificado digital</strong> e o
-          <strong>token da API</strong> serão criptografados antes de armazenar.
-          Nunca serão exibidos em texto puro nas respostas da API.
+          Cadastre o certificado A1 no provedor. O PetHub utiliza o token da API.
         </div>
         <div class="fiscal-grid">
           <div class="fiscal-field" style="grid-column: span 2">
             <label>Provedor de Emissão Fiscal</label>
             <select id="provedor_api">
               <option value="">— Selecione um provedor —</option>
-              <option value="plugnotas">PlugNotas</option>
+              <option disabled value="plugnotas">PlugNotas</option>
               <option value="focusnfe">Focus NFe</option>
-              <option value="enotas">eNotas</option>
-              <option value="tecnospeed">Tecnospeed</option>
+              <option disabled value="enotas">eNotas</option>
+              <option disabled value="tecnospeed">Tecnospeed</option>
             </select>
           </div>
           <div class="fiscal-field" style="grid-column: span 2">
@@ -1676,26 +1673,6 @@
               O token salvo não é reexibido (segurança) — deixe em branco para manter o atual.
               Use o token do MESMO ambiente selecionado: a homologação possui token próprio no painel do provedor.
             </div>
-          </div>
-          <div class="fiscal-field" style="grid-column: span 2">
-            <label>Certificado Digital (A1) — Base64</label>
-            <input
-              type="file"
-              id="certificado_arquivo"
-              accept=".pfx,.p12"
-              style="padding: 5px"
-            />
-            <div style="font-size: 11px; color: #888; margin-top: 3px">
-              Arquivo .pfx ou .p12 — será convertido para base64
-            </div>
-          </div>
-          <div class="fiscal-field">
-            <label>Senha do Certificado</label>
-            <input
-              type="password"
-              id="senha_certificado_hash"
-              placeholder="Senha do certificado"
-            />
           </div>
           <div class="fiscal-field">
             <label>Ambiente</label>
@@ -1739,6 +1716,9 @@
         <div
           style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 14px"
         >
+          <label style="display:flex;align-items:center;gap:8px">
+            <input type="checkbox" id="ativo" checked> Módulo fiscal ativo
+          </label>
           <label
             style="
               display: flex;
@@ -1786,8 +1766,7 @@
               id="emitir_nfse"
               style="width: 16px; height: 16px"
             />
-            <strong>Habilitar NFS-e</strong> (Nota Fiscal de Serviços
-            Eletrônica)
+            <strong>Preparar rascunhos de NFS-e</strong> (transmissão ainda indisponível)
           </label>
         </div>
       </div>
@@ -1795,6 +1774,7 @@
       <!-- Seção: Numeração -->
       <div class="fiscal-section">
         <h3><i class="fas fa-hashtag"></i> Numeração</h3>
+        <p>Na integração Focus, a numeração da emissão segue a configuração do provedor. Série e próximo número abaixo são parâmetros locais.</p>
         <div class="fiscal-grid">
           <div class="fiscal-field">
             <label>Série NF-e</label>
@@ -1917,7 +1897,7 @@
           const resp = await fetch(API + "/api/fiscal/configuracao", {
             credentials: "include",
           });
-          if (!resp.ok) return;
+          if (!resp.ok) throw new Error("HTTP " + resp.status);
           const data = await resp.json();
           const campos = [
             "provedor_api",
@@ -1958,12 +1938,15 @@
                 "Já configurado — deixe em branco para manter o valor salvo";
             }
           });
-          ["emitir_nfe", "emitir_nfce", "emitir_nfse"].forEach(function (id) {
+          ["emitir_nfe", "emitir_nfce", "emitir_nfse", "ativo"].forEach(function (id) {
             const el = document.getElementById(id);
             if (el) el.checked = !!data[id];
           });
         } catch (e) {
-          console.warn("Erro ao carregar configuração fiscal:", e);
+          const msg = document.getElementById("msgStatus");
+          msg.style.display = "block";
+          msg.textContent = "Falha ao carregar configuração: " + e.message;
+          document.getElementById("btnSalvarFiscal").disabled = true;
         }
       }
 
@@ -1998,7 +1981,7 @@
             const el = document.getElementById(id);
             if (el) payload[id] = el.value;
           });
-          ["emitir_nfe", "emitir_nfce", "emitir_nfse"].forEach(function (id) {
+          ["emitir_nfe", "emitir_nfce", "emitir_nfse", "ativo"].forEach(function (id) {
             const el = document.getElementById(id);
             if (el) payload[id] = el.checked;
           });
@@ -2017,6 +2000,7 @@
             });
             const data = await resp.json();
             if (resp.ok) {
+              document.getElementById("token_api").value = "";
               msg.style.cssText =
                 "display:block;background:#d4edda;border:1px solid #c3e6cb;color:#155724;";
               msg.textContent = "✅ " + data.mensagem;

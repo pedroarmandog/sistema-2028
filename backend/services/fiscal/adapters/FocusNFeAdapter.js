@@ -63,11 +63,13 @@ function _numero(valor, casas = 2) {
 
 function _dataHora(data) {
   const d = data instanceof Date ? data : new Date();
-  const p = (x) => String(x).padStart(2, "0");
-  return (
-    `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ` +
-    `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
-  );
+  const partes = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+    timeZone: process.env.FISCAL_TIMEZONE || "America/Sao_Paulo", hourCycle:"h23",
+    year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",
+    timeZoneName:"longOffset"
+  }).formatToParts(d).map(({type,value}) => [type,value]));
+  const offset = partes.timeZoneName.replace("GMT", "") || "+00:00";
+  return `${partes.year}-${partes.month}-${partes.day}T${partes.hour}:${partes.minute}:${partes.second}${offset}`;
 }
 
 function _referencia(payload) {
@@ -85,7 +87,7 @@ class FocusNFeAdapter extends FiscalService {
   constructor(config) {
     super(config);
     this.provedor = "focusnfe";
-    this.token = config ? config.token_api || null : null;
+    this.token = config ? require("../credencial").abrir(config.token_api, config.empresa_id) : null;
     this.ambiente = (config && config.ambiente) || DEFAULT_AMBIENTE;
     this.baseUrl = URLS_BASE[this.ambiente] || URLS_BASE[DEFAULT_AMBIENTE];
   }
@@ -124,12 +126,12 @@ class FocusNFeAdapter extends FiscalService {
 
     return detalhes.length ? `${mensagemBase}\n${detalhes.join(" | ")}` : mensagemBase;
   }
-async _request(metodo, caminho, { body, timeoutMs = 45000 } = {}) {
+  async _request(metodo, caminho, { body, timeoutMs = 45000 } = {}) {
     const headers = {
       Authorization: this._authHeader(),
       Accept: "application/json",
     };
-    const options = { method: metodo, headers };
+    const options = { method: metodo, headers, redirect: "error" };
 
     if (
       typeof AbortSignal !== "undefined" &&
@@ -201,7 +203,10 @@ async _request(metodo, caminho, { body, timeoutMs = 45000 } = {}) {
 
   async _baixar(url, { buffer = false } = {}) {
     const headers = { Authorization: this._authHeader(), Accept: "*/*" };
-    const resp = await fetch(url, { headers });
+    const origem = new URL(this.baseUrl).origin;
+    const destino = new URL(url, origem);
+    if (destino.origin !== origem || destino.username || destino.password) throw new Error("Origem de download fiscal inesperada.");
+    const resp = await fetch(destino, { headers, redirect: "error", signal: AbortSignal.timeout(30000) });
     if (!resp.ok) {
       const e = new Error(
         `Falha ao baixar arquivo do Focus NFe (HTTP ${resp.status}): ${url}`,
@@ -210,15 +215,20 @@ async _request(metodo, caminho, { body, timeoutMs = 45000 } = {}) {
       e.status = resp.status;
       throw e;
     }
-    if (buffer) return Buffer.from(await resp.arrayBuffer());
-    return await resp.text();
+    if (buffer) {
+      const pdf = Buffer.from(await resp.arrayBuffer());
+      if (pdf.subarray(0,5).toString() !== "%PDF-") throw new Error("O provedor não devolveu um PDF.");
+      return pdf;
+    }
+    const xml = await resp.text();
+    if (!xml.trim().startsWith("<") || /<(?:html|!doctype html)\b/i.test(xml)) throw new Error("O provedor não devolveu XML fiscal.");
+    return xml;
   }
-static _baseICMS(item, config) {
-    const crt = config ? config.crt || config.regime_tributario || null : null;
-    const simples = String(crt) === "1" || String(crt) === "2";
+  static _baseICMS(item) {
+    if (item?.csosn && item?.cst_icms) throw new Error("CST ICMS e CSOSN informados simultaneamente. Confira o cadastro fiscal do item.");
     if (item && item.csosn) return String(item.csosn).padStart(3, "0");
     if (item && item.cst_icms) return String(item.cst_icms);
-    return simples ? "102" : "00";
+    throw new Error("Informe CST ICMS ou CSOSN no cadastro do item " + (item.descricao || "") + ".");
   }
 
   static montarPayloadNFe(payload, config = null, tipoDocumento = "nfe") {
@@ -237,7 +247,7 @@ static _baseICMS(item, config) {
     const docDest = _soDigitos(destinatario.documento);
     const ufEmit = (endEmit.uf || "").toUpperCase();
     const ufDest = (endDest.uf || "").toUpperCase();
-    const localDestino = ufEmit && ufEmit === ufDest ? "1" : "2";
+    const localDestino = !ufDest || ufEmit === ufDest ? "1" : "2";
 
     const ieDest = _limpar(destinatario.ie);
     const ehNfce = tipoDocumento === "nfce";
@@ -301,7 +311,8 @@ static _baseICMS(item, config) {
     if (destinatario.email) corpo.email_destinatario = _limpar(destinatario.email);
     // Indicador da IE do destinatario so faz sentido quando identificado
     if (docDest.length) {
-      corpo.indicador_inscricao_estadual_destinatario = ieDest ? "1" : "9";
+      corpo.indicador_inscricao_estadual_destinatario = ieDest ? "1" : String(destinatario.indicador_ie ?? 9);
+      if (ieDest) corpo.inscricao_estadual_destinatario = ieDest;
     }
 
 // Itens de produto
@@ -311,14 +322,22 @@ static _baseICMS(item, config) {
       const valorBruto =
         item.valor_total ?? item.subtotal ?? quantidade * valorUnit;
       const ncm = _soDigitos(item.ncm);
-      const icmsSituacao = FocusNFeAdapter._baseICMS(item, config);
+      const icmsSituacao = FocusNFeAdapter._baseICMS(item);
+      if (!item.cst_pis || !item.cst_cofins || !/^\d{4}$/.test(String(item.cfop)))
+        throw new Error("Informe CFOP, CST PIS e CST COFINS no item " + item.descricao + ".");
+      // O adaptador não monta grupos com base, crédito ou substituição tributária.
+      const icmsSemCalculo = ["40", "41", "102", "103", "300", "400"].includes(icmsSituacao);
+      const contribuicoesSemCalculo = [item.cst_pis, item.cst_cofins].every(cst => /^(04|06|07|08|09)$/.test(String(cst)));
+      const aliquotas = [item.aliq_icms, item.aliq_pis, item.aliq_cofins, item.aliq_ipi];
+      if (!icmsSemCalculo || !contribuicoesSemCalculo || aliquotas.some(v => v != null && Number(v) !== 0) || item.cst_ipi)
+        throw new Error("Esta operação exige cálculo de bases/alíquotas ou IPI ainda não implementado no adaptador.");
       return {
         numero_item: idx + 1,
         codigo_produto: String(_limpar(item.codigo_produto) || idx + 1),
         descricao: String(item.descricao || "").slice(0, 120) || "Produto",
         codigo_ncm: ncm || null,
         cest: item.cest ? String(item.cest) : null,
-        cfop: String(item.cfop || "5102"),
+        cfop: String(item.cfop),
         unidade_comercial: item.unidade || "UN",
         quantidade_comercial: _numero(quantidade, 4),
         valor_unitario_comercial: _numero(valorUnit, 10),
@@ -330,8 +349,8 @@ static _baseICMS(item, config) {
         inclui_no_total: 1,
         icms_origem: String(item.origem ?? 0),
         icms_situacao_tributaria: icmsSituacao,
-        pis_situacao_tributaria: item.cst_pis || "07",
-        cofins_situacao_tributaria: item.cst_cofins || "07",
+        pis_situacao_tributaria: item.cst_pis,
+        cofins_situacao_tributaria: item.cst_cofins,
         valor_total_item: _numero(valorBruto, 2),
       };
     });
@@ -341,9 +360,8 @@ static _baseICMS(item, config) {
     if (total != null) corpo.valor_total = _numero(total, 2);
 
     // Pagamentos
-    const formas = pagamentos.length
-      ? pagamentos
-      : [{ forma_pagamento: "01", valor: total || 0 }];
+    if (!pagamentos.length) throw new Error("Informe a forma de pagamento da venda antes de emitir.");
+    const formas = pagamentos;
     corpo.pagamentos = formas.map((p) => {
       const jaCodificada =
         p.forma_pagamento && /^\d{1,2}$/.test(String(p.forma_pagamento));
@@ -351,7 +369,7 @@ static _baseICMS(item, config) {
         .toLowerCase()
         .replace(/\s/g, "_");
       return {
-        indicador_pagamento: "1",
+        ...(p.indicador_pagamento != null ? { indicador_pagamento: String(p.indicador_pagamento) } : {}),
         forma_pagamento: jaCodificada
           ? String(p.forma_pagamento).padStart(2, "0")
           : FORMAS_PAGAMENTO_FOCUS[forma] || "99",
@@ -373,7 +391,7 @@ static _baseICMS(item, config) {
     const status = String((resposta && resposta.status) || "");
     const base = {
       ref,
-      sucesso: true,
+      sucesso: ["autorizado","cancelado"].includes(status),
       status: status || "indefinido",
       numero: resposta && (resposta.numero ?? null),
       serie: resposta && (resposta.serie ?? null),
@@ -415,6 +433,7 @@ static _baseICMS(item, config) {
    * cai em "nfe" quando ausente.
    */
   async transmitir(payload) {
+    if (![undefined, "nfe", "nfce"].includes(payload?._notaTipo) || payload?.tipo === "nfse") throw new Error("A integração Focus do PetHub suporta NF-e e NFC-e. NFS-e requer integração municipal ou nacional específica.");
     const doc =
       payload && (payload._notaTipo === "nfce" || payload.tipo === "nfce")
         ? "nfce"
@@ -438,7 +457,7 @@ static _baseICMS(item, config) {
     if (!corpo.itens || !corpo.itens.length) {
       throw new Error("A venda nao possui itens para emitir.");
     }
-    const itensSemNcm = corpo.itens.filter((i) => !i.codigo_ncm);
+    const itensSemNcm = corpo.itens.filter((i) => !/^\d{8}$/.test(i.codigo_ncm || ""));
     if (itensSemNcm.length) {
       throw new Error(
         "Todo produto precisa ter NCM cadastrado para emissao fiscal. Itens sem NCM: " +
@@ -469,6 +488,9 @@ static _baseICMS(item, config) {
       }
     }
 
+    const totalItens = corpo.itens.reduce((s, i) => s + Number(i.valor_bruto) - Number(i.valor_desconto), 0);
+    if (Math.abs(totalItens - Number(corpo.valor_total)) > 0.011) throw new Error(
+      "Total dos itens diverge da venda. Confira descontos globais, frete e acréscimos antes de emitir.");
     const resposta = await this._request(
       "POST",
       `/${doc}?ref=${encodeURIComponent(ref)}`,
@@ -510,27 +532,9 @@ static _baseICMS(item, config) {
       );
     }
 
-    // Tenta primeiro o documento informado; se nao existir (404), tenta o outro
-    const docs =
-      tipoDocumento === "nfce" ? ["nfce", "nfe"] : ["nfe", "nfce"];
-
-    let ultimoErro = null;
-    for (let i = 0; i < docs.length; i++) {
-      try {
-        const resposta = await this._request(
-          "GET",
-          `/${docs[i]}/${encodeURIComponent(ref)}`,
-        );
-        return this._normalizar(resposta, ref);
-      } catch (err) {
-        ultimoErro = err;
-        if (err && err.code === "FOCUS_404" && i < docs.length - 1) {
-          continue; // ref pode ter sido criada como o outro documento
-        }
-        throw err;
-      }
-    }
-    throw ultimoErro;
+    if (!["nfe", "nfce"].includes(tipoDocumento)) throw new Error("Tipo não suportado para consulta Focus.");
+    const resposta = await this._request("GET", "/" + tipoDocumento + "/" + encodeURIComponent(ref));
+    return this._normalizar(resposta, ref);
   }
 /**
    * Cancela uma NF-e/NFC-e autorizada (dentro do prazo legal).
@@ -619,8 +623,8 @@ static _baseICMS(item, config) {
    * Baixa o DANFE em PDF (pela referencia da nota - a Focus v2 entrega o PDF
    * atraves do caminho retornado na consulta/emissao).
    */
-  async downloadDanfe(chaveAcesso) {
-    const consulta = await this.consultar(chaveAcesso);
+  async downloadDanfe(chaveAcesso, tipoDocumento) {
+    const consulta = await this.consultar(chaveAcesso, tipoDocumento);
     if (!consulta.caminho_danfe) {
       throw new Error("URL do DANFe nao disponivel no Focus NFe para esta nota.");
     }
@@ -628,8 +632,8 @@ static _baseICMS(item, config) {
   }
 
   /** Baixa o XML autorizado (referencia da nota). */
-  async downloadXml(chaveAcesso) {
-    const consulta = await this.consultar(chaveAcesso);
+  async downloadXml(chaveAcesso, tipoDocumento) {
+    const consulta = await this.consultar(chaveAcesso, tipoDocumento);
     if (!consulta.caminho_xml) {
       throw new Error("URL do XML nao disponivel no Focus NFe para esta nota.");
     }

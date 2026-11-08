@@ -93,10 +93,18 @@ exports.buscarVenda = async (req, res) => {
   }
 };
 
+// O ciclo fiscal (autorização e protocolos) só é escrito pelo serviço de emissão.
+function dadosComerciais(body) {
+  const dados = { ...body };
+  for (const campo of ["empresa_id","numero_nfe","serie_nfe","chave_acesso_nfe","data_emissao_nfe",
+    "protocolo_nfe","xml_nfe","status_fiscal","id","createdAt","updatedAt"]) delete dados[campo];
+  return dados;
+}
+
 // Criar venda
 exports.criarVenda = async (req, res) => {
   try {
-    const dados = { ...req.body };
+    const dados = dadosComerciais(req.body);
 
     // --- Enriquecer itens com produto.id e perfilComissao via nome ---
     if (Array.isArray(dados.itens) && dados.itens.length > 0) {
@@ -120,7 +128,7 @@ exports.criarVenda = async (req, res) => {
       let mapaProdNome = {};
       if (nomesSemId.length > 0) {
         const prods = await Produto.findAll({
-          where: { nome: { [Op.in]: nomesSemId } },
+          where: { empresa_id: req.user.empresaId, nome: { [Op.in]: nomesSemId } },
           attributes: ["id", "nome", "perfilComissao", "tipo"],
         }).catch(() => []);
         prods.forEach((p) => {
@@ -168,7 +176,7 @@ exports.criarVenda = async (req, res) => {
     // --- Resolver clienteId pelo nome se não vier preenchido ---
     if (!dados.clienteId && dados.cliente) {
       const cli = await Cliente.findOne({
-        where: { nome: dados.cliente.trim() },
+        where: { empresa_id:req.user.empresaId, nome: dados.cliente.trim() },
         attributes: ["id"],
       }).catch(() => null);
       if (cli) dados.clienteId = cli.id;
@@ -419,7 +427,7 @@ exports.atualizarVenda = async (req, res) => {
       return res.status(403).json({ erro: "Acesso negado" });
     }
 
-    await venda.update(req.body);
+    await venda.update(dadosComerciais(req.body));
 
     // Recarregar venda com dados atualizados para o push
     const vendaAtualizada = await Venda.findByPk(req.params.id);

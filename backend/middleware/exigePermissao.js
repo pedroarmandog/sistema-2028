@@ -26,15 +26,23 @@ function exigePermissao(...permissoesNecessarias) {
         return res.status(500).json({ erro: "Erro ao verificar permissões" });
       }
 
-      let perms = usuario?.permissoes;
+      if (!usuario) return res.sendStatus(403);
+      let perms = usuario.permissoes;
       if (typeof perms === "string") {
         try {
           perms = JSON.parse(perms);
         } catch (_) {
-          perms = [];
+          return res.status(403).json({erro:"Permissões inválidas."});
         }
       }
-      if (!Array.isArray(perms)) perms = [];
+      if (perms && !Array.isArray(perms) && typeof perms === "object") {
+        const chaves = Object.keys(perms);
+        if (chaves.length && !permissoesNecessarias.some(k => perms[k] === true))
+          return res.status(403).json({erro:"Sem permissão para esta operação."});
+        perms = chaves.filter(k => perms[k] === true);
+      }
+      if (perms == null) perms = [];
+      if (!Array.isArray(perms)) return res.sendStatus(403);
 
       // Legado: sem permissões configuradas → acesso mantido
       if (perms.length === 0) return next();

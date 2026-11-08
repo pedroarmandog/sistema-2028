@@ -33,19 +33,26 @@ const {
 
 router.use(authUser);
 
-router.get("/resumo", resumo);
+const central = require("../middleware/exigePermissao").exigePermissao("configuracoes.central-fiscal");
+router.get("/resumo", central, resumo);
 router.get("/por-venda/:vendaId", buscarPorVenda);
-router.get("/", listar);
-router.get("/:id", buscarPorId);
+router.get("/", central, listar);
+router.get("/:id", central, buscarPorId);
 
 // Ações de emissão / impressão (integração com o ciclo de venda + Central Fiscal)
 router.post("/emitir", emitirPorVenda);
-router.post("/lote-emitir", emitirLote);
+router.post("/lote-emitir", central, emitirLote);
 router.post("/pendente", registrarPendente);
-router.post("/:id/emitir", emitirNotaPorId);
+router.post("/:id/emitir", central, emitirNotaPorId);
 router.get("/:id/danfe", danfePdf);
+router.get("/:id/xml", central, async (req,res) => {
+  try {
+    const xml = await require("../services/notaFiscalService").obterXml({notaId:req.params.id, empresaId:req.user.empresaId});
+    res.attachment("nota-" + Number(req.params.id) + ".xml").type("application/xml").send(xml);
+  } catch (err) { res.status(err.status || 502).json({erro:err.message}); }
+});
 
-router.post("/", criar);
-router.put("/:id", atualizar);
+router.post("/", central, criar);
+router.put("/:id", central, atualizar);
 
 module.exports = router;

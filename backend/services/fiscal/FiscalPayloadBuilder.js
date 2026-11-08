@@ -17,6 +17,12 @@
  *   - Retorna null para campos não preenchidos (adapters decidem o que é obrigatório).
  */
 
+function jsonVenda(valor, padrao) {
+  if (typeof valor !== "string") return valor ?? padrao;
+  try { return JSON.parse(valor); }
+  catch { throw new Error("Dados JSON inválidos na venda."); }
+}
+
 class FiscalPayloadBuilder {
   /**
    * Monta payload para NF-e (Nota Fiscal Eletrônica — produtos)
@@ -40,9 +46,9 @@ class FiscalPayloadBuilder {
       emitente: FiscalPayloadBuilder._buildEmitente(empresa, config),
       destinatario: FiscalPayloadBuilder._buildDestinatario(cliente),
 
-      itens: FiscalPayloadBuilder._buildItensNFe(venda.itens || [], config),
-      totais: FiscalPayloadBuilder._buildTotais(venda.totais || {}),
-      pagamentos: FiscalPayloadBuilder._buildPagamentos(venda.pagamentos || []),
+      itens: FiscalPayloadBuilder._buildItensNFe(jsonVenda(venda.itens, []), config),
+      totais: FiscalPayloadBuilder._buildTotais(jsonVenda(venda.totais, {})),
+      pagamentos: FiscalPayloadBuilder._buildPagamentos(jsonVenda(venda.pagamentos, [])),
 
       // Referência interna
       _vendaId: venda.id,
@@ -97,7 +103,7 @@ class FiscalPayloadBuilder {
   // ──────────────────────────────────────────────────────────────────────────
 
   static _buildEmitente(empresa, config) {
-    const end = empresa.endereco || {};
+    const end = jsonVenda(empresa.endereco, {});
     return {
       razao_social: empresa.razaoSocial || empresa.nome,
       nome_fantasia: empresa.nome,
@@ -166,19 +172,25 @@ class FiscalPayloadBuilder {
   static _buildItensNFe(itens, config) {
     return itens.map((item, idx) => {
       const produto = item.produto || item;
+      const unitario = Number(item.valorUnitario ?? item.valor_unitario ?? item.preco ?? 0);
+      const bruto = Number(item.totalBruto ?? (Number(item.quantidade ?? 1) * unitario));
+      const desconto = item.totalFinal != null ? bruto - Number(item.totalFinal)
+        : bruto * Number(item.desconto || 0) / 100;
+      if (!(bruto > 0) || !Number.isFinite(desconto) || desconto < -0.01 || desconto > bruto)
+        throw new Error("Valores inválidos no item " + (idx + 1));
       return {
         numero: idx + 1,
         codigo_produto: produto.id || produto.codigo || String(idx + 1),
         descricao: produto.nome || item.descricao || "",
         ncm: produto.ncm || null,
         cest: produto.cest || null,
-        cfop: produto.cfop_padrao || config.cfop_padrao_saida || "5102",
+        cfop: produto.cfop_padrao || config.cfop_padrao_saida || null,
         unidade: produto.unidade || "UN",
         gtin: produto.gtin || produto.codigoBarras || "SEM GTIN",
         quantidade: item.quantidade || 1,
-        valor_unitario: item.valorUnitario || item.valor_unitario || 0,
-        valor_total: item.subtotal || item.valor || 0,
-        desconto: item.desconto || 0,
+        valor_unitario: unitario,
+        valor_total: bruto,
+        desconto: Math.max(0, Number(desconto.toFixed(2))),
         peso: produto.peso || null,
         origem: produto.origem ?? 0,
         cst_icms: produto.cst_icms || null,
@@ -210,6 +222,7 @@ class FiscalPayloadBuilder {
     const mapaForma = {
       dinheiro: "01",
       cheque: "02",
+      credito: "03", debito: "04",
       cartao_credito: "03",
       cartao_debito: "04",
       credito_loja: "05",

@@ -70,7 +70,7 @@ class FiscalServiceFactory {
    * @returns {string[]}
    */
   static provedoresDisponiveis() {
-    return ["plugnotas", "focusnfe", "enotas", "tecnospeed"];
+    return ["focusnfe"];
   }
 }
 

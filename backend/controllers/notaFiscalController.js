@@ -63,6 +63,11 @@ async function listar(req, res) {
       ];
     }
 
+    if (![page,limit].every(v => Number.isSafeInteger(Number(v)) && Number(v) > 0) || Number(limit) > 200)
+      return res.status(400).json({ erro: "Paginação inválida (limite máximo 200)." });
+    if ([dataInicio,dataFim].some(v => v && !/^\d{4}-\d{2}-\d{2}$/.test(v)) ||
+        (dataInicio && dataFim && dataInicio > dataFim))
+      return res.status(400).json({ erro: "Período inválido." });
     const offset = (Number(page) - 1) * Number(limit);
 
     const { count, rows } = await NotaFiscal.findAndCountAll({
@@ -138,16 +143,22 @@ async function buscarPorVenda(req, res) {
 // Cria um rascunho de nota fiscal (sem emitir)
 // ─────────────────────────────────────────────────────────────────────────────
 
+function camposRascunho(body) {
+  const campos = ["tipo","destinatario_nome","destinatario_documento","valor_total","natureza_operacao","serie"];
+  return Object.fromEntries(campos.filter(k => Object.hasOwn(body,k)).map(k => [k,body[k]]));
+}
+
 async function criar(req, res) {
   try {
     const empresa_id = req.user.empresaId;
 
-    const nota = await NotaFiscal.create({
-      ...req.body,
-      empresa_id,
-      status: "rascunho",
-    });
-
+    if (req.body.venda_id != null) return registrarPendente(req, res);
+    if (req.body.agendamento_id != null) return res.status(400).json({erro:"Registre a nota a partir da venda do atendimento."});
+    const campos = camposRascunho(req.body);
+    if (!["nfe","nfce","nfse"].includes(campos.tipo)) return res.status(400).json({erro:"Tipo inválido."});
+    const { ConfiguracaoFiscal } = require("../models");
+    const cfg = await ConfiguracaoFiscal.findOne({where:{empresa_id}});
+    const nota = await NotaFiscal.create({ ...campos, empresa_id, status:"rascunho", ambiente:cfg?.ambiente || "homologacao" });
     return res.status(201).json(nota);
   } catch (err) {
     console.error("[notas-fiscais] criar:", err);
@@ -171,14 +182,14 @@ async function atualizar(req, res) {
     if (!nota)
       return res.status(404).json({ erro: "Nota fiscal não encontrada" });
 
-    // Não permite alterar notas autorizadas (apenas cancelar)
-    if (nota.status === "autorizada" && req.body.status !== "cancelada") {
-      return res.status(400).json({
-        erro: "Notas autorizadas não podem ser editadas. Para cancelar, use o status 'cancelada'.",
-      });
-    }
-
-    await nota.update(req.body);
+    if (nota.status !== "rascunho" || nota.numero_requisicao) return res.status(409).json({erro:"Somente rascunhos não transmitidos podem ser alterados."});
+    const campos = camposRascunho(req.body);
+    if (Object.keys(campos).length !== Object.keys(req.body).length)
+      return res.status(400).json({erro:"Status, empresa, vínculos e dados de autorização não são editáveis."});
+    if (campos.tipo && !["nfe","nfce","nfse"].includes(campos.tipo)) return res.status(400).json({erro:"Tipo inválido."});
+    const [alteradas] = await NotaFiscal.update(campos, {where:{id,empresa_id,status:"rascunho",numero_requisicao:null}});
+    if (!alteradas) return res.status(409).json({erro:"O rascunho foi alterado. Atualize a lista."});
+    await nota.reload();
     return res.json(nota);
   } catch (err) {
     console.error("[notas-fiscais] atualizar:", err);
@@ -300,7 +311,7 @@ async function emitirNotaPorId(req, res) {
 async function emitirLote(req, res) {
   try {
     const { notas_ids } = req.body || {};
-    if (!Array.isArray(notas_ids) || notas_ids.length === 0) {
+    if (!Array.isArray(notas_ids) || !notas_ids.length || notas_ids.length > 100 || notas_ids.some(id => !Number.isSafeInteger(Number(id)) || Number(id) <= 0)) {
       return res.status(400).json({ erro: "Campo notas_ids (array) é obrigatório" });
     }
     const resultado = await notaFiscalService.emitirLote({

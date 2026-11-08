@@ -21,7 +21,7 @@
  */
 
 const { Op } = require("sequelize");
-const PDFDocument = require("pdfkit");
+
 
 const {
   Venda,
@@ -63,6 +63,7 @@ function _asObject(valor) {
 /** Extrai CPF (11) ou CNPJ (14) do cliente sem formatação */
 function _documentoCliente(cliente) {
   if (!cliente) return null;
+  if (cliente.tipo_pessoa === "J" && cliente.cnpj) return String(cliente.cnpj).replace(/\D/g, "");
   const cpf = String(cliente.cpf || "").replace(/\D/g, "");
   if (cpf) return cpf;
   const cnpj = String(cliente.cnpj || "").replace(/\D/g, "");
@@ -76,142 +77,16 @@ function _agendamentoIdVenda(venda) {
   return totais?.agendamentoId || totais?.agendamento_id || null;
 }
 
-/** Sintetiza um objeto "agendamento" a partir da venda (usado para NFS-e) */
-function _sinteticaDeVenda(venda) {
-  const itens = _asArray(venda && venda.itens);
-  return {
-    servicos: itens.map((item, idx) => ({
-      id: item?.produto?.id || idx + 1,
-      nome: item?.produto?.nome || item?.descricao || item?.nome || "Serviço",
-      quantidade: item?.quantidade || 1,
-      valor: item?.valorUnitario ?? item?.valor_unitario ?? 0,
-      item_lista_servico: item?.item_lista_servico || null,
-      municipio_incidencia_iss: item?.municipio_incidencia_iss || null,
-      natureza_operacao_iss: item?.natureza_operacao_iss || null,
-      impostoISS: item?.impostoISS ?? item?.imposto_iss ?? null,
-    })),
-    totalPago: venda && (venda.totalPago || 0),
-  };
-}
-/**
- * Detecta se o cliente é pessoa jurídica (destinatário com CNPJ).
- * Usado pela regra do Ajuste SINIEF 11/2025: NFC-e somente para pessoa física.
- */
-function _clienteEhPJ(cliente) {
-  if (!cliente) return false;
-  if (String(cliente.tipo_pessoa || "").toUpperCase() === "J") return true;
-  return String(cliente.cnpj || "").replace(/\D/g, "").length > 0;
-}
-
-/**
- * Define o tipo de nota mais adequado para uma venda, respeitando a
- * configuração da empresa (mesma regra documentada no FiscalPayloadBuilder):
- *  - Serviço (vinda de agendamento ou item tipo serviço) → NFS-e se habilitada;
- *  - Produtos → NFC-e se habilitada, senão NF-e;
- *  - Se nada habilitado → null (fluxo fiscal não se aplica a esta venda).
- *
- * REGRA FISCAL (Ajuste SINIEF 11/2025 — vigente desde 03/11/2025): NFC-e
- * somente pode ser emitida para consumidor final PESSOA FÍSICA. Destinatário
- * PJ (CNPJ) exige NF-e modelo 55: quando a empresa também emite NF-e o tipo é
- * trocado automaticamente; caso contrário retorna null (bloqueia a emissão).
- * Venda sem cliente identificado (balcão) continua podendo ser NFC-e.
- */
-function resolveTipoNota(venda, config, agendamentoId = null, cliente = null) {
-  if (!config) return null;
-
-  const idAgendamento = agendamentoId || _agendamentoIdVenda(venda);
-  const itens = _asArray(venda && venda.itens);
-  const tipos = itens.map((i) =>
-    String(i?.tipo || (i && i.produto && i.produto.tipo) || "").toLowerCase(),
-  );
-  const ehServico =
-    !!idAgendamento ||
-    tipos.includes("servico") ||
-    tipos.includes("serviço") ||
-    tipos.includes("servicos");
-
-  let tipo = null;
-  if (ehServico && config.emitir_nfse) tipo = "nfse";
-  else if (config.emitir_nfce) tipo = "nfce";
-  else if (config.emitir_nfe) tipo = "nfe";
-  else if (config.emitir_nfse) tipo = "nfse";
-
-  // Destinatário PJ não pode receber NFC-e (Ajuste SINIEF 11/2025)
-  if (tipo === "nfce" && _clienteEhPJ(cliente)) {
-    if (config.emitir_nfe) return "nfe";
-    return null; // PJ e apenas NFC-e habilitada → sem fluxo válido
-  }
-  return tipo;
-}
-
-/**
- * Marca uma nota (e a venda vinculada) com erro de emissão, sem nunca
- * simular autorização.
- */
-async function _marcarErroNota(nota, venda, fase, erro) {
-  let mensagem =
-    (erro && erro.message) || String(erro || "Erro desconhecido na emissão");
-
-  // Mensagens amigáveis para o cenário de testes internos (sem certificado)
-  if (/não implementado/i.test(mensagem)) {
-    mensagem =
-      "Emissão real não iniciada: a integração com o provedor de notas ainda não está ativa nesta instalação (testes internos sem certificado digital).";
-  }
-
-  // Provedor bloqueou a emissão porque a empresa/CNPJ ainda não está habilitado
-  // para o tipo de documento (ex.: Focus NFe — "Empresa ainda não habilitada
-  // para emissão de NFCe"). Orienta o usuário em vez de devolver o texto cru.
-  if (/n[ãa]o habilitada para emiss[ãa]o/i.test(mensagem)) {
-    mensagem =
-      "Empresa ainda não habilitada para este tipo de documento no provedor fiscal " +
-      "(ex.: Focus NFe). Habilite a empresa para NFC-e/NF-e no painel do provedor ou " +
-      "contate o suporte deles. Alternativa para testes: ajuste os tipos de emissão " +
-      "(NF-e/NFC-e/NFS-e) em Configurações → Fiscal.";
-  }
-
-  const resposta = {
-    sucesso: false,
-    fase,
-    mensagem,
-    detalhe_erro: (erro && erro.message) || null,
-    data: new Date().toISOString(),
-  };
-
-  await nota
-    .update({ status: "erro", resposta_api: resposta })
-    .catch(() => {});
-
-  if (venda && !["emitida", "cancelada"].includes(venda.status_fiscal)) {
-    venda.status_fiscal = "erro";
-    await venda.save().catch(() => {});
-  }
-}
-
-/**
- * Consulta o provedor algumas vezes até a nota ter desfecho (autorizada ou
- * cancelada). Retorna o resultado final ou null se continuar processando.
- * Usado no fluxo assíncrono (ex.: Focus NFe responde "processando_autorizacao").
- */
-async function _consultarAteFinalizar(
-  service,
-  referencia,
-  tipoDocumento = "nfe",
-  maxTentativas = 4,
-  intervaloMs = 2000,
-) {
-  for (let tentativa = 0; tentativa < maxTentativas; tentativa++) {
-    await new Promise((r) => setTimeout(r, intervaloMs));
-    try {
-      const st = await service.consultar(referencia, tipoDocumento);
-      const status = String((st && st.status) || "");
-      if (["autorizado", "cancelado", "erro_autorizacao"].includes(status)) {
-        return st;
-      }
-    } catch (_) {
-      // 404/instabilidade logo após o envio é comum — segue tentando
-    }
-  }
-  return null;
+// O PetHub não divide automaticamente uma venda mista em dois documentos.
+function resolveTipoNota(venda, config, agendamentoId, cliente) {
+  if (!config?.ativo) return null;
+  const itens = _asArray(venda?.itens);
+  const classes = itens.map(item => String(item.tipo || item.produto?.tipo || "").toLowerCase());
+  const servicos = classes.filter(tipo => ["servico", "serviço", "servicos", "serviços"].includes(tipo)).length;
+  if (servicos && servicos < itens.length) throw Object.assign(new Error("Venda mista: separe produtos e serviços para emitir documentos distintos."), {status:400});
+  if (servicos || ((!classes.length || classes.every(tipo => !tipo)) && agendamentoId)) return config.emitir_nfse ? "nfse" : null;
+  if ((cliente?.cnpj || cliente?.tipo_pessoa === "J") && config.emitir_nfe) return "nfe";
+  return config.emitir_nfce ? "nfce" : config.emitir_nfe ? "nfe" : null;
 }
 
 /**
@@ -226,16 +101,16 @@ async function _consultarAteFinalizar(
 function _mesclarCadastroNosItens(itens, produtos) {
   const mapa = new Map();
   for (const p of Array.isArray(produtos) ? produtos : []) {
-    const idNum = Number(p && p.id);
-    if (Number.isInteger(idNum) && idNum > 0) {
-      mapa.set(idNum, p && p.get ? p.get({ plain: true }) : p);
+    const id = p?.id;
+    if (id != null) {
+      mapa.set(String(id), p && p.get ? p.get({ plain: true }) : p);
     }
   }
   if (!mapa.size) return itens;
 
   for (const it of Array.isArray(itens) ? itens : []) {
     if (!it || typeof it !== "object") continue;
-    const pid = Number(
+    const pid = String(
       (it.produto && it.produto.id) ?? it.produtoId ?? it.id,
     );
     const cadastro = mapa.get(pid);
@@ -252,300 +127,121 @@ function _mesclarCadastroNosItens(itens, produtos) {
  * Enriquece venda.itens com o cadastro atual dos produtos (em memória — não
  * altera a venda gravada). Chamada antes de montar o payload fiscal.
  */
-async function _enriquecerItensVendaComCadastro(venda, { produtoModel } = {}) {
-  try {
-    if (!venda) return;
-    const itens = _asArray(venda.itens);
-    if (!itens.length) return;
-
-    const ids = [];
-    for (const it of itens) {
-      const pid = Number(
-        (it && ((it.produto && it.produto.id) ?? it.produtoId ?? it.id)) ||
-          0,
-      );
-      if (Number.isInteger(pid) && pid > 0) ids.push(pid);
-    }
-    if (!ids.length) return;
-
-    const ProdutoModel = produtoModel || Produto;
-    const produtos = await ProdutoModel.findAll({
-      where: { id: { [Op.in]: [...new Set(ids)] } },
-    });
-
-    _mesclarCadastroNosItens(itens, produtos);
-
-    // Reflete em venda.itens quando veio como array (JSON) — sem persistir.
-    if (Array.isArray(venda.itens)) venda.itens = itens;
-  } catch (e) {
-    console.warn(
-      "[fiscal] Falha ao enriquecer itens com cadastro de produtos:",
-      e && e.message,
-    );
-  }
+async function _enriquecerItensVendaComCadastro(venda, { produtoModel, transaction } = {}) {
+  const itens = _asArray(venda.itens);
+  const idItem = it => it.produto?.id ?? it.produtoId ?? it.id;
+  const ids = itens.filter(Boolean).map(idItem).filter(id => id != null).map(String);
+  const produtos = ids.length ? await (produtoModel || Produto).findAll({
+    transaction,
+    where: { empresa_id: venda.empresa_id, id: { [Op.in]: [...new Set(ids)] } }
+  }) : [];
+  venda.itens = _mesclarCadastroNosItens(itens, produtos);
 }
 
 /**
  * Núcleo da emissão: executa a transmissão via FiscalServiceFactory + payload.
  * Sempre deixa o ciclo da nota em um estado coerente (autorizada/erro).
  */
+// Antes da transmissão gravamos uma referência estável. Um retry consulta a
+// mesma referência, inclusive após falha de rede ou reinício da API.
 async function _emitirNotaRecord(nota) {
-  if (nota.status === "autorizada") {
-    return { nota, emitida: true, status: "autorizada", motivo: null };
-  }
-
-  const venda = nota.venda_id
-    ? await Venda.findByPk(nota.venda_id).catch(() => null)
-    : null;
-
-  const config = await ConfiguracaoFiscal.findOne({
-    where: { empresa_id: nota.empresa_id },
+  const resultado = (motivo = null) => ({
+    nota, status: nota.status, emitida: nota.status === "autorizada", motivo,
   });
+  if (["autorizada","cancelada","denegada","inutilizada"].includes(nota.status))
+    return resultado(nota.status === "autorizada" ? null : "Documento em estado final.");
+  const config = await ConfiguracaoFiscal.findOne({ where: { empresa_id: nota.empresa_id } });
+  if (!config || !config.ativo || !config["emitir_" + nota.tipo])
+    return resultado("Emissão desativada para esta empresa ou tipo de documento.");
+  if (nota.ambiente !== config.ambiente)
+    return resultado("O ambiente da nota diverge da configuração. A transmissão foi bloqueada.");
+  if (nota.tipo === "nfse" || config.provedor_api !== "focusnfe")
+    return resultado("Integração disponível para NF-e e NFC-e via Focus. NFS-e e demais provedores ainda não estão implementados.");
+  if (!config.token_api) return resultado("Informe o token do ambiente selecionado em Configuração Fiscal.");
 
-  // ── Pré-validações de preparação (não exigem chamada ao provedor) ──
-  let preparacaoErro = null;
-  if (!config) {
-    preparacaoErro =
-      "Configuração fiscal não encontrada para esta empresa. Configure o módulo em Configurações → Fiscal.";
-  } else if (!config.provedor_api) {
-    preparacaoErro =
-      "Nenhum provedor de emissão selecionado. Acesse Configurações → Fiscal e selecione um provedor.";
-  } else if (!config.token_api && !config.certificado_digital) {
-    preparacaoErro =
-      "Emissão real não iniciada: credencial do provedor ausente (testes internos sem certificado digital configurado).";
-  } else if (!config.emitir_nfe && !config.emitir_nfce && !config.emitir_nfse) {
-    preparacaoErro =
-      "Nenhum tipo de emissão (NF-e/NFC-e/NFS-e) está habilitado na configuração fiscal.";
-  }
-
-  if (preparacaoErro) {
-    await _marcarErroNota(nota, venda, "preparacao", new Error(preparacaoErro));
-    const notaAtual = await NotaFiscal.findByPk(nota.id);
-    return {
-      nota: notaAtual,
-      emitida: false,
-      status: "erro",
-      motivo: preparacaoErro,
-    };
-  }
-
+  const venda = await Venda.findOne({ where: { id: nota.venda_id || 0, empresa_id: nota.empresa_id } });
+  if (!venda) return resultado("Venda da empresa não encontrada. Não há origem válida para transmitir.");
+  const ref = nota.numero_requisicao || String(nota.id);
+  const estadoAnterior = nota.status;
+  const service = FiscalServiceFactory.create(config);
+  let resposta;
+  let transmitir = !nota.numero_requisicao && estadoAnterior !== "aguardando";
   try {
-    const empresa = nota.empresa_id
-      ? await Empresa.findByPk(nota.empresa_id)
-      : null;
-    const cliente =
-      venda && venda.clienteId
-        ? await Cliente.findByPk(venda.clienteId).catch(() => null)
-        : null;
-
-    // Dados fiscais SEMPRE do cadastro atual dos produtos: a venda grava
-    // apenas um snapshot mínimo (nome+id) nos itens; sem isto, produtos com
-    // NCM/CEST/CFOP cadastrados DEPOIS da venda não emitiriam.
-    if (nota.tipo !== "nfse") {
+    if (!transmitir) {
+      try { resposta = await service.consultar(ref, nota.tipo); }
+      catch (err) {
+        if (err.code === "FOCUS_404") {
+          if (estadoAnterior === "aguardando" && Date.now() - new Date(nota.updatedAt).getTime() < 120000)
+            return resultado("Aguardando confirmação da referência pelo provedor.");
+          transmitir = true;
+        } else if (err.code === "FOCUS_RECUSOU" && estadoAnterior === "erro") {
+          transmitir = true;
+        } else throw err;
+      }
+    }
+    if (transmitir) {
+      const empresa = await Empresa.findByPk(nota.empresa_id);
+      const cliente = venda.clienteId ? await Cliente.findOne({ where: { id: venda.clienteId, empresa_id: nota.empresa_id } }) : null;
+      if (!empresa || (venda.clienteId && !cliente)) throw new Error("Emitente ou destinatário não pertence à empresa da nota.");
       await _enriquecerItensVendaComCadastro(venda);
-    }
-
-    let payload;
-    if (nota.tipo === "nfse") {
-      const idAgendamento = nota.agendamento_id || _agendamentoIdVenda(venda);
-      let agendamento = null;
-      if (idAgendamento) {
-        agendamento = await Agendamento.findByPk(idAgendamento).catch(() => null);
-      }
-      const origem = agendamento || _sinteticaDeVenda(venda);
-      payload = FiscalPayloadBuilder.buildNFSe(origem, empresa, config, cliente);
-    } else {
-      payload = FiscalPayloadBuilder.buildNFe(venda, empresa, config, cliente);
-    }
-
-    // Referência única da nota no provedor (usada em consultas/cancelamentos)
-    payload._notaId = nota.id;
-    // Tipo real do documento (nfe | nfce) — define o endpoint do provedor
-    payload._notaTipo = nota.tipo;
-
-    // Marca como "aguardando" (Emitindo) antes de chamar o provedor
-    await nota
-      .update({
-        status: "aguardando",
-        numero_requisicao: nota.numero_requisicao ?? null,
-      })
-      .catch(() => {});
-
-    const service = FiscalServiceFactory.create(config);
-
-    let resposta = null;
-
-    // Se a nota já tem referência de uma tentativa anterior (enviada e ainda
-    // em processamento), consulta o status atual ANTES de retransmitir —
-    // evita reenviar uma referência já aceita pelo provedor.
-    if (
-      typeof service.consultar === "function" &&
-      nota.numero_requisicao &&
-      !["autorizada", "cancelada", "inutilizada"].includes(nota.status)
-    ) {
-      try {
-        const st = await service.consultar(
-          nota.numero_requisicao,
-          nota.tipo,
-        );
-        const stStatus = String((st && st.status) || "");
-        if (["autorizado", "cancelado"].includes(stStatus)) {
-          resposta = st; // já tem desfecho — usa direto
-        } else if (stStatus !== "erro_autorizacao") {
-          resposta = st; // ainda processando — segue para o fluxo de espera
-        }
-        // erro_autorizacao → pode reenviar com a mesma referência
-      } catch (_) {
-        resposta = null; // consulta falhou → segue para nova transmissão
-      }
-    }
-
-    // Transmite (apenas se a consulta anterior não trouxe desfecho)
-    if (!resposta) {
+      if (resolveTipoNota(venda, config, _agendamentoIdVenda(venda), cliente) !== nota.tipo)
+        throw new Error("O tipo de nota é incompatível com os itens da venda.");
+      const payload = FiscalPayloadBuilder.buildNFe(venda, empresa, config, cliente);
+      payload._notaId = ref;
+      payload._notaTipo = nota.tipo;
+      const [reservada] = await NotaFiscal.update({ status: "aguardando", numero_requisicao: ref }, {
+        where: { id: nota.id, empresa_id: nota.empresa_id, status: estadoAnterior, updatedAt: nota.updatedAt }
+      });
+      if (!reservada) { await nota.reload(); return resultado("Outro pedido já processou esta nota."); }
+      await nota.reload();
       resposta = await service.transmitir(payload);
-
-      // Fluxo assíncrono: provedor aceitou e está processando na SEFAZ
-      if (
-        ["processando_autorizacao", "aguardando"].includes(
-          String((resposta && resposta.status) || ""),
-        )
-      ) {
-        const referencia =
-          resposta?.ref || resposta?.referencia || resposta?.numero_requisicao;
-        if (referencia) {
-          await nota
-            .update({
-              status: "aguardando",
-              numero_requisicao: String(referencia),
-              resposta_api: resposta.dados || resposta,
-            })
-            .catch(() => {});
-          const final = await _consultarAteFinalizar(
-            service,
-            String(referencia),
-            nota.tipo,
-          );
-          if (
-            final &&
-            ["autorizado", "cancelado"].includes(String(final.status))
-          ) {
-            resposta = final;
-          }
-        }
-      }
     }
-
-    // Ainda em processamento após a espera — mantém "aguardando"
-    if (
-      resposta &&
-      ["processando_autorizacao", "aguardando"].includes(
-        String(resposta.status || ""),
-      )
-    ) {
-      await nota.update({
-        status: "aguardando",
-        numero_requisicao:
-          resposta.ref || resposta.referencia || nota.numero_requisicao,
-        resposta_api: resposta.dados || resposta,
-      });
-      const notaAtualizada = await NotaFiscal.findByPk(nota.id);
-      return {
-        nota: notaAtualizada,
-        emitida: false,
-        status: "aguardando",
-        motivo:
-          "Nota enviada ao provedor e em processamento na SEFAZ. Em alguns segundos, " +
-          "clique em 'Tentar emitir novamente' — o sistema consultará o status e concluirá.",
-      };
-    }
-
-    // Cancelada no provedor (caso raro, em retentativa)
-    if (resposta && String(resposta.status || "") === "cancelado") {
-      await nota.update({
-        status: "cancelada",
-        motivo_cancelamento: "Cancelada no provedor fiscal.",
-        resposta_api: resposta.dados || resposta,
-      });
-      if (venda && venda.status_fiscal !== "emitida") {
-        venda.status_fiscal = "cancelada";
-        await venda.save().catch(() => {});
-      }
-      const notaAtualizada = await NotaFiscal.findByPk(nota.id);
-      return {
-        nota: notaAtualizada,
-        emitida: false,
-        status: "cancelada",
-        motivo: "A nota consta como cancelada no provedor fiscal.",
-      };
-    }
-
-    // ── Sucesso real do provedor ──
-    const dados =
-      (resposta && (resposta.dados || resposta.notaFiscal || resposta.nota)) ||
-      resposta ||
-      {};
-    const numero = dados.numero ?? resposta?.numero ?? nota.numero ?? null;
-    const serie = dados.serie || resposta?.serie || nota.serie || null;
-    const chave =
-      dados.chaveAcesso ||
-      dados.chave_acesso ||
-      dados.chave_nfe ||
-      dados.chave ||
-      resposta?.chaveAcesso ||
-      resposta?.chave_acesso ||
-      resposta?.chave ||
-      null;
-    const protocolo =
-      dados.protocolo || resposta?.protocolo || resposta?.id || null;
-    const xml = dados.xml || resposta?.xml || null;
-
-    await nota.update({
-      status: "autorizada",
-      numero: numero ?? nota.numero,
-      serie: serie ?? nota.serie,
-      chave_acesso: chave || nota.chave_acesso,
-      protocolo: protocolo || null,
-      numero_requisicao:
-        resposta?.ref || resposta?.referencia || nota.numero_requisicao,
-      xml_autorizado: xml || nota.xml_autorizado,
-      data_emissao: new Date(),
-      data_autorizacao: new Date(),
-      resposta_api: resposta || { sucesso: true },
-    });
-
-    if (venda) {
-      venda.status_fiscal = "emitida";
-      venda.numero_nfe = numero ?? null;
-      venda.serie_nfe = serie ?? null;
-      venda.chave_acesso_nfe = chave || null;
-      venda.protocolo_nfe = protocolo || null;
-      venda.data_emissao_nfe = new Date();
-      venda.xml_nfe = xml || null;
-      await venda.save().catch(() => {});
-    }
-
-    const notaAtualizada = await NotaFiscal.findByPk(nota.id);
-    return {
-      nota: notaAtualizada,
-      emitida: true,
-      status: "autorizada",
-      motivo: null,
-    };
   } catch (err) {
-    // Adapters são stubs hoje → cai aqui sem simular autorização
-    await _marcarErroNota(nota, venda, "transmissao", err);
-    const notaAtualizada = await NotaFiscal.findByPk(nota.id);
-    return {
-      nota: notaAtualizada,
-      emitida: false,
-      status: "erro",
-      motivo:
-        (err && err.message) ||
-        "Erro ao tentar transmitir a nota fiscal para o provedor.",
-    };
+    // Uma falha de transporte pode ocorrer após o provedor aceitar a requisição.
+    const incerto = nota.numero_requisicao && (err.code === "FOCUS_CONEXAO" || err.status >= 500 || err.status === 429);
+    if (incerto) return resultado("Resposta indisponível. Consulte novamente a mesma referência.");
+    await gravarResultado("erro", { mensagem: err.message });
+    return resultado(err.message);
+  }
+
+  async function gravarResultado(status, dados, campos = {}) {
+    await NotaFiscal.sequelize.transaction(async transaction => {
+      const atual = await NotaFiscal.findByPk(nota.id, { transaction, lock: transaction.LOCK.UPDATE });
+      if (!["aguardando", "erro", "rascunho"].includes(atual.status)) return;
+      const numero_requisicao = atual.numero_requisicao || (estadoAnterior === "aguardando" ? ref : null);
+      await atual.update({ status, numero_requisicao, resposta_api: dados, ...campos }, {transaction});
+      if (nota.ambiente === "producao") {
+        const campoVenda = { autorizada: "emitida", cancelada: "cancelada", erro: "erro", denegada: "erro" }[status];
+        if (campoVenda) await venda.update(status === "autorizada" ? {
+          status_fiscal: campoVenda, numero_nfe: atual.numero, serie_nfe: atual.serie,
+          chave_acesso_nfe: atual.chave_acesso, protocolo_nfe: atual.protocolo,
+          data_emissao_nfe: atual.data_emissao, xml_nfe: atual.xml_autorizado
+        } : { status_fiscal: campoVenda }, {transaction});
+      }
+    });
+    await nota.reload();
+  }
+
+  switch (resposta?.status) {
+    case "autorizado": {
+      if (!/^\d{44}$/.test(resposta.chave_acesso || "") || resposta.numero == null) {
+        await gravarResultado("aguardando", { mensagem: "Resposta de autorização sem número ou chave." });
+        return resultado("Confirmação incompleta. Consulte novamente pelo mesmo documento.");
+      }
+      await gravarResultado("autorizada", resposta, { numero: resposta.numero, serie: resposta.serie || nota.serie,
+        chave_acesso: resposta.chave_acesso, protocolo: resposta.protocolo, xml_autorizado: resposta.xml,
+        data_emissao: new Date(resposta.dados?.data_emissao || Date.now()), data_autorizacao: new Date() });
+      return resultado();
+    }
+    case "cancelado": await gravarResultado("cancelada", resposta); return resultado("Cancelamento confirmado pelo provedor.");
+    case "denegado": await gravarResultado("denegada", resposta); return resultado("Denegação confirmada pelo provedor.");
+    case "erro_autorizacao": await gravarResultado("erro", resposta); return resultado("Rejeitada pelo provedor.");
+    default:
+      await gravarResultado("aguardando", resposta || {});
+      return resultado("Sem autorização confirmada. Consulte novamente a mesma nota na Central Fiscal.");
   }
 }
-// ─────────────────────────────────────────────────────────────────────────────
+
 // API pública do serviço
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -588,97 +284,82 @@ async function fluxoParaFront(empresaId) {
  * vinculada à venda. Sem emitir. É o que alimenta a Central Fiscal nos
  * modos manual / lote / confirmação "não emitir agora".
  */
-async function registrarNotaPendente({ vendaId, empresaId }) {
-  const venda = await Venda.findByPk(vendaId);
-  if (!venda) {
-    const e = new Error("Venda não encontrada");
-    e.status = 404;
-    throw e;
-  }
-  if (Number(venda.empresa_id) !== Number(empresaId)) {
-    const e = new Error("Acesso negado");
-    e.status = 403;
-    throw e;
-  }
+const registrosEmCurso = new Map();
+const emissoesEmCurso = new Map();
+function unicaExecucao(mapa, chave, tarefa) {
+  if (mapa.has(chave)) return mapa.get(chave);
+  const execucao = Promise.resolve().then(tarefa).finally(() => mapa.delete(chave));
+  mapa.set(chave, execucao);
+  return execucao;
+}
+function registrarNotaPendente(args) {
+  return unicaExecucao(registrosEmCurso, args.empresaId + ":" + args.vendaId, () => registrarComBloqueio(args));
+}
+async function registrarComBloqueio({ vendaId, empresaId }) {
+  return Venda.sequelize.transaction(async transaction => {
+    const venda = await Venda.findOne({ where: { id: vendaId, empresa_id: empresaId }, transaction, lock: transaction.LOCK.UPDATE });
+    if (!venda) {
+      const e = new Error("Venda não encontrada");
+      e.status = 404;
+      throw e;
+    }
+    if (Number(venda.empresa_id) !== Number(empresaId)) {
+      const e = new Error("Acesso negado");
+      e.status = 403;
+      throw e;
+    }
 
-  const config = await ConfiguracaoFiscal.findOne({
-    where: { empresa_id: empresaId },
-  });
-  if (!config) {
-    const e = new Error(
-      "Configuração fiscal não encontrada para esta empresa.",
-    );
-    e.status = 400;
-    throw e;
-  }
-
-  const idAgendamento = _agendamentoIdVenda(venda);
-
-  // Cliente carregado ANTES de resolver o tipo: a regra do Ajuste SINIEF
-  // 11/2025 depende do documento do destinatário (PJ → NF-e, não NFC-e).
-  const cliente = venda.clienteId
-    ? await Cliente.findByPk(venda.clienteId).catch(() => null)
-    : null;
-
-  const tipo = resolveTipoNota(venda, config, idAgendamento, cliente);
-  if (!tipo) {
-    // Diferencia a causa para orientar corretamente o usuário
-    const msg = _clienteEhPJ(cliente)
-      ? "Destinatário pessoa jurídica (CNPJ) exige NF-e (modelo 55), mas a " +
-        "NF-e não está habilitada. Habilite 'Emitir NF-e' em Configurações → Fiscal."
-      : "Emissão de nota fiscal não habilitada para esta venda (configuração da empresa).";
-    const e = new Error(msg);
-    e.status = 400;
-    throw e;
-  }
-
-  // Reaproveitar nota pendente existente (idempotente por venda)
-  let nota = await NotaFiscal.findOne({
-    where: {
-      empresa_id: empresaId,
-      venda_id: vendaId,
-      status: { [Op.in]: ["rascunho", "erro", "aguardando"] },
-    },
-    order: [["createdAt", "DESC"]],
-  });
-
-  // Se a nota reaproveitada tem tipo diferente do necessário agora (ex.:
-  // pendente antiga como NFC-e e a regra PJ→NF-e passou a valer), atualiza —
-  // apenas em rascunho/erro. Notas "aguardando" já podem ter sido transmitidas:
-  // mantêm o tipo original para consulta/retransmissão funcionar.
-  if (
-    nota &&
-    nota.tipo !== tipo &&
-    ["rascunho", "erro"].includes(nota.status)
-  ) {
-    await nota.update({ tipo }).catch(() => {});
-  }
-
-  if (!nota) {
-    const totais = _asObject(venda.totais);
-    nota = await NotaFiscal.create({
-      empresa_id: empresaId,
-      venda_id: vendaId,
-      agendamento_id: idAgendamento || null,
-      tipo,
-      status: "rascunho",
-      ambiente: config.ambiente || "homologacao",
-      serie: config[`serie_${tipo}`] || null,
-      natureza_operacao:
-        config.natureza_operacao_padrao || "VENDA DE MERCADORIA",
-      destinatario_nome: (cliente && cliente.nome) || venda.cliente || null,
-      destinatario_documento: _documentoCliente(cliente),
-      valor_total: totais?.final ?? venda.totalPago ?? null,
+    const config = await ConfiguracaoFiscal.findOne({
+      where: { empresa_id: empresaId }, transaction,
     });
-  }
+    if (!config?.ativo) {
+      const e = new Error(
+        "Configuração fiscal não encontrada para esta empresa.",
+      );
+      e.status = 400;
+      throw e;
+    }
 
-  // Refletir na venda (não sobrescreve estados já consolidados)
-  if (!["emitida", "cancelada"].includes(venda.status_fiscal)) {
-    venda.status_fiscal = "pendente";
-    await venda.save().catch(() => {});
-  }
+    const idAgendamento = _agendamentoIdVenda(venda);
 
-  return { nota, venda, tipo };
+    // Mantém a preferência por NF-e para CNPJ quando ela está habilitada.
+    const cliente = venda.clienteId
+      ? await Cliente.findOne({ where: { id: venda.clienteId, empresa_id: empresaId }, transaction })
+      : null;
+
+    if (venda.clienteId && !cliente) throw Object.assign(new Error("Cliente da venda não pertence à empresa."), {status:400});
+    const existentes = await NotaFiscal.findAll({ where: { empresa_id: empresaId, venda_id: vendaId, ambiente: config.ambiente },
+      order: [["id","ASC"]], transaction, lock: transaction.LOCK.UPDATE });
+    const autorizada = existentes.find(n => n.status === "autorizada");
+    if (autorizada) return {nota:autorizada, venda, tipo:autorizada.tipo};
+    if (existentes.length > 1) throw Object.assign(new Error("Há mais de um registro fiscal para esta venda e ambiente. Confira as referências na Central antes de emitir."), {status:409});
+    let nota = existentes[0];
+    if (nota && (nota.numero_requisicao || !["rascunho","erro"].includes(nota.status))) return {nota, venda, tipo:nota.tipo};
+    await _enriquecerItensVendaComCadastro(venda, {transaction});
+    const tipo = resolveTipoNota(venda, config, idAgendamento, cliente);
+    if (!tipo) throw Object.assign(new Error("Documento não habilitado para a natureza dos itens."), {status:400});
+    if (nota && nota.tipo !== tipo) await nota.update({tipo, serie: config["serie_" + tipo]}, {transaction});
+    if (!nota) {
+      const totais = _asObject(venda.totais);
+      nota = await NotaFiscal.create({
+        empresa_id: empresaId,
+        venda_id: vendaId,
+        agendamento_id: idAgendamento || null,
+        tipo,
+        status: "rascunho",
+        ambiente: config.ambiente || "homologacao",
+        serie: config[`serie_${tipo}`] || null,
+        natureza_operacao:
+          config.natureza_operacao_padrao || "VENDA DE MERCADORIA",
+        destinatario_nome: (cliente && cliente.nome) || venda.cliente || null,
+        destinatario_documento: _documentoCliente(cliente),
+        valor_total: totais?.final ?? venda.totalPago ?? null,
+      }, {transaction});
+    }
+    if (config.ambiente === "producao" && !["emitida","cancelada"].includes(venda.status_fiscal))
+      await venda.update({status_fiscal:"pendente"}, {transaction});
+    return {nota, venda, tipo};
+  });
 }
 /**
  * Emite a nota de uma venda. Primeiro garante o registro pendente (criando se
@@ -686,7 +367,7 @@ async function registrarNotaPendente({ vendaId, empresaId }) {
  */
 async function emitirNotaPorVenda({ vendaId, empresaId }) {
   const { nota } = await registrarNotaPendente({ vendaId, empresaId });
-  return _emitirNotaRecord(nota);
+  return unicaExecucao(emissoesEmCurso, nota.empresa_id + ":" + nota.id, () => _emitirNotaRecord(nota));
 }
 
 /** Emite uma nota já cadastrada (Central Fiscal, lote, retentativa). */
@@ -697,12 +378,12 @@ async function emitirNotaPorId({ notaId, empresaId }) {
     e.status = 404;
     throw e;
   }
-  return _emitirNotaRecord(nota);
+  return unicaExecucao(emissoesEmCurso, nota.empresa_id + ":" + nota.id, () => _emitirNotaRecord(nota));
 }
 
 /** Emissão em lote (Central Fiscal) — valida a empresa de cada nota. */
 async function emitirLote({ notasIds, empresaId }) {
-  const ids = Array.isArray(notasIds) ? notasIds : [];
+  const ids = [...new Set(notasIds.map(Number))];
   const resultados = [];
 
   for (const id of ids) {
@@ -716,7 +397,9 @@ async function emitirLote({ notasIds, empresaId }) {
       });
       continue;
     }
-    const r = await _emitirNotaRecord(nota);
+    let r;
+    try { r = await emitirNotaPorId({notaId: nota.id, empresaId}); }
+    catch (err) { r = {emitida:false, status:nota.status, motivo:err.message}; }
     resultados.push({
       nota_id: id,
       emitida: r.emitida,
@@ -729,91 +412,23 @@ async function emitirLote({ notasIds, empresaId }) {
   return {
     processadas: resultados.length,
     emitidas,
-    comErro: resultados.length - emitidas,
+    comErro: resultados.filter(r => !r.emitida && r.status !== "aguardando").length,
+    aguardando: resultados.filter(r => r.status === "aguardando").length,
     resultados,
   };
 }
 
-/**
- * Gera o PDF de DANFE (impressão) para uma nota AUTORIZADA.
- * Usa pdfkit (já utilizado pelo sistema) para gerar localmente, sem depender
- * da integração do provedor — mas apenas para notas realmente autorizadas.
- */
-async function gerarDanfe({ notaId, empresaId }) {
-  const nota = await NotaFiscal.findByPk(notaId);
-  if (!nota || Number(nota.empresa_id) !== Number(empresaId)) {
-    const e = new Error("Nota fiscal não encontrada");
-    e.status = 404;
-    throw e;
-  }
-  if (nota.status !== "autorizada") {
-    const e = new Error(
-      "O DANFE só está disponível para notas autorizadas pelo provedor/SEFAZ.",
-    );
-    e.status = 400;
-    throw e;
-  }
-
-  const empresa = nota.empresa_id
-    ? await Empresa.findByPk(nota.empresa_id).catch(() => null)
-    : null;
-
-  const valor = nota.valor_total
-    ? `R$ ${Number(nota.valor_total).toFixed(2).replace(".", ",")}`
-    : "—";
-
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ size: "A4", margin: 40 });
-    const chunks = [];
-    doc.on("data", (c) => chunks.push(c));
-    doc.on("end", () => resolve(Buffer.concat(chunks)));
-    doc.on("error", reject);
-
-    doc.font("Helvetica-Bold").fontSize(20).text("DANFE");
-    doc
-      .font("Helvetica")
-      .fontSize(12)
-      .text(`Documento Auxiliar da ${nota.tipo.toUpperCase()}`);
-
-    doc.moveDown();
-    doc.fontSize(10);
-    doc.text(
-      `Nota ${nota.tipo.toUpperCase()} Nº ${nota.numero || "—"} / Série ${nota.serie || "001"}`,
-    );
-    doc.text(`Chave de acesso: ${nota.chave_acesso || "—"}`);
-    doc.text(`Protocolo: ${nota.protocolo || "—"}`);
-    doc.text(
-      `Dados de emissão: ${nota.data_emissao ? nota.data_emissao.toLocaleString("pt-BR") : new Date().toLocaleString("pt-BR")}`,
-    );
-    doc.text(
-      `Ambiente: ${nota.ambiente === "producao" ? "Produção" : "Homologação (testes)"}`,
-    );
-
-    doc.moveDown();
-    doc.text("─".repeat(70));
-    doc.text("Emitente:");
-    doc.text(
-      `${empresa ? (empresa.razaoSocial || empresa.nome) : "— empresa não informada"}`,
-    );
-    doc.text(`CNPJ: ${(empresa && empresa.cnpj) || "—"}`);
-
-    doc.moveDown();
-    doc.text("Destinatário:");
-    doc.text(`${nota.destinatario_nome || "—"}`);
-    doc.text(`Documento: ${nota.destinatario_documento || "—"}`);
-
-    doc.moveDown();
-    doc.text("─".repeat(70));
-    doc.text(`Valor total: ${valor}`);
-    doc.text(`Natureza da operação: ${nota.natureza_operacao || "—"}`);
-
-    doc.moveDown();
-    doc.text(
-      "Documento impresso para fins de consulta/controle. Emitido pelo sistema PetHub.",
-      { align: "center" },
-    );
-    doc.end();
-  });
+async function arquivoAutorizado({notaId, empresaId}, formato) {
+  const nota = await NotaFiscal.findOne({where:{id:notaId,empresa_id:empresaId}});
+  if (!nota) throw Object.assign(new Error("Nota fiscal não encontrada"), {status:404});
+  if (nota.status !== "autorizada") throw Object.assign(new Error("Documento ainda não autorizado."), {status:400});
+  if (formato === "xml" && nota.xml_autorizado) return nota.xml_autorizado;
+  const config = await ConfiguracaoFiscal.findOne({where:{empresa_id:empresaId}});
+  if (!config || config.ambiente !== nota.ambiente || config.provedor_api !== "focusnfe" || !nota.numero_requisicao)
+    throw Object.assign(new Error("Consulte o arquivo no mesmo provedor e ambiente da emissão."), {status:409});
+  const adapter = FiscalServiceFactory.create(config);
+  return formato === "pdf" ? adapter.downloadDanfe(nota.numero_requisicao, nota.tipo)
+                           : adapter.downloadXml(nota.numero_requisicao, nota.tipo);
 }
 
 module.exports = {
@@ -822,7 +437,8 @@ module.exports = {
   emitirNotaPorVenda,
   emitirNotaPorId,
   emitirLote,
-  gerarDanfe,
+  gerarDanfe: args => arquivoAutorizado(args, "pdf"),
+  obterXml: args => arquivoAutorizado(args, "xml"),
   _mesclarCadastroNosItens,
   _enriquecerItensVendaComCadastro,
 };

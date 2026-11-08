@@ -351,7 +351,7 @@ async function authUser(req, res, next) {
     }
   }
 
-  if (["/api/marketing", "/api/instancias", "/api/disparador", "/api/produto-lembrete"].includes(req.baseUrl)) {
+  if (["/api/marketing", "/api/instancias", "/api/disparador", "/api/produto-lembrete", "/api/fiscal", "/api/notas-fiscais"].includes(req.baseUrl)) {
     return res.status(401).json({ mensagem: "Faça login novamente no ERP." });
   }
 
