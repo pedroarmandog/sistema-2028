@@ -4043,7 +4043,7 @@ function preencherFormulario(dados) {
     }
     if (dados.ncm) setVal("ncm", dados.ncm);
     if (dados.cest) setVal("cest", dados.cest);
-    for (const campo of ["cfop_padrao", "cst_icms", "csosn", "cst_pis", "cst_cofins"]) setVal(campo, dados[campo]);
+    for (const campo of ["cfop_padrao", "cst_icms", "csosn", "cst_pis", "cst_cofins", "cst_ipi", "aliq_icms", "aliq_pis", "aliq_cofins", "aliq_ipi"]) setVal(campo, dados[campo]);
 
     // Precificação - Converter DECIMAL strings para números
     if (dados.custoBase !== undefined && dados.custoBase !== null) {
@@ -4501,6 +4501,12 @@ async function salvarProduto(e) {
       csosn: dados.csosn?.trim() || null,
       cst_pis: dados.cst_pis?.trim() || null,
       cst_cofins: dados.cst_cofins?.trim() || null,
+      cst_ipi: dados.cst_ipi?.trim() || null,
+      aliq_icms: dados.aliq_icms ? Number(dados.aliq_icms) : null,
+      aliq_pis: dados.aliq_pis ? Number(dados.aliq_pis) : null,
+      aliq_cofins: dados.aliq_cofins ? Number(dados.aliq_cofins) : null,
+      aliq_ipi: dados.aliq_ipi ? Number(dados.aliq_ipi) : null,
+
 
     };
 

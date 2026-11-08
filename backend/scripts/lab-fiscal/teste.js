@@ -113,8 +113,8 @@ test("Ciclo fiscal interno, sem TiDB e sem transmissão externa", async t=>{
   await t.test("perfis com cálculo fiscal não suportado são bloqueados no adaptador", () => {
     const F = require("../../services/fiscal/adapters/FocusNFeAdapter");
     const item = {descricao:"Produto",ncm:"23091000",cfop:"5102",csosn:"102",cst_pis:"07",cst_cofins:"07"};
-    for (const alteracao of [{csosn:"201"},{aliq_pis:1.5},{cst_pis:"01"},{cst_ipi:"50"}]) {
-      assert.throws(() => F.montarPayloadNFe({itens:[{...item,...alteracao}]}), /cálculo/);
+    for (const [alteracao, mensagem] of [[{csosn:"201"},/CSOSN 201/],[{aliq_pis:1.5},/PIS CST 07/],[{cst_pis:"01"},/PIS CST 01 requer alíquota/],[{cst_ipi:"50"},/IPI cadastrado/]]) {
+      assert.throws(() => F.montarPayloadNFe({itens:[{...item,...alteracao}]}), mensagem);
     }
   });
   await t.test("corrigir tributação no cadastro e emitir a mesma venda sem duplicar a nota", async () => {
@@ -148,6 +148,26 @@ test("Ciclo fiscal interno, sem TiDB e sem transmissão externa", async t=>{
     assert.equal(fim.data.status,"autorizada");
     assert.equal(fim.data.nota.id,id);
     assert.equal(await lab.models.NotaFiscal.count({where:{venda_id:venda.id}}),1);
+  });
+  await t.test("revenda interna de R$ 189,75, desconto e bases percentuais por item", async () => {
+    const venda = await lab.models.Venda.findByPk(1);
+    const modelo = await lab.models.Produto.findByPk("RACAO-A");
+    const produto = await lab.models.Produto.create({...modelo.toJSON(),id:"TRIB-TESTE",csosn:null,cst_icms:"000",
+      cfop_padrao:"5102",aliq_icms:18,cst_pis:"01",aliq_pis:1.65,cst_cofins:"02",aliq_cofins:7.60});
+    const nova = await lab.models.Venda.create({empresa_id:1,clienteId:venda.clienteId,itens:[{
+      produto:{id:produto.id},quantidade:1,valorUnitario:200,totalBruto:200,totalFinal:189.75
+    }],totais:{final:189.75},totalPago:189.75,pagamentos:[{forma:"pix",valor:189.75}]});
+    const r=await api(notas+"/emitir",{venda_id:nova.id});
+    assert.equal(r.data.status,"aguardando", r.data.motivo);
+    const id=r.data.nota.id,item=lab.registros.get("nfce/"+id).body.itens[0];
+    assert.equal(item.icms_situacao_tributaria,"00");
+    assert.equal(item.icms_base_calculo,"189.75");
+    assert.equal(item.icms_valor,"34.16");
+    assert.equal(item.pis_base_calculo,"155.59");
+    assert.equal(item.pis_valor,"2.57");
+    assert.equal(item.cofins_base_calculo,"155.59");
+    assert.equal(item.cofins_valor,"11.82");
+    assert.equal((await api(notas+"/"+id+"/emitir",{})).data.status,"autorizada");
   });
   await t.test("consulta e configurações restritas à empresa e às permissões",async()=>{
     await lab.models.Usuario.update({permissoes:["vendas"]},{where:{id:1}});

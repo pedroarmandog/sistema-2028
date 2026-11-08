@@ -80,6 +80,66 @@ function _referencia(payload) {
   }
   return `nfe${Date.now()}`;
 }
+// Mercadorias de revenda: percentuais sobre o valor da operação, por item.
+// Quantias monetárias são arredondadas a centavos antes de compor a base seguinte.
+function tributosDoItem(item, situacao, bruto, tipoDocumento, localDestino) {
+  const nome = item.descricao + " (código " + item.codigo_produto + ")";
+  function bloquear(motivo) { throw new Error(nome + ": " + motivo); }
+  function percentual(imposto) {
+    const valor = Number(item["aliq_" + imposto] ?? 0);
+    if (!Number.isFinite(valor) || valor < 0 || valor > 100)
+      bloquear("alíquota de " + imposto.toUpperCase() + " inválida.");
+    return valor;
+  }
+  function calcular(base, taxa) {
+    // O modelo Produto armazena as alíquotas em centésimos de percentual.
+    return Math.round(base * Math.round(taxa * 100) / 10000);
+  }
+  function dinheiro(centavos) { return (centavos / 100).toFixed(2); }
+  function validarOperacao() {
+    if (String(item.cfop) !== "5102" || localDestino !== "1")
+      bloquear("o cálculo percentual desta versão cobre revenda interna com CFOP 5102. O CFOP cadastrado é " + item.cfop + ".");
+  }
+
+  if (item.cst_ipi || percentual("ipi") !== 0)
+    bloquear("IPI cadastrado (CST " + (item.cst_ipi || "ausente") + ", alíquota " + (item.aliq_ipi || 0) + "%). " +
+      (tipoDocumento === "nfce" ? "A NFC-e não admite grupo de IPI. Confira a operação e o modelo com o responsável fiscal." :
+      "O PetHub ainda não monta o grupo de IPI da NF-e."));
+  const liquido = Math.round(Number(bruto) * 100) - Math.round(Number(item.desconto || 0) * 100);
+  if (!Number.isSafeInteger(liquido) || liquido < 0) bloquear("valor líquido do item inválido.");
+  const campos = {};
+  let icms = 0;
+  const taxaICMS = percentual("icms");
+  if (situacao === "00" && !item.csosn) {
+    validarOperacao();
+    if (!taxaICMS) bloquear("CST ICMS 00 requer alíquota de ICMS positiva neste cálculo.");
+    icms = calcular(liquido, taxaICMS);
+    Object.assign(campos, {icms_modalidade_base_calculo:"3", icms_base_calculo:dinheiro(liquido),
+      icms_aliquota:taxaICMS.toFixed(2), icms_valor:dinheiro(icms)});
+  } else {
+    const aceitos = item.csosn ? ["102","103","300","400"] : ["40","41"];
+    if (!aceitos.includes(situacao))
+      bloquear((item.csosn ? "CSOSN " : "CST ICMS ") + situacao + " ainda não é suportado pelo adaptador.");
+    if (taxaICMS) bloquear("alíquota de ICMS " + taxaICMS + "% incompatível com o grupo de ICMS " + situacao + " implementado.");
+  }
+
+  for (const imposto of ["pis","cofins"]) {
+    const cst = String(item["cst_" + imposto]).trim();
+    const taxa = percentual(imposto);
+    const titulo = imposto.toUpperCase() + " CST " + cst;
+    if (["01","02"].includes(cst)) {
+      validarOperacao();
+      if (!taxa) bloquear(titulo + " requer alíquota positiva neste cálculo. Confira o cadastro.");
+      const base = liquido - icms;
+      campos[imposto + "_base_calculo"] = dinheiro(base);
+      campos[imposto + "_aliquota_porcentual"] = taxa.toFixed(2);
+      campos[imposto + "_valor"] = dinheiro(calcular(base, taxa));
+    } else if (!["04","06","07","08","09"].includes(cst)) {
+      bloquear(titulo + " ainda não é suportado pelo adaptador.");
+    } else if (taxa) bloquear(titulo + " com alíquota " + taxa + "% é incompatível com o grupo implementado.");
+  }
+  return campos;
+}
 class FocusNFeAdapter extends FiscalService {
   /**
    * @param {object} config - Instancia de ConfiguracaoFiscal da empresa
@@ -228,7 +288,14 @@ class FocusNFeAdapter extends FiscalService {
     const identificacao = item.descricao + " (código " + item.codigo_produto + ")";
     if (item?.csosn && item?.cst_icms) throw new Error("CST ICMS e CSOSN informados simultaneamente em " + identificacao + ". Em Editar Produto → Tributação do produto, mantenha apenas o código aplicável.");
     if (item && item.csosn) return String(item.csosn).padStart(3, "0");
-    if (item && item.cst_icms) return String(item.cst_icms);
+    if (item && item.cst_icms) {
+      const codigo = String(item.cst_icms).trim();
+      if (/^\d{3}$/.test(codigo)) {
+        if (codigo[0] !== String(item.origem ?? 0)) throw new Error(identificacao + ": a origem do CST ICMS " + codigo + " diverge da origem cadastrada.");
+        return codigo.slice(1);
+      }
+      return codigo;
+    }
     throw new Error("Informe CST ICMS ou CSOSN no cadastro do item " + identificacao + ". Abra Editar Produto → Tributação do produto, salve e tente emitir esta mesma nota novamente.");
   }
 
@@ -326,12 +393,7 @@ class FocusNFeAdapter extends FiscalService {
       const icmsSituacao = FocusNFeAdapter._baseICMS(item);
       if (!item.cst_pis || !item.cst_cofins || !/^\d{4}$/.test(String(item.cfop)))
         throw new Error("Informe CFOP, CST PIS e CST COFINS no item " + item.descricao + ".");
-      // O adaptador não monta grupos com base, crédito ou substituição tributária.
-      const icmsSemCalculo = ["40", "41", "102", "103", "300", "400"].includes(icmsSituacao);
-      const contribuicoesSemCalculo = [item.cst_pis, item.cst_cofins].every(cst => /^(04|06|07|08|09)$/.test(String(cst)));
-      const aliquotas = [item.aliq_icms, item.aliq_pis, item.aliq_cofins, item.aliq_ipi];
-      if (!icmsSemCalculo || !contribuicoesSemCalculo || aliquotas.some(v => v != null && Number(v) !== 0) || item.cst_ipi)
-        throw new Error("Esta operação exige cálculo de bases/alíquotas ou IPI ainda não implementado no adaptador.");
+      const tributos = tributosDoItem(item, icmsSituacao, valorBruto, tipoDocumento, localDestino);
       return {
         numero_item: idx + 1,
         codigo_produto: String(_limpar(item.codigo_produto) || idx + 1),
@@ -350,6 +412,7 @@ class FocusNFeAdapter extends FiscalService {
         inclui_no_total: 1,
         icms_origem: String(item.origem ?? 0),
         icms_situacao_tributaria: icmsSituacao,
+        ...tributos,
         pis_situacao_tributaria: item.cst_pis,
         cofins_situacao_tributaria: item.cst_cofins,
         valor_total_item: _numero(valorBruto, 2),
