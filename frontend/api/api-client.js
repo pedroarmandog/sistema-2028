@@ -81,7 +81,8 @@ class ApiClient {
         // compor mensagem de erro a partir dos campos mais comuns
         const serverMsg =
           errorBody &&
-          (errorBody.message ||
+          (errorBody.erro ||
+            errorBody.message ||
             errorBody.error ||
             errorBody.details ||
             (typeof errorBody === "string" ? errorBody : null));

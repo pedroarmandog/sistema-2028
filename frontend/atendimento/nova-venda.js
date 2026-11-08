@@ -3788,16 +3788,13 @@ function mostrarModalVendaFinalizada(vendaSalva, dadosVenda) {
     "margin-top:14px;text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center;";
   body.appendChild(fiscalBox);
 
-  try {
-    montarAcoesFiscaisModal(fiscalBox, vendaSalva, dadosVenda);
-  } catch (e) {
-    console.warn("[Fiscal] Erro ao montar ações fiscais no modal:", e);
-  }
-
   modal.appendChild(header);
   modal.appendChild(body);
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
+
+  fiscalBox.setAttribute("aria-live", "polite");
+  carregarFluxoFiscal(vendaId, fiscalBox);
 
   // Fechar clicando fora
   overlay.addEventListener("click", (e) => {
@@ -3820,72 +3817,53 @@ function mostrarModalVendaFinalizada(vendaSalva, dadosVenda) {
    que compartilham este arquivo). Respeita o modo de emissão da empresa.
    ======================================== */
 
-function montarAcoesFiscaisModal(fiscalBox, vendaSalva, dadosVenda) {
-  const vendaId =
-    (vendaSalva && (vendaSalva.id || vendaSalva.vendaId)) || "";
-  if (!vendaId) return;
-
-  // Carregar o fluxo fiscal + notas existentes e então renderizar
-  carregarFluxoFiscal(vendaId, fiscalBox);
+function botaoAcaoFiscal(box, texto, acao) {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.textContent = texto;
+  btn.style.cssText = "border:1px solid #cbd5e1;border-radius:8px;background:white;padding:8px 14px;cursor:pointer;";
+  btn.onclick = acao;
+  box.appendChild(btn);
 }
 
 async function carregarFluxoFiscal(vendaId, fiscalBox) {
-  let fluxo = null;
+  if (!vendaId) {
+    renderizarStatusFiscal(fiscalBox, "O servidor não retornou o número da venda. Confira a Lista de Vendas.", false);
+    return;
+  }
+  renderizarStatusFiscal(fiscalBox, "Consultando configuração fiscal…", true);
+  let modo;
   try {
-    fluxo = await ApiClient.getFluxoFiscal();
-  } catch (e) {
-    console.warn("[Fiscal] Sem acesso ao fluxo fiscal:", e);
-    return; // comportamento atual preservado (sem NF)
-  }
-
-  const fiscalHabilitado =
-    fluxo &&
-    fluxo.configurado &&
-    (fluxo.emitir_nfe || fluxo.emitir_nfce || fluxo.emitir_nfse);
-
-  if (!fiscalHabilitado) return; // vendas sem NF habilitada → nada muda
-
-  const modo = fluxo.modo_emissao || "manual";
-
-  // Notas já existentes desta venda
-  let notas = [];
-  try {
-    const resp = await ApiClient.listarNotasPorVenda(vendaId);
-    notas = Array.isArray(resp) ? resp : [];
-  } catch (e) {
-    notas = [];
-  }
-
-  const notaAutorizada = notas.find((n) => n.status === "autorizada");
-  const notaAguardando = notas.find((n) => n.status === "aguardando");
-  const notaErro = notas.find((n) => n.status === "erro");
-  const notaPendente = notas.find((n) => n.status === "rascunho");
-
-  // Já emitida → apenas imprimir (nunca "Emitir" de novo)
-  if (notaAutorizada) {
-    renderizarBotaoImprimir(fiscalBox, notaAutorizada);
-    return;
-  }
-
-  // Emissão em andamento
-  if (notaAguardando) {
-    renderizarStatusFiscal(fiscalBox, "Emitindo NF...", true);
-    return;
-  }
-
-  // Houve erro → oferece retentativa
-  if (notaErro) {
-    renderizarErroEmitir(fiscalBox, vendaId, notaErro);
-    return;
-  }
-
-  // Sem nota → registra a pendente para a Central Fiscal antes de renderizar
-  if (!notaPendente) {
-    try {
-      await ApiClient.registrarNotaPendente(vendaId);
-    } catch (e) {
-      console.warn("[Fiscal] Não foi possível registrar nota pendente:", e);
+    const fluxo = await ApiClient.getFluxoFiscal();
+    if (!fluxo) throw new Error("O servidor não retornou a configuração.");
+    if (!fluxo.configurado || !fluxo.ativo || !(fluxo.emitir_nfe || fluxo.emitir_nfce || fluxo.emitir_nfse)) {
+      const mensagem = !fluxo.configurado || !fluxo.ativo
+        ? "A emissão fiscal está desativada para esta empresa."
+        : "Nenhum tipo de nota está habilitado para esta empresa.";
+      renderizarStatusFiscal(fiscalBox, mensagem, false);
+      const link = document.createElement("a");
+      link.href = "/configuracoes/configuracao-fiscal.html";
+      link.textContent = "Abrir Configuração Fiscal";
+      fiscalBox.appendChild(link);
+      return;
     }
+    modo = fluxo.modo_emissao || "manual";
+    // A API recupera o documento da venda e do ambiente atual ou cria um rascunho.
+    const { nota } = await ApiClient.registrarNotaPendente(vendaId);
+    if (!nota?.id) throw new Error("A API não retornou o documento fiscal da venda.");
+    if (nota.status === "autorizada") return renderizarBotaoImprimir(fiscalBox, nota);
+    if (nota.status === "aguardando") return mostrarConsultaFiscal(fiscalBox, vendaId);
+    if (nota.status === "erro") return renderizarErroEmitir(fiscalBox, vendaId, nota);
+    if (nota.status !== "rascunho" || nota.tipo === "nfse") {
+      const texto = nota.tipo === "nfse" && nota.status === "rascunho"
+        ? "Rascunho de NFS-e registrado. A transmissão de serviços ainda não está disponível."
+        : "Documento fiscal com status " + nota.status + ". Confira a Central Fiscal.";
+      return renderizarStatusFiscal(fiscalBox, texto, false);
+    }
+  } catch (erro) {
+    renderizarStatusFiscal(fiscalBox, "Venda salva. Não foi possível preparar a nota. " + erro.message, false);
+    botaoAcaoFiscal(fiscalBox, "Verificar novamente", () => carregarFluxoFiscal(vendaId, fiscalBox));
+    return;
   }
 
   // Comportamento conforme o modo de emissão configurado
@@ -3907,11 +3885,18 @@ function renderizarStatusFiscal(box, texto, carregando) {
   const el = document.createElement("div");
   el.style.cssText =
     "display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#555;font-weight:600;";
-  el.innerHTML = carregando
-    ? '<i class="fas fa-spinner fa-spin" style="color:#0066cc"></i> ' +
-      texto
-    : texto;
+  el.textContent = texto;
+  if (carregando) {
+    const icon = document.createElement("i");
+    icon.className = "fas fa-spinner fa-spin";
+    el.prepend(icon);
+  }
   box.appendChild(el);
+}
+
+function mostrarConsultaFiscal(box, vendaId) {
+  renderizarStatusFiscal(box, "Aguardando autorização da nota fiscal.", false);
+  botaoAcaoFiscal(box, "Consultar autorização", () => emitirNF(box, vendaId));
 }
 
 function renderizarBotaoImprimir(box, nota) {
@@ -4053,6 +4038,10 @@ async function emitirNF(box, vendaId, opts) {
       renderizarBotaoImprimir(box, resultado.nota);
       return;
     }
+    if (resultado?.status === "aguardando") return mostrarConsultaFiscal(box, vendaId);
+    if (["denegada", "cancelada", "inutilizada"].includes(resultado?.status)) {
+      return renderizarStatusFiscal(box, resultado.motivo || "Nota " + resultado.status + ".", false);
+    }
     const motivo =
       (resultado && resultado.motivo) || "Emissão não concluída.";
     renderizarErroEmitir(box, vendaId, {
@@ -4072,7 +4061,7 @@ async function emitirNF(box, vendaId, opts) {
  * "Imprimir NF" = abrir o documento da NF já emitida (DANFE).
  */
 function abrirDanfeNota(notaId) {
-  fetch("/api/notas-fiscais/" + encodeURIComponent(notaId) + "/danfe")
+  fetch(API_BASE_URL + "/notas-fiscais/" + encodeURIComponent(notaId) + "/danfe", { credentials: "include" })
     .then(function (resp) {
       if (!resp.ok) {
         throw new Error("Nota ainda não autorizada para impressão");
