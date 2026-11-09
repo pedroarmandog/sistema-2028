@@ -52,24 +52,11 @@ window.MobilePush = (function () {
       return { ok: false, message: "Service Worker não inicializado" };
     }
 
-    // Verificar se o Service Worker está ativo (controlador da página)
-    if (!navigator.serviceWorker.controller) {
-      return {
-        ok: false,
-        message: "Service Worker não está ativo. Recarregue o app e tente novamente.",
-      };
-    }
-
-    // Solicitar permissão ao usuário
-    const permission = await Notification.requestPermission();
-    if (permission !== "granted") {
-      return { ok: false, message: "Permissão de notificação negada" };
-    }
-
     try {
-      console.log("[Push Front] ✅ Permissão concedida");
-      console.log("[Push Front] ✅ Service Worker ativo");
-      
+      // Solicitar permissão ainda durante o gesto do usuário.
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") return { ok: false, message: "Permissão de notificação negada" };
+      const registro = _swRegistration.active ? _swRegistration : await navigator.serviceWorker.ready;
       // Buscar chave pública VAPID do servidor
       console.log("[Push Front] 🔄 Buscando VAPID key...");
       const { vapidPublicKey } = await MobileApi.get(
@@ -85,11 +72,19 @@ window.MobilePush = (function () {
 
       // Criar subscription
       console.log("[Push Front] 🔄 Chamando pushManager.subscribe()...");
-      const subscription = await _swRegistration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey,
+      let subscription = await registro.pushManager.getSubscription();
+      const chaveAnterior = subscription?.options?.applicationServerKey;
+      if (chaveAnterior) {
+        const bytes = new Uint8Array(chaveAnterior);
+        if (bytes.length !== applicationServerKey.length || !bytes.every((v, i) => v === applicationServerKey[i])) {
+          if (!await subscription.unsubscribe()) throw new Error("Não foi possível renovar o vínculo push deste aparelho.");
+          subscription = null;
+        }
+      }
+      const criadaAgora = !subscription;
+      if (criadaAgora) subscription = await registro.pushManager.subscribe({
+        userVisibleOnly: true, applicationServerKey,
       });
-      console.log("[Push Front] ✅ Subscription criada:", subscription.endpoint.substring(0, 60) + "...");
 
       // Detectar plataforma
       const plataforma = detectarPlataforma();
@@ -97,24 +92,19 @@ window.MobilePush = (function () {
 
       // Enviar subscription para o backend
       console.log("[Push Front] 🔄 Enviando subscription para backend...");
-      await MobileApi.post("/api/push/subscribe", {
-        ...subscription.toJSON(),
-        plataforma,
-      });
+      try {
+        await MobileApi.post("/api/push/subscribe", {
+          ...subscription.toJSON(), plataforma,
+        });
+      } catch (erro) {
+        if (criadaAgora) await subscription.unsubscribe().catch(() => {});
+        throw erro;
+      }
       console.log("[Push Front] ✅ Subscription salva no backend");
 
       return { ok: true, message: "Notificações ativadas com sucesso" };
     } catch (err) {
-      console.error("[Push Front] ❌ Erro ao ativar notificações:", err);
-      console.error("[Push Front] ❌ Nome do erro:", err.name);
-      console.error("[Push Front] ❌ Mensagem:", err.message);
-      console.error("[Push Front] ❌ Stack:", err.stack);
-      console.error("[Push Front] ❌ Objeto completo:", err);
-      
-      // Mostrar erro detalhado para diagnóstico
-      const erroCompleto = `Erro: ${err.name}\nMensagem: ${err.message}\n\nVerifique o console do navegador para mais detalhes.`;
-      alert(erroCompleto);
-      
+      console.warn("[Push Front] Ativação não concluída:", err.message);
       return {
         ok: false,
         message: err.message || "Erro ao ativar notificações",

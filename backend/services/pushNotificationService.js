@@ -25,28 +25,33 @@ const { PushSubscription } = require("../models");
 const { Op } = require("sequelize");
 
 // ── Configurar VAPID ──────────────────────────────────────
-function _configurarVAPID() {
-  if (!webpush) return false;
-
-  const publicKey = process.env.VAPID_PUBLIC_KEY;
-  const privateKey = process.env.VAPID_PRIVATE_KEY;
-  const subject =
-    process.env.VAPID_SUBJECT || "mailto:contato@pethubflow.com.br";
-
-  if (!publicKey || !privateKey) {
-    console.warn(
-      "[Push] VAPID_PUBLIC_KEY e VAPID_PRIVATE_KEY não definidas no .env",
-    );
-    console.warn("[Push] Gere com: npx web-push generate-vapid-keys");
-    return false;
+function configurarVapid() {
+  const indisponivel = mensagem => {
+    console.warn("[Push] " + mensagem);
+    return { erro: mensagem, publicKey: null };
+  };
+  if (!webpush) return indisponivel("Biblioteca web-push indisponível no servidor.");
+  const privada = process.env.VAPID_PRIVATE_KEY?.trim();
+  const publica = process.env.VAPID_PUBLIC_KEY?.trim();
+  if (!privada) return indisponivel("Configure VAPID_PRIVATE_KEY no serviço da API para ativar notificações.");
+  try {
+    if (!/^[A-Za-z0-9_-]{43}$/.test(privada)) throw new Error();
+    const curva = require("node:crypto").createECDH("prime256v1");
+    curva.setPrivateKey(Buffer.from(privada, "base64url"));
+    const derivada = curva.getPublicKey().toString("base64url");
+    if (publica && publica !== derivada)
+      return indisponivel("VAPID_PUBLIC_KEY e VAPID_PRIVATE_KEY pertencem a pares diferentes.");
+    const subject = process.env.VAPID_SUBJECT?.trim() || "mailto:contato@pethubflow.com.br";
+    webpush.setVapidDetails(subject, derivada, privada);
+    console.info("[Push] VAPID pronto para ativação.");
+    return { publicKey: derivada, erro: null };
+  } catch {
+    return indisponivel("Verifique o formato de VAPID_PRIVATE_KEY e VAPID_SUBJECT no serviço da API.");
   }
-
-  webpush.setVapidDetails(subject, publicKey, privateKey);
-  return true;
 }
 
-// Configurar ao carregar o módulo
-const _vapidConfigurado = _configurarVAPID();
+const vapid = configurarVapid();
+const _vapidConfigurado = Boolean(vapid.publicKey);
 
 // ── Helpers auxiliares ────────────────────────────────────
 
@@ -355,12 +360,13 @@ async function notificarUsuario(usuarioId, evento, dados = {}) {
  * @returns {string|null}
  */
 function getVapidPublicKey() {
-  return process.env.VAPID_PUBLIC_KEY || null;
+  return vapid.publicKey;
 }
 
 module.exports = {
   notificarEmpresa,
   notificarUsuario,
   getVapidPublicKey,
+  getVapidErro: () => vapid.erro,
   formatarHorarioBrasilia,
 };

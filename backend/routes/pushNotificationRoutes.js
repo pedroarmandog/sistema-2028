@@ -10,12 +10,13 @@ router.use(authUser);
 // Retorna a chave pública VAPID para uso no frontend.
 // Não é informação sensível — a chave pública pode ser exposta.
 router.get("/vapid-public-key", (req, res) => {
+  res.set("Cache-Control", "no-store");
   console.log("[Push] GET /vapid-public-key - Solicitada chave pública VAPID");
   const key = pushService.getVapidPublicKey();
   if (!key) {
     console.warn("[Push] ⚠️ VAPID key não disponível");
     return res.status(503).json({
-      erro: "Push notifications não configuradas",
+      erro: pushService.getVapidErro(),
       code: "VAPID_NOT_CONFIGURED",
     });
   }
@@ -90,7 +91,8 @@ router.post("/test", authUser, async (req, res) => {
 router.post("/subscribe", async (req, res) => {
   try {
     const { PushSubscription } = require("../models");
-    const { endpoint, keys, expirationTime, plataforma } = req.body;
+    if (!pushService.getVapidPublicKey()) return res.status(503).json({erro:pushService.getVapidErro(), code:"VAPID_NOT_CONFIGURED"});
+    const { endpoint, keys, plataforma } = req.body;
 
     if (!endpoint || !keys?.auth || !keys?.p256dh) {
       return res.status(400).json({

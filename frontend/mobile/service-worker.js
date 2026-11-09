@@ -7,7 +7,7 @@
      - Páginas HTML: Network First com fallback offline
    ============================================================ */
 
-const CACHE_VERSION = "pethub-mobile-v6";
+const CACHE_VERSION = "pethub-mobile-v7";
 const CACHE_STATIC = `${CACHE_VERSION}-static`;
 const CACHE_API = `${CACHE_VERSION}-api`;
 
