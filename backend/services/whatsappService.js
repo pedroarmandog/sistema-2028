@@ -3,6 +3,7 @@ const QRCode = require('qrcode');
 const pino = require('pino');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { WhatsappSession } = require('../models');
 
 function novaAutenticacao(lib) {
   const categorias = new Map();
@@ -42,6 +43,20 @@ function criarServico({ carregar = importBaileys, gerarQR = QRCode.toDataURL,
   const listeners = new Map();
   const desligando = new Map();
   const desconectado = () => ({ status: 'desconectado', numero: null, qrBase64: null });
+  async function salvarStatusNoBanco(id, status, numero) {
+    try {
+      const empresaId = Number(id);
+      if (!Number.isSafeInteger(empresaId) || empresaId <= 0) return;
+      await WhatsappSession.upsert({
+        empresaId,
+        status,
+        numero: numero || null,
+        ultimaConexao: status === 'conectado' ? new Date() : undefined,
+      }, { fields: ['empresaId', 'status', 'numero', 'ultimaConexao'] });
+    } catch (_) {
+      // Silencioso — não derruba a conexão por falha de persistência
+    }
+  }
   const obterStatus = id => {
     const s = sessoes.get(String(id));
     return s ? { status: s.status, numero: s.numero, qrBase64: s.qr } : desconectado();
@@ -74,6 +89,7 @@ function criarServico({ carregar = importBaileys, gerarQR = QRCode.toDataURL,
     sessoes.delete(s.id);
     cancelar(s.timer);
     s.revisao++;
+    salvarStatusNoBanco(s.id, 'desconectado', null);
     const socket = s.socket;
     s.socket = null;
     socket?.end();
@@ -100,13 +116,15 @@ function criarServico({ carregar = importBaileys, gerarQR = QRCode.toDataURL,
           const r = lib.DisconnectReason;
           const invalido = [r.loggedOut, r.badSession, r.forbidden,
             r.multideviceMismatch, r.connectionReplaced].includes(motivo);
-          if (invalido || ++s.tentativas > 5) {
+          if (invalido) {
+            salvarStatusNoBanco(s.id, 'desconectado', null);
             encerrar(s, 'Conexão encerrada. Clique em Conectar para parear novamente.');
             return;
           }
+          // Reconexão indefinida para falhas de rede/servidor (não invalida a sessão).
+          // Backoff exponencial com teto de 60s.
           aguardar(s);
-          const atraso = motivo === r.restartRequired && s.tentativas === 1 ? 0
-            : Math.min(1000 * 2 ** (s.tentativas - 1), 16000);
+          const atraso = Math.min(1000 * 2 ** (s.tentativas++), 60000);
           s.timer = agendar(() => abrir(s), atraso);
           return;
         }
@@ -117,6 +135,7 @@ function criarServico({ carregar = importBaileys, gerarQR = QRCode.toDataURL,
           s.qr = null;
           s.numero = (socket.user?.id || '').split(/[:@]/)[0] || null;
           s.tentativas = 0;
+          salvarStatusNoBanco(s.id, 'conectado', s.numero);
           emitir(s.id, 'conectado', obterStatus(s.id));
           return;
         }
@@ -163,6 +182,7 @@ function criarServico({ carregar = importBaileys, gerarQR = QRCode.toDataURL,
     if (!s) return;
     sessoes.delete(chave);
     cancelar(s.timer);
+    salvarStatusNoBanco(chave, 'desconectado', null);
     emitir(chave, 'desconectado', desconectado());
     const socket = s.socket;
     const fim = Promise.resolve().then(async () => {
