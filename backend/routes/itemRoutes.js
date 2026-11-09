@@ -123,8 +123,20 @@ router.get("/", async (req, res) => {
     }
 
     // Filtrar por tipo (produto / servico)
+    // Quando tipo=produto, também incluir registros com tipo NULL/vazio,
+    // pois "produto" é o valor padrão e importações XML/manual podem deixar NULL.
     if (tipo) {
-      andConditions.push({ tipo: tipo });
+      if (tipo === "produto") {
+        andConditions.push({
+          [Op.or]: [
+            { tipo: "produto" },
+            { tipo: null },
+            { tipo: "" },
+          ],
+        });
+      } else {
+        andConditions.push({ tipo: tipo });
+      }
     }
 
     // Filtrar por empresa (multi-tenant)
