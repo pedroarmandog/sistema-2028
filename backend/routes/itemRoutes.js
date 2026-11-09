@@ -140,8 +140,12 @@ router.get("/", async (req, res) => {
     }
 
     // Filtrar por empresa (multi-tenant)
+    // Incluir também itens sem empresa_id (NULL), pois importações XML
+    // e cadastros manuais podem deixar esse campo vazio.
     if (req.user?.empresaId) {
-      andConditions.push({ empresa_id: req.user.empresaId });
+      andConditions.push({
+        [Op.or]: [{ empresa_id: req.user.empresaId }, { empresa_id: null }],
+      });
     }
 
     let where = {};
