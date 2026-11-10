@@ -140,8 +140,8 @@ function criarServico({ carregar = importBaileys, gerarQR = QRCode.toDataURL,
           return;
         }
         if (update.isNewLogin) {
-          console.info(`[WhatsApp][empresa:${s.id}] leitura aceita, concluindo vínculo`);
-          aguardar(s);
+          console.info(`[WhatsApp][empresa:${s.id}] leitura aceita, aguardando confirmação de conexão`);
+          // aguardar(s) removido: não limpar QR após isNewLogin
           return;
         }
         if (update.qr) {

@@ -152,26 +152,59 @@ router.get("/", async (req, res) => {
     if (andConditions.length === 1) where = andConditions[0];
     else if (andConditions.length > 1) where = { [Op.and]: andConditions };
 
-    // Log temporário para depuração: mostrar params recebidos e amostra de itens
-    try {
-      console.log("GET /api/itens - query params:", req.query);
-    } catch (e) {}
-    const itens = await Produto.findAll({
+    const limit = Number(req.query.limit) || 10;
+
+    // Log para depuração
+    console.log("GET /api/itens - query params:", req.query);
+    console.log("GET /api/itens - where clause:", JSON.stringify(where));
+    console.log("GET /api/itens - user empresaId:", req.user?.empresaId);
+
+    let itens = await Produto.findAll({
       where,
       order: [["nome", "ASC"]],
-      limit: 1000,
+      limit,
     });
-    try {
-      console.log(`GET /api/itens - itens retornados: ${itens.length}`);
-      if (itens.length > 0) {
-        try {
-          console.log(
-            "Amostra fornecedores do primeiro item:",
-            JSON.stringify((itens[0].fornecedores || []).slice(0, 3)),
+
+    console.log(`GET /api/itens - itens retornados (com filtro empresa): ${itens.length}`);
+
+    // Fallback: se não encontrou nada com filtro de empresa, tentar sem ele
+    // (cobre produtos importados via XML com empresa_id diferente ou preenchido)
+    if (itens.length === 0 && req.user?.empresaId) {
+      console.log("GET /api/itens - nenhum resultado com empresa, tentando fallback sem filtro de empresa");
+
+      // Remover a condição de empresa_id das andConditions
+      const andConditionsSemEmpresa = andConditions.filter((c) => {
+        if (c.empresa_id !== undefined) return false;
+        if (c[Op.or]) {
+          const temEmpresa = c[Op.or].some(
+            (o) => o.empresa_id !== undefined,
           );
-        } catch (e) {}
+          return !temEmpresa;
+        }
+        return true;
+      });
+
+      if (andConditionsSemEmpresa.length === 0) {
+        itens = await Produto.findAll({
+          order: [["nome", "ASC"]],
+          limit,
+        });
+      } else {
+        const where2 =
+          andConditionsSemEmpresa.length === 1
+            ? andConditionsSemEmpresa[0]
+            : { [Op.and]: andConditionsSemEmpresa };
+        itens = await Produto.findAll({
+          where: where2,
+          order: [["nome", "ASC"]],
+          limit,
+        });
       }
-    } catch (e) {}
+
+      console.log(`GET /api/itens - fallback retornou ${itens.length} itens`);
+    }
+
+    console.log(`GET /api/itens - total itens retornados: ${itens.length}`);
     res.json(itens);
   } catch (error) {
     console.error("Erro ao listar produtos (DB):", error);
