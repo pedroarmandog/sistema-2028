@@ -1,0 +1,82 @@
+diff --git a/backend/services/whatsappService.js b/backend/services/whatsappService.js
+index 01a90fd..ebc6719 100644
+--- a/backend/services/whatsappService.js
++++ b/backend/services/whatsappService.js
+@@ -381,8 +381,9 @@ async function inicializarCliente(empresaId, opts = {}) {
+       clientsMap.delete(chave);
+     }
+-    if (
+-      existente.status === "inicializando" ||
+-      existente.status === "autenticado"
+-    ) {
++    // pupBrowser pode ainda não existir enquanto initialize() abre o Chrome.
++    if (existente.status === "inicializando") {
++      return { status: existente.status };
++    }
++    if (existente.status === "autenticado") {
+       // Verificar se o browser ainda está vivo; se travou, limpar e recriar
+       let browserVivo = false;
+@@ -678,9 +679,7 @@ async function inicializarCliente(empresaId, opts = {}) {
+       estado.qrBase64 = qrBase64;
+ 
+-      // Salvar status no banco
+-      await atualizarStatusNoBanco(chave, "aguardando_qr", null);
+-
+-      // Emitir para frontend via SSE
++      if (clientsMap.get(chave) !== estado || estado.status !== "aguardando_qr") return;
+       emitirSSE(chave, "qr", { qrBase64 });
++      await atualizarStatusNoBanco(chave, "aguardando_qr", null);
+     } catch (err) {
+       console.error("[WhatsApp] Erro ao gerar QR base64:", err.message);
+diff --git a/frontend/dashboard.js b/frontend/dashboard.js
+index 8532255..252c4b8 100644
+--- a/frontend/dashboard.js
++++ b/frontend/dashboard.js
+@@ -210,13 +210,11 @@ document.addEventListener("DOMContentLoaded", function () {
+   });
+ 
+-  // Inicializar o DashboardApp
+-  DashboardApp.init();
+-
+-  // Atualizar dados a cada 30 segundos (só se não estiver atualizando)
+-  setInterval(() => {
+-    if (!isRefreshing) {
+-      DashboardApp.refreshAll();
+-    }
+-  }, 30000);
++  // Marketing usa o menu compartilhado, mas não exibe os indicadores do dashboard.
++  if (!document.getElementById("modalQRCode")) {
++    DashboardApp.init();
++    setInterval(() => {
++      if (!isRefreshing) DashboardApp.refreshAll();
++    }, 30000);
++  }
+ 
+   // Garantir que submenus abram por clique (painel lateral) mesmo que a função de persistência não exista
+diff --git a/frontend/marketing.js b/frontend/marketing.js
+index 53c87c6..3091106 100644
+--- a/frontend/marketing.js
++++ b/frontend/marketing.js
+@@ -488,14 +488,16 @@ async function iniciarConexaoWhatsapp() {
+ 
+   try {
+-    // Primeiro tenta resetar sessão (limpa corrompida se existir) e conectar
+-    const res = await fetch(`${API}/whatsapp/resetar`, {
++    const res = await fetch(`${API}/whatsapp/conectar`, {
+       method: "POST",
+-      headers: { "Content-Type": "application/json" },
+       credentials: "include",
+     });
+     const data = await res.json();
+-    console.log("[Marketing] Resposta ao conectar (via resetar):", data);
+-
+-    // Iniciar polling de QR (método confiável, complementar ao SSE)
++    if (!res.ok || !data.sucesso) {
++      throw new Error(data.erro || `HTTP ${res.status}`);
++    }
++    if (data.resultado?.status === "ja_conectado") {
++      await carregarStatusWhatsapp();
++      return;
++    }
+     iniciarPollingQR();
+   } catch (err) {
