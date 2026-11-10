@@ -36,7 +36,10 @@ exports.produtosEstoqueBaixo = async (req, res) => {
     // Usar condição literal para comparar colunas diretamente no SQL
     const condition = "(estoqueAtual = 0) OR (estoqueAtual < estoqueMinimo)";
     const whereClause = { [Op.and]: [literal(condition)] };
-    if (empresaId) whereClause.empresa_id = empresaId;
+    if (!empresaId) {
+      return res.status(403).json({ error: "Empresa nao identificada. Contate o suporte." });
+    }
+    whereClause.empresa_id = empresaId;
     const cacheKey = `dashboard:produtosEstoqueBaixo:${empresaId || "all"}`;
     const cached = cache.get(cacheKey);
     if (cached) return res.json(cached);
@@ -66,6 +69,9 @@ exports.produtosEstoqueBaixo = async (req, res) => {
 exports.resumo = async (req, res) => {
   try {
     const empresaId = req.user?.empresaId;
+    if (!empresaId) {
+      return res.status(403).json({ error: "Empresa nao identificada. Contate o suporte." });
+    }
     const cacheKey = `dashboard:resumo:${empresaId || "all"}`;
     const cached = cache.get(cacheKey);
     if (cached) return res.json(cached);
@@ -152,6 +158,9 @@ exports.resumo = async (req, res) => {
 exports.aniversariantes = async (req, res) => {
   try {
     const empresaId = req.user?.empresaId;
+    if (!empresaId) {
+      return res.status(403).json({ error: "Empresa nao identificada. Contate o suporte." });
+    }
     const cacheKey = `dashboard:aniversariantes:${empresaId || "all"}`;
     const cached = cache.get(cacheKey);
     if (cached) return res.json(cached);
@@ -187,7 +196,7 @@ exports.aniversariantes = async (req, res) => {
             ),
           ],
         },
-        empresaId ? { empresa_id: empresaId } : {},
+        { empresa_id: empresaId },
       ),
     });
 
@@ -227,7 +236,7 @@ exports.aniversariantes = async (req, res) => {
             ),
           ],
         },
-        empresaId ? { empresa_id: empresaId } : {},
+        { empresa_id: empresaId },
       ),
     });
 
@@ -255,6 +264,9 @@ exports.oportunidadesVenda = async (req, res) => {
     const dataLimite = new Date();
     dataLimite.setDate(dataLimite.getDate() - 90);
     const empresaId = req.user?.empresaId;
+    if (!empresaId) {
+      return res.status(403).json({ error: "Empresa nao identificada. Contate o suporte." });
+    }
     const cacheKey = `dashboard:oportunidadesVenda:${empresaId || "all"}`;
     const cached = cache.get(cacheKey);
     if (cached) return res.json(cached);
@@ -263,7 +275,7 @@ exports.oportunidadesVenda = async (req, res) => {
       attributes: ["id", "clienteId", "itens", "data"],
       where: Object.assign(
         { data: { [Op.gte]: dataLimite }, status: { [Op.ne]: "cancelado" } },
-        empresaId ? { empresa_id: empresaId } : {},
+        { empresa_id: empresaId },
       ),
       order: [["data", "DESC"]],
       limit: 100,
@@ -330,6 +342,9 @@ exports.oportunidadesVenda = async (req, res) => {
 exports.levaTraz = async (req, res) => {
   try {
     const empresaId = req.user?.empresaId;
+    if (!empresaId) {
+      return res.status(403).json({ error: "Empresa nao identificada. Contate o suporte." });
+    }
     const cacheKey = `dashboard:levaTraz:${empresaId || "all"}`;
     const cached = cache.get(cacheKey);
     if (cached) return res.json(cached);
@@ -357,7 +372,7 @@ exports.levaTraz = async (req, res) => {
         {
           dataAgendamento: { [Op.gte]: start, [Op.lt]: next },
         },
-        empresaId ? { empresa_id: empresaId } : {},
+        { empresa_id: empresaId },
       ),
       include: [
         {
@@ -460,7 +475,7 @@ exports.produtosVencimento = async (req, res) => {
       validade: { [Op.not]: null },
       estoqueAtual: { [Op.gt]: 0 },
     };
-    if (empresaId) whereVenc.empresa_id = empresaId;
+    whereVenc.empresa_id = empresaId;
     // Processar em batches para evitar carregar toda a tabela na memória
     const limitBatch = 2000;
     let offset = 0;
@@ -521,22 +536,18 @@ exports.produtosVencimento = async (req, res) => {
 exports.vendasHoje = async (req, res) => {
   try {
     const empresaId = req.user?.empresaId;
+    if (!empresaId) {
+      return res.status(403).json({ error: "Empresa nao identificada. Contate o suporte." });
+    }
     const dataBrasil = getHojeBrasilStr();
 
-    if (empresaId) {
-      const sql = `SELECT COUNT(*) AS count FROM vendas WHERE DATE(data) = :dataBrasil AND status <> 'cancelado' AND empresa_id = :empresaId`;
-      const [rows] = await sequelize.query(sql, {
-        replacements: { dataBrasil, empresaId },
-        type: sequelize.QueryTypes.SELECT,
-      });
-      return res.json({ count: Number(rows?.count || 0) });
-    }
+    const sql = `SELECT COUNT(*) AS count FROM vendas WHERE DATE(data) = :dataBrasil AND status <> 'cancelado' AND empresa_id = :empresaId`;
+    const [rows] = await sequelize.query(sql, {
+      replacements: { dataBrasil, empresaId },
+      type: sequelize.QueryTypes.SELECT,
+    });
+    return res.json({ count: Number(rows?.count || 0) });
 
-    const [rows] = await sequelize.query(
-      `SELECT COUNT(*) AS count FROM vendas WHERE DATE(data) = :dataBrasil AND status <> 'cancelado'`,
-      { replacements: { dataBrasil }, type: sequelize.QueryTypes.SELECT },
-    );
-    res.json({ count: Number(rows?.count || 0) });
   } catch (error) {
     return handleError(res, "Erro ao buscar contagem de vendas hoje", error);
   }
@@ -546,6 +557,9 @@ exports.vendasHoje = async (req, res) => {
 exports.ticketMedio = async (req, res) => {
   try {
     const empresaId = req.user?.empresaId;
+    if (!empresaId) {
+      return res.status(403).json({ error: "Empresa nao identificada. Contate o suporte." });
+    }
     const dataBrasil = getHojeBrasilStr();
     const vendasTable = Venda.getTableName ? Venda.getTableName() : "vendas";
 
@@ -616,7 +630,7 @@ exports.periodicos = async (req, res) => {
             model: Pet,
             as: "pet",
             attributes: ["id", "nome", "empresa_id"],
-            where: empresaId ? { empresa_id: empresaId } : {},
+            where: { empresa_id: empresaId },
             required: true,
             include: [
               { model: Cliente, as: "cliente", attributes: ["id", "nome"] },

@@ -9,6 +9,10 @@ const { authUser } = require("../middleware/authUser");
 
 // Todas as rotas de itens requerem autenticação (multi-tenant)
 router.use(authUser);
+// VALIDACAO CRITICA: Usuario deve estar associado a empresa
+if (!req.user?.empresaId) {
+  return res.status(403).json({ error: "Empresa nao identificada. Contate o suporte." });
+}
 
 // Uma edição parcial deve considerar o código que já existe no cadastro.
 function validarCodigosICMS(dados, atual = {}) {
@@ -142,11 +146,9 @@ router.get("/", async (req, res) => {
     // Filtrar por empresa (multi-tenant)
     // Incluir também itens sem empresa_id (NULL), pois importações XML
     // e cadastros manuais podem deixar esse campo vazio.
-    if (req.user?.empresaId) {
-      andConditions.push({
-        [Op.or]: [{ empresa_id: req.user.empresaId }, { empresa_id: null }],
-      });
-    }
+    andConditions.push({
+      [Op.or]: [{ empresa_id: req.user.empresaId }, { empresa_id: null }],
+    });
 
     let where = {};
     if (andConditions.length === 1) where = andConditions[0];
@@ -169,7 +171,7 @@ router.get("/", async (req, res) => {
 
     // Fallback: se não encontrou nada com filtro de empresa, tentar sem ele
     // (cobre produtos importados via XML com empresa_id diferente ou preenchido)
-    if (itens.length === 0 && req.user?.empresaId) {
+    if (false) {
       console.log("GET /api/itens - nenhum resultado com empresa, tentando fallback sem filtro de empresa");
 
       // Remover a condição de empresa_id das andConditions
