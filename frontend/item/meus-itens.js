@@ -1013,12 +1013,6 @@ async function inicializarProdutosLista() {
       produtosLista,
     );
 
-    // Se API retornar vazio, usar fallback local apenas para desenvolvimento
-    if (!produtosLista || produtosLista.length === 0) {
-      console.warn("⚠️ API retornou vazio, usando fallback local");
-      produtosLista = produtosExemplo || [];
-    }
-
     // Ordenar por data de criação (mais novo primeiro)
     produtosLista.sort((a, b) => {
       const ta =
@@ -1731,13 +1725,6 @@ async function inicializarMeusItens() {
     await carregarPerfisValidade();
   } catch (e) {
     console.debug("[inicializarMeusItens] carregarPerfisValidade falhou", e);
-  }
-
-  // Migrar produtos que ainda estejam no localStorage (uma vez)
-  try {
-    await migrarProdutosLocalParaAPI();
-  } catch (e) {
-    console.debug("[inicializarMeusItens] migracao falhou", e);
   }
 
   // Renderizar produtos (carregar lista via API e verificar status de validade antes)

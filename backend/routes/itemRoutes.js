@@ -9,10 +9,14 @@ const { authUser } = require("../middleware/authUser");
 
 // Todas as rotas de itens requerem autenticação (multi-tenant)
 router.use(authUser);
-// VALIDACAO CRITICA: Usuario deve estar associado a empresa
-if (!req.user?.empresaId) {
-  return res.status(403).json({ error: "Empresa nao identificada. Contate o suporte." });
-}
+router.use((req, res, next) => {
+  const empresa = Number(req.user?.empresaId);
+  if (!Number.isSafeInteger(empresa) || empresa <= 0)
+    return res.status(403).json({error:"Empresa não identificada."});
+  req.user.empresaId = empresa;
+  res.set("Cache-Control", "private, no-store");
+  next();
+});
 
 // Uma edição parcial deve considerar o código que já existe no cadastro.
 function validarCodigosICMS(dados, atual = {}) {
@@ -32,21 +36,23 @@ const blockedFilePath = path.join(
   "data",
   "blocked_medicamentos.json",
 );
-function readBlocked() {
+function readBlocked(empresa) {
+  const arquivo = blockedFilePath.replace(".json", "-" + empresa + ".json");
   try {
-    if (!fs.existsSync(blockedFilePath)) return [];
-    const txt = fs.readFileSync(blockedFilePath, "utf8");
+    if (!fs.existsSync(arquivo)) return [];
+    const txt = fs.readFileSync(arquivo, "utf8");
     return JSON.parse(txt || "[]");
   } catch (e) {
     console.warn("Erro lendo blocked_medicamentos.json", e && e.message);
     return [];
   }
 }
-function writeBlocked(list) {
+function writeBlocked(list, empresa) {
+  const arquivo = blockedFilePath.replace(".json", "-" + empresa + ".json");
   try {
     const dir = path.dirname(blockedFilePath);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    fs.writeFileSync(blockedFilePath, JSON.stringify(list, null, 2), "utf8");
+    fs.writeFileSync(arquivo, JSON.stringify(list, null, 2), "utf8");
     return true;
   } catch (e) {
     console.error("Erro gravando blocked_medicamentos.json", e && e.message);
@@ -143,12 +149,7 @@ router.get("/", async (req, res) => {
       }
     }
 
-    // Filtrar por empresa (multi-tenant)
-    // Incluir também itens sem empresa_id (NULL), pois importações XML
-    // e cadastros manuais podem deixar esse campo vazio.
-    andConditions.push({
-      [Op.or]: [{ empresa_id: req.user.empresaId }, { empresa_id: null }],
-    });
+    andConditions.push({empresa_id: req.user.empresaId});
 
     let where = {};
     if (andConditions.length === 1) where = andConditions[0];
@@ -168,43 +169,6 @@ router.get("/", async (req, res) => {
     });
 
     console.log(`GET /api/itens - itens retornados (com filtro empresa): ${itens.length}`);
-
-    // Fallback: se não encontrou nada com filtro de empresa, tentar sem ele
-    // (cobre produtos importados via XML com empresa_id diferente ou preenchido)
-    if (false) {
-      console.log("GET /api/itens - nenhum resultado com empresa, tentando fallback sem filtro de empresa");
-
-      // Remover a condição de empresa_id das andConditions
-      const andConditionsSemEmpresa = andConditions.filter((c) => {
-        if (c.empresa_id !== undefined) return false;
-        if (c[Op.or]) {
-          const temEmpresa = c[Op.or].some(
-            (o) => o.empresa_id !== undefined,
-          );
-          return !temEmpresa;
-        }
-        return true;
-      });
-
-      if (andConditionsSemEmpresa.length === 0) {
-        itens = await Produto.findAll({
-          order: [["nome", "ASC"]],
-          limit,
-        });
-      } else {
-        const where2 =
-          andConditionsSemEmpresa.length === 1
-            ? andConditionsSemEmpresa[0]
-            : { [Op.and]: andConditionsSemEmpresa };
-        itens = await Produto.findAll({
-          where: where2,
-          order: [["nome", "ASC"]],
-          limit,
-        });
-      }
-
-      console.log(`GET /api/itens - fallback retornou ${itens.length} itens`);
-    }
 
     console.log(`GET /api/itens - total itens retornados: ${itens.length}`);
     res.json(itens);
@@ -226,11 +190,11 @@ router.get("/debug-fornecedor", async (req, res) => {
     let sql;
     let replacements = [];
     if (fornecedorId) {
-      sql = `SELECT id, nome, fornecedores FROM itens WHERE JSON_SEARCH(fornecedores, 'one', ?, NULL, '$[*].id') IS NOT NULL LIMIT 50`;
-      replacements = [String(fornecedorId)];
+      sql = `SELECT id, nome, fornecedores FROM itens WHERE empresa_id = ? AND JSON_SEARCH(fornecedores, 'one', ?, NULL, '$[*].id') IS NOT NULL LIMIT 50`;
+      replacements = [req.user.empresaId, String(fornecedorId)];
     } else {
-      sql = `SELECT id, nome, fornecedores FROM itens WHERE JSON_SEARCH(fornecedores, 'one', ?, NULL, '$[*].nome') IS NOT NULL LIMIT 50`;
-      replacements = [String(fornecedor)];
+      sql = `SELECT id, nome, fornecedores FROM itens WHERE empresa_id = ? AND JSON_SEARCH(fornecedores, 'one', ?, NULL, '$[*].nome') IS NOT NULL LIMIT 50`;
+      replacements = [req.user.empresaId, String(fornecedor)];
     }
     const rows = await sequelize.query(sql, {
       replacements,
@@ -251,112 +215,30 @@ router.get("/debug-fornecedor", async (req, res) => {
 });
 
 // Helper: normaliza um array de fornecedores recebido do cliente, tentando preencher `id` e `nome`
-async function normalizeFornecedoresArray(inputArr) {
-  if (!inputArr) return inputArr;
-  try {
-    if (!Array.isArray(inputArr)) return inputArr;
-    const out = [];
-    for (const item of inputArr) {
-      try {
-        if (!item) {
-          out.push(item);
-          continue;
-        }
-        if (typeof item === "string") {
-          const name = item.trim();
-          const lower = name.toLowerCase();
-          let f = await Fornecedor.findOne({
-            where: Produto.sequelize.where(
-              Produto.sequelize.fn("LOWER", Produto.sequelize.col("nome")),
-              lower,
-            ),
-          });
-          if (!f)
-            f = await Fornecedor.findOne({
-              where: Produto.sequelize.where(
-                Produto.sequelize.fn("LOWER", Produto.sequelize.col("nome")),
-                { [Produto.sequelize.Op.like]: `%${lower}%` },
-              ),
-            });
-          if (f)
-            out.push({ id: String(f.id), nome: f.nome, fornecedor: f.nome });
-          else out.push({ nome: name, fornecedor: name });
-        } else if (typeof item === "object") {
-          const obj = Object.assign({}, item);
-          if (obj.id) {
-            // confirm exists
-            const byId = await Fornecedor.findByPk(String(obj.id));
-            if (byId) {
-              obj.id = String(byId.id);
-              obj.nome = byId.nome;
-            } else if (obj.nome) {
-              const lower = String(obj.nome).toLowerCase();
-              let f = await Fornecedor.findOne({
-                where: Produto.sequelize.where(
-                  Produto.sequelize.fn("LOWER", Produto.sequelize.col("nome")),
-                  lower,
-                ),
-              });
-              if (!f)
-                f = await Fornecedor.findOne({
-                  where: Produto.sequelize.where(
-                    Produto.sequelize.fn(
-                      "LOWER",
-                      Produto.sequelize.col("nome"),
-                    ),
-                    { [Produto.sequelize.Op.like]: `%${lower}%` },
-                  ),
-                });
-              if (f) {
-                obj.id = String(f.id);
-                obj.nome = f.nome;
-              }
-            }
-          } else if (obj.fornecedor || obj.nome) {
-            const name = (obj.fornecedor || obj.nome || "").toString().trim();
-            const lower = name.toLowerCase();
-            let f = await Fornecedor.findOne({
-              where: Produto.sequelize.where(
-                Produto.sequelize.fn("LOWER", Produto.sequelize.col("nome")),
-                lower,
-              ),
-            });
-            if (!f)
-              f = await Fornecedor.findOne({
-                where: Produto.sequelize.where(
-                  Produto.sequelize.fn("LOWER", Produto.sequelize.col("nome")),
-                  { [Produto.sequelize.Op.like]: `%${lower}%` },
-                ),
-              });
-            if (f) {
-              obj.id = String(f.id);
-              obj.nome = f.nome;
-            } else obj.nome = name;
-          }
-          out.push(obj);
-        } else {
-          out.push(item);
-        }
-      } catch (e) {
-        console.warn(
-          "normalizeFornecedoresArray: erro processando item",
-          item,
-          e && e.message,
-        );
-        out.push(item);
-      }
+async function normalizeFornecedoresArray(inputArr, empresaId) {
+  if (!Array.isArray(inputArr)) return inputArr;
+  const out = [];
+  for (const item of inputArr) {
+    const obj = typeof item === "string" ? {nome:item,fornecedor:item} : {...item};
+    const nome = String(obj.nome || obj.fornecedor || "").trim();
+    let fornecedor = obj.id ? await Fornecedor.findOne({where:{id:String(obj.id),empresa_id:empresaId}}) : null;
+    if (!fornecedor && nome) {
+      fornecedor = await Fornecedor.findOne({where:{empresa_id:empresaId,
+        [require("sequelize").Op.and]:Produto.sequelize.where(
+          Produto.sequelize.fn("LOWER",Produto.sequelize.col("nome")),nome.toLowerCase())}});
     }
-    return out;
-  } catch (e) {
-    console.warn("normalizeFornecedoresArray erro", e && e.message);
-    return inputArr;
+    delete obj.id;
+    if (fornecedor) Object.assign(obj,{id:String(fornecedor.id),nome:fornecedor.nome,fornecedor:fornecedor.nome});
+    else if (nome) Object.assign(obj,{nome,fornecedor:nome});
+    out.push(obj);
   }
+  return out;
 }
 
 // GET blocked items (frontend-only deletions)
 router.get("/blocked", async (req, res) => {
   try {
-    const list = readBlocked();
+    const list = readBlocked(req.user.empresaId);
     res.json(list);
   } catch (e) {
     console.error("Erro GET /blocked", e);
@@ -375,7 +257,7 @@ router.post("/blocked", async (req, res) => {
     const nome = body.nome ? String(body.nome).trim() : null;
     if (!codigo && !nome)
       return res.status(400).json({ error: "codigo ou nome obrigatório" });
-    const list = readBlocked();
+    const list = readBlocked(req.user.empresaId);
     // evitar duplicatas por codigo ou nome
     const exists = list.find(
       (i) =>
@@ -390,7 +272,7 @@ router.post("/blocked", async (req, res) => {
       addedAt: new Date().toISOString(),
     };
     list.push(item);
-    writeBlocked(list);
+    writeBlocked(list, req.user.empresaId);
     res.json({ success: true, item });
   } catch (e) {
     console.error("Erro POST /blocked", e);
@@ -404,14 +286,14 @@ router.delete("/blocked", async (req, res) => {
     const { codigo, nome } = req.body || req.query || {};
     if (!codigo && !nome)
       return res.status(400).json({ error: "codigo ou nome obrigatório" });
-    let list = readBlocked();
+    let list = readBlocked(req.user.empresaId);
     const before = list.length;
     list = list.filter(
       (i) =>
         !(codigo && String(i.codigo) === String(codigo)) &&
         !(nome && String(i.nome).toLowerCase() === String(nome).toLowerCase()),
     );
-    writeBlocked(list);
+    writeBlocked(list, req.user.empresaId);
     res.json({ success: true, removed: before - list.length });
   } catch (e) {
     console.error("Erro DELETE /blocked", e);
@@ -419,59 +301,14 @@ router.delete("/blocked", async (req, res) => {
   }
 });
 
-// Buscar produto por id
-router.get("/:id", async (req, res) => {
+router.get("/last-saved", async (req,res) => {
   try {
-    const id = String(req.params.id);
-    if (!req.user?.empresaId) return res.status(403).json({error:"Empresa não identificada."});
-    const produto = await Produto.findOne({where:{id, empresa_id:req.user.empresaId}});
-    if (!produto)
-      return res.status(404).json({ error: "Produto não encontrado" });
-    res.json(produto);
-  } catch (error) {
-    console.error("Erro ao obter produto:", error);
-    res.status(500).json({ error: "Erro interno do servidor" });
-  }
+    const item = await Produto.findOne({where:{empresa_id:req.user.empresaId},order:[["updatedAt","DESC"]],attributes:["updatedAt"]});
+    res.json({lastSaved:item?.updatedAt || null});
+  } catch { res.status(500).json({error:"Erro ao consultar atualização."}); }
 });
-
-// GET last-saved
-router.get("/last-saved", async (req, res) => {
-  try {
-    const v = readLastSaved();
-    res.json({ lastSaved: v });
-  } catch (e) {
-    console.error("Erro GET /last-saved", e);
-    res.status(500).json({ lastSaved: null });
-  }
-});
-
-// POST last-saved
-router.post("/last-saved", async (req, res) => {
-  try {
-    const body = req.body || {};
-    const v =
-      body.lastSaved !== undefined && body.lastSaved !== null
-        ? String(body.lastSaved)
-        : null;
-    if (!v) return res.status(400).json({ error: "lastSaved obrigatório" });
-    writeLastSaved(v);
-    res.json({ success: true, lastSaved: v });
-  } catch (e) {
-    console.error("Erro POST /last-saved", e);
-    res.status(500).json({ error: "Falha ao gravar lastSaved" });
-  }
-});
-
-// DELETE last-saved
-router.delete("/last-saved", async (req, res) => {
-  try {
-    deleteLastSaved();
-    res.json({ success: true });
-  } catch (e) {
-    console.error("Erro DELETE /last-saved", e);
-    res.status(500).json({ error: "Falha ao remover lastSaved" });
-  }
-});
+router.post("/last-saved", (req,res)=>res.json({success:true}));
+router.delete("/last-saved", (req,res)=>res.json({success:true}));
 
 // Criar produto
 router.post("/", async (req, res) => {
@@ -493,6 +330,7 @@ router.post("/", async (req, res) => {
 
     // preparar payload coerente para o modelo
     const payload = { ...data, nome };
+    payload.id = require("node:crypto").randomUUID();
     const erroFiscal = validarCodigosICMS(payload);
     if (erroFiscal) return res.status(400).json({error:erroFiscal});
     // Adicionar empresa_id para isolamento multi-tenant
@@ -556,7 +394,7 @@ router.post("/", async (req, res) => {
     try {
       if (payload.fornecedores)
         payload.fornecedores = await normalizeFornecedoresArray(
-          payload.fornecedores,
+          payload.fornecedores, req.user.empresaId,
         );
     } catch (e) {
       console.warn("Erro normalizando fornecedores no POST:", e && e.message);
@@ -622,7 +460,7 @@ router.put("/permite-estoque-negativo", async (req, res) => {
     // Atualiza todos os registros na tabela `itens`
     const [updatedCount] = await Produto.update(
       { permiteEstoqueNegativo: valor },
-      { where: {} },
+      { where: {empresa_id:req.user.empresaId} },
     );
 
     return res.json({
@@ -733,7 +571,7 @@ router.put("/:id", async (req, res) => {
     // Normalizar fornecedores recebidos no update (preencher id/nome quando possível)
     try {
       if (data.fornecedores)
-        data.fornecedores = await normalizeFornecedoresArray(data.fornecedores);
+        data.fornecedores = await normalizeFornecedoresArray(data.fornecedores, req.user.empresaId);
     } catch (e) {
       console.warn("Erro normalizando fornecedores no PUT:", e && e.message);
     }
@@ -785,7 +623,7 @@ router.put("/:id/estoque", async (req, res) => {
       return res
         .status(400)
         .json({ error: "Quantidade e operacao obrigatórios" });
-    const produto = await Produto.findByPk(id);
+    const produto = await Produto.findOne({where:{id,empresa_id:req.user.empresaId}});
     if (!produto)
       return res.status(404).json({ error: "Produto não encontrado" });
     const atual = Number(produto.estoqueAtual) || 0;
@@ -835,6 +673,8 @@ router.put("/:id/estoque", async (req, res) => {
 router.get("/:id/historico-estoque", async (req, res) => {
   try {
     const id = String(req.params.id);
+    const produto = await Produto.findOne({where:{id,empresa_id:req.user.empresaId}});
+    if (!produto) return res.status(404).json({error:"Produto não encontrado"});
     const HistoricoEstoque = require("../models/HistoricoEstoque");
     const historico = await HistoricoEstoque.findAll({
       where: { produtoId: id },
@@ -851,7 +691,7 @@ router.get("/:id/historico-estoque", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     const id = String(req.params.id);
-    const produto = await Produto.findByPk(id);
+    const produto = await Produto.findOne({where:{id,empresa_id:req.user.empresaId}});
     if (!produto)
       return res.status(404).json({ error: "Produto não encontrado" });
     await produto.destroy();
@@ -875,13 +715,23 @@ router.post("/import", async (req, res) => {
         const id = p.id
           ? String(p.id)
           : String(Date.now()) + Math.floor(Math.random() * 1000);
-        const [registro, created] = await Produto.upsert({ ...p, id });
+        const dados = {...p, id, empresa_id:req.user.empresaId};
+        const erro = validarCodigosICMS(dados);
+        if (erro) throw new Error(erro);
+        const [registro, created] = await Produto.findOrCreate({
+          where:{id}, defaults:dados
+        });
+        if (Number(registro.empresa_id) !== req.user.empresaId) {
+          results.push({id,created:false,error:"Identificador indisponível para esta empresa."});
+          continue;
+        }
+        if (!created) await registro.update(dados);
         results.push({ id, created: !!created });
       } catch (err) {
         console.warn("Falha ao importar item:", p && p.id, err && err.message);
       }
     }
-    res.json({ success: true, imported: results.length, details: results });
+    res.json({ success: true, imported: results.filter(r=>!r.error).length, details: results });
   } catch (error) {
     console.error("Erro na importacao de itens:", error);
     res.status(500).json({ error: "Erro interno na importacao" });
@@ -986,9 +836,10 @@ function calcularStatusProduto(
 }
 
 // Rota para calcular status de validade dos produtos internos (GET)
-router.get("/validade-status", (req, res) => {
+router.get("/validade-status", async (req, res) => {
   try {
     const defaults = { firstAlert: 30, secondAlert: 15 };
+    const produtos = await Produto.findAll({where:{empresa_id:req.user.empresaId}});
     const resultados = produtos.map((p) => calcularStatusProduto(p, defaults));
     res.json(resultados);
   } catch (error) {
@@ -1006,6 +857,21 @@ router.post("/validade-status", (req, res) => {
     res.json(resultados);
   } catch (error) {
     console.error("Erro ao calcular status de validade (POST):", error);
+    res.status(500).json({ error: "Erro interno do servidor" });
+  }
+});
+
+// Buscar produto por id
+router.get("/:id", async (req, res) => {
+  try {
+    const id = String(req.params.id);
+    if (!req.user?.empresaId) return res.status(403).json({error:"Empresa não identificada."});
+    const produto = await Produto.findOne({where:{id, empresa_id:req.user.empresaId}});
+    if (!produto)
+      return res.status(404).json({ error: "Produto não encontrado" });
+    res.json(produto);
+  } catch (error) {
+    console.error("Erro ao obter produto:", error);
     res.status(500).json({ error: "Erro interno do servidor" });
   }
 });
