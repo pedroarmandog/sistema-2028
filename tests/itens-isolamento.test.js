@@ -6,6 +6,7 @@ test('API de itens mantém empresas A, B e registros sem dono isolados',async t=
  const db=new Sequelize({dialect:'sqlite',storage:':memory:',logging:false,dialectModule:require('../backend/scripts/lab-fiscal/sqlite')});
  function stub(nome,exports){const filename=require.resolve(nome);require.cache[filename]={filename,id:filename,loaded:true,exports};}
  stub('../backend/models/Cliente',{sequelize:db});
+ stub('../backend/models',{Usuario:{findByPk:async()=>({permissoes:null})}});
  stub('../backend/middleware/authUser',{authUser(req,res,next){
    const id=req.get('x-teste-empresa');
    if(!id)return res.sendStatus(401);

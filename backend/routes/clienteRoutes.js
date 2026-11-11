@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+router.use("/importacao", require("./importacaoRoutes").criarRotas("clientes"));
 const clienteController = require("../controllers/clienteController");
 const multer = require("multer");
 const { authUser } = require("../middleware/authUser");
@@ -15,6 +16,7 @@ router.use(authUser);
 router.use((req,res,next) => {
   if (!Number.isSafeInteger(Number(req.user?.empresaId)) || Number(req.user.empresaId) <= 0)
     return res.status(403).json({success:false,error:"Empresa não identificada."});
+  res.set("Cache-Control","private, no-store");
   next();
 });
 

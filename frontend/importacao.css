@@ -1,0 +1,181 @@
+.ph-import-backdrop {
+  position: fixed;
+  inset: 0;
+  background: #172b40a8;
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+.ph-import {
+  width: min(1120px, 100%);
+  max-height: 92vh;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 80px #10263b45;
+  display: flex;
+  flex-direction: column;
+  font:
+    14px/1.5 Arial,
+    sans-serif;
+  color: #243648;
+}
+.ph-import header,
+.ph-import footer {
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #e5eaf0;
+}
+.ph-import header h2 {
+  margin: 0;
+  font-size: 22px;
+}
+.ph-import header button {
+  margin-left: auto;
+}
+.ph-import footer {
+  border-top: 1px solid #e5eaf0;
+  border-bottom: 0;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.ph-import main {
+  padding: 22px 24px;
+  overflow: auto;
+}
+.ph-import p {
+  margin: 0 0 16px;
+}
+.ph-import button,
+.ph-import select {
+  border: 1px solid #d8e0e7;
+  border-radius: 7px;
+  padding: 9px 12px;
+  background: #fff;
+  color: #243648;
+  font: inherit;
+}
+.ph-import button {
+  cursor: pointer;
+}
+.ph-import button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.ph-import button.primary {
+  background: #249e4a;
+  color: white;
+  border-color: #249e4a;
+}
+.ph-import .drop {
+  display: block;
+  text-align: center;
+  border: 2px dashed #acbdcb;
+  border-radius: 10px;
+  padding: 24px;
+  background: #f8fafc;
+  margin: 12px 0;
+  cursor: pointer;
+}
+.ph-import .drop input {
+  display: block;
+  margin: 10px auto;
+  max-width: 100%;
+}
+.ph-import .mapping {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+.ph-import .mapping label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-width: 240px;
+}
+.ph-import .notice {
+  padding: 12px;
+  border-radius: 8px;
+  background: #edf4fb;
+  margin: 12px 0;
+  white-space: pre-wrap;
+}
+.ph-import .notice.error {
+  background: #fff0ed;
+  color: #a32f22;
+}
+.ph-import table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+.ph-import th,
+.ph-import td {
+  padding: 10px;
+  text-align: left;
+  border-bottom: 1px solid #e6ebf0;
+  max-width: 350px;
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+.ph-import th {
+  background: #f5f7fa;
+}
+.ph-import .table-wrap {
+  overflow: auto;
+}
+.ph-import progress {
+  width: 100%;
+  height: 8px;
+  accent-color: #249e4a;
+}
+.ph-import .pager {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 12px;
+  align-items: center;
+}
+.ph-import-launch {
+  border: 1px solid #dce3e9;
+  border-radius: 6px;
+  background: white;
+  color: #2b4358;
+  padding: 9px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+.ph-import select:focus,
+.ph-import button:focus {
+  outline: 2px solid #338ac4;
+  outline-offset: 2px;
+}
+@media (max-width: 600px) {
+  .ph-import-backdrop {
+    padding: 6px;
+  }
+  .ph-import {
+    max-height: 98vh;
+    border-radius: 10px;
+  }
+  .ph-import main,
+  .ph-import header,
+  .ph-import footer {
+    padding: 14px;
+  }
+  .ph-import header h2 {
+    font-size: 19px;
+  }
+  .ph-import .mapping label {
+    width: 100%;
+    max-width: none;
+  }
+  .ph-import footer button {
+    flex: 1;
+  }
+}

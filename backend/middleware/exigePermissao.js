@@ -39,6 +39,7 @@ function exigePermissao(...permissoesNecessarias) {
         const chaves = Object.keys(perms);
         if (chaves.length && !permissoesNecessarias.some(k => perms[k] === true))
           return res.status(403).json({erro:"Sem permissão para esta operação."});
+        if(chaves.length && !chaves.some(k=>perms[k]===true)) return res.sendStatus(403);
         perms = chaves.filter(k => perms[k] === true);
       }
       if (perms == null) perms = [];

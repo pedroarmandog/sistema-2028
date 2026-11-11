@@ -12,6 +12,7 @@ async function migrar(){
     throw new Error("Tipo de clientes.sexo requer revisão manual.");
   }
   const valores=[...tipo.matchAll(/'((?:[^']|'')*)'/g)].map(m=>m[1].replace(/''/g,"'"));
+  if (["Masculino","Feminino","Outro"].every(v=>valores.some(atual=>atual.toLowerCase()===v.toLowerCase()))) {console.log("clientes.sexo já compatível.");return;}
   for(const v of ["Masculino","Feminino","Outro"])if(!valores.some(atual=>atual.toLowerCase()===v.toLowerCase()))valores.push(v);
   const opcoes=valores.map(v=>sequelize.escape(v)).join(",");
   await sequelize.query("ALTER TABLE clientes MODIFY COLUMN sexo ENUM("+opcoes+") NULL DEFAULT NULL");

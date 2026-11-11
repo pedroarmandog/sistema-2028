@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+router.use("/importacao", require("./importacaoRoutes").criarRotas("produtos"));
 const Produto = require("../models/Produto");
 const Fornecedor = require("../models/Fornecedor");
 const { QueryTypes } = require("sequelize");

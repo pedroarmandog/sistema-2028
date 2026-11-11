@@ -241,11 +241,13 @@ exports.getClienteById = async (req, res) => {
     const { id } = req.params;
 
     // Buscar cliente incluindo pets relacionados e vendas (histórico)
-    const cliente = await Cliente.findByPk(id, {
+    const cliente = await Cliente.findOne({
+      where:{id,empresa_id:req.user.empresaId},
       include: [
         {
           model: Pet,
           as: "pets",
+          where:{empresa_id:req.user.empresaId}, required:false,
           // Incluir tags para que a UI de client-details possa renderizá-las
           attributes: [
             "id",
@@ -266,6 +268,7 @@ exports.getClienteById = async (req, res) => {
         {
           model: Venda,
           as: "vendas",
+          where:{empresa_id:req.user.empresaId},
           attributes: [
             "id",
             "data",
@@ -409,7 +412,7 @@ exports.updateCliente = async (req, res) => {
       });
     }
 
-    const clienteAtualizado = await Cliente.findByPk(id);
+    const clienteAtualizado = await Cliente.findOne({where:{id,empresa_id:req.user.empresaId}});
 
     res.json({
       success: true,
