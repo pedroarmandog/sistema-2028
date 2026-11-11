@@ -11,6 +11,13 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+router.use(authUser);
+router.use((req,res,next) => {
+  if (!Number.isSafeInteger(Number(req.user?.empresaId)) || Number(req.user.empresaId) <= 0)
+    return res.status(403).json({success:false,error:"Empresa não identificada."});
+  next();
+});
+
 // Rotas para clientes (protegidas por empresa)
 router.post(
   "/",

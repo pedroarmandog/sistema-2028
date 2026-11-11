@@ -84,7 +84,7 @@
       dataNascimento: cliente.data_nascimento
         ? cliente.data_nascimento.split("T")[0]
         : "",
-      sexo: cliente.sexo,
+      sexo: cliente.sexo ? String(cliente.sexo).trim().toLowerCase() : "",
       telefone: cliente.telefone,
       email: cliente.email,
       cep: cliente.cep,
@@ -1148,7 +1148,7 @@
         if (elemento) {
           if (elemento.type === "checkbox") {
             formData.append(backendField, elemento.checked);
-          } else if (elemento.value) {
+          } else if (elemento.value || backendField === "sexo") {
             formData.append(backendField, elemento.value);
           }
         }

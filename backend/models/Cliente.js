@@ -183,7 +183,7 @@ const Cliente = sequelize.define(
     rg: { type: DataTypes.STRING },
     data_nascimento: { type: DataTypes.DATE },
     idade: { type: DataTypes.INTEGER },
-    sexo: { type: DataTypes.ENUM("Masculino", "Feminino") },
+    sexo: { type: DataTypes.ENUM("Masculino", "Feminino", "Outro") },
 
     // Contato
     // Telefone é opcional — permitir cliente sem telefone

@@ -1,3 +1,4 @@
+const {normalizarSexo} = require("../utils/sexoCliente");
 const { Cliente, Pet, Venda } = require("../models");
 // Usando importação centralizada do models/index.js com as associações configuradas
 
@@ -91,9 +92,9 @@ exports.createCliente = async (req, res) => {
       nome,
       cpf: cpf || null,
       rg: rg || null,
-      data_nascimento,
+      data_nascimento: data_nascimento || null,
       idade,
-      sexo: sexo || null,
+      sexo: normalizarSexo(sexo),
       telefone: telefone || null,
       email: email || null,
       telefones_adicionais: telefonesAdicionaisArray,
@@ -154,6 +155,7 @@ exports.createCliente = async (req, res) => {
 
     // Nota: boas_vindas é disparado no cadastro do primeiro pet (petController)
   } catch (err) {
+    if (err.status === 400) return res.status(400).json({success:false,error:err.message});
     console.error("Erro ao criar cliente:", err);
 
     // Tratar erros de duplicidade (CPF/email já cadastrados)
@@ -315,7 +317,14 @@ exports.getClienteById = async (req, res) => {
 exports.updateCliente = async (req, res) => {
   try {
     const { id } = req.params;
-    const updates = req.body;
+    const updates = {...req.body};
+    delete updates.empresa_id;
+    delete updates.id;
+    if ("sexo" in updates) updates.sexo = normalizarSexo(updates.sexo);
+    if (updates.data_nascimento === "") {
+      updates.data_nascimento = null;
+      updates.idade = null;
+    }
 
     // Converter tipo_pessoa: "fisica" → "F", "juridica" → "J"
     if ("tipo_pessoa" in updates && updates.tipo_pessoa) {
@@ -408,6 +417,7 @@ exports.updateCliente = async (req, res) => {
       cliente: clienteAtualizado,
     });
   } catch (err) {
+    if (err.status === 400) return res.status(400).json({success:false,error:err.message});
     console.error("Erro ao atualizar cliente:", err);
     res.status(500).json({
       success: false,
