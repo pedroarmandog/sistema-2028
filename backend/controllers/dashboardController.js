@@ -739,10 +739,11 @@ exports.contasAPagarHoje = async (req, res) => {
     const dataBrasil = getHojeBrasilStr();
 
     const empresaId = req.user?.empresaId;
+    if (!empresaId) {
+      return res.status(403).json({ error: "Empresa nao identificada. Contate o suporte." });
+    }
 
-    const whereEmpresa = empresaId
-      ? { [Op.or]: [{ empresa_id: empresaId }, { empresa_id: null }] }
-      : {};
+    const whereEmpresa = { [Op.or]: [{ empresa_id: empresaId }, { empresa_id: null }] };
 
     const entradas = await Entrada.findAll({
       where: Object.assign(
@@ -1018,10 +1019,12 @@ exports.faturamentoPeriodos = async (req, res) => {
 exports.indicadoresAtendimento = async (req, res) => {
   try {
     const dataBrasil = getHojeBrasilStr();
+    const empresaId = req.user?.empresaId;
+    if (!empresaId) {
+      return res.status(403).json({ error: "Empresa nao identificada. Contate o suporte." });
+    }
 
-    const empresaFilter = req.user?.empresaId
-      ? "AND empresa_id = :empresaId"
-      : "";
+    const empresaFilter = "AND empresa_id = :empresaId";
 
     // Usar range com offset -03:00 (mesma estratégia do GET /api/agendamentos)
     // para evitar problemas de timezone quando o MySQL está em UTC.
