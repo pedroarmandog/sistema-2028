@@ -103,19 +103,28 @@ test('rotação e conversão assíncrona do QR não substituem QR novo nem estad
   assert.equal(service.obterStatus(1).qrBase64,null);
 });
 
-test('queda temporária, backoff limitado, logout e cancelamento durante espera', async () => {
+test('queda temporária permanece tentando, preserva auth, limita backoff e permite cancelar', async () => {
   const {service,sockets,timers} = await ambiente();
   await service.inicializarCliente(1);
-  for(let i=0;i<5;i++) {
-    fechar(sockets[i],408); assert.equal(timers[i].ms,1000 * 2 ** i); await timers[i].fn();
+  const auth = sockets[0].config.auth;
+  sockets[0].ev.emit('creds.update', { registered: true, me: {id:'5531999000000@s.whatsapp.net'} });
+  atualizar(sockets[0], {connection:'open'});
+  for (let i=0;i<30;i++) {
+    fechar(sockets[i],408);
+    assert.equal(service.obterStatus(1).status,'inicializando');
+    assert.equal(service.obterStatus(1).reconectando,true);
+    assert.equal(service.obterStatus(1).qrBase64,null);
+    assert.equal(timers[i].ms,Math.min(1000 * 2 ** Math.min(i,6),60000));
+    await timers[i].fn();
+    assert.equal(sockets[i+1].config.auth,auth);
   }
-  fechar(sockets[5],408);
-  assert.equal(service.obterStatus(1).status,'desconectado'); assert.equal(timers.length,5);
-  await service.inicializarCliente(1); fechar(sockets[6],401);
+  atualizar(sockets[30],{connection:'open'});
+  assert.equal((await service.enviarMensagem(1,'31999990000','depois da queda')).sucesso,true);
+  fechar(sockets[30],401); await tick();
   assert.equal(service.obterStatus(1).status,'desconectado');
-  await service.inicializarCliente(1); fechar(sockets[7],503);
-  await service.desconectar(1); assert.equal(timers[5].cancelado,true);
-  await timers[5].fn(); assert.equal(sockets.length,8);
+  await service.inicializarCliente(1); fechar(sockets[31],503);
+  await service.desconectar(1); assert.equal(timers[30].cancelado,true);
+  await timers[30].fn(); assert.equal(sockets.length,32);
 });
 
 test('imagens, documentos e confirmação de envio', async () => {

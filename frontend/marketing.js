@@ -275,13 +275,17 @@ function exibirWhatsapp(data) {
   const visivel = (id, flag) => { document.getElementById(id).style.display = flag ? "block" : "none"; };
   visivel("qrStatusConectado", conectado);
   visivel("qrStatusAguardando", iniciando);
+  const textoConexao = document.querySelector("#qrStatusAguardando p");
+  if (textoConexao) textoConexao.textContent = data.reconectando
+    ? "Reconectando automaticamente. Não é necessário ler outro QR."
+    : "Conectando ao WhatsApp…";
   visivel("qrImageContainer", aguardando);
   visivel("qrStatusDesconectado", !conectado && !aguardando && !iniciando);
   visivel("qrBtnDesconectar", conectado || aguardando || iniciando);
   const img = document.getElementById("qrCodeImg");
   if (aguardando) img.src = data.qrBase64;
   else img.removeAttribute("src");
-  const rotulo = conectado ? "Conectado" : aguardando ? "Aguardando QR" : iniciando ? "Conectando…" : "Desconectado";
+  const rotulo = conectado ? "Conectado" : aguardando ? "Aguardando QR" : iniciando ? (data.reconectando ? "Reconectando…" : "Conectando…") : "Desconectado";
   const cor = conectado ? "#22c55e" : aguardando || iniciando ? "#b45309" : "#777";
   const label = document.getElementById("wppStatusLabel");
   label.textContent = rotulo;

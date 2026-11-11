@@ -1849,38 +1849,20 @@ function startServer() {
       );
     }
 
-    // Auto-reconectar sessões WhatsApp que estavam conectadas antes de reiniciar o servidor
-    setTimeout(async () => {
-      try {
-        const whatsappService = require("./services/whatsappService");
-        const { WhatsappSession } = require("./models");
-        const sessoesConectadas = await WhatsappSession.findAll({
-          where: { status: "conectado" },
-          attributes: ["empresaId"],
-        });
-        for (const sessao of sessoesConectadas) {
-          try {
-            await whatsappService.inicializarCliente(String(sessao.empresaId));
-            console.log(
-              `[WhatsApp] Auto-reconexão iniciada para empresa ${sessao.empresaId}`,
-            );
-          } catch (e) {
-            console.warn(
-              `[WhatsApp] Falha ao auto-reconectar empresa ${sessao.empresaId}:`,
-              e && e.message,
-            );
-          }
-        }
-        console.log(
-          `[WhatsApp] ${sessoesConectadas.length} sessão(ões) marcada(s) para auto-reconexão`,
-        );
-      } catch (e) {
-        console.warn(
-          "⚠️ Não foi possível iniciar auto-reconexão WhatsApp:",
-          e && e.message,
-        );
-      }
-    }, 5000);
+    // Restaurar credenciais/chaves cifradas; status antigo não gera um novo QR.
+    const whatsappService = require("./services/whatsappService");
+    whatsappService.iniciarMonitor();
+    let encerrandoWhatsapp = false;
+    const encerrarServidor = async () => {
+      if (encerrandoWhatsapp) return;
+      encerrandoWhatsapp = true;
+      const limite = setTimeout(() => process.exit(0), 8000);
+      limite.unref();
+      await whatsappService.suspender(); // Preserva o vínculo, sem logout.
+      server.close(() => process.exit(0));
+    };
+    process.once("SIGTERM", encerrarServidor);
+    process.once("SIGINT", encerrarServidor);
 
     // Limpeza periódica de sessões inativas (a cada 60 segundos).
     // Com SESSAO_TIMEOUT_SECONDS = 90s, sessões expiram em no máximo 150s após browser fechar.
