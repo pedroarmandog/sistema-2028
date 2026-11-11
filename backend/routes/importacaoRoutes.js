@@ -77,9 +77,9 @@ function criarRotas(tipo) {
         });
     ativos.add(chave);
     try {
-      if (!req.file) throw new Error("Selecione um arquivo CSV ou XLSX.");
+      if (!req.file) throw new Error("Selecione um arquivo CSV, XLS ou XLSX.");
       const ext = path.extname(req.file.originalname).slice(1).toLowerCase();
-      if (!["csv", "xlsx"].includes(ext)) throw new Error("Use CSV ou XLSX.");
+      if (!["csv", "xls", "xlsx"].includes(ext)) throw new Error("Use CSV, XLS ou XLSX.");
       await banco.preparar();
       const arquivo = await new Promise((resolve, reject) => {
         const w = new Worker(

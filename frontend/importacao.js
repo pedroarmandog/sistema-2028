@@ -240,7 +240,7 @@
   }
   async function analisar() {
     if (!arquivo) {
-      aviso("Selecione um arquivo CSV ou XLSX.", true);
+      aviso("Selecione um arquivo CSV, XLS ou XLSX.", true);
       return;
     }
     const mapa = [...modal.querySelectorAll("[data-coluna]")].map(
@@ -364,12 +364,12 @@
     main.append(download);
     const drop = el(
       "label",
-      "Selecione ou arraste um arquivo CSV ou XLSX. Até 5 MB e 1.000 registros.",
+      "Selecione ou arraste um arquivo CSV, XLS ou XLSX. Até 5 MB e 2.500 registros.",
     );
     drop.className = "drop";
     const input = el("input");
     input.type = "file";
-    input.accept = ".csv,.xlsx";
+    input.accept = ".csv,.xls,.xlsx";
     drop.append(input);
     function escolher(file) {
       arquivo = file;

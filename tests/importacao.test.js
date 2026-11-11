@@ -3,7 +3,7 @@ const assert = require("node:assert/strict"),
   fs = require("node:fs"),
   vm = require("node:vm");
 const XLSX = require("xlsx");
-test("Importação CSV e XLSX com JWT real, banco isolado e duas empresas", async (t) => {
+test("Importação CSV, XLS e XLSX com JWT real, banco isolado e duas empresas", async (t) => {
   const lab =
     await require("../backend/scripts/lab-fiscal/app").criarLaboratorio();
   const { DataTypes } = require("sequelize");
@@ -274,13 +274,38 @@ test("Importação CSV e XLSX com JWT real, banco isolado e duas empresas", asyn
     assert.equal(erros.data.resumo.erros, 3);
     assert.equal((await confirmar("itens", erros.data.token)).data.criados, 0);
   });
+  await t.test("XLS binário e exportação tabulada com mais de mil clientes", async () => {
+    for (const formato of ["biff8", "txt"]) {
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+        ["nome", "mail", "fone1"],
+        ...Array.from({ length: formato === "txt" ? 1914 : 2 }, (_, i) =>
+          ["Cliente XLS " + i, "", "31999999999"]),
+      ]), "Clientes");
+      const bytes = formato === "txt"
+        ? Buffer.from(XLSX.utils.sheet_to_csv(wb.Sheets.Clientes, { FS: "\t" }))
+        : XLSX.write(wb, { type: "buffer", bookType: formato });
+      const f = new FormData();
+      f.append("arquivo", new Blob([bytes]), "clientes.XLS");
+      const r = await api("/api/clientes/importacao/analisar", { arquivo: f });
+      assert.equal(r.status, 200, JSON.stringify(r.data));
+      assert.equal(r.data.resumo.validos, formato === "txt" ? 1914 : 2);
+      assert.equal(r.data.linhas[0].dados.telefone, "31999999999");
+      if (formato === "biff8") {
+        assert.equal((await confirmar("clientes", r.data.token)).data.criados, 2);
+      }
+    }
+    const f = new FormData();
+    f.append("arquivo", new Blob([Buffer.from([0, 1, 2, 3])]), "invalido.xls");
+    assert.equal((await api("/api/clientes/importacao/analisar", { arquivo: f })).status, 400);
+  });
   await t.test(
     "Limites, plano com nomes iguais e registros válidos entre linhas com erro",
     async () => {
       const grande = await previa(
         "clientes",
         "Nome\n" +
-          Array.from({ length: 1001 }, (_, i) => "Pessoa " + i).join("\n"),
+          Array.from({ length: 2501 }, (_, i) => "Pessoa " + i).join("\n"),
       );
       assert.equal(grande.status, 400);
       const mistura = await previa(

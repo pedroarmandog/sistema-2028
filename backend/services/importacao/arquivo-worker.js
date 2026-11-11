@@ -2,11 +2,15 @@ const { parentPort, workerData } = require("node:worker_threads");
 try {
   const XLSX = require("xlsx"),
     bytes = Buffer.from(workerData.bytes);
-  const excel = workerData.ext === "xlsx";
-  if (excel && (bytes[0] !== 0x50 || bytes[1] !== 0x4b))
+  const xlsx = workerData.ext === "xlsx";
+  // XLS exports may contain BIFF/OLE or tab-delimited text. Parse by content.
+  const ole = bytes.subarray(0, 8).equals(Buffer.from("d0cf11e0a1b11ae1", "hex"));
+  const biff = bytes[0] === 0x09 && [0x00, 0x02, 0x04, 0x08].includes(bytes[1]);
+  const excel = xlsx || (workerData.ext === "xls" && (ole || biff));
+  if (xlsx && (bytes[0] !== 0x50 || bytes[1] !== 0x4b))
     throw new Error("O arquivo não é XLSX.");
   if (!excel && bytes.includes(0))
-    throw new Error("CSV deve ser um arquivo de texto.");
+    throw new Error("O arquivo deve conter uma planilha ou tabela de texto válida.");
   let entrada = bytes;
   if (!excel) {
     try {
@@ -20,17 +24,19 @@ try {
     raw: true,
     cellFormula: true,
     cellHTML: false,
-    sheetRows: 1002,
+    sheetRows: 2502,
+    bookVBA: true,
     cellDates: false,
   });
+  if (wb.vbaraw) throw new Error("Remova macros antes de importar.");
   const nomes = wb.SheetNames;
   const aba = workerData.aba || nomes[0];
   if (!nomes.includes(aba)) throw new Error("Selecione uma aba válida.");
   const sheet = wb.Sheets[aba],
     ref = XLSX.utils.decode_range(sheet["!fullref"] || sheet["!ref"] || "A1");
-  if (ref.e.r > 1000 || ref.e.c > 79)
+  if (ref.e.r > 2500 || ref.e.c > 79)
     throw new Error(
-      "Limite de 1.000 linhas de dados e 80 colunas por arquivo.",
+      "Limite de 2.500 linhas de dados e 80 colunas por arquivo.",
     );
   for (const [k, cell] of Object.entries(sheet)) {
     if (!k.startsWith("!") && (cell.f || cell.l))
