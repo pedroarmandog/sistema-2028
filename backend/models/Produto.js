@@ -350,4 +350,5 @@ const Produto = sequelize.define(
   },
 );
 
+require('../services/pushEventoService').registrarProduto(Produto);
 module.exports = Produto;

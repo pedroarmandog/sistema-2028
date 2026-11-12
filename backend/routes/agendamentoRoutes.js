@@ -595,7 +595,6 @@ router.put("/:id", async (req, res) => {
 router.post("/:id/cancelar", async (req, res) => {
   console.log("[CANCELAMENTO] ===== INÍCIO DA REQUISIÇÃO =====");
   console.log("[CANCELAMENTO] Params:", req.params);
-  console.log("[CANCELAMENTO] Body:", req.body);
   
   try {
     const { id } = req.params;
@@ -609,7 +608,7 @@ router.post("/:id/cancelar", async (req, res) => {
     }
 
     const bcrypt = require("bcryptjs");
-    const { Admin, Op } = require("../models");
+    const { Admin } = require("../models");
     
     console.log("[CANCELAMENTO] Buscando Admin...");
     let user = null;
@@ -618,7 +617,7 @@ router.post("/:id/cancelar", async (req, res) => {
     try {
       user = await Admin.findOne({
         where: {
-          [Op.or]: [{ email: usuarioLogin }, { usuario: usuarioLogin }],
+          [Op.or]: [{ email: usuarioLogin }, ...(Admin.rawAttributes.usuario ? [{usuario:usuarioLogin}] : [])],
         },
       });
       tipo = "Admin";
@@ -679,25 +678,7 @@ router.post("/:id/cancelar", async (req, res) => {
     
     res.json({ message: "Agendamento cancelado com sucesso" });
 
-    // ── Push: cancelamento ──────────────────────────────────────────
-    setImmediate(async () => {
-      try {
-        const pushService = require("../services/pushNotificationService");
-        const ag = await Agendamento.findOne({ where: {id: id, empresa_id: req.user.empresaId},
-          include: [{ model: Pet, as: "pet", required: false }],
-        });
-        const empresaId = ag?.empresa_id || req.user?.empresaId;
-        if (empresaId) {
-          console.log("[CANCELAMENTO] 📤 Enviando push notification de cancelamento");
-          await pushService.notificarEmpresa(empresaId, "cancelamento", {
-            petNome: ag?.pet?.nome || "",
-            horario: ag?.horario || "",
-          });
-        }
-      } catch (e) {
-        console.warn("[CANCELAMENTO] ⚠️ Erro ao enviar push cancelamento:", e.message);
-      }
-    });
+
   } catch (error) {
     console.error("[CANCELAMENTO] ERRO GERAL:", error);
     console.error("[CANCELAMENTO] Stack:", error.stack);
@@ -949,25 +930,7 @@ router.patch("/:id/status", async (req, res) => {
       });
     }
 
-    // ── Push: cancelamento ──────────────────────────────────────────
-    if (status === "cancelado") {
-      setImmediate(async () => {
-        try {
-          const pushService = require("../services/pushNotificationService");
-          const ag = await Agendamento.findOne({ where: {id: id, empresa_id: req.user.empresaId},
-            include: [{ model: Pet, as: "pet", required: false }],
-          });
-          const empresaId = ag?.empresa_id;
-          if (empresaId) {
-            await pushService.notificarEmpresa(empresaId, "cancelamento", {
-              petNome: ag?.pet?.nome || "",
-            });
-          }
-        } catch (e) {
-          console.warn("[Push] Erro ao enviar push cancelamento:", e.message);
-        }
-      });
-    }
+
   } catch (error) {
     console.error("Erro ao atualizar status:", error);
     res.status(500).json({ error: "Erro interno do servidor" });

@@ -152,9 +152,9 @@ const PAYLOADS = {
   cancelamento: (dados) => ({
     title: "❌ Agendamento Cancelado",
     body: dados.petNome
-      ? `Agendamento de ${dados.petNome} foi cancelado`
+      ? `O agendamento de ${dados.petNome}${dados.servico ? ' para '+dados.servico : ''}${dados.horario ? ', marcado para '+dados.horario : ''}, foi cancelado.`
       : "Um agendamento foi cancelado",
-    tag: "cancelamento",
+    tag: dados.eventoId ? "cancelamento:"+dados.eventoId : "cancelamento",
     data: { page: "agenda" },
     requireInteraction: true,
   }),
@@ -172,9 +172,9 @@ const PAYLOADS = {
   estoque_baixo: (dados) => ({
     title: "📦 Estoque Baixo",
     body: dados.produto
-      ? `${dados.produto} está com estoque abaixo do mínimo`
+      ? `${dados.produto} está com ${dados.quantidade ?? 0} unidade(s) em estoque. Mínimo configurado: ${dados.minimo ?? 0}.`
       : "Produtos com estoque baixo detectados",
-    tag: "estoque_baixo",
+    tag: dados.eventoId ? "estoque_baixo:"+dados.eventoId : "estoque_baixo",
     data: { page: "dashboard" },
     requireInteraction: true,
   }),
@@ -284,7 +284,8 @@ async function notificarEmpresa(empresaId, evento, dados = {}) {
 
       try {
         await webpush.sendNotification(subscriptionData, payloadStr, {
-          TTL: 0,
+          TTL: ["estoque_baixo", "cancelamento"].includes(evento) ? 3600 : 0,
+          ...(["estoque_baixo", "cancelamento"].includes(evento) ? {timeout:5000} : {}),
           urgency: "high",
         });
         console.log(`[Push] ✅ [${index + 1}/${subscriptions.length}] Notificação enviada com sucesso para usuário ${sub.usuario_id}`);

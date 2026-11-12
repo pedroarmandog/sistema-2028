@@ -34,18 +34,19 @@ exports.produtosEstoqueBaixo = async (req, res) => {
   try {
     const empresaId = req.user?.empresaId;
     // Usar condição literal para comparar colunas diretamente no SQL
-    const condition = "(estoqueAtual = 0) OR (estoqueAtual < estoqueMinimo)";
+    const condition = "((estoqueAtual = 0) OR (estoqueAtual < estoqueMinimo))";
     const whereClause = { [Op.and]: [literal(condition)] };
     if (!empresaId) {
       return res.status(403).json({ error: "Empresa nao identificada. Contate o suporte." });
     }
     whereClause.empresa_id = empresaId;
+    whereClause[Op.and].push(literal("LOWER(TRIM(COALESCE(tipo, 'produto'))) IN ('produto', '')"));
     const cacheKey = `dashboard:produtosEstoqueBaixo:${empresaId || "all"}`;
     const cached = cache.get(cacheKey);
     if (cached) return res.json(cached);
 
     const produtos = await Produto.findAll({
-      attributes: ["id", "nome", "estoqueAtual", "estoqueMinimo"],
+      attributes: ["id", "nome", "estoqueAtual", "estoqueMinimo", "estoqueIdeal"],
       where: whereClause,
       order: [["estoqueAtual", "ASC"]],
       limit: 50,
@@ -56,6 +57,7 @@ exports.produtosEstoqueBaixo = async (req, res) => {
       nome: p.nome,
       estoqueAtual: p.estoqueAtual,
       estoqueMinimo: p.estoqueMinimo,
+      estoqueIdeal: p.estoqueIdeal,
     }));
     cache.set(cacheKey, result, 10); // cache 10s
     console.log(`Encontrados ${result.length} produtos com estoque baixo`);
@@ -72,9 +74,12 @@ exports.resumo = async (req, res) => {
     if (!empresaId) {
       return res.status(403).json({ error: "Empresa nao identificada. Contate o suporte." });
     }
-    const cacheKey = `dashboard:resumo:${empresaId || "all"}`;
+    const periodo = require('../utils/periodoBrasilia').periodoMes();
+    const clientesMesAtual = await Cliente.count({where:{empresa_id:empresaId,
+      createdAt:{[Op.gte]:periodo.inicio,[Op.lt]:periodo.fim}}});
+    const cacheKey = `dashboard:resumo:${empresaId}:${periodo.hoje}`;
     const cached = cache.get(cacheKey);
-    if (cached) return res.json(cached);
+    if (cached) return res.json({...cached,clientesMes:clientesMesAtual});
 
     const clientesTable = Cliente.getTableName
       ? Cliente.getTableName()
@@ -95,20 +100,8 @@ exports.resumo = async (req, res) => {
     const hojeStartStr = hojeStart.toISOString().slice(0, 19).replace("T", " ");
     const hojeNextStr = hojeNext.toISOString().slice(0, 19).replace("T", " ");
 
-    // Primeiro dia do mês (em Brasília) para contar clientes do mês
-    const hojeParts = dataBrasil.split("-");
-    const ano = parseInt(hojeParts[0], 10);
-    const mes = parseInt(hojeParts[1], 10);
-    const inicioMesStr = `${ano}-${String(mes).padStart(2, "0")}-01`;
-    // Range do mês (offset -03:00)
-    const mesStart = new Date(`${inicioMesStr}T00:00:00-03:00`);
-    const mesEnd = new Date(hojeNext); // até o final do dia de hoje
-    const mesStartStr = mesStart.toISOString().slice(0, 19).replace("T", " ");
-    const mesEndStr = mesEnd.toISOString().slice(0, 19).replace("T", " ");
-
     const sql = `SELECT
       (SELECT COUNT(*) FROM ${clientesTable} WHERE 1=1 ${empresaFilter}) AS clientes,
-      (SELECT COUNT(*) FROM ${clientesTable} WHERE createdAt >= :inicioMes AND createdAt < :hojeNext ${empresaFilter}) AS clientesMes,
       (SELECT COUNT(*) FROM ${agTable} WHERE dataAgendamento >= :hojeStart AND dataAgendamento < :hojeNext ${empresaFilter}) AS agendamentosHoje,
       (SELECT COUNT(*) FROM ${vendasTable} WHERE data >= :hojeStart AND data < :hojeNext AND status <> 'cancelado' ${empresaFilter}) AS vendasHoje,
       (SELECT COALESCE(SUM(COALESCE(
@@ -121,7 +114,6 @@ exports.resumo = async (req, res) => {
     const replacements = {
       hojeStart: hojeStartStr,
       hojeNext: hojeNextStr,
-      inicioMes: mesStartStr,
     };
     if (empresaId) replacements.empresaId = empresaId;
 
@@ -132,7 +124,7 @@ exports.resumo = async (req, res) => {
 
     const r = rows && rows[0] ? rows[0] : {};
     const clientes = Number(r.clientes || 0);
-    const clientesMes = Number(r.clientesMes || 0);
+    const clientesMes = clientesMesAtual;
     const agendamentosHoje = Number(r.agendamentosHoje || 0);
     const vendasHoje = Number(r.vendasHoje || 0);
     const vendasTotal = parseFloat(Number(r.vendasTotal || 0));
@@ -739,11 +731,10 @@ exports.contasAPagarHoje = async (req, res) => {
     const dataBrasil = getHojeBrasilStr();
 
     const empresaId = req.user?.empresaId;
-    if (!empresaId) {
-      return res.status(403).json({ error: "Empresa nao identificada. Contate o suporte." });
-    }
 
-    const whereEmpresa = { [Op.or]: [{ empresa_id: empresaId }, { empresa_id: null }] };
+    const whereEmpresa = empresaId
+      ? { [Op.or]: [{ empresa_id: empresaId }, { empresa_id: null }] }
+      : {};
 
     const entradas = await Entrada.findAll({
       where: Object.assign(
@@ -1019,12 +1010,10 @@ exports.faturamentoPeriodos = async (req, res) => {
 exports.indicadoresAtendimento = async (req, res) => {
   try {
     const dataBrasil = getHojeBrasilStr();
-    const empresaId = req.user?.empresaId;
-    if (!empresaId) {
-      return res.status(403).json({ error: "Empresa nao identificada. Contate o suporte." });
-    }
 
-    const empresaFilter = "AND empresa_id = :empresaId";
+    const empresaFilter = req.user?.empresaId
+      ? "AND empresa_id = :empresaId"
+      : "";
 
     // Usar range com offset -03:00 (mesma estratégia do GET /api/agendamentos)
     // para evitar problemas de timezone quando o MySQL está em UTC.

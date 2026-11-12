@@ -630,7 +630,7 @@ const DashboardApp = {
       if (elT) elT.textContent = this.formatCurrency(data.ticketMedio || 0);
 
       const elC = document.getElementById("statClientes");
-      if (elC) elC.textContent = data.clientesMes || data.clientes || 0;
+      if (elC) elC.textContent = data.clientesMes ?? 0;
     } catch (err) {
       console.error("Erro ao carregar stats:", err);
     }

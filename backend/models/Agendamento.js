@@ -121,4 +121,5 @@ const Agendamento = sequelize.define(
   },
 );
 
+require('../services/pushEventoService').registrarAgendamento(Agendamento);
 module.exports = { Agendamento };
