@@ -442,7 +442,8 @@ function renderCardAtiva(m) {
     : null;
 
   let configLabel = "Imediato";
-  if (config) {
+  if (mensagemImediata(m.tipo)) { configLabel = "Imediato após o evento"; }
+  else if (config) {
     if (config.dias && Array.isArray(config.dias)) {
       const hora = config.hora || "09:00";
       const dias = [...config.dias].sort((a, b) => a - b);
@@ -450,7 +451,7 @@ function renderCardAtiva(m) {
         d === 0 ? "No dia" : `${d} dia${d > 1 ? "s" : ""} antes`,
       );
       configLabel = `${labels.join(" + ")}, às ${hora}h`;
-    } else if (config.tipo === "no_dia") {
+    } else if (["no_dia", "ciclo_recorrente"].includes(config.tipo)) {
       configLabel = `No dia, às ${config.hora || "09:00"}h`;
     } else if (config.tipo === "dias_antes") {
       configLabel = `${config.valor || 1} dia(s) antes, às ${config.hora || "09:00"}h`;
@@ -627,6 +628,8 @@ async function avancarParaConfiguracao() {
         : msg.configuracaoEnvio
       : null;
 
+  configurarModoEnvio(msg);
+  document.getElementById("horaEnvio").value=config?.hora || "09:00";
   // Desmarcar todos os checkboxes primeiro
   document
     .querySelectorAll('input[name="diasEnvio"]')
@@ -661,6 +664,15 @@ async function avancarParaConfiguracao() {
   document.getElementById("modalConfigurarEnvio").style.display = "flex";
 }
 
+function mensagemImediata(tipo) {
+  return ["boas_vindas", "pet_pronto", "primeiro_banho"].includes(tipo);
+}
+function configurarModoEnvio(msg) {
+  const imediato=mensagemImediata(msg?.tipo);
+  const datas=document.getElementById("marketingConfigDatas"), aviso=document.getElementById("marketingConfigImediato");
+  if(datas)datas.style.display=imediato?"none":"block";
+  if(aviso)aviso.style.display=imediato?"block":"none";
+}
 function atualizarOpcaoEnvio() {
   // Com checkboxes, o horário é sempre visível
 }
@@ -681,7 +693,8 @@ async function ativarMensagemConfirmado() {
   const checkboxes = document.querySelectorAll(
     'input[name="diasEnvio"]:checked',
   );
-  const dias = Array.from(checkboxes).map((cb) => parseInt(cb.value, 10));
+  const imediato=mensagemImediata(_mensagens.find(m=>m.id===id)?.tipo);
+  const dias = imediato ? [0] : Array.from(checkboxes).map((cb) => parseInt(cb.value, 10));
 
   if (dias.length === 0) {
     alert("Selecione pelo menos um dia para envio.");
@@ -691,7 +704,10 @@ async function ativarMensagemConfirmado() {
   }
 
   const hora = document.getElementById("horaEnvio").value || "09:00";
-  const configuracaoEnvio = { hora, dias };
+  if (!imediato && !/^([01]\d|2[0-3]):[0-5]\d$/.test(hora)) {
+    alert("Informe um horário válido de Brasília."); btn.disabled=false; btn.textContent="Ativar"; return;
+  }
+  const configuracaoEnvio = imediato ? {tipo:"imediato"} : { hora, dias };
 
   try {
     const res = await fetch(`${API}/mensagens/${id}/ativar`, {
@@ -701,14 +717,14 @@ async function ativarMensagemConfirmado() {
       credentials: "include",
     });
 
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) { const erro=await res.json().catch(()=>({})); throw new Error(erro.erro || `HTTP ${res.status}`); }
 
     fecharModal("modalConfigurarEnvio");
     await carregarMensagens();
     mostrarToast("Mensagem ativada com sucesso!", "sucesso");
   } catch (err) {
     console.error("[Marketing] Erro ao ativar mensagem:", err.message);
-    alert("Erro ao ativar mensagem. Tente novamente.");
+    alert(err.message || "Erro ao ativar mensagem. Tente novamente.");
   } finally {
     btn.disabled = false;
     btn.textContent = "Ativar";

@@ -7,6 +7,15 @@ const { authUser } = require("../middleware/authUser");
 
 // Aplicar auth em toda a rota de pets
 router.use(authUser);
+router.use((req,res,next)=>req.user?.empresaId?next():res.status(403).json({error:'Empresa não identificada'}));
+// Todas as operações clínicas precisam validar o pet e o tutor da empresa.
+router.use('/:id', async (req,res,next)=>{
+  try {
+    const pet=await Pet.findOne({where:{id:req.params.id},include:[{model:Cliente,as:'cliente',where:{empresa_id:req.user.empresaId},required:true}]});
+    if(!pet || (pet.empresa_id && Number(pet.empresa_id)!==Number(req.user.empresaId)))return res.status(404).json({error:'Pet não encontrado nesta empresa.'});
+    next();
+  } catch {res.status(500).json({error:'Não foi possível validar o pet.'});}
+});
 
 // Helper: após registrar vacina/vermifugo/antiparasitario, agendar envios de vencimento
 async function dispararVencimentoSeConfigurado(agendamentoId, petId) {
@@ -29,7 +38,7 @@ async function dispararVencimentoSeConfigurado(agendamentoId, petId) {
     if (!msg) return;
 
     const ag = await Agendamento.findByPk(agendamentoId);
-    if (!ag) return;
+    if (!ag || Number(ag.empresa_id)!==Number(empId) || Number(ag.petId)!==Number(petId)) return;
 
     let servicos = ag.servicos;
     if (typeof servicos === "string") servicos = JSON.parse(servicos);
@@ -54,13 +63,9 @@ async function dispararVencimentoSeConfigurado(agendamentoId, petId) {
       const p = periodicidadesMap.get(renovacaoLabel.trim().toLowerCase());
       if (!p || !p.dias) continue;
 
-      const dStr =
-        typeof dataAplic === "string"
-          ? dataAplic.slice(0, 10)
-          : new Date(dataAplic).toISOString().slice(0, 10);
-      const [year, month, day] = dStr.split("-").map(Number);
-      const dRenov = new Date(year, month - 1, day);
-      dRenov.setDate(dRenov.getDate() + Number(p.dias));
+      const tempo=require('../services/marketingTempo');
+      const renovacaoData=tempo.somarDias(dataAplic,Number(p.dias));
+      const dRenov=tempo.horario(renovacaoData,'12:00');
 
       const tipoLabel =
         meta.tipoEspecial === "vacina"
@@ -78,7 +83,7 @@ async function dispararVencimentoSeConfigurado(agendamentoId, petId) {
           nomePet: pet.nome || "Pet",
           produto: produtoNome,
           tipoEspecial: tipoLabel,
-          dataRenovacao: dRenov.toLocaleDateString("pt-BR"),
+          dataRenovacao: dRenov.toLocaleDateString("pt-BR",{timeZone:"America/Sao_Paulo"}),
         },
         pet.cliente.telefone,
         dRenov,
@@ -151,7 +156,7 @@ router.get("/:id/vacinas", async (req, res) => {
     const petId = req.params.id;
     const [agendamentos, periodicidades] = await Promise.all([
       Agendamento.findAll({
-        where: { petId },
+        where: { petId, empresa_id: req.user.empresaId },
         order: [["dataAgendamento", "DESC"]],
       }),
       Periodicidade.findAll(),
@@ -201,7 +206,7 @@ router.get("/:id/vermifugos", async (req, res) => {
     const petId = req.params.id;
     const [agendamentos, periodicidades] = await Promise.all([
       Agendamento.findAll({
-        where: { petId },
+        where: { petId, empresa_id: req.user.empresaId },
         order: [["dataAgendamento", "DESC"]],
       }),
       Periodicidade.findAll(),
@@ -251,7 +256,7 @@ router.get("/:id/antiparasitarios", async (req, res) => {
     const petId = req.params.id;
     const [agendamentos, periodicidades] = await Promise.all([
       Agendamento.findAll({
-        where: { petId },
+        where: { petId, empresa_id: req.user.empresaId },
         order: [["dataAgendamento", "DESC"]],
       }),
       Periodicidade.findAll(),
@@ -301,7 +306,7 @@ router.get("/:id/documentos", async (req, res) => {
   try {
     const petId = req.params.id;
     const agendamentos = await Agendamento.findAll({
-      where: { petId },
+      where: { petId, empresa_id: req.user.empresaId },
       order: [["dataAgendamento", "DESC"]],
     });
     const documentos = [];
@@ -348,7 +353,7 @@ router.get("/:id/historico", async (req, res) => {
   try {
     const petId = req.params.id;
     const agendamentos = await Agendamento.findAll({
-      where: { petId },
+      where: { petId, empresa_id: req.user.empresaId },
       order: [["dataAgendamento", "DESC"]],
     });
     const historico = [];
@@ -547,7 +552,7 @@ router.put("/:petId/vacinas/:agendamentoId", async (req, res) => {
   try {
     const { agendamentoId } = req.params;
     const { nome, dataAplic, dose, lote, renovacao, profissional } = req.body;
-    const ag = await Agendamento.findByPk(agendamentoId);
+    const ag = await Agendamento.findOne({where:{id:agendamentoId,empresa_id:req.user.empresaId,petId:req.params.petId||req.params.id}});
     if (!ag)
       return res.status(404).json({ error: "Agendamento não encontrado" });
     // Deep clone para garantir que o Sequelize detecte a mudança no campo JSON
@@ -569,6 +574,7 @@ router.put("/:petId/vacinas/:agendamentoId", async (req, res) => {
       profissional: profissional || ag.profissional,
       servicos,
     });
+    await require('../services/marketingScheduler').sincronizarAgendamento(ag,req.user.empresaId).catch(e=>console.warn('[Marketing] Replanejamento clínico pendente:',e.message));
     return res.json({ success: true });
   } catch (e) {
     console.error("Erro PUT /pets/:petId/vacinas/:agendamentoId:", e);
@@ -580,10 +586,11 @@ router.put("/:petId/vacinas/:agendamentoId", async (req, res) => {
 router.delete("/:petId/vacinas/:agendamentoId", async (req, res) => {
   try {
     const { agendamentoId } = req.params;
-    const ag = await Agendamento.findByPk(agendamentoId);
+    const ag = await Agendamento.findOne({where:{id:agendamentoId,empresa_id:req.user.empresaId,petId:req.params.petId||req.params.id}});
     if (!ag)
       return res.status(404).json({ error: "Agendamento não encontrado" });
     await ag.destroy();
+    await require('../services/marketingScheduler').sincronizarAgendamento(ag,req.user.empresaId).catch(e=>console.warn('[Marketing] Replanejamento clínico pendente:',e.message));
     return res.json({ success: true });
   } catch (e) {
     console.error("Erro DELETE /pets/:petId/vacinas/:agendamentoId:", e);
@@ -596,7 +603,7 @@ router.put("/:petId/vermifugos/:agendamentoId", async (req, res) => {
   try {
     const { agendamentoId } = req.params;
     const { nome, dataAplic, dose, lote, renovacao, profissional } = req.body;
-    const ag = await Agendamento.findByPk(agendamentoId);
+    const ag = await Agendamento.findOne({where:{id:agendamentoId,empresa_id:req.user.empresaId,petId:req.params.petId||req.params.id}});
     if (!ag)
       return res.status(404).json({ error: "Agendamento não encontrado" });
     // Deep clone para garantir que o Sequelize detecte a mudança no campo JSON
@@ -618,6 +625,7 @@ router.put("/:petId/vermifugos/:agendamentoId", async (req, res) => {
       profissional: profissional || ag.profissional,
       servicos,
     });
+    await require('../services/marketingScheduler').sincronizarAgendamento(ag,req.user.empresaId).catch(e=>console.warn('[Marketing] Replanejamento clínico pendente:',e.message));
     return res.json({ success: true });
   } catch (e) {
     console.error("Erro PUT /pets/:petId/vermifugos/:agendamentoId:", e);
@@ -629,10 +637,11 @@ router.put("/:petId/vermifugos/:agendamentoId", async (req, res) => {
 router.delete("/:petId/vermifugos/:agendamentoId", async (req, res) => {
   try {
     const { agendamentoId } = req.params;
-    const ag = await Agendamento.findByPk(agendamentoId);
+    const ag = await Agendamento.findOne({where:{id:agendamentoId,empresa_id:req.user.empresaId,petId:req.params.petId||req.params.id}});
     if (!ag)
       return res.status(404).json({ error: "Agendamento não encontrado" });
     await ag.destroy();
+    await require('../services/marketingScheduler').sincronizarAgendamento(ag,req.user.empresaId).catch(e=>console.warn('[Marketing] Replanejamento clínico pendente:',e.message));
     return res.json({ success: true });
   } catch (e) {
     console.error("Erro DELETE /pets/:petId/vermifugos/:agendamentoId:", e);
@@ -645,7 +654,7 @@ router.put("/:petId/antiparasitarios/:agendamentoId", async (req, res) => {
   try {
     const { agendamentoId } = req.params;
     const { nome, dataAplic, dose, lote, renovacao, profissional } = req.body;
-    const ag = await Agendamento.findByPk(agendamentoId);
+    const ag = await Agendamento.findOne({where:{id:agendamentoId,empresa_id:req.user.empresaId,petId:req.params.petId||req.params.id}});
     if (!ag)
       return res.status(404).json({ error: "Agendamento não encontrado" });
     // Deep clone para garantir que o Sequelize detecte a mudança no campo JSON
@@ -667,6 +676,7 @@ router.put("/:petId/antiparasitarios/:agendamentoId", async (req, res) => {
       profissional: profissional || ag.profissional,
       servicos,
     });
+    await require('../services/marketingScheduler').sincronizarAgendamento(ag,req.user.empresaId).catch(e=>console.warn('[Marketing] Replanejamento clínico pendente:',e.message));
     return res.json({ success: true });
   } catch (e) {
     console.error("Erro PUT /pets/:petId/antiparasitarios/:agendamentoId:", e);
@@ -678,10 +688,11 @@ router.put("/:petId/antiparasitarios/:agendamentoId", async (req, res) => {
 router.delete("/:petId/antiparasitarios/:agendamentoId", async (req, res) => {
   try {
     const { agendamentoId } = req.params;
-    const ag = await Agendamento.findByPk(agendamentoId);
+    const ag = await Agendamento.findOne({where:{id:agendamentoId,empresa_id:req.user.empresaId,petId:req.params.petId||req.params.id}});
     if (!ag)
       return res.status(404).json({ error: "Agendamento não encontrado" });
     await ag.destroy();
+    await require('../services/marketingScheduler').sincronizarAgendamento(ag,req.user.empresaId).catch(e=>console.warn('[Marketing] Replanejamento clínico pendente:',e.message));
     return res.json({ success: true });
   } catch (e) {
     console.error(
@@ -741,7 +752,7 @@ router.delete("/:petId/documentos/:agendamentoId", async (req, res) => {
   try {
     const { agendamentoId } = req.params;
     const { url } = req.body;
-    const ag = await Agendamento.findByPk(agendamentoId);
+    const ag = await Agendamento.findOne({where:{id:agendamentoId,empresa_id:req.user.empresaId,petId:req.params.petId||req.params.id}});
     if (!ag)
       return res.status(404).json({ error: "Agendamento não encontrado" });
     let prontuario = ag.prontuario;

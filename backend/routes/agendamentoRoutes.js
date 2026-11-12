@@ -10,6 +10,7 @@ console.log("DEBUG CANCELAMENTO: Entrou no endpoint de cancelamento");
 
 // Aplicar auth em toda a rota
 router.use(authUser);
+router.use((req,res,next)=>req.user?.empresaId?next():res.status(403).json({error:'Empresa não identificada'}));
 
 // GET /api/agendamentos - Listar agendamentos
 router.get("/", async (req, res) => {
@@ -152,7 +153,7 @@ router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    const agendamento = await Agendamento.findByPk(id, {
+    const agendamento = await Agendamento.findOne({ where: {id: id, empresa_id: req.user.empresaId},
       include: [
         {
           model: Pet,
@@ -303,6 +304,8 @@ router.post("/", async (req, res) => {
       });
     }
 
+    const petDono = await Pet.findOne({where:{id:petId},include:[{model:Cliente,as:'cliente',where:{empresa_id:req.user.empresaId},required:true}]});
+    if(!petDono || (petDono.empresa_id && Number(petDono.empresa_id)!==Number(req.user.empresaId)))return res.status(404).json({error:'Pet não encontrado nesta empresa.'});
     const novoAgendamento = await Agendamento.create({
       dataAgendamento,
       horario: hora,
@@ -321,7 +324,7 @@ router.post("/", async (req, res) => {
     });
 
     // Buscar o agendamento criado com os dados relacionados
-    const agendamentoCriado = await Agendamento.findByPk(novoAgendamento.id, {
+    const agendamentoCriado = await Agendamento.findOne({ where: {id: novoAgendamento.id, empresa_id: req.user.empresaId},
       include: [
         {
           model: Pet,
@@ -359,7 +362,7 @@ router.post("/", async (req, res) => {
         const dt = agendamentoCriado.dataAgendamento
           ? new Date(agendamentoCriado.dataAgendamento)
           : null;
-        const dataAgendamento = dt ? dt.toLocaleDateString("pt-BR") : "";
+        const dataAgendamento = dt ? dt.toLocaleDateString("pt-BR", {timeZone:"America/Sao_Paulo"}) : "";
         const horaAgendamento = agendamentoCriado.horario || "";
 
         await dispararMensagemAutomatica(
@@ -399,7 +402,7 @@ router.post("/", async (req, res) => {
             if (agendamentoCriado.dataAgendamento) {
               const dt = new Date(agendamentoCriado.dataAgendamento);
               if (!isNaN(dt.getTime())) {
-                dataFormatada = dt.toLocaleDateString("pt-BR");
+                dataFormatada = dt.toLocaleDateString("pt-BR", {timeZone:"America/Sao_Paulo"});
               }
             }
           } catch (_) {}
@@ -450,7 +453,7 @@ router.put("/:id", async (req, res) => {
       status,
     });
 
-    const agendamento = await Agendamento.findByPk(id);
+    const agendamento = await Agendamento.findOne({where:{id:id,empresa_id:req.user.empresaId}});
     if (!agendamento) {
       return res.status(404).json({ error: "Agendamento não encontrado" });
     }
@@ -496,7 +499,11 @@ router.put("/:id", async (req, res) => {
       console.log("⚠️ Data ou hora não fornecida, mantendo valores atuais");
     }
 
-    if (petId) updateData.petId = petId;
+    if (petId) {
+      const petDono=await Pet.findOne({where:{id:petId},include:[{model:Cliente,as:'cliente',where:{empresa_id:req.user.empresaId},required:true}]});
+      if(!petDono || (petDono.empresa_id && Number(petDono.empresa_id)!==Number(req.user.empresaId)))return res.status(404).json({error:'Pet não encontrado nesta empresa.'});
+      updateData.petId=petId;
+    }
     if (servico) updateData.servico = servico;
     // Se o cliente enviar um array estruturado de serviços, persista também no campo JSON
     if (servicos && Array.isArray(servicos)) {
@@ -542,9 +549,10 @@ router.put("/:id", async (req, res) => {
     if (taxidog !== undefined) updateData.taxidog = taxidog;
 
     await agendamento.update(updateData);
+    await require('../services/marketingScheduler').sincronizarAgendamento(agendamento,req.user.empresaId).catch(e=>console.warn('[Marketing] Replanejamento pendente:',e.message));
 
     // Buscar o agendamento atualizado com os dados relacionados
-    const agendamentoAtualizado = await Agendamento.findByPk(id, {
+    const agendamentoAtualizado = await Agendamento.findOne({ where: {id: id, empresa_id: req.user.empresaId},
       include: [
         {
           model: Pet,
@@ -659,13 +667,14 @@ router.post("/:id/cancelar", async (req, res) => {
     }
 
     console.log("[CANCELAMENTO] Cancelando agendamento ID:", id);
-    const agendamento = await Agendamento.findByPk(id);
+    const agendamento = await Agendamento.findOne({where:{id:id,empresa_id:req.user.empresaId}});
     if (!agendamento) {
       console.log("[CANCELAMENTO] ERRO: Agendamento não encontrado");
       return res.status(404).json({ error: "Agendamento não encontrado" });
     }
     
     await agendamento.update({ status: "cancelado" });
+    await require('../services/marketingScheduler').sincronizarAgendamento(agendamento,req.user.empresaId).catch(e=>console.warn('[Marketing] Replanejamento pendente:',e.message));
     console.log("[CANCELAMENTO] SUCESSO: Agendamento cancelado");
     
     res.json({ message: "Agendamento cancelado com sucesso" });
@@ -674,7 +683,7 @@ router.post("/:id/cancelar", async (req, res) => {
     setImmediate(async () => {
       try {
         const pushService = require("../services/pushNotificationService");
-        const ag = await Agendamento.findByPk(id, {
+        const ag = await Agendamento.findOne({ where: {id: id, empresa_id: req.user.empresaId},
           include: [{ model: Pet, as: "pet", required: false }],
         });
         const empresaId = ag?.empresa_id || req.user?.empresaId;
@@ -704,13 +713,14 @@ router.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    const agendamento = await Agendamento.findByPk(id);
+    const agendamento = await Agendamento.findOne({where:{id:id,empresa_id:req.user.empresaId}});
     if (!agendamento) {
       return res.status(404).json({ error: "Agendamento não encontrado" });
     }
 
     // Em vez de deletar, vamos cancelar o agendamento
     await agendamento.update({ status: "cancelado" });
+    await require('../services/marketingScheduler').sincronizarAgendamento(agendamento,req.user.empresaId).catch(e=>console.warn('[Marketing] Replanejamento pendente:',e.message));
 
     res.json({ message: "Agendamento cancelado com sucesso" });
   } catch (error) {
@@ -746,7 +756,7 @@ router.patch("/:id/status", async (req, res) => {
       });
     }
 
-    const agendamento = await Agendamento.findByPk(id);
+    const agendamento = await Agendamento.findOne({where:{id:id,empresa_id:req.user.empresaId}});
     if (!agendamento) {
       return res.status(404).json({ error: "Agendamento não encontrado" });
     }
@@ -769,6 +779,7 @@ router.patch("/:id/status", async (req, res) => {
     }
 
     await agendamento.update(updatePayload);
+    await require('../services/marketingScheduler').sincronizarAgendamento(agendamento,req.user.empresaId).catch(e=>console.warn('[Marketing] Replanejamento pendente:',e.message));
 
     res.json({
       message: "Status (e pagamentos) atualizados com sucesso",
@@ -784,7 +795,7 @@ router.patch("/:id/status", async (req, res) => {
           const {
             dispararMensagemAutomatica,
           } = require("../controllers/marketingController");
-          const ag = await Agendamento.findByPk(id, {
+          const ag = await Agendamento.findOne({ where: {id: id, empresa_id: req.user.empresaId},
             include: [
               {
                 model: Pet,
@@ -819,7 +830,7 @@ router.patch("/:id/status", async (req, res) => {
       setImmediate(async () => {
         try {
           const pushService = require("../services/pushNotificationService");
-          const ag = await Agendamento.findByPk(id, {
+          const ag = await Agendamento.findOne({ where: {id: id, empresa_id: req.user.empresaId},
             include: [{ model: Pet, as: "pet", required: false }],
           });
           const empresaId = ag?.empresa_id;
@@ -853,7 +864,7 @@ router.patch("/:id/status", async (req, res) => {
           const {
             dispararMensagemAutomatica,
           } = require("../controllers/marketingController");
-          const ag = await Agendamento.findByPk(id, {
+          const ag = await Agendamento.findOne({ where: {id: id, empresa_id: req.user.empresaId},
             include: [
               {
                 model: Pet,
@@ -899,7 +910,7 @@ router.patch("/:id/status", async (req, res) => {
       setImmediate(async () => {
         try {
           const pushService = require("../services/pushNotificationService");
-          const ag = await Agendamento.findByPk(id, {
+          const ag = await Agendamento.findOne({ where: {id: id, empresa_id: req.user.empresaId},
             include: [{ model: Pet, as: "pet", required: false }],
           });
           const empresaId = ag?.empresa_id;
@@ -920,7 +931,7 @@ router.patch("/:id/status", async (req, res) => {
       setImmediate(async () => {
         try {
           const pushService = require("../services/pushNotificationService");
-          const ag = await Agendamento.findByPk(id, {
+          const ag = await Agendamento.findOne({ where: {id: id, empresa_id: req.user.empresaId},
             include: [{ model: Pet, as: "pet", required: false }],
           });
           const empresaId = ag?.empresa_id;
@@ -943,7 +954,7 @@ router.patch("/:id/status", async (req, res) => {
       setImmediate(async () => {
         try {
           const pushService = require("../services/pushNotificationService");
-          const ag = await Agendamento.findByPk(id, {
+          const ag = await Agendamento.findOne({ where: {id: id, empresa_id: req.user.empresaId},
             include: [{ model: Pet, as: "pet", required: false }],
           });
           const empresaId = ag?.empresa_id;
@@ -978,7 +989,7 @@ router.patch("/:id/prontuario", async (req, res) => {
     );
     console.log("🧭 Dados clinicaState:", clinicaState);
 
-    const agendamento = await Agendamento.findByPk(id);
+    const agendamento = await Agendamento.findOne({where:{id:id,empresa_id:req.user.empresaId}});
     if (!agendamento) {
       console.error("❌ Agendamento não encontrado:", id);
       return res.status(404).json({ error: "Agendamento não encontrado" });
@@ -1009,7 +1020,7 @@ router.get("/:id/comprovante", async (req, res) => {
     const PDFDocument = require("pdfkit");
 
     // Buscar agendamento com dados relacionados
-    const agendamento = await Agendamento.findByPk(id, {
+    const agendamento = await Agendamento.findOne({ where: {id: id, empresa_id: req.user.empresaId},
       include: [
         {
           model: Pet,
@@ -1578,7 +1589,7 @@ router.get("/:id/prontuario/pdf", async (req, res) => {
     const PDFDocument = require("pdfkit");
 
     // Buscar agendamento com Pet + Cliente
-    const agendamento = await Agendamento.findByPk(id, {
+    const agendamento = await Agendamento.findOne({ where: {id: id, empresa_id: req.user.empresaId},
       include: [
         { model: Pet, as: "pet", include: [{ model: Cliente, as: "cliente" }] },
       ],

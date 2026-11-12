@@ -375,6 +375,7 @@ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.
     s.envios = s.envios.filter(t => t > Date.now() - 60000);
     if (s.envios.length >= 10) return { sucesso: false, temporario: true, erro: 'Limite de envios por minuto atingido.' };
     s.envios.push(Date.now());
+    let envioIniciado = false;
     try {
       await pausaEnvio();
       if (!isConectado(id) || sessoes.get(String(id))?.socket !== socket) return indisponivel();
@@ -392,10 +393,12 @@ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.
           : { document: bytes, fileName: path.basename(arquivo), mimetype: require('mime-types').lookup(arquivo) || 'application/octet-stream', caption: texto || '' };
       }
       if (!isConectado(id) || sessoes.get(String(id))?.socket !== socket) return indisponivel();
+      envioIniciado = true;
       const resultado = await socket.sendMessage(destino, conteudo);
       return resultado?.key?.id ? { sucesso: true, mensagemId: resultado.key.id }
-        : { sucesso: false, erro: 'WhatsApp não confirmou o envio.' };
+        : { sucesso: false, incerto: true, erro: 'WhatsApp não confirmou o envio. Confira antes de reenviar.' };
     } catch {
+      if (envioIniciado) return { sucesso: false, incerto: true, erro: 'Conexão interrompida após iniciar o envio. Confira no WhatsApp.' };
       if (!isConectado(id) || sessoes.get(String(id))?.socket !== socket) return indisponivel();
       return { sucesso: false, erro: 'Não foi possível enviar a mensagem ou carregar o anexo.' };
     }

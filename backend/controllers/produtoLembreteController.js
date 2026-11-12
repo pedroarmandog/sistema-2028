@@ -42,12 +42,6 @@ async function garantirTemplateProdutoRecorrente(empresaId) {
       console.log(
         `[ProdutoLembrete] Template produto_recorrente criado (ativo) para empresa ${empId}`,
       );
-    } else if (!existe.ativo) {
-      // Ativar template existente que foi criado inativo
-      await existe.update({ ativo: true });
-      console.log(
-        `[ProdutoLembrete] Template produto_recorrente ATIVADO para empresa ${empId}`,
-      );
     }
   } catch (err) {
     console.warn(
@@ -312,10 +306,11 @@ exports.desativar = async (req, res) => {
             {
               where: {
                 mensagemAutomaticaId: template.id,
-                status: { [Op.in]: ["pendente", "enviando"] },
+                empresaId: template.empresaId,
+                status: 'pendente',
                 [Op.and]: [
                   sequelize.literal(
-                    `JSON_EXTRACT(contexto, '$.clienteId') = ${Number(lembrete.cliente_id)}`,
+                    `JSON_EXTRACT(contexto, '$.lembreteId') = ${Number(lembrete.id)}`,
                   ),
                 ],
               },
@@ -507,7 +502,7 @@ exports.saveConfigCliente = async (req, res) => {
           produto_id: produto_id ? String(produto_id) : existing.produto_id,
           produto_nome: produto_nome || existing.produto_nome || "Produto",
           // Recalcular data de disparo só se dias mudou ou estava cancelado
-          ...(existing.status !== "ativo"
+          ...(existing.status !== "ativo" || Number(existing.dias_lembrete) !== diasInt
             ? { data_ultima_venda: hoje, data_proximo_disparo: dataDisparo }
             : {}),
         });
@@ -582,7 +577,8 @@ exports.saveConfigCliente = async (req, res) => {
             {
               where: {
                 mensagemAutomaticaId: template.id,
-                status: { [Op.in]: ["pendente", "enviando"] },
+                empresaId: template.empresaId,
+                status: 'pendente',
                 [Op.and]: [
                   sequelize.literal(
                     `JSON_EXTRACT(contexto, '$.clienteId') = ${cliId}`,
@@ -675,160 +671,10 @@ exports.estatisticas = async (req, res) => {
 // Verifica lembretes cujo data_proximo_disparo é hoje e dispara mensagem
 // ─────────────────────────────────────────────────────────────
 exports.processarLembretes = async function processarLembretes(empresaFiltro) {
-  console.log("[ProdutoLembrete] Processando lembretes do dia...");
-
-  try {
-    const {
-      ProdutoLembreteRecorrente,
-      MensagemAutomatica,
-      Cliente,
-      Pet,
-    } = require("../models");
-    const { dispararMensagemAutomatica } = require("./marketingController");
-
-    const agora = new Date();
-    const inicioDia = new Date(
-      agora.getFullYear(),
-      agora.getMonth(),
-      agora.getDate(),
-      0,
-      0,
-      0,
-    );
-    const fimDia = new Date(
-      agora.getFullYear(),
-      agora.getMonth(),
-      agora.getDate(),
-      23,
-      59,
-      59,
-    );
-
-    // Buscar lembretes ativos com disparo até hoje (inclui atrasados)
-    const lembretes = await ProdutoLembreteRecorrente.findAll({
-      where: {
-        ativo: true,
-        status: "ativo",
-        data_proximo_disparo: { [Op.lte]: fimDia },
-        ...(empresaFiltro ? { empresa_id: empresaFiltro } : {}),
-      },
-      include: [
-        {
-          model: Cliente,
-          as: "cliente",
-          attributes: ["id", "nome", "telefone", "ativo", "empresa_id"],
-          include: [
-            {
-              model: Pet,
-              as: "pets",
-              attributes: ["id", "nome"],
-              required: false,
-              limit: 1,
-            },
-          ],
-        },
-      ],
-      limit: 500,
-    });
-
-    if (lembretes.length === 0) {
-      console.log("[ProdutoLembrete] Nenhum lembrete para disparar hoje.");
-      return;
-    }
-
-    console.log(
-      `[ProdutoLembrete] ${lembretes.length} lembrete(s) para processar.`,
-    );
-
-    let disparados = 0;
-    let erros = 0;
-
-    for (const lembrete of lembretes) {
-      try {
-        const cliente = lembrete.cliente;
-        if (!cliente) continue;
-
-        // Verificar se cliente está ativo
-        if (cliente.ativo === false) {
-          console.log(
-            `[ProdutoLembrete] Cliente ${cliente.id} inativo — pulando lembrete ${lembrete.id}`,
-          );
-          continue;
-        }
-
-        if (!cliente.telefone) {
-          console.warn(
-            `[ProdutoLembrete] Cliente ${cliente.id} sem telefone — pulando`,
-          );
-          continue;
-        }
-
-        const empresaId = Number(lembrete.empresa_id);
-        if (!empresaId || Number(cliente.empresa_id) !== empresaId) continue;
-        const primeiroPet = cliente.pets && cliente.pets[0];
-
-        // Garantir template existe
-        await garantirTemplateProdutoRecorrente(empresaId);
-
-        // Disparar mensagem via sistema de marketing existente
-        // cicloId único por lembrete+dia: reativações criam novo cicloData → novo envio
-        const cicloId = `${lembrete.id}-${new Date().toISOString().slice(0, 10)}`;
-        const envio = await dispararMensagemAutomatica(
-          "produto_recorrente",
-          {
-            nome_tutor: cliente.nome || "Cliente",
-            produto_nome: lembrete.produto_nome,
-            nome_pet: primeiroPet?.nome || "seu pet",
-            dias: String(lembrete.dias_lembrete),
-          },
-          cliente.telefone,
-          null, // disparo imediato hoje
-          {
-            clienteId: cliente.id,
-            lembreteId: lembrete.id,
-            diasAntes: 0, // já é o dia do disparo
-            cicloData: cicloId, // identifica o ciclo — evita bloqueio de dedup entre ciclos
-          },
-          empresaId,
-        );
-
-        if (envio) {
-          // Reagendar próximo ciclo: nova data = hoje + dias_lembrete
-          const proximaData = new Date();
-          proximaData.setDate(proximaData.getDate() + lembrete.dias_lembrete);
-
-          await lembrete.update({
-            ultima_execucao: agora,
-            data_proximo_disparo: proximaData,
-          });
-
-          disparados++;
-          console.log(
-            `[ProdutoLembrete] ✅ Lembrete ${lembrete.id} disparado para cliente ${cliente.id}. Próximo: ${proximaData.toISOString().slice(0, 10)}`,
-          );
-        }
-      } catch (err) {
-        erros++;
-        console.error(
-          `[ProdutoLembrete] Erro ao processar lembrete ${lembrete.id}:`,
-          err && err.message,
-        );
-      }
-    }
-
-    console.log(
-      `[ProdutoLembrete] Processamento concluído: ${disparados} disparados, ${erros} erros.`,
-    );
-  } catch (err) {
-    console.error(
-      "[ProdutoLembrete] Erro geral no processamento:",
-      err.message,
-    );
-  }
+  return require('../services/marketingScheduler').planejar(empresaFiltro);
 };
 
-// ─────────────────────────────────────────────────────────────
-// POST /api/produto-lembrete/disparar-agora
+// // POST /api/produto-lembrete/disparar-agora
 // Disparo manual via painel de marketing — processa todos os atrasados
 // ─────────────────────────────────────────────────────────────
 exports.dispararManual = async function dispararManual(req, res) {
@@ -907,7 +753,7 @@ exports.dispararIndividual = async function dispararIndividual(req, res) {
 
     await garantirTemplateProdutoRecorrente(empresaId);
 
-    const cicloId = `${lembrete.id}-${new Date().toISOString().slice(0, 10)}`;
+    const cicloId = `${lembrete.id}-${require('../services/marketingTempo').civil()}`;
     const envio = await dispararMensagemAutomatica(
       "produto_recorrente",
       {
@@ -919,6 +765,7 @@ exports.dispararIndividual = async function dispararIndividual(req, res) {
       cliente.telefone,
       null,
       {
+        manual: true,
         clienteId: cliente.id,
         lembreteId: lembrete.id,
         diasAntes: 0,
@@ -936,7 +783,8 @@ exports.dispararIndividual = async function dispararIndividual(req, res) {
       });
       return res.json({
         success: true,
-        message: `Lembrete disparado para ${cliente.nome}. Próximo disparo: ${proximaData.toISOString().slice(0, 10)}`,
+        agendado: true,
+        message: `Lembrete agendado para ${cliente.nome}, aguardando confirmação de envio. Próximo ciclo: ${proximaData.toISOString().slice(0, 10)}`,
         proximaData,
       });
     }

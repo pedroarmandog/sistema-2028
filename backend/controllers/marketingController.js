@@ -14,32 +14,6 @@ const path = require("path");
 const fs = require("fs");
 const whatsappService = require("../services/whatsappService");
 
-/**
- * Cria um objeto Date representando hora:min no fuso horário America/Sao_Paulo (BRT).
- * Isso resolve o problema de servidores rodando em UTC que causam disparos
- * em horário diferente do configurado pelo usuário.
- *
- * @param {number} hora - Hora (0-23) no horário de Brasília
- * @param {number} min - Minuto (0-59)
- * @param {Date|null} dataRef - Data base opcional (padrão: hoje)
- * @returns {Date}
- */
-function criarDataHoraLocal(hora, min, dataRef) {
-  const ref = dataRef ? new Date(dataRef) : new Date();
-  const ano = ref.getFullYear();
-  const mes = ref.getMonth();
-  const dia = ref.getDate();
-
-  // Construir string ISO com offset -03:00 (America/Sao_Paulo)
-  // O construtor Date() interpreta corretamente o timezone mesmo em servidores UTC
-  const isoStr =
-    `${ano}-${String(mes + 1).padStart(2, "0")}-${String(dia).padStart(2, "0")}T` +
-    `${String(hora).padStart(2, "0")}:${String(min).padStart(2, "0")}:00.000-03:00`;
-  
-  const data = new Date(isoStr);
-  return data;
-}
-
 // ──────────────────────────────────────────────
 // Mensagens padrão do sistema (seed inicial)
 // ──────────────────────────────────────────────
@@ -284,22 +258,11 @@ exports.listarMensagens = async (req, res) => {
 
     // Se ainda não há mensagens para a empresa, fazer seed das padrões
     if (mensagens.length === 0) {
-      const seeds = await MensagemAutomatica.bulkCreate(
-        MENSAGENS_PADRAO.map((m) => ({ ...m, empresaId: Number(empresaId) })),
-        { returning: true },
-      );
-      mensagens = seeds;
+      await garantirMensagens(Number(empresaId));
+      mensagens = await MensagemAutomatica.findAll({where:{empresaId:Number(empresaId)}});
     }
 
-    // Sincronizar títulos com MENSAGENS_PADRAO (corrige títulos antigos/errados)
-    const tituloMap = new Map(MENSAGENS_PADRAO.map((m) => [m.tipo, m.titulo]));
-    for (const m of mensagens) {
-      const tituloCorreto = tituloMap.get(m.tipo);
-      if (tituloCorreto && m.titulo !== tituloCorreto) {
-        await m.update({ titulo: tituloCorreto });
-        m.titulo = tituloCorreto;
-      }
-    }
+    // Títulos/conteúdos personalizados não são regravados durante a listagem.
 
     // Ocultar tipos removidos do sistema
     const TIPOS_REMOVIDOS = [
@@ -405,11 +368,14 @@ exports.ativarMensagem = async (req, res) => {
     }
 
     const { configuracaoEnvio } = req.body;
-
+    const configValidada=require('../services/marketingTempo').config(configuracaoEnvio ?? mensagem.configuracaoEnvio,mensagem.tipo,true);
+    await require('../services/marketingDisparos').preparar();
     await mensagem.update({
       ativo: true,
-      configuracaoEnvio: configuracaoEnvio || mensagem.configuracaoEnvio,
+      configuracaoEnvio: configValidada,
     });
+
+    await require('../services/marketingScheduler').sincronizarMensagem(mensagem);
 
     // Registrar log
     await LogEnvio.create({
@@ -421,7 +387,7 @@ exports.ativarMensagem = async (req, res) => {
 
     return res.json({ sucesso: true, mensagem });
   } catch (err) {
-    return res.status(500).json({ erro: err.message });
+    return res.status(err.status || 500).json({ erro: err.message });
   }
 };
 
@@ -445,6 +411,9 @@ exports.desativarMensagem = async (req, res) => {
     }
 
     await mensagem.update({ ativo: false });
+    const {EnvioAgendado}=require('../models');
+    await EnvioAgendado.update({status:'cancelado',erroMensagem:'Automação desativada.'},
+      {where:{empresaId:empresaAuth,mensagemAutomaticaId:mensagem.id,status:'pendente'}});
 
     await LogEnvio.create({
       empresaId: mensagem.empresaId,
@@ -595,226 +564,27 @@ exports.estatisticas = async (req, res) => {
  * Normaliza configuracaoEnvio para o formato novo { hora, dias: [...] }.
  * Aceita formato legado { tipo: 'no_dia', hora } ou { tipo: 'dias_antes', valor, hora }.
  */
-function normalizarConfig(config) {
-  if (!config) return { hora: "09:00", dias: [0] };
-  const parsed = typeof config === "string" ? JSON.parse(config) : config;
-
-  // Novo formato: { hora, dias: [...] }
-  if (parsed.dias && Array.isArray(parsed.dias)) {
-    return { hora: parsed.hora || "09:00", dias: parsed.dias };
-  }
-  // Legado: { tipo: 'no_dia', hora }
-  if (parsed.tipo === "no_dia") {
-    return { hora: parsed.hora || "09:00", dias: [0] };
-  }
-  // Legado: { tipo: 'dias_antes', valor, hora }
-  if (parsed.tipo === "dias_antes") {
-    return { hora: parsed.hora || "09:00", dias: [Number(parsed.valor) || 1] };
-  }
-  return { hora: parsed.hora || "09:00", dias: [0] };
+function normalizarConfig(config, tipo) {
+  return require('../services/marketingTempo').config(config,tipo);
 }
-
-/**
- * Dispara mensagem automática baseada em tipo de evento.
- * Chamado pelo clienteController, agendamentoController, etc.
- *
- * @param {string} tipo - Tipo da mensagem (ex: 'boas_vindas', 'lembrete_agendamento')
- * @param {object} variaveis - { nomeTutor, nomePet, dataAgendamento, horaAgendamento, servico }
- * @param {string} telefone - Número destino
- * @param {Date} dataAgendada - Quando enviar (null = imediato)
- * @param {object} contexto - { clienteId, petId, agendamentoId, diasAntes? }
- * @param {number} empresaId
- */
-async function dispararMensagemAutomatica(
-  tipo,
-  variaveis,
-  telefone,
-  dataAgendada,
-  contexto,
-  empresaId,
-) {
+async function garantirMensagens(empresaId) {
+  const {MensagemAutomatica,Empresa,sequelize}=require('../models');
+  if(!Number.isSafeInteger(Number(empresaId))||Number(empresaId)<1)return;
+  await sequelize.transaction(async transaction=>{
+    const empresa=await Empresa.findByPk(empresaId,{transaction,lock:transaction.LOCK.UPDATE});
+    if(!empresa)return;
+    const existentes=await MensagemAutomatica.findAll({where:{empresaId},attributes:['tipo'],transaction});
+    const tipos=new Set(existentes.map(m=>m.tipo));
+    const faltantes=MENSAGENS_PADRAO.filter(m=>!tipos.has(m.tipo));
+    if(faltantes.length)await MensagemAutomatica.bulkCreate(faltantes.map(m=>({...m,empresaId})),{transaction});
+  });
+}
+async function dispararMensagemAutomatica(...args) {
   try {
-    const { MensagemAutomatica } = require("../models");
-    const { agendarEnvio } = require("../services/whatsappQueue");
-
-    const empId = Number(empresaId);
-    if (!Number.isSafeInteger(empId) || empId <= 0) return null;
-
-    // Garantir que a empresa tenha registros de mensagens automáticas (seed lazy)
-    const totalMsgs = await MensagemAutomatica.count({
-      where: { empresaId: empId },
-    });
-    if (totalMsgs === 0) {
-      await MensagemAutomatica.bulkCreate(
-        MENSAGENS_PADRAO.map((m) => ({ ...m, empresaId: empId })),
-      );
-      console.log(
-        `[Marketing] Seed de mensagens automáticas criado para empresa ${empId}`,
-      );
-    }
-
-    // Buscar mensagem ativa do tipo
-    const mensagem = await MensagemAutomatica.findOne({
-      where: { tipo, ativo: true, empresaId: empId },
-    });
-
-    if (!mensagem) {
-      console.log(
-        `[Marketing] Mensagem do tipo "${tipo}" não está ativa ou não existe. Nenhum envio gerado.`,
-      );
-      return null;
-    }
-
-    if (!telefone) {
-      console.warn(
-        `[Marketing] Número de telefone não informado para envio do tipo "${tipo}"`,
-      );
-      return null;
-    }
-
-    // ── Verificação de duplicidade ──────────────────────────────────────
-    // Evita que a mesma mensagem seja enviada mais de uma vez para o mesmo
-    // agendamento (ex: quando há múltiplos triggers ou chamadas concorrentes).
-    if (contexto?.agendamentoId) {
-      const { EnvioAgendado } = require("../models");
-      const { Op } = require("sequelize");
-      const sequelize = MensagemAutomatica.sequelize;
-      const jaExiste = await EnvioAgendado.findOne({
-        where: {
-          mensagemAutomaticaId: mensagem.id,
-          telefoneDestino: String(telefone).replace(/\D/g, ""),
-          status: { [Op.in]: ["pendente", "enviado", "enviando"] },
-          [Op.and]: sequelize.literal(
-            `JSON_EXTRACT(contexto, '$.agendamentoId') = ${Number(contexto.agendamentoId)}`,
-          ),
-        },
-      });
-      if (jaExiste) {
-        console.log(
-          `[Marketing] Envio duplicado ignorado: já existe envio #${jaExiste.id} para agendamento #${contexto.agendamentoId}`,
-        );
-        return null;
-      }
-    }
-    // ── Fim da verificação de duplicidade ───────────────────────────────
-
-    // Substituir variáveis no template
-    const nomeEmpresa = await obterNomeEmpresa(empresaId);
-    const conteudoFinal = whatsappService.substituirVariaveis(
-      mensagem.conteudo,
-      {
-        ...variaveis,
-        nomeEmpresa,
-      },
-    );
-
-    const imagemPathFull = mensagem.imagemPath
-      ? path.join(__dirname, "../..", mensagem.imagemPath)
-      : null;
-
-    const config = normalizarConfig(mensagem.configuracaoEnvio);
-
-    // Se contexto já tem diasAntes (chamada do cron), agendar UMA vez para hoje na hora configurada
-    if (contexto && contexto.diasAntes !== undefined) {
-      const agora = new Date();
-      const [hora, min] = (config.hora || "09:00").split(":").map(Number);
-      const dataEnvio = criarDataHoraLocal(hora, min);
-      // Se o horário já passou hoje, enviar imediatamente
-      const dataFinal = dataEnvio <= agora ? agora : dataEnvio;
-
-      const envio = await agendarEnvio({
-        empresaId,
-        mensagemAutomaticaId: mensagem.id,
-        telefone,
-        conteudoFinal,
-        imagemPath: imagemPathFull,
-        dataAgendada: dataFinal,
-        contexto,
-      });
-      return envio;
-    }
-
-    // Sem dataReferencia (ex: boas_vindas) → enviar imediatamente
-    if (!dataAgendada) {
-      const envio = await agendarEnvio({
-        empresaId,
-        mensagemAutomaticaId: mensagem.id,
-        telefone,
-        conteudoFinal,
-        imagemPath: imagemPathFull,
-        dataAgendada: new Date(),
-        contexto: { ...contexto, diasAntes: 0 },
-      });
-      return envio;
-    }
-
-    // Com dataReferencia (ex: lembrete_agendamento) → criar envio para CADA dia configurado
-    const agora = new Date();
-    const envios = [];
-
-    for (const dia of config.dias) {
-      const ref = new Date(dataAgendada);
-      ref.setDate(ref.getDate() - dia);
-      const [hora, min] = (config.hora || "09:00").split(":").map(Number);
-      const dataHoraLocal = criarDataHoraLocal(hora, min, ref);
-      const dataEnvio = dataHoraLocal <= agora ? agora : dataHoraLocal;
-
-      const envio = await agendarEnvio({
-        empresaId,
-        mensagemAutomaticaId: mensagem.id,
-        telefone,
-        conteudoFinal,
-        imagemPath: imagemPathFull,
-        dataAgendada: dataEnvio,
-        contexto: { ...contexto, diasAntes: dia },
-      });
-      if (envio) envios.push(envio);
-    }
-
-    return envios.length > 0 ? envios : null;
-  } catch (err) {
-    console.error(
-      `[Marketing] Erro ao disparar mensagem "${tipo}":`,
-      err.message,
-    );
-    return null;
+    await garantirMensagens(Number(args[5]));
+    return await require('../services/marketingScheduler').disparar(...args);
   }
-}
-
-/**
- * Calcula a data de envio baseada na configuração da mensagem e data de referência.
- */
-function calcularDataEnvio(config, dataReferencia) {
-  const agora = new Date();
-
-  if (!config || !dataReferencia) return agora;
-
-  const ref = new Date(dataReferencia);
-
-  if (config.tipo === "no_dia") {
-    const [hora, min] = (config.hora || "09:00").split(":").map(Number);
-    const dataHoraLocal = criarDataHoraLocal(hora, min, ref);
-    // Se o horário calculado já passou, disparar imediatamente
-    return dataHoraLocal <= agora ? agora : dataHoraLocal;
-  }
-
-  if (config.tipo === "dias_antes") {
-    const dias = Number(config.valor || 1);
-    const refDias = new Date(dataReferencia);
-    refDias.setDate(refDias.getDate() - dias);
-    const [hora, min] = (config.hora || "09:00").split(":").map(Number);
-    const dataHoraLocal = criarDataHoraLocal(hora, min, refDias);
-    // Se a data calculada já passou, disparar imediatamente
-    return dataHoraLocal <= agora ? agora : dataHoraLocal;
-  }
-
-  if (config.tipo === "horas_antes") {
-    const horas = Number(config.valor || 1);
-    ref.setHours(ref.getHours() - horas);
-    return ref <= agora ? agora : ref;
-  }
-
-  return agora;
+  catch(e) { console.warn('[Marketing] Envio não agendado:', e.message); return null; }
 }
 
 async function obterNomeEmpresa(empresaId) {

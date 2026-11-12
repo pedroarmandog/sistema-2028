@@ -171,7 +171,7 @@ router.post("/fila-pendente/cancelar-todos", async (req, res) => {
     const { EnvioAgendado } = require("../models");
     const { Op } = require("sequelize");
     const [count] = await EnvioAgendado.update(
-      { status: "cancelado" },
+      { status: "cancelado", erroMensagem: "Cancelado manualmente pelo usuário." },
       {
         where: {
           empresaId: Number(empresaId),
