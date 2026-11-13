@@ -13,7 +13,7 @@ async function ate(verificar) {
 }
 async function ambiente(t) {
   const db = new Sequelize({ dialect: 'sqlite', storage: ':memory:', logging: false,
-    dialectModule: require('../backend/scripts/lab-fiscal/sqlite') });
+    dialectModule: require('./helpers/whatsappSqlite') });
   // SQLite tem uma conexão. Serializar transações neste laboratório; no TiDB
   // a exclusão entre processos é feita pelo SELECT FOR UPDATE do repositório.
   const transaction = db.transaction.bind(db);
@@ -250,6 +250,9 @@ test('Marketing diferencia QR, reconectando e conectado sem exibir QR antigo', (
   assert.equal(elemento('qrStatusConectado').style.display,'block');
   assert.equal(elemento('qrImageContainer').style.display,'none');
   assert.equal(elemento('qrNumeroConectado').textContent,'+5531999990000');
+  ctx.exibirWhatsapp({status:'desconectado',requerAcao:true,mensagem:'Vínculo preservado. Verifique a sessão.'});
+  assert.equal(elemento('qrBtnDesconectar').style.display,'block');
+  assert.equal(elemento('wppErroConexao').textContent,'Vínculo preservado. Verifique a sessão.');
 });
 
 test('24 horas simuladas de monitor mantêm o mesmo socket e permitem envio no fim', async t => {
@@ -265,4 +268,187 @@ test('24 horas simuladas de monitor mantêm o mesmo socket e permitem envio no f
   assert.equal(a.sockets.length,1);
   assert.equal(a.service.obterStatus(1).qrBase64,null);
   assert.equal((await a.service.enviarMensagem(1,'31999990000','após 24h simuladas')).sucesso,true);
+});
+
+
+test('428/500 temporários preservam credenciais, recuperam sem QR e enviam de novo', async t => {
+  const {instancia,db}=await ambiente(t);
+  const eventos=[];
+  const a=instancia({registrar:(id,evento,dados)=>eventos.push({id,evento,...dados})});
+  await a.service.inicializarCliente(1);autenticar(a.sockets[0]);
+  update(a.sockets[0],{connection:'open'});await a.service.restaurar();
+  const auth=a.sockets[0].config.auth;
+  for(const codigo of [428,500,408,503]){
+    close(a.sockets.at(-1),codigo);
+    assert.equal(a.service.obterStatus(1).reconectando,true);
+    assert.equal(a.service.obterStatus(1).qrBase64,null);
+    await a.timers.at(-1).fn();
+    assert.equal(a.sockets.at(-1).config.auth,auth);
+    update(a.sockets.at(-1),{connection:'open'});
+    assert.equal((await a.service.enviarMensagem(1,'31999990000','depois da queda')).sucesso,true);
+    assert.ok((await db.models.PetHubWaAuth.findByPk('1')).creds);
+  }
+  assert.equal(eventos.filter(e=>e.evento==='socket_fechado').length,4);
+});
+
+test('QR inesperado em vínculo pareado nunca apaga credenciais e exige ação explícita', async t => {
+  const {instancia,db}=await ambiente(t),a=instancia();
+  await a.service.inicializarCliente(1);autenticar(a.sockets[0]);
+  update(a.sockets[0],{connection:'open'});await a.service.restaurar();
+  close(a.sockets[0],428);
+  for(let i=0;i<3;i++){
+    await a.timers.at(-1).fn();
+    update(a.sockets.at(-1),{qr:'nao-exibir-token-do-qr'});
+    await tick();
+    assert.equal(a.service.obterStatus(1).qrBase64,null);
+  }
+  await ate(()=>a.service.obterStatus(1).requerAcao);
+  const row=await db.models.PetHubWaAuth.findByPk('1');
+  assert.ok(row.creds);assert.equal(row.restaurar,false);
+  assert.equal(a.sockets.at(-1).logoutChamado,undefined);
+  await a.service.desconectar(1);
+  assert.equal(await db.models.PetHubWaAuth.findByPk('1'),null);
+  await a.service.inicializarCliente(1);
+  assert.equal(a.sockets.at(-1).config.auth.creds.registered,false);
+});
+
+test('403 preserva vínculo em vez de apagá-lo; empresa pode tentar conectar de novo', async t=>{
+  const {instancia,db}=await ambiente(t),a=instancia();
+  await a.service.inicializarCliente(1);autenticar(a.sockets[0]);
+  update(a.sockets[0],{connection:'open'});await a.service.restaurar();
+  close(a.sockets[0],403);
+  await ate(()=>a.service.obterStatus(1).requerAcao);
+  assert.ok((await db.models.PetHubWaAuth.findByPk('1')).creds);
+  await a.service.inicializarCliente(1);
+  assert.equal(a.sockets.at(-1).config.auth.creds.registered,true);
+});
+
+test('posse expirada ainda nossa é renovada sem descartar socket nem credenciais',async t=>{
+  const {instancia,avancar}=await ambiente(t),a=instancia();
+  await a.service.inicializarCliente(1);autenticar(a.sockets[0]);
+  update(a.sockets[0],{connection:'open'});await a.service.restaurar();
+  avancar(91000);await a.service.restaurar();
+  assert.equal(a.service.isConectado(1),true);assert.equal(a.sockets.length,1);
+  await a.sockets[0].config.auth.keys.set({session:{contato:Buffer.from('depois')}});
+  assert.equal((await a.service.enviarMensagem(1,'31999990000','após pausa do banco')).sucesso,true);
+});
+
+test('cache reduz leituras de chaves; falha de COMMIT não confirma set e journal recupera atualização/exclusão',async t=>{
+  const {db,repo,real}=await ambiente(t);
+  const h=await repo.adquirir('9',real,true);
+  await h.auth.keys.set({session:{a:Buffer.from('antiga'),b:Buffer.from('excluir')}});
+  const M=db.models.PetHubWaSignal;
+  let leituras=0;const find=M.findAll.bind(M);
+  t.mock.method(M,'findAll',(...args)=>{leituras++;return find(...args);});
+  for(let i=0;i<30;i++)assert.equal((await h.auth.keys.get('session',['a'])).a.toString(),'antiga');
+  assert.equal(leituras,0);
+  const bulk=M.bulkCreate.bind(M);let falhar=true,notificacoes=0;
+  h.onFailure(()=>notificacoes++);
+  t.mock.method(M,'bulkCreate',(...args)=>{if(falhar)throw new Error('DB indisponível');return bulk(...args);});
+  await assert.rejects(h.auth.keys.set({session:{a:Buffer.from('nova'),b:null}}));
+  assert.equal(notificacoes,1);assert.equal(h.temPendencias(),true);
+  falhar=false;await h.flush();assert.equal(h.temPendencias(),false);
+  assert.equal((await h.auth.keys.get('session',['a'])).a.toString(),'nova');
+  assert.deepEqual(await h.auth.keys.get('session',['b']),{});
+  h.auth.creds.registered=true;await h.salvar();await h.liberar();
+  const outro=await repo.adquirir('9',real,false);
+  assert.equal((await outro.auth.keys.get('session',['a'])).a.toString(),'nova');
+  assert.deepEqual(await outro.auth.keys.get('session',['b']),{});
+  await outro.liberar();
+});
+
+test('heartbeat não espera a fila de chaves e rajada de creds.update grava o último estado',async t=>{
+  const {db,repo,real,instancia}=await ambiente(t);
+  const h=await repo.adquirir('9',real,true);
+  const M=db.models.PetHubWaSignal,bulk=M.bulkCreate.bind(M);
+  let liberar,iniciou=false;
+  const gate=new Promise(r=>liberar=r);
+  t.mock.method(M,'bulkCreate',async(...args)=>{iniciou=true;await gate;return bulk(...args);});
+  const gravando=h.auth.keys.set({session:{a:Buffer.from('pendente')}});
+  await ate(()=>iniciou);
+  // SQLite não simula concorrência real entre conexões, mas verifica que a
+  // renovação é despachada antes do COMMIT pendente, fora da fila serial.
+  const Sessao=db.models.PetHubWaAuth,renew=Sessao.update.bind(Sessao);let despachou=false;
+  t.mock.method(Sessao,'update',(...args)=>{despachou=true;return renew(...args);});
+  const renovando=h.renovar();await tick();assert.equal(despachou,true);
+  liberar();await gravando;await renovando;
+  const a=instancia();await a.service.inicializarCliente(1);
+  const save=await repo.adquirir('99',real,true);await save.remover();
+  const rowUpdate=Sessao.prototype.update;
+  let escritos=0,soltar;
+  const espera=new Promise(r=>soltar=r);
+  t.mock.method(Sessao.prototype,'update',async function(values,...args){
+    if(this.empresa==='1'&&values.creds){escritos++;if(escritos===1)await espera;}
+    return rowUpdate.call(this,values,...args);
+  });
+  for(let i=0;i<100;i++)a.sockets[0].ev.emit('creds.update',{registered:true,contadorTeste:i});
+  soltar();await a.service.restaurar();
+  assert.ok(escritos<=2,`Esperadas no máximo 2 escritas; ocorreram ${escritos}`);
+  await a.service.suspender();
+  const restaurada=await repo.adquirir('1',real,false);
+  assert.equal(restaurada.auth.creds.contadorTeste,99);await restaurada.liberar();await h.liberar();
+});
+
+test('um monitor por processo; banco lento de uma empresa não bloqueia heartbeat de outra',async t=>{
+  const {instancia,repo}=await ambiente(t);
+  let liberar,travada=false,renovouOutra=0;
+  const gate=new Promise(r=>liberar=r);
+  const handles=new Map();
+  const a=instancia({repositorio:()=>({...repo,async adquirir(id,...args){
+    const h=await repo.adquirir(id,...args),renew=h.renovar.bind(h);
+    h.renovar=async()=>{if(id==='1'&&travada)await gate;if(id==='2')renovouOutra++;return renew();};
+    handles.set(id,h);return h;
+  }})});
+  await a.service.inicializarCliente(1);await a.service.inicializarCliente(2);
+  a.service.iniciarMonitor();a.service.iniciarMonitor();assert.equal(a.timers.length,1);
+  travada=true;await a.timers[0].fn();await tick();
+  a.service.iniciarMonitor();assert.equal(a.timers.length,2);
+  await ate(()=>renovouOutra===1);
+  await a.timers[1].fn();await ate(()=>renovouOutra===2);
+  assert.equal(a.timers.length,3);
+  liberar();await a.service.restaurar();
+});
+
+test('histórico persistente separa empresas, limita retenção e não grava QR/chaves/número',async t=>{
+  const {db}=await ambiente(t);
+  const {criarDiagnostico}=require('../backend/services/whatsappDiagnostico');
+  const diag=criarDiagnostico({obterBanco:()=>db});
+  diag.registrar('1','socket_fechado',{codigo:428,pareada:true,qr:'SEGREDO_QR',telefone:'5531999990000',token:'SEGREDO_TOKEN',keys:'SEGREDO_SIGNAL'});
+  diag.registrar('2','conectado',{codigo:'OPEN',pareada:true});
+  await diag.flush();
+  const um=await diag.historico(1),dois=await diag.historico(2);
+  assert.equal(um.length,1);assert.equal(dois.length,1);
+  assert.equal(um[0].codigo,'428');assert.equal(um[0].empresaId,'1');
+  const json=JSON.stringify(um);
+  for(const segredo of ['SEGREDO_QR','SEGREDO_TOKEN','SEGREDO_SIGNAL','5531999990000'])assert.equal(json.includes(segredo),false);
+  // Recuperar histórico por um leitor novo, equivalente a reiniciar o processo.
+  const novo=criarDiagnostico({obterBanco:()=>db});assert.equal((await novo.historico(1)).length,1);
+  for(let i=0;i<205;i++){novo.registrar(1,'reconexao_agendada',{tentativa:i});await novo.flush();}
+  assert.equal(await db.models.WhatsappDiagnostico.count({where:{empresaId:'1'}}),200);
+  assert.equal((await novo.historico(1)).length,100);
+  assert.equal((await novo.historico(2)).length,1);
+});
+
+
+test('sessão inválida repetida interrompe retentativas sem apagar autenticação silenciosamente',async t=>{
+  const {instancia,db}=await ambiente(t),a=instancia();
+  await a.service.inicializarCliente(1);autenticar(a.sockets[0]);
+  update(a.sockets[0],{connection:'open'});await a.service.restaurar();
+  for(let i=0;i<3;i++){
+    close(a.sockets.at(-1),500);
+    if(i<2)await a.timers.at(-1).fn();
+  }
+  await ate(()=>a.service.obterStatus(1).requerAcao);
+  assert.ok((await db.models.PetHubWaAuth.findByPk('1')).creds);
+  const agendados=a.timers.length;
+  await a.service.restaurar();assert.equal(a.sockets.length,3);assert.equal(a.timers.length,agendados);
+});
+
+test('renovação sem alteração de timestamp não perde posse; outra dona continua bloqueada',async t=>{
+  const {repo,real,db}=await ambiente(t),h=await repo.adquirir('8',real,true);
+  const M=db.models.PetHubWaAuth;
+  t.mock.method(M,'update',async()=>[0]);
+  await h.renovar(); // mesmo instante do acquire: deadline não mudou
+  await M.findByPk('8').then(row=>row.update({dono:'OUTRO-PROCESSO'}));
+  await assert.rejects(h.renovar(),{code:'WA_LEASE_LOST'});
 });

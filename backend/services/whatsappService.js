@@ -36,17 +36,18 @@ const logger = pino({ level: 'silent' });
 const importBaileys = () => import('@whiskeysockets/baileys');
 
 function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.toDataURL,
-  agendar = setTimeout, cancelar = clearTimeout, agora = Date.now, atualizarResumo = async () => {},
+  agendar = setTimeout, cancelar = clearTimeout, agora = Date.now, atualizarResumo = async () => {}, registrar = () => {}, flushDiagnostico = async () => {},
   pausaEnvio = () => new Promise(resolve => setTimeout(resolve, 3000 + Math.random() * 7000)) } = {}) {
-  const sessoes = new Map(), listeners = new Map(), desligando = new Map();
-  let parando = false, monitor = null, revisando = false;
+  const sessoes = new Map(), listeners = new Map(), desligando = new Map(), avisos = new Map();
+  const registrarEvento=(s,evento,dados={})=>{try{registrar(s.id,evento,{pareada:!!(s.pareada||s.auth?.creds.me||s.auth?.creds.registered),...dados});}catch{/* Diagnóstico não interrompe a sessão. */}};
+  let parando = false, monitor = null, monitorAtivo = false, restaurando = null;
   const desconectado = () => ({ status: 'desconectado', numero: null, qrBase64: null });
   const atual = s => !parando && sessoes.get(s.id) === s && !s.finalizando;
   const pareada = s => !!(s.pareada || s.auth?.creds.me || s.auth?.creds.registered);
   const obterStatus = id => {
     const s = sessoes.get(String(id));
     return s && !s.finalizando ? { status: s.status, numero: s.numero, qrBase64: s.qr,
-      reconectando: s.status === 'inicializando' && pareada(s) } : desconectado();
+      reconectando: s.status === 'inicializando' && pareada(s) } : {...desconectado(),...(avisos.get(String(id))||{})};
   };
   function salvarStatusNoBanco(id, status, numero) {
     Promise.resolve().then(() => atualizarResumo(id, status, numero)).catch(() => {});
@@ -87,17 +88,29 @@ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.
     s.revisao++;
     fecharSocket(s);
     salvarStatusNoBanco(s.id, 'desconectado', null);
-    emitir(s.id, mensagem ? 'erro' : 'desconectado', { ...desconectado(), mensagem });
+    emitir(s.id, mensagem ? 'erro' : 'desconectado', { ...obterStatus(s.id), mensagem });
   }
   function persistir(s) {
     if (!s.handle) return Promise.resolve();
     s.pendente = true;
-    const seq = ++s.gravacao;
-    const p = s.handle.salvar();
-    s.persistencia = p.catch(() => {
-      console.warn(`[WhatsApp][empresa:${s.id}] credenciais aguardam gravação; sem gerar novo QR`);
-    });
-    p.then(() => { if (seq === s.gravacao) s.pendente = false; }, () => {});
+    s.gravacao++;
+    // Coalescer uma rajada de creds.update: no máximo uma gravação corrente
+    // e outra com o estado mais recente, em vez de centenas na fila do lease.
+    if(s.salvando)return s.salvando;
+    const p=(async()=>{
+      while(s.pendente){
+        const seq=s.gravacao;
+        try{await s.handle.salvar();}
+        catch(e){
+          registrarEvento(s,'credenciais_pendentes',{codigo:e.code||'DB_INDISPONIVEL'});
+          console.warn(`[WhatsApp][empresa:${s.id}] credenciais aguardam gravação; sem gerar novo QR`);
+          break;
+        }
+        if(seq===s.gravacao)s.pendente=false;
+      }
+    })();
+    s.salvando=p;
+    s.persistencia=p.finally(()=>{s.salvando=null;});
     return s.persistencia;
   }
   function reagendar(s, imediato = false) {
@@ -105,6 +118,7 @@ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.
     aguardar(s);
     cancelar(s.timer);
     const atraso = imediato ? 0 : Math.min(1000 * 2 ** Math.min(s.tentativas++, 6), 60000);
+    registrarEvento(s,'reconexao_agendada',{atrasoMs:atraso,tentativa:s.tentativas});
     console.info(`[WhatsApp][empresa:${s.id}] reconectando em ${atraso / 1000}s; vínculo ${pareada(s) ? 'preservado' : 'em pareamento'}`);
     s.timer = agendar(() => {
       s.timer = null;
@@ -113,6 +127,7 @@ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.
   }
   async function finalizar(s, acao, mensagem) {
     if (sessoes.get(s.id) !== s) return;
+    registrarEvento(s,acao==='pausar'?'vinculo_preservado_pausado':'vinculo_encerrado');
     s.finalizando = true;
     cancelar(s.timer); s.timer = null;
     fecharSocket(s);
@@ -122,6 +137,7 @@ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.
     try {
       await s.persistencia;
       if (s.handle) await s.handle[acao]();
+      if (acao === 'pausar') avisos.set(s.id, { requerAcao: true, mensagem });
       encerrar(s, mensagem);
     } catch (e) {
       if (e.code === 'WA_LEASE_LOST') { encerrar(s, mensagem); return; }
@@ -147,11 +163,17 @@ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.
           reagendar(s);
           return;
         }
+        if(handle.onFailure)handle.onFailure(e=>{
+          if(!atual(s))return;
+          registrarEvento(s,'falha_chaves',{codigo:e.code||'DB_INDISPONIVEL'});
+          fecharSocket(s);reagendar(s);
+        });
         s.auth = handle.auth;
         s.pareada = handle.pareada;
         s.numero = (s.auth.creds.me?.id || '').split(/[:@]/)[0] || null;
       }
       s.auth ??= novaAutenticacao(lib);
+      if(s.handle?.vencida())await s.handle.renovar();
       await s.persistencia;
       if (s.pendente) {
         await persistir(s);
@@ -186,9 +208,18 @@ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.
           try { Promise.resolve(socket.end()).catch(() => {}); } catch { /* Fechado. */ }
           const motivo = Number(update.lastDisconnect?.error?.output?.statusCode ?? update.lastDisconnect?.error?.statusCode);
           console.info(`[WhatsApp][empresa:${s.id}] conexão encerrada; código ${Number.isFinite(motivo) ? motivo : 'desconhecido'}; pareada=${pareada(s)}`);
+          registrarEvento(s,'socket_fechado',{codigo:motivo,duracaoMs:s.conectadaEm?agora()-s.conectadaEm:0});
           const r = lib.DisconnectReason;
-          if ([r.loggedOut, r.badSession, r.forbidden, r.multideviceMismatch].filter(Number.isFinite).includes(motivo)) {
+          if (motivo===r.loggedOut) {
             await finalizar(s, 'remover', 'WhatsApp invalidou o vínculo. Clique em Conectar e leia um novo QR.');
+            return;
+          }
+          if (motivo === r.badSession && (s.sessaoInvalida = (s.sessaoInvalida || 0) + 1) >= 3) {
+            await finalizar(s, 'pausar', 'O WhatsApp recusou repetidamente a sessão salva. Credenciais preservadas. Use Desconectar e Conectar para refazer o vínculo.');
+            return;
+          }
+          if ([r.forbidden,r.multideviceMismatch].filter(Number.isFinite).includes(motivo)) {
+            await finalizar(s,'pausar','O WhatsApp recusou esta conexão. Credenciais preservadas. Tente Conectar novamente ou Desconectar para refazer o vínculo.');
             return;
           }
           if (motivo === r.connectionReplaced) {
@@ -209,7 +240,12 @@ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.
           cancelar(s.timer); s.timer = null;
           s.revisao++;
           s.status = 'conectado';
+          s.conectadaEm=agora();
+          s.qrInesperado=0;
+          s.sessaoInvalida=0;
+          avisos.delete(s.id);
           s.pareada = true;
+          registrarEvento(s,'conectado');
           s.qr = null;
           s.numero = (socket.user?.id || s.auth.creds.me?.id || '').split(/[:@]/)[0] || null;
           s.tentativas = 0;
@@ -230,7 +266,10 @@ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.
           // Nunca substituir uma conexão aberta por um QR atrasado.
           if (s.status === 'conectado') return;
           if (pareada(s)) {
-            await finalizar(s, 'remover', 'WhatsApp solicitou um novo pareamento. Clique em Conectar para gerar o QR.');
+            registrarEvento(s,'qr_inesperado_credenciais_preservadas');
+            if((s.qrInesperado=(s.qrInesperado||0)+1)>=3) {
+              await finalizar(s,'pausar','O WhatsApp está solicitando pareamento. O vínculo salvo foi preservado. Use Desconectar para autorizar um novo QR.');
+            } else {fecharSocket(s);reagendar(s);}
             return;
           }
           const revisao = ++s.revisao;
@@ -243,6 +282,7 @@ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.
       }
     } catch (e) {
       if (!atual(s)) return;
+      registrarEvento(s,'abertura_falhou',{codigo:e.code||'ABERTURA_TRANSITORIA'});
       if (['WA_AUTH_CONFIG', 'WA_AUTH_UNREADABLE', 'WA_LEASE_LOST'].includes(e.code)) {
         fecharSocket(s);
         encerrar(s, e.message);
@@ -265,6 +305,7 @@ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.
     const s = { id: chave, status: 'inicializando', qr: null, numero: null, manual,
       socket: null, revisao: 0, tentativas: 0, envios: [], gravacao: 0 };
     sessoes.set(chave, s);
+    registrarEvento(s,manual?'conexao_solicitada':'restauracao_solicitada');
     aguardar(s);
     await abrir(s);
     if (!atual(s)) throw new Error('Conexão encerrada. Verifique a configuração do servidor.');
@@ -274,6 +315,8 @@ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.
     const chave = String(id);
     if (desligando.has(chave)) return desligando.get(chave);
     const s = sessoes.get(chave);
+    registrarEvento(s||{id:chave},'desconexao_manual');
+    avisos.delete(chave);
     if (s) {
       s.finalizando = true;
       cancelar(s.timer); s.timer = null;
@@ -306,51 +349,74 @@ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.
     desligando.set(chave, fim);
     try { await fim; } finally { desligando.delete(chave); }
   }
-  async function restaurar() {
-    if (revisando || parando) return;
-    revisando = true;
-    try {
-      for (const s of sessoes.values()) {
-        if (s.terminal) { await finalizar(s, s.terminal.acao, s.terminal.mensagem); continue; }
-        if (!atual(s)) continue;
-        if (s.handle) {
-          try {
-            await s.handle.renovar();
-            if (s.pendente) await persistir(s);
-          } catch (e) {
-            if (e.code === 'WA_LEASE_LOST' || s.handle.vencida()) {
-              encerrar(s, 'Recuperando o vínculo após indisponibilidade do banco.');
-              continue;
-            }
+  function verificarSessao(s) {
+    // Uma empresa com I/O lento não bloqueia a renovação das demais.
+    if (s.verificando) return s.verificando;
+    s.verificando = (async () => {
+      if (s.terminal) { await finalizar(s, s.terminal.acao, s.terminal.mensagem); return; }
+      if (!atual(s)) return;
+      if (s.handle) {
+        try {
+          await s.handle.renovar();
+          if (!atual(s)) return;
+          if (s.handle.temPendencias?.()) { fecharSocket(s); if (!s.timer) reagendar(s); }
+          if (s.pendente) await persistir(s);
+        } catch (e) {
+          registrarEvento(s, 'renovacao_posse_falhou', { codigo: e.code || 'DB_INDISPONIVEL' });
+          if (!atual(s)) return;
+          if (e.code === 'WA_LEASE_LOST') {
+            encerrar(s, 'Outro processo assumiu este vínculo. Credenciais preservadas.');
+            return;
           }
+          if (s.handle.vencida()) { fecharSocket(s); if (!s.timer) reagendar(s); return; }
         }
-        if (s.status === 'conectado' && s.socket?.ws?.isClosed === true) {
-          fecharSocket(s); reagendar(s);
-        } else if (s.status === 'inicializando' && s.socket && agora() - s.inicioAbertura > 90000) {
-          console.warn(`[WhatsApp][empresa:${s.id}] abertura sem resposta; repetindo com o mesmo vínculo`);
-          fecharSocket(s); reagendar(s);
-        } else if (!s.socket && !s.timer && !s.abrindo) reagendar(s);
       }
-      if (repositorio) for (const id of await repositorio().candidatas()) {
-        if (parando) break;
-        if (!sessoes.has(id) && !desligando.has(id)) await inicializarCliente(id, false).catch(() => {});
-      }
-    } catch (e) {
+      if (!atual(s)) return;
+      if (s.status === 'conectado' && s.socket?.ws?.isClosed === true) {
+        registrarEvento(s, 'socket_fechado_sem_evento');
+        fecharSocket(s); reagendar(s);
+      } else if (s.status === 'inicializando' && s.socket && agora() - s.inicioAbertura > 90000) {
+        registrarEvento(s, 'abertura_sem_resposta');
+        fecharSocket(s); reagendar(s);
+      } else if (!s.socket && !s.timer && !s.abrindo) reagendar(s);
+    })().finally(() => { s.verificando = null; });
+    return s.verificando;
+  }
+  function recuperarPersistidas() {
+    if (!repositorio || parando) return Promise.resolve();
+    if (restaurando) return restaurando;
+    restaurando = (async () => {
+      const ids = await repositorio().candidatas();
+      await Promise.allSettled(ids.map(id => {
+        if (parando || sessoes.has(String(id)) || desligando.has(String(id))) return;
+        return inicializarCliente(id, false);
+      }));
+    })().catch(e => {
       console.warn('[WhatsApp] recuperação indisponível:', e.code === 'WA_AUTH_CONFIG' ? e.message : 'verifique o banco e a chave de autenticação.');
-    } finally { revisando = false; }
+    }).finally(() => { restaurando = null; });
+    return restaurando;
+  }
+  async function restaurar() {
+    if (parando) return;
+    await Promise.allSettled([
+      ...[...sessoes.values()].map(verificarSessao), recuperarPersistidas(),
+      Promise.resolve().then(flushDiagnostico),
+    ]);
   }
   function iniciarMonitor() {
-    if (monitor || parando) return;
-    const executar = async () => {
-      monitor = null;
-      try { await restaurar(); } finally {
-        if (!parando) { monitor = agendar(executar, 20000); monitor?.unref?.(); }
-      }
+    if (monitorAtivo || parando) return;
+    monitorAtivo = true;
+    const executar = () => {
+      if (parando) return;
+      // Agendar antes do I/O: um banco lento não elimina os próximos ticks.
+      monitor = agendar(executar, 20000); monitor?.unref?.();
+      restaurar().catch(() => {});
     };
     monitor = agendar(executar, 1000); monitor?.unref?.();
   }
   async function suspender() {
     parando = true;
+    monitorAtivo = false;
     cancelar(monitor); monitor = null;
     await Promise.allSettled([...sessoes.values()].map(async s => {
       cancelar(s.timer); s.timer = null;
@@ -359,7 +425,7 @@ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.
       await s.persistencia;
       if (handle) {
         if (s.terminal) await handle[s.terminal.acao]();
-        else { await handle.salvar(); await handle.liberar(); }
+        else { await handle.flush(); await handle.salvar(); await handle.liberar(); }
       }
     }));
     sessoes.clear();
@@ -468,4 +534,5 @@ async function atualizarResumo(id, status, numero) {
   await WhatsappSession.update({ status, numero: numero || null,
     ...(status === 'conectado' ? { ultimaConexao: new Date() } : {}) }, { where: { empresaId } });
 }
-module.exports = { ...criarServico({ repositorio, atualizarResumo }), criarServico, substituirVariaveis };
+const diagnostico=require('./whatsappDiagnostico');
+module.exports = { ...criarServico({ repositorio, atualizarResumo, registrar:diagnostico.registrar, flushDiagnostico:diagnostico.flush }), criarServico, substituirVariaveis, obterDiagnostico:diagnostico.historico };

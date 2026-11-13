@@ -22,7 +22,8 @@ function criarRepositorio(db, chave = chaveDoServidor(), { agora = Date.now, lea
   let pronto;
   const preparar = () => pronto ??= Sessao.sync().then(() => Sinal.sync()).catch(e => { pronto = null; throw e; });
   const hash = (tipo, id) => crypto.createHash('sha256').update(JSON.stringify([tipo, id])).digest('hex');
-  const perdida = () => Object.assign(new Error('Posse da sessão transferida ou expirada.'), { code: 'WA_LEASE_LOST' });
+  const perdida = () => Object.assign(new Error('Outro processo assumiu a sessão.'), { code: 'WA_LEASE_LOST' });
+  const expirada = () => Object.assign(new Error('A posse precisa ser renovada antes de usar as chaves.'), {code:'WA_LEASE_EXPIRED'});
   function codificar(lib, empresa, campo, valor) {
     const iv = crypto.randomBytes(12), cipher = crypto.createCipheriv('aes-256-gcm', chave, iv);
     cipher.setAAD(Buffer.from(JSON.stringify([empresa, campo])));
@@ -49,48 +50,80 @@ function criarRepositorio(db, chave = chaveDoServidor(), { agora = Date.now, lea
       const row = await Sessao.findByPk(empresa, { transaction, lock: transaction.LOCK.UPDATE });
       if (!row || (!manual && !row.restaurar) || (row.dono && Number(row.validade) > agora())) return null;
       const creds = row.creds ? ler(lib, empresa, 'creds', row.creds) : lib.initAuthCreds();
-      await row.update({ dono, validade: agora() + leaseMs }, { transaction });
-      return creds;
+      const validade=agora()+leaseMs;
+      await row.update({ dono, validade }, { transaction });
+      return {creds,validade};
     });
     if (!tomada) return null;
-    let fila = Promise.resolve(), ultimaRenovacao = agora();
+    let fila = Promise.resolve(), limiteLocal = tomada.validade;
+    let filaChaves=Promise.resolve(), aoFalhar=()=>{};
+    const cache=new Map(), pendentes=new Map();
+    const serial=fn=>{const p=filaChaves.then(fn);filaChaves=p.catch(()=>{});return p;};
+    const lembrar=(h,valor)=>{
+      cache.delete(h);cache.set(h,{valor,vence:agora()+300000});
+      while(cache.size>800)cache.delete(cache.keys().next().value);
+    };
+    function notificarFalha(e){try{aoFalhar(e);}catch{ /* Não trocar o erro do banco. */ }}
     function operacao(fn) {
       const p = fila.then(() => db.transaction(async transaction => {
         const row = await Sessao.findByPk(empresa, { transaction, lock: transaction.LOCK.UPDATE });
-        if (!row || row.dono !== dono || Number(row.validade) <= agora()) throw perdida();
+        if (!row || row.dono !== dono) throw perdida();
+        if (Number(row.validade)<=agora()) throw expirada();
         return fn(row, transaction);
       }));
       fila = p.catch(() => {});
       return p;
     }
+    async function gravarSinais(entradas){
+      await operacao(async (_,transaction)=>{
+        const excluir=entradas.filter(e=>e.valor===null).map(e=>e.hash);
+        const incluir=entradas.filter(e=>e.valor!==null).map(({hash,valor})=>({empresa,hash,valor}));
+        if(excluir.length)await Sinal.destroy({where:{empresa,hash:{[Op.in]:excluir}},transaction});
+        if(incluir.length)await Sinal.bulkCreate(incluir,{updateOnDuplicate:['valor'],transaction});
+      });
+      for(const entrada of entradas){
+        if(pendentes.get(entrada.hash)===entrada)pendentes.delete(entrada.hash);
+        if(entrada.valor===null)cache.delete(entrada.hash);
+        else lembrar(entrada.hash,ler(lib,empresa,entrada.hash,entrada.valor));
+      }
+    }
     const handle = {
-      pareada: !!(tomada.me || tomada.registered),
-      auth: { creds: tomada, keys: {
-        async get(tipo, ids) {
-          if (!ids.length) return {};
-          return operacao(async (_, transaction) => {
-            const hashes = ids.map(id => hash(tipo, id));
-            const rows = await Sinal.findAll({ where: { empresa, hash: { [Op.in]: hashes } }, transaction });
-            const mapa = new Map(rows.map(row => [row.hash, row.valor])), out = {};
-            ids.forEach((id, i) => {
-              const bytes = mapa.get(hashes[i]);
-              if (!bytes) return;
-              const valor = ler(lib, empresa, hashes[i], bytes);
-              out[id] = tipo === 'app-state-sync-key' ? lib.proto.Message.AppStateSyncKeyData.fromObject(valor) : valor;
-            });
-            return out;
-          });
-        },
-        async set(dados) {
-          const incluir = [], excluir = [];
-          for (const [tipo, itens] of Object.entries(dados)) for (const [id, valor] of Object.entries(itens)) {
-            const h = hash(tipo, id);
-            if (valor == null) excluir.push(h);
-            else incluir.push({ empresa, hash: h, valor: codificar(lib, empresa, h, valor) });
+      pareada: !!(tomada.creds.me || tomada.creds.registered),
+      onFailure(fn){aoFalhar=fn;},
+      temPendencias:()=>pendentes.size>0,
+      auth: { creds: tomada.creds, keys: {
+        get(tipo,ids){return serial(async()=>{
+          if(agora()>=limiteLocal)throw expirada();
+          if(pendentes.size)await gravarSinais([...pendentes.values()]);
+          const out={},faltantes=[];
+          for(const id of ids){
+            const h=hash(tipo,id),item=cache.get(h);
+            if(item&&item.vence>agora()){
+              cache.delete(h);cache.set(h,item);out[id]=item.valor;
+            }else {cache.delete(h);faltantes.push(id);}
           }
-          return operacao(async (_, transaction) => {
-            if (excluir.length) await Sinal.destroy({ where: { empresa, hash: { [Op.in]: excluir } }, transaction });
-            if (incluir.length) await Sinal.bulkCreate(incluir, { updateOnDuplicate: ['valor'], transaction });
+          if(faltantes.length)await operacao(async(_,transaction)=>{
+            const hs=faltantes.map(id=>hash(tipo,id));
+            const rows=await Sinal.findAll({where:{empresa,hash:{[Op.in]:hs}},transaction});
+            const mapa=new Map(rows.map(row=>[row.hash,row.valor]));
+            faltantes.forEach((id,i)=>{
+              const bytes=mapa.get(hs[i]);if(!bytes)return;
+              const valor=ler(lib,empresa,hs[i],bytes);lembrar(hs[i],valor);out[id]=valor;
+            });
+          });
+          if(tipo==='app-state-sync-key')for(const id of Object.keys(out))out[id]=lib.proto.Message.AppStateSyncKeyData.fromObject(out[id]);
+          return out;
+        }).catch(e=>{notificarFalha(e);throw e;});},
+        set(dados){
+          const entradas=[];
+          for(const [tipo,itens] of Object.entries(dados))for(const [id,valor] of Object.entries(itens)){
+            const h=hash(tipo,id),entrada={hash:h,valor:valor==null?null:codificar(lib,empresa,h,valor)};
+            entradas.push(entrada);
+          }
+          // O journal só é removido depois de COMMIT; set nunca confirma falha como sucesso.
+          return serial(async()=>{
+            for(const entrada of entradas)pendentes.set(entrada.hash,entrada);
+            try {await gravarSinais(entradas);}catch(e){notificarFalha(e);throw e;}
           });
         },
       } },
@@ -99,12 +132,25 @@ function criarRepositorio(db, chave = chaveDoServidor(), { agora = Date.now, lea
         const restaurar = !!(handle.auth.creds.me || handle.auth.creds.registered);
         return operacao((row, transaction) => row.update({ creds, restaurar }, { transaction }));
       },
-      flush: () => fila,
-      async renovar() {
-        await operacao((row, transaction) => row.update({ validade: agora() + leaseMs }, { transaction }));
-        ultimaRenovacao = agora();
+      async flush(){
+        await filaChaves;await fila;
+        if(pendentes.size)await serial(()=>gravarSinais([...pendentes.values()]));
       },
-      vencida: () => agora() - ultimaRenovacao >= leaseMs - 10000,
+      async renovar() {
+        // Não entrar na fila de chaves: uma sincronização grande não pode sufocar
+        // o heartbeat. CAS por dono permite renovar posse expirada ainda nossa,
+        // mas nunca tomar uma posse já transferida para outro processo.
+        const validade=agora()+leaseMs;
+        const [n]=await Sessao.update({validade},{where:{empresa,dono}});
+        if(n!==1){
+          // Alguns drivers contam só linhas alteradas: renovar no mesmo ms
+          // pode retornar 0 mesmo que a posse continue sendo nossa.
+          const row=await Sessao.findByPk(empresa,{attributes:['dono','validade']});
+          if(!row||row.dono!==dono||Number(row.validade)<validade)throw perdida();
+        }
+        limiteLocal=validade;
+      },
+      vencida:()=>agora()>=limiteLocal-10000,
       liberar: () => operacao((row, transaction) => row.update({ dono: null, validade: 0 }, { transaction })),
       pausar: () => operacao((row, transaction) => row.update({ restaurar: false, dono: null, validade: 0 }, { transaction })),
       remover: () => operacao(async (row, transaction) => {

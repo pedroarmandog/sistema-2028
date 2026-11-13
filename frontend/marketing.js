@@ -281,7 +281,8 @@ function exibirWhatsapp(data) {
     : "Conectando ao WhatsApp…";
   visivel("qrImageContainer", aguardando);
   visivel("qrStatusDesconectado", !conectado && !aguardando && !iniciando);
-  visivel("qrBtnDesconectar", conectado || aguardando || iniciando);
+  visivel("qrBtnDesconectar", conectado || aguardando || iniciando || !!data.requerAcao);
+  if(data.mensagem)avisarWhatsApp(data.mensagem);
   const img = document.getElementById("qrCodeImg");
   if (aguardando) img.src = data.qrBase64;
   else img.removeAttribute("src");
