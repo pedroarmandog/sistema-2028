@@ -1,0 +1,9 @@
+PETHUB — MÍDIAS PERSISTENTES
+
+1. Antes de fazer deploy, preserve a pasta uploads da instância atual e o backup do banco.
+2. Abra docs/MIDIAS-PERSISTENTES-PETHUB.md: configuração do R2, variáveis, instalação, migração e Render.
+3. Copie SOMENTE os arquivos deste pacote para a raiz do projeto, mantendo as subpastas. Preserve seus outros arquivos.
+4. Configure o armazenamento; novos uploads serão recusados claramente enquanto MEDIA_S3_* não estiver configurado.
+5. Consulte docs/VALIDACAO-MIDIAS.txt e docs/ARQUIVOS-MIDIAS.txt.
+
+Não houve migração/deploy real nem recuperação confirmada do banco de produção nesta entrega. Não sobrescreva seu .env com o exemplo.

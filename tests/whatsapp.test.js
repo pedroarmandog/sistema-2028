@@ -21,6 +21,7 @@ async function ambiente(opcoes = {}) {
     return socket;
   } };
   const service = criarServico({ carregar: async () => lib,
+    carregarMidia: async(emp,file)=>({bytes:await require("node:fs/promises").readFile(file),tipo:require("mime-types").lookup(file)}),
     pausaEnvio: async () => {},
     agendar(fn, ms) { const timer = { fn, ms }; timers.push(timer); return timer; },
     cancelar(timer) { if (timer) timer.cancelado = true; }, ...opcoes });

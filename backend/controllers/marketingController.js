@@ -335,7 +335,7 @@ exports.atualizarMensagem = async (req, res) => {
     const removerImg =
       req.body.removerImagem === "true" || req.body.removerImagem === true;
     const imagemPath = req.file
-      ? `/uploads/marketing/${req.file.filename}`
+      ? req.file.url
       : removerImg
         ? null
         : mensagem.imagemPath;
@@ -452,12 +452,12 @@ exports.uploadImagem = async (req, res) => {
         .json({ erro: "Mensagem não pertence à sua empresa" });
     }
 
-    const imagemPath = `/uploads/marketing/${req.file.filename}`;
+    const imagemPath = req.file.url;
     await mensagem.update({ imagemPath });
 
     return res.json({
       sucesso: true,
-      imagemPath: `/uploads/marketing/${req.file.filename}`,
+      imagemPath: req.file.url,
     });
   } catch (err) {
     return res.status(500).json({ erro: err.message });

@@ -52,6 +52,7 @@ const clientes = {
   codigo_pais: ["Código país"],
 };
 const produtos = {
+  imagem: ["Imagem", "Foto", "URL da imagem"],
   nome: [
     "Nome",
     "Produto",

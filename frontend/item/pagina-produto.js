@@ -376,7 +376,7 @@ function preencherDadosProduto(produto) {
       "productImagePlaceholderIcon",
     );
     if (produto.imagem) {
-      productImage.src = produto.imagem;
+      productImage.src = window.PetHubMidias?.url(produto.imagem) || (produto.imagem.startsWith("data:")?produto.imagem:"/uploads/"+produto.imagem.replace(/^\/?uploads\//,""));
       productImage.style.display = "block";
       if (productImagePlaceholderIcon)
         productImagePlaceholderIcon.style.display = "none";
@@ -2516,9 +2516,7 @@ function configurarImagemProduto() {
               mostrarNotificacao("Erro ao salvar imagem", "error");
             // revert preview se falhar
             try {
-              imgEl.style.display = "none";
-              if (box) box.classList.remove("has-image");
-              if (placeholder) placeholder.style.display = "block";
+              window.__refreshProductImage?.(produtoAtual);
             } catch (e) {}
           });
           // after uploading, hide actions until user clicks pencil
@@ -2535,9 +2533,7 @@ function configurarImagemProduto() {
               mostrarNotificacao &&
                 mostrarNotificacao("Erro ao salvar imagem", "error");
               try {
-                imgEl.style.display = "none";
-                if (box) box.classList.remove("has-image");
-                if (placeholder) placeholder.style.display = "block";
+                window.__refreshProductImage?.(produtoAtual);
               } catch (e) {}
             });
             if (actions) actions.classList.remove("show");
@@ -2590,7 +2586,7 @@ function configurarImagemProduto() {
             const API_BASE =
               (window.__API_BASE__ && window.__API_BASE__.toString()) ||
               window.location.origin;
-            imgEl.src = `${API_BASE}/uploads/${prod.imagem}`;
+            imgEl.src = window.PetHubMidias?.url(prod.imagem) || `${API_BASE}/uploads/${prod.imagem.replace(/^\/?uploads\//,"")}`;
           }
           imgEl.style.display = "block";
           imgEl.style.cursor = "pointer";
@@ -2631,13 +2627,10 @@ async function setImagemProduto(dataUrl) {
     }
 
     // Salvar imagem via API (backend vai processar e salvar arquivo)
-    await ApiClient.atualizarProduto(produtoAtual.id, {
-      ...produtoAtual,
-      imagem: dataUrl, // Backend vai converter para arquivo
-    });
+    const salvo = await ApiClient.atualizarProduto(produtoAtual.id, {imagem:dataUrl});
 
     // Atualizar preview local
-    produtoAtual.imagem = dataUrl;
+    produtoAtual.imagem = salvo.imagem;
 
     // atualizar UI
     try {
@@ -2648,6 +2641,8 @@ async function setImagemProduto(dataUrl) {
   } catch (err) {
     console.error("setImagemProduto erro", err);
     showToast("Erro ao salvar imagem: " + err.message, "error");
+    window.__refreshProductImage?.(produtoAtual);
+    throw err;
   }
 }
 

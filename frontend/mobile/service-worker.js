@@ -7,7 +7,7 @@
      - Páginas HTML: Network First com fallback offline
    ============================================================ */
 
-const CACHE_VERSION = "pethub-mobile-v7";
+const CACHE_VERSION = "pethub-mobile-v8-midias";
 const CACHE_STATIC = `${CACHE_VERSION}-static`;
 const CACHE_API = `${CACHE_VERSION}-api`;
 
@@ -31,6 +31,7 @@ const PRECACHE_ASSETS = [
   "/mobile/pages/configuracoes.js",
   "/mobile/icons/launchericon-192x192.png",
   "/api-config.js",
+  "/midias.js",
 ];
 
 // ─── INSTALL ──────────────────────────────────────────────
@@ -83,6 +84,8 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
+  // Mídias privadas nunca entram no cache offline compartilhado.
+  if(url.pathname.startsWith("/uploads/")){event.respondWith(fetch(event.request,{cache:"no-store"}));return;}
 
   // Ignorar requisições não-GET (POST/PUT/DELETE são sempre de rede)
   if (request.method !== "GET") return;

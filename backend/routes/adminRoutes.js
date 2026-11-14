@@ -8,36 +8,8 @@ const backupController = require("../controllers/backupController");
 const acessosController = require("../controllers/acessosController");
 const { authAdmin, validarTokenCadastro } = require("../middleware/authAdmin");
 
-// Configurar multer para upload de logos
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const fs = require("fs");
-    const dir = path.join(__dirname, "../../uploads/logos-empresas");
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    cb(null, dir);
-  },
-  filename: function (req, file, cb) {
-    const ext = path.extname(file.originalname);
-    const nome = "logo-" + Date.now() + ext;
-    cb(null, nome);
-  },
-});
-const uploadLogo = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-  fileFilter: function (req, file, cb) {
-    const allowed = /jpeg|jpg|png|gif|svg|webp/;
-    const extOk = allowed.test(path.extname(file.originalname).toLowerCase());
-    const mimeOk = allowed.test(file.mimetype);
-    if (extOk || mimeOk) {
-      cb(null, true);
-    } else {
-      cb(new Error("Apenas imagens são permitidas (jpg, png, gif, svg, webp)"));
-    }
-  },
-});
+// Logo temporário apenas na memória, até a empresa receber ID do servidor.
+const uploadLogo = multer({storage:multer.memoryStorage(),limits:{fileSize:8*1024*1024,files:1}});
 
 // ── Rotas públicas ──────────────────────────────
 router.post("/login", adminController.login);

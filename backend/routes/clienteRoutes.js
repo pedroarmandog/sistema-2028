@@ -5,12 +5,7 @@ const clienteController = require("../controllers/clienteController");
 const multer = require("multer");
 const { authUser } = require("../middleware/authUser");
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
-});
-
-const upload = multer({ storage });
+const upload = require("../services/midias/upload").upload("clientes");
 
 router.use(authUser);
 router.use((req,res,next) => {
@@ -40,6 +35,7 @@ router.get("/:id", authUser, clienteController.getClienteById);
 router.put(
   "/:id",
   authUser,
+  require("../services/midias/upload").exigirRegistro("Cliente"),
   upload.single("imagem_perfil"),
   clienteController.updateCliente,
 );

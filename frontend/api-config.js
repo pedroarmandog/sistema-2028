@@ -14,3 +14,6 @@ const _resolvedVpsUrl = "https://pethub-api-wdna.onrender.com";
 // Expõe globalmente para que outros scripts possam usar.
 window.VPS_URL = _resolvedVpsUrl;
 window.API_URL = _resolvedVpsUrl;
+
+// Carregamento compartilhado para desktop e PWA.
+(function(){if(document.getElementById("pethub-midias-script"))return;const s=document.createElement("script");s.id="pethub-midias-script";s.src=new URL("/midias.js",document.currentScript?.src||location.href).href;document.head.appendChild(s);})();

@@ -2900,7 +2900,7 @@ function criarCardProduto(produto) {
       const API_BASE =
         (window.__API_BASE__ && window.__API_BASE__.toString()) ||
         window.location.origin;
-      imagemSrc = `${API_BASE}/uploads/${produto.imagem}`;
+      imagemSrc = window.PetHubMidias?.url(produto.imagem) || `${API_BASE}/uploads/${produto.imagem.replace(/^\/?uploads\//,"")}`;
     }
   }
 

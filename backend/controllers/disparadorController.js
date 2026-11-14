@@ -96,10 +96,7 @@ async function criarCampanha(req, res) {
 
     let imagemPath = null;
     if (req.files && req.files.imagem && req.files.imagem[0]) {
-      imagemPath = path.join(
-        "/uploads/disparador",
-        path.basename(req.files.imagem[0].path),
-      );
+      imagemPath = req.files.imagem[0].url;
     }
 
     const camp = await Campanha.create({
@@ -118,7 +115,7 @@ async function criarCampanha(req, res) {
     if (arquivo) {
       const ext = path.extname(arquivo.originalname).toLowerCase();
       if (ext === ".csv") {
-        const text = fs.readFileSync(arquivo.path, "utf8");
+        const text = arquivo.buffer.toString("utf8");
         const lines = text.split(/\r?\n/).filter(Boolean);
         if (lines.length > 0) {
           const firstCols = lines[0]
@@ -141,7 +138,7 @@ async function criarCampanha(req, res) {
           }
         }
       } else {
-        const wb = xlsx.readFile(arquivo.path);
+        const wb = xlsx.read(arquivo.buffer, {type:"buffer"});
         const sheet = wb.Sheets[wb.SheetNames[0]];
         const data = xlsx.utils.sheet_to_json(sheet, { header: 1 });
         let startIdx = 0;
@@ -503,9 +500,7 @@ function startWorker(campanha, instanciaId) {
           empresaId,
           envio.telefoneDestino,
           textoEnvio,
-          envio.imagemPath
-            ? (path.isAbsolute(envio.imagemPath) && !envio.imagemPath.startsWith("/uploads/") ? envio.imagemPath : path.join(__dirname, "../../", envio.imagemPath))
-            : null,
+          envio.imagemPath || null,
         );
 
         if (resultado.bloqueado) {

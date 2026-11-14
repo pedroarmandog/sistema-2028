@@ -41,7 +41,7 @@ exports.createCliente = async (req, res) => {
       codigo_pais,
     } = req.body;
 
-    const imagem_perfil = req.file ? req.file.filename : null;
+    const imagem_perfil = req.file ? req.file.url.replace(/^\/uploads\//, "") : null;
 
     // Converter tipo_pessoa: "fisica" → "F", "juridica" → "J"
     let tipoPessoaConvertido = null;
@@ -165,6 +165,7 @@ exports.createCliente = async (req, res) => {
 
     // Nota: boas_vindas é disparado no cadastro do primeiro pet (petController)
   } catch (err) {
+    if(err.publica)return res.status(err.status||503).json({success:false,error:err.message});
     if (err.status >= 400 && err.status < 500) return res.status(err.status).json({success:false,error:err.message});
     console.error("Erro ao criar cliente:", err);
 
@@ -363,6 +364,12 @@ exports.updateCliente = async (req, res) => {
       }
     }
 
+    if(req.file) updates.imagem_perfil = req.file.url.replace(/^\/uploads\//, "");
+    else if(updates.imagem_perfil !== undefined) {
+      const atual=await Cliente.findOne({where:{id,empresa_id:req.user.empresaId}});
+      if(!atual)return res.status(404).json({error:"Cliente não encontrado"});
+      updates.imagem_perfil=await require("../services/midias").instancia().referencia(req.user.empresaId,updates.imagem_perfil,"clientes",{anterior:atual.imagem_perfil,formato:"nome"});
+    }
     const extras=inteligencia.normalizar(req.body);
     if(Object.keys(extras).length)await inteligencia.preparar(sequelize);
     const updatedRows=await sequelize.transaction(async transaction=>{
@@ -390,6 +397,7 @@ exports.updateCliente = async (req, res) => {
       cliente: clienteAtualizado,
     });
   } catch (err) {
+    if(err.publica)return res.status(err.status||503).json({success:false,error:err.message});
     if (err.status >= 400 && err.status < 500) return res.status(err.status).json({success:false,error:err.message});
     console.error("Erro ao atualizar cliente:", err);
     res.status(500).json({

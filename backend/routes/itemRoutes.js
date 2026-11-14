@@ -413,13 +413,7 @@ router.post("/", async (req, res) => {
     if (payload.estoqueMinimo !== undefined && payload.estoqueMinimo !== null)
       payload.estoqueMinimo = parseInt(payload.estoqueMinimo, 10) || 0;
 
-    // log payload antes de criar (debug temporário)
-    try {
-      console.log(
-        "🔔 [DEBUG] Criando produto com payload:",
-        JSON.stringify(payload),
-      );
-    } catch (e) {}
+    if (payload.imagem !== undefined) payload.imagem = await require("../services/midias").instancia().referencia(req.user.empresaId, payload.imagem, "produtos", {formato:"nome"});
     const novo = await Produto.create(payload);
     try {
       console.log("🔔 [DEBUG] Produto criado (DB) id=", String(novo.id));
@@ -439,7 +433,7 @@ router.post("/", async (req, res) => {
     console.error("Erro ao criar produto:", error);
     // retornar mensagem de erro quando possível para facilitar debug (não vazar stack)
     return res
-      .status(500)
+      .status(error.status || 500)
       .json({ error: error.message || "Erro interno ao criar produto" });
   }
 });
@@ -532,29 +526,7 @@ router.put("/:id", async (req, res) => {
       console.debug("Erro normalizando ativo no PUT:", e);
     }
 
-    // Processar imagem se enviada como base64
-    if (data.imagem && data.imagem.startsWith("data:image")) {
-      try {
-        const base64Data = data.imagem.replace(/^data:image\/\w+;base64,/, "");
-        const buffer = Buffer.from(base64Data, "base64");
-        const fileName = `produto_${id}_${Date.now()}.png`;
-        const uploadPath = path.join(__dirname, "../../uploads", fileName);
-
-        // Criar diretório se não existir
-        const uploadDir = path.join(__dirname, "../../uploads");
-        if (!fs.existsSync(uploadDir)) {
-          fs.mkdirSync(uploadDir, { recursive: true });
-        }
-
-        fs.writeFileSync(uploadPath, buffer);
-        data.imagem = fileName; // Salvar apenas o nome do arquivo
-        console.log(`✅ Imagem do produto salva: ${fileName}`);
-      } catch (imgError) {
-        console.error("❌ Erro ao processar imagem:", imgError);
-        // Continuar sem salvar imagem em caso de erro
-        delete data.imagem;
-      }
-    }
+    if (data.imagem !== undefined) data.imagem = await require("../services/midias").instancia().referencia(req.user.empresaId, data.imagem, "produtos", {anterior:produto.imagem, formato:"nome"});
 
     // Se o preço foi alterado pelo cliente, registrar timestamp em `ultimoPrecoAlterado`
     try {
@@ -611,7 +583,7 @@ router.put("/:id", async (req, res) => {
     res.json(produto);
   } catch (error) {
     console.error("Erro ao atualizar produto:", error);
-    res.status(500).json({ error: "Erro interno ao atualizar produto" });
+    res.status(error.status||500).json({ error: error.publica?error.message:"Erro interno ao atualizar produto" });
   }
 });
 
@@ -717,6 +689,7 @@ router.post("/import", async (req, res) => {
           ? String(p.id)
           : String(Date.now()) + Math.floor(Math.random() * 1000);
         const dados = {...p, id, empresa_id:req.user.empresaId};
+        if(dados.imagem!==undefined)dados.imagem=await require("../services/midias").instancia().importar(req.user.empresaId,dados.imagem,"produtos",{formato:"nome"});
         const erro = validarCodigosICMS(dados);
         if (erro) throw new Error(erro);
         const [registro, created] = await Produto.findOrCreate({
@@ -729,7 +702,8 @@ router.post("/import", async (req, res) => {
         if (!created) await registro.update(dados);
         results.push({ id, created: !!created });
       } catch (err) {
-        console.warn("Falha ao importar item:", p && p.id, err && err.message);
+        results.push({id:p&&p.id,error:err.publica?err.message:"Falha ao importar item."});
+        console.warn("Falha ao importar item; código:",err.status||err.name);
       }
     }
     res.json({ success: true, imported: results.filter(r=>!r.error).length, details: results });

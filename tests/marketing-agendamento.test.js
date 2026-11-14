@@ -227,7 +227,9 @@ test('auditoria integrada de automações, persistência, fila, isolamento e ret
         assert.equal(res.status,404,await res.text());
       }
       assert.equal((await ag.reload()).status,'agendado');
-      const foto=await lab.fetchLocal(base+`/api/pets/${petA.id}/foto`,{method:'POST',headers:{Authorization:'Bearer '+lab.token(1),'Content-Type':'application/json'},body:JSON.stringify({foto_url:'data:image/png;base64,AA=='})});
+      const media=require('../backend/services/midias').instancia();
+      t.mock.method(media.store,'gravar',async()=>({etag:'fake'}));
+      const foto=await lab.fetchLocal(base+`/api/pets/${petA.id}/foto`,{method:'POST',headers:{Authorization:'Bearer '+lab.token(1),'Content-Type':'application/json'},body:JSON.stringify({foto_url:'data:image/png;base64,'+(await require('sharp')({create:{width:1,height:1,channels:3,background:'green'}}).png().toBuffer()).toString('base64')})});
       assert.equal(foto.status,200,await foto.text());
     } finally {server.closeAllConnections();await new Promise(r=>server.close(r));await ag.destroy();}
     await zerar();

@@ -1,3 +1,4 @@
+const {carregarImagem}=require("../services/midias/imagem");
 const express = require("express");
 const router = express.Router();
 const { Agendamento, Pet, Cliente, Empresa, Usuario } = require("../models");
@@ -1085,39 +1086,10 @@ router.get("/:id/comprovante", async (req, res) => {
       let logoPath = null;
       let logoBuffer = null;
 
-      // A logo da empresa é armazenada como arquivo em uploads/ (ex.: empresa_<timestamp>.png)
-      // ou, ocasionalmente, como data URI/base64 gravado diretamente no campo `logo`.
-      if (empresa && empresa.logo) {
-        const logoStr = String(empresa.logo);
-        if (logoStr.startsWith("data:image")) {
-          try {
-            const b64 = logoStr.split(",")[1] || "";
-            logoBuffer = Buffer.from(b64, "base64");
-          } catch (e) {
-            logoBuffer = null;
-          }
-        } else {
-          const candidates = [];
-          if (logoStr.startsWith("/") || logoStr.startsWith("uploads")) {
-            candidates.push(
-              path.join(__dirname, "../../..", logoStr.replace(/^\/+/, "")),
-            );
-          }
-          candidates.push(
-            path.join(__dirname, "../../uploads", logoStr),
-            path.join(__dirname, "../../uploads/logos-empresas", logoStr),
-          );
-          for (const c of candidates) {
-            if (fs.existsSync(c)) {
-              logoPath = c;
-              break;
-            }
-          }
-        }
-      }
+      logoBuffer=empresa?await carregarImagem(empresa.id,empresa.logo):null;
 
       const imagemLogo =
-        logoBuffer || (logoPath && fs.existsSync(logoPath) ? logoPath : null);
+        logoBuffer || (logoPath && (Buffer.isBuffer(logoPath) || fs.existsSync(logoPath)) ? logoPath : null);
       if (imagemLogo) {
         const maxLogoWidth = Math.round(pageWidth * 0.6);
         const logoWidth = Math.min(maxLogoWidth, Math.round(mmToPt(30)));
@@ -1634,22 +1606,7 @@ router.get("/:id/prontuario/pdf", async (req, res) => {
     let logoRendered = false;
     try {
       let logoPath = null;
-      if (empresa && empresa.logo) {
-        const candidates = [
-          path.join(__dirname, "../../uploads", String(empresa.logo)),
-          path.join(
-            __dirname,
-            "../../uploads/logos-empresas",
-            String(empresa.logo),
-          ),
-        ];
-        for (const c of candidates) {
-          if (fs.existsSync(c)) {
-            logoPath = c;
-            break;
-          }
-        }
-      }
+      if (empresa && empresa.logo) logoPath=await carregarImagem(empresa.id,empresa.logo);
       if (!logoPath) {
         const fallback = path.join(
           __dirname,
@@ -1657,7 +1614,7 @@ router.get("/:id/prontuario/pdf", async (req, res) => {
         );
         if (fs.existsSync(fallback)) logoPath = fallback;
       }
-      if (logoPath && fs.existsSync(logoPath)) {
+      if (logoPath && (Buffer.isBuffer(logoPath) || fs.existsSync(logoPath))) {
         const maxH = Math.round(mmToPt(18));
         const maxW = Math.round(mmToPt(28));
         const logoX = (A4W - maxW) / 2;
@@ -2069,35 +2026,18 @@ router.get("/:id/prontuario/pdf", async (req, res) => {
 // ====== PRONTUÁRIO — UPLOAD DE ANEXOS ======
 const multer = require("multer");
 
-const storageProntuario = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = path.join(__dirname, "../../uploads/prontuario");
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const base = path
-      .basename(file.originalname, ext)
-      .replace(/[^a-zA-Z0-9_\-]/g, "_");
-    cb(null, `ag${req.params.id}_${Date.now()}_${base}${ext}`);
-  },
-});
-
-const uploadProntuario = multer({
-  storage: storageProntuario,
-  limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB
-});
+const uploadProntuario = require("../services/midias/upload").upload("prontuario", {imagem:false});
 
 // POST /api/agendamentos/:id/prontuario/anexos
 router.post(
   "/:id/prontuario/anexos",
+  async(req,res,next)=>{try{if(!await Agendamento.findOne({where:{id:req.params.id,empresa_id:req.user.empresaId}}))return res.status(404).json({error:"Agendamento não encontrado"});next();}catch(e){next(e);}},
   uploadProntuario.single("arquivo"),
   async (req, res) => {
     try {
       if (!req.file)
         return res.status(400).json({ error: "Nenhum arquivo enviado" });
-      const url = `/uploads/prontuario/${req.file.filename}`;
+      const url = req.file.url;
       res.json({
         id: `anexo-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
         url,

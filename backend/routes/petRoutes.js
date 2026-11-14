@@ -126,12 +126,7 @@ function calcularDataRenovacao(
   return d.toISOString().slice(0, 10);
 }
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
-});
-
-const upload = multer({ storage });
+const upload = require("../services/midias/upload").upload("pets-documentos", { imagem: false });
 
 // Helper: parsear campo servicos (string JSON ou array)
 function parseServicos(raw) {
@@ -723,7 +718,7 @@ router.post(
       const arquivos = files.map((f) => ({
         id: `doc_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
         name: f.originalname || f.filename,
-        url: `/uploads/${f.filename}`,
+        url: f.url,
         type: f.mimetype || "",
         size: f.size || null,
       }));
@@ -732,6 +727,7 @@ router.post(
 
       const novoAg = await Agendamento.create({
         petId: parseInt(petId),
+        empresa_id: req.user.empresaId,
         dataAgendamento: hojeStr,
         horario: horarioStr,
         servico: "documento",
@@ -803,11 +799,12 @@ router.post("/:id/foto", async (req, res) => {
     const { Pet } = require("../models");
     const pet = await Pet.findByPk(id);
     if (!pet) return res.status(404).json({ error: "Pet não encontrado" });
-    await pet.update({ foto_url });
+    const referencia=await require("../services/midias").instancia().referencia(req.user.empresaId,foto_url,"pets",{anterior:pet.foto_url});
+    await pet.update({ foto_url:referencia });
     return res.json({ success: true });
   } catch (e) {
     console.error("Erro POST /pets/:id/foto:", e);
-    return res.status(500).json({ error: "Erro ao salvar foto" });
+    return res.status(e.status||500).json({ error: e.publica?e.message:"Erro ao salvar foto" });
   }
 });
 

@@ -1,3 +1,4 @@
+const {carregarImagem}=require("../services/midias/imagem");
 const express = require("express");
 const router = express.Router();
 const { authUser } = require("../middleware/authUser");
@@ -12,45 +13,16 @@ const { Agendamento } = require("../models/Agendamento");
 const Pet = require("../models/Pet");
 const { Cliente } = require("../models/Cliente");
 
-// Helper centralizado: busca a empresa do usuário logado a partir do cookie JWT
-// Ordem: req.user.empresaId → cookie JWT → body/query → primeira ativa (último recurso)
+// Empresa e logo dos relatórios pertencem ao usuário autenticado.
 async function obterEmpresaDoRequest(req) {
-  const jwt = require("jsonwebtoken");
-  const JWT_SECRET =
-    process.env.JWT_USER_SECRET || "pethub_user_secret_2026_!@#$%";
-
   // 1) req.user (se authUser middleware já preencheu)
   if (req.user && req.user.empresaId) {
     const emp = await Empresa.findByPk(req.user.empresaId);
     if (emp) return emp;
   }
 
-  // 2) Cookie JWT — mais confiável que body/query
-  try {
-    const cookieHeader = req.headers.cookie || "";
-    const match = cookieHeader.match(/pethub_token=([^;]+)/);
-    if (match) {
-      const decoded = jwt.verify(match[1], JWT_SECRET);
-      if (decoded.empresaId) {
-        const emp = await Empresa.findByPk(decoded.empresaId);
-        if (emp) return emp;
-      }
-    }
-  } catch (_) {}
+  // Empresa vem exclusivamente do middleware autenticado.
 
-  // 3) Body ou query param
-  const idFromReq =
-    (req.body && (req.body.empresaId || req.body.empresa_id)) ||
-    (req.query && (req.query.empresaId || req.query.empresa_id));
-  if (idFromReq) {
-    const emp = await Empresa.findByPk(idFromReq);
-    if (emp) return emp;
-  }
-
-  // 4) Último recurso: NÃO retornar empresa aleatória — forçar null
-  console.warn(
-    "[obterEmpresaDoRequest] Nenhuma empresa identificada no request (user/cookie/body/query)",
-  );
   return null;
 }
 
@@ -59,22 +31,7 @@ async function obterDadosEmpresaPDF(req) {
   const emp = await obterEmpresaDoRequest(req);
   if (!emp) return { empresa: null, logoPath: null, nomeEmpresa: "" };
   const nomeEmpresa = emp.nome || emp.razaoSocial || "";
-  let logoPath = null;
-  if (emp.logo) {
-    const logoStr = String(emp.logo);
-    // logo pode estar como path relativo ou só o filename
-    const candidates = [
-      path.join(__dirname, "../../uploads", logoStr),
-      path.join(__dirname, "../../", logoStr),
-      path.join(__dirname, "../../uploads/logos-empresas", logoStr),
-    ];
-    for (const c of candidates) {
-      if (fs.existsSync(c)) {
-        logoPath = c;
-        break;
-      }
-    }
-  }
+  const logoPath = await carregarImagem(emp.id,emp.logo);
   return { empresa: emp, logoPath, nomeEmpresa };
 }
 
@@ -374,10 +331,7 @@ router.get("/venda-no-periodo/pdf", async (req, res) => {
       if (!logoBuffer && req.query && req.query.logoFilename) {
         const lf = String(req.query.logoFilename || "");
         try {
-          const p = path.join(__dirname, "../../uploads", lf);
-          if (fs.existsSync(p)) {
-            logoBuffer = fs.readFileSync(p);
-          }
+          logoBuffer=await carregarImagem(req.user.empresaId,lf);
         } catch (e) {
           /* ignore */
         }
@@ -396,26 +350,7 @@ router.get("/venda-no-periodo/pdf", async (req, res) => {
         if (!nomeEmpresa)
           nomeEmpresa = empresa.razaoSocial || empresa.nome || "";
         if (!logoBuffer && empresa.logo) {
-          const candidates = [
-            path.join(__dirname, "../../uploads", empresa.logo),
-            path.join(
-              __dirname,
-              "../../uploads",
-              "logos-empresas",
-              empresa.logo,
-            ),
-            path.join(__dirname, "../../uploads", path.basename(empresa.logo)),
-          ];
-          for (const p of candidates) {
-            if (fs.existsSync(p)) {
-              try {
-                logoBuffer = fs.readFileSync(p);
-                break;
-              } catch (e) {
-                /* continue */
-              }
-            }
-          }
+          logoBuffer = await carregarImagem(empresa.id,empresa.logo);
         }
       }
     } catch (e) {
@@ -723,26 +658,7 @@ router.post("/faturamento/pdf", async (req, res) => {
       try {
         const empresa = await obterEmpresaDoRequest(req);
         if (empresa && empresa.logo) {
-          const candidates = [
-            path.join(__dirname, "../../uploads", empresa.logo),
-            path.join(
-              __dirname,
-              "../../uploads",
-              "logos-empresas",
-              empresa.logo,
-            ),
-            path.join(__dirname, "../../uploads", path.basename(empresa.logo)),
-          ];
-          for (const p of candidates) {
-            if (fs.existsSync(p)) {
-              try {
-                logoBuffer = fs.readFileSync(p);
-                break;
-              } catch (e) {
-                /* continue */
-              }
-            }
-          }
+          logoBuffer = await carregarImagem(empresa.id,empresa.logo);
         }
       } catch (e) {
         console.warn("Erro ao buscar logo da empresa:", e && e.message);
@@ -2771,18 +2687,14 @@ router.get("/produtos/pdf", async (req, res) => {
 
     // Se empresa tem logo, usar a logo da empresa
     if (empresa && empresa.logo && empresa.logo !== "") {
-      const empresaLogoPath = path.join(
-        __dirname,
-        "../../uploads",
-        empresa.logo,
-      );
-      if (fs.existsSync(empresaLogoPath)) {
+      const empresaLogoPath = await carregarImagem(empresa.id,empresa.logo);
+      if (empresaLogoPath) {
         logoPath = empresaLogoPath;
         console.log("✅ Usando logo da empresa:", empresa.logo);
       }
     }
 
-    if (fs.existsSync(logoPath)) {
+    if (Buffer.isBuffer(logoPath) || fs.existsSync(logoPath)) {
       doc.image(logoPath, 595 / 2 - 55, 30, { width: 110, align: "center" }); // centralizar logo
     }
 
@@ -3046,12 +2958,8 @@ router.post("/entradas/pdf", async (req, res) => {
 
     if (!logoRendered && empresa && empresa.logo && empresa.logo !== "") {
       try {
-        const empresaLogoPath = path.join(
-          __dirname,
-          "../../uploads",
-          empresa.logo,
-        );
-        if (fs.existsSync(empresaLogoPath)) {
+        const empresaLogoPath = await carregarImagem(empresa.id,empresa.logo);
+        if (empresaLogoPath) {
           doc.image(empresaLogoPath, logoX, logoY, {
             width: logoWidth,
             align: "center",
@@ -3394,13 +3302,8 @@ router.post("/produtos/pdf", async (req, res) => {
           });
           logoRendered = true;
         } else {
-          // tentar localizar arquivo no diretório uploads (aceita nome de arquivo ou URL que contenha o nome)
-          const candidate = path.join(
-            __dirname,
-            "../../uploads",
-            path.basename(payloadLogo),
-          );
-          if (fs.existsSync(candidate)) {
+          const candidate = await carregarImagem(req.user.empresaId,payloadLogo);
+          if (candidate) {
             doc.image(candidate, logoX, logoY, {
               width: logoWidth,
               align: "center",
@@ -3420,12 +3323,8 @@ router.post("/produtos/pdf", async (req, res) => {
     // tentar logo da empresa se não renderizou a do payload
     if (!logoRendered && empresa && empresa.logo) {
       try {
-        const empresaLogoPath = path.join(
-          __dirname,
-          "../../uploads",
-          String(empresa.logo),
-        );
-        if (fs.existsSync(empresaLogoPath)) {
+        const empresaLogoPath = await carregarImagem(empresa.id,empresa.logo);
+        if (empresaLogoPath) {
           doc.image(empresaLogoPath, logoX, logoY, {
             width: logoWidth,
             align: "center",
@@ -3449,7 +3348,7 @@ router.post("/produtos/pdf", async (req, res) => {
           __dirname,
           "../../frontend/fivecon/Design sem nome (17).png",
         );
-        if (fs.existsSync(logoPath)) {
+        if (Buffer.isBuffer(logoPath) || fs.existsSync(logoPath)) {
           doc.image(logoPath, logoX, logoY, {
             width: logoWidth,
             align: "center",
@@ -3835,12 +3734,8 @@ router.post("/fornecedores/pdf", async (req, res) => {
     let renderedLogo = false;
     try {
       if (empresa && empresa.logo) {
-        const empresaLogoPath = path.join(
-          __dirname,
-          "../../uploads",
-          empresa.logo,
-        );
-        if (fs.existsSync(empresaLogoPath)) {
+        const empresaLogoPath = await carregarImagem(empresa.id,empresa.logo);
+        if (empresaLogoPath) {
           doc.image(empresaLogoPath, logoX, logoY, { width: logoWidth });
           renderedLogo = true;
         }
@@ -4141,7 +4036,7 @@ router.post("/demonstrativo-resultados/pdf", async (req, res) => {
           __dirname,
           "../../frontend/fivecon/Design sem nome (17).png",
         );
-        if (fs.existsSync(logoPath)) {
+        if (Buffer.isBuffer(logoPath) || fs.existsSync(logoPath)) {
           doc.image(logoPath, logoX, logoY, {
             width: logoWidth,
             align: "center",

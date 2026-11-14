@@ -1,3 +1,4 @@
+const {carregarImagem}=require("../services/midias/imagem");
 const express = require("express");
 const router = express.Router();
 const vendaController = require("../controllers/vendaController");
@@ -90,58 +91,12 @@ router.get("/:id/comprovante", async (req, res) => {
       }
       if (!empresa && req.user && req.user.empresaId)
         empresa = await Empresa.findByPk(req.user.empresaId);
-      if (!empresa)
-        empresa = await Empresa.findOne({
-          where: { ativa: true },
-          order: [["id", "ASC"]],
-        });
+
 
       let logoPath = null;
       let logoBuffer = null;
 
-      // Se empresa tem logo, tentar diferentes formatos (dataURI / base64 / arquivo)
-      if (empresa && empresa.logo) {
-        try {
-          const logoVal = String(empresa.logo || "").trim();
-          if (logoVal.startsWith("data:")) {
-            const parts = logoVal.split(",");
-            if (parts[1]) logoBuffer = Buffer.from(parts[1], "base64");
-          } else if (
-            /^[A-Za-z0-9+/=\r\n]+$/.test(logoVal) &&
-            logoVal.length > 200
-          ) {
-            // provável base64 cru
-            try {
-              logoBuffer = Buffer.from(logoVal, "base64");
-            } catch (e) {
-              logoBuffer = null;
-            }
-          } else {
-            const candidates = [
-              path.join(__dirname, "../../uploads", empresa.logo),
-              path.join(
-                __dirname,
-                "../../uploads",
-                "logos-empresas",
-                empresa.logo,
-              ),
-              path.join(
-                __dirname,
-                "../../uploads",
-                path.basename(empresa.logo),
-              ),
-            ];
-            for (const p of candidates) {
-              if (fs.existsSync(p)) {
-                logoPath = p;
-                break;
-              }
-            }
-          }
-        } catch (e) {
-          /* ignore */
-        }
-      }
+      logoBuffer=empresa?await carregarImagem(empresa.id,empresa.logo):null;
 
       // Se nada obtido da empresa, tentar logos padrões do frontend
       if (!logoBuffer && !logoPath) {

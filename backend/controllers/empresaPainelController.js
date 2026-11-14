@@ -494,20 +494,7 @@ async function excluir(req, res) {
 
     await t.commit();
 
-    // Remover logo do disco (não transacional)
-    try {
-      if (empresaPainel.logo) {
-        const fs = require("fs");
-        const path = require("path");
-        const logoPath = path.join(__dirname, "..", empresaPainel.logo);
-        if (fs.existsSync(logoPath)) fs.unlinkSync(logoPath);
-      }
-    } catch (e) {
-      console.warn(
-        "[admin/empresas/excluir] falha ao remover logo:",
-        e && e.message,
-      );
-    }
+    // Não excluir mídia: relatórios e outros registros podem compartilhar a referência.
 
     return res.json({
       message: "Empresa e dados relacionados excluídos com sucesso",
@@ -831,7 +818,7 @@ async function criarCompleta(req, res) {
     // Logo (upload via multer)
     let logoPath = null;
     if (req.file) {
-      logoPath = "/uploads/logos-empresas/" + req.file.filename;
+      logoPath = null; // Persistir somente após conhecer empresaSistema.id.
     }
     // normalize email: convert empty string -> null to satisfy isEmail validator
     const emailClean =
@@ -872,6 +859,13 @@ async function criarCompleta(req, res) {
       },
       { transaction: t },
     );
+
+    if(req.file){
+      const salvo=await require("../services/midias").instancia().salvar(empresaSistema.id,req.file.buffer,"logos-empresas",{publico:true});
+      logoPath=salvo.url;
+      await empresaSistema.update({logo:salvo.caminho},{transaction:t});
+      await empresaPainel.update({logo:salvo.url},{transaction:t});
+    }
 
     // 3. Criar usuário vinculado à empresa
     const usuario = await Usuario.create(
@@ -1003,7 +997,7 @@ async function criarCompleta(req, res) {
   } catch (err) {
     await t.rollback();
     console.error("[admin/empresas/completa] Erro ao criar:", err);
-    return res.status(500).json({ error: "Erro interno do servidor" });
+    return res.status(err.status||500).json({ error: err.publica?err.message:"Erro interno do servidor" });
   }
 }
 

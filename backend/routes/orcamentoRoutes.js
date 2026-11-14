@@ -1,3 +1,4 @@
+const {carregarImagem}=require("../services/midias/imagem");
 const express = require("express");
 const router = express.Router();
 const orcamentoController = require("../controllers/orcamentoController");
@@ -52,50 +53,10 @@ router.get("/:id/comprovante", async (req, res) => {
       // Buscar empresa do usuário logado via cookie JWT
       const jwt = require("jsonwebtoken");
       const JWT_SECRET = process.env.JWT_USER_SECRET;
-      let empresaId = null;
-      try {
-        const cookieHeader = req.headers.cookie || "";
-        const match = cookieHeader.match(/pethub_token=([^;]+)/);
-        if (match) {
-          const decoded = jwt.verify(match[1], JWT_SECRET);
-          if (decoded.empresaId) empresaId = decoded.empresaId;
-        }
-      } catch (_) {}
-      // Tentar query param como fallback
-      if (
-        !empresaId &&
-        req.query &&
-        (req.query.empresaId || req.query.empresa_id)
-      ) {
-        empresaId = req.query.empresaId || req.query.empresa_id;
-      }
-      if (empresaId) {
-        empresa = await Empresa.findByPk(empresaId);
-      }
-      if (!empresa) {
-        empresa = await Empresa.findOne({
-          where: { ativa: true },
-          order: [["id", "ASC"]],
-        });
-      }
+      empresa = await Empresa.findByPk(req.user.empresaId);
 
       let logoPath = null;
-      if (empresa && empresa.logo) {
-        const candidates = [
-          path.join(__dirname, "../../uploads", String(empresa.logo)),
-          path.join(
-            __dirname,
-            "../../uploads/logos-empresas",
-            String(empresa.logo),
-          ),
-        ];
-        for (const c of candidates) {
-          if (fs.existsSync(c)) {
-            logoPath = c;
-            break;
-          }
-        }
-      }
+      if (empresa && empresa.logo) logoPath=await carregarImagem(empresa.id,empresa.logo);
       if (logoPath) {
         const maxLogoWidth = Math.round(pageWidth * 0.6);
         const logoWidth = Math.min(maxLogoWidth, Math.round(mmToPt(30)));

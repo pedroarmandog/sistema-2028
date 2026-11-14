@@ -1,0 +1,20 @@
+PETHUB — VALIDAÇÃO DAS MÍDIAS PERSISTENTES
+Data: 14/11/2026
+Ambiente: Linux, Node v24.22.1.
+
+npm ci --omit=dev: OK (539 pacotes instalados; patch libsignal@6.0.0 aplicado).
+package.json e package-lock.json: dependências diretas consistentes.
+node --check: 45 arquivos JS novos/alterados aprovados.
+node --test tests/*.test.js backend/scripts/lab-fiscal/teste.js: 161 testes, 161 passaram, 0 falhas.
+node --test tests/midias.test.js: 15 testes incluindo subtestes, 15 passaram.
+Build: não existe npm run build no projeto; frontend estático. Instalação de produção validada.
+npm start: API iniciou e escutou a porta local 31987. Processo encerrado controladamente após 18 segundos.
+Esse smoke test usou banco intencionalmente indisponível em 127.0.0.1:1: avisos de conexão e de chaves não configuradas eram esperados. Não valida o TiDB real, os crons ou o WhatsApp de produção.
+
+Nos testes automatizados: banco SQLite isolado; armazenamento S3/objetos simulado; socket Baileys simulado; imagens reais processadas pelo sharp; HTTP local real. PWA e service worker exercitados em ambiente JavaScript simulado, sem captura visual de navegador/celular. Não houve transmissão fiscal nem mensagens reais.
+
+Persistência: novo serviço/servidor HTTP conservou acesso ao mesmo banco/store sem pasta local. Simula troca de instância, não um deploy real no Render. Ausência de exclusão automática foi verificada no código; políticas reais do seu bucket precisam ser conferidas.
+
+Produção: não executados upload R2, migração TiDB, deploy, teste com aparelho ou observação prolongada. Necessários após configurar as variáveis, conforme o guia.
+
+Backup fornecido: 91 arquivos localizados em uploads, 43.533.795 bytes; 73 imagens PNG/JPG, 9 PDFs, 3 XLSX, 2 XLS e 4 sem extensão. 0 arquivos migrados para produção nesta execução; não há acesso às credenciais de produção. Não é possível quantificar perdas definitivas sem comparar todas as referências do banco com as fontes de recuperação.

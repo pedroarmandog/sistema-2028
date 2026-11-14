@@ -62,10 +62,10 @@ app.use(
 );
 // O app.use(cors(...)) acima já responde automaticamente aos preflights OPTIONS.
 
-app.use(bodyParser.json({ limit: "10mb" })); // aumentar limite para aceitar logos grandes
+app.use(bodyParser.json({ limit: "12mb" })); // aumentar limite para aceitar logos grandes
 app.use(bodyParser.urlencoded({ limit: "10mb", extended: true }));
 app.use(cookieParser());
-app.use("/uploads", express.static(path.join(__dirname, "../uploads"))); // imagens públicas
+app.use("/uploads", require("./routes/midiasRoutes").leitor()); // objetos persistentes; privados exigem autenticação
 app.use("/logos", express.static(path.join(__dirname, "../logos"))); // logos SVG do sistema
 app.use(
   "/base-conhecimento",
@@ -1139,6 +1139,12 @@ app.use("/api/admin", adminRoutes);
 // Lembrete Automático de Produto Recorrente
 const produtoLembreteRoutes = require("./routes/produtoLembreteRoutes");
 app.use("/api/produto-lembrete", authUser, produtoLembreteRoutes);
+// Erros de upload chegam antes do controlador. Não devolver HTML/stack ao usuário.
+app.use((err,req,res,next)=>{
+  if(!err.publica && err.name!=="MulterError")return next(err);
+  console.warn("[Midias] requisição recusada; código="+(err.code||err.status||"UPLOAD"));
+  res.status(err.name==="MulterError"?413:err.status||503).json({erro:err.name==="MulterError"?"Arquivo excede o limite ou campo de upload inválido.":err.message,error:err.name==="MulterError"?"Arquivo excede o limite ou campo de upload inválido.":err.message});
+});
 
 // Endpoint compatível com frontend: buscar produtos com preço alterado
 app.get("/api/editar-produto", async (req, res) => {

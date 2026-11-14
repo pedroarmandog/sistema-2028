@@ -1,7 +1,6 @@
 // O ERP usa CommonJS. Baileys é ESM e é carregado na primeira conexão.
 const QRCode = require('qrcode');
 const pino = require('pino');
-const fs = require('node:fs/promises');
 const path = require('node:path');
 
 function novaAutenticacao(lib) {
@@ -38,6 +37,7 @@ const importBaileys = () => import('@whiskeysockets/baileys');
 function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.toDataURL,
   agendar = setTimeout, cancelar = clearTimeout, agora = Date.now, atualizarResumo = async () => {}, registrar = () => {}, flushDiagnostico = async () => {},
   verificarPermissao = async () => ({permitido:true}),
+  carregarMidia = (empresa,ref) => require("./midias/whatsapp").carregar(empresa,ref),
   pausaEnvio = () => new Promise(resolve => setTimeout(resolve, 3000 + Math.random() * 7000)) } = {}) {
   const sessoes = new Map(), listeners = new Map(), desligando = new Map(), avisos = new Map();
   const registrarEvento=(s,evento,dados={})=>{try{registrar(s.id,evento,{pareada:!!(s.pareada||s.auth?.creds.me||s.auth?.creds.registered),...dados});}catch{/* Diagnóstico não interrompe a sessão. */}};
@@ -456,12 +456,13 @@ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.
       if (!destino) return { sucesso: false, erro: 'Número não encontrado no WhatsApp.' };
       let conteudo = { text: texto || '' };
       if (arquivo) {
-        const arquivoLocal = arquivo.startsWith('/uploads/') ? path.join(__dirname, '../..', arquivo) : arquivo;
-        const bytes = await fs.readFile(arquivoLocal);
-        const mime = { '.png':'image/png', '.jpg':'image/jpeg', '.jpeg':'image/jpeg',
-          '.webp':'image/webp', '.gif':'image/gif' }[path.extname(arquivo).toLowerCase()];
+        let midia;
+        try { midia = await carregarMidia(id,arquivo); }
+        catch { return {sucesso:false,temporario:true,erro:'Anexo indisponível. A mensagem foi preservada para nova tentativa.'}; }
+        const bytes = midia.bytes;
+        const mime = midia.tipo?.startsWith('image/') ? midia.tipo : null;
         conteudo = mime ? { image: bytes, mimetype: mime, caption: texto || '' }
-          : { document: bytes, fileName: path.basename(arquivo), mimetype: require('mime-types').lookup(arquivo) || 'application/octet-stream', caption: texto || '' };
+          : { document: bytes, fileName: path.basename(arquivo), mimetype: midia.tipo || 'application/octet-stream', caption: texto || '' };
       }
       if (!isConectado(id) || sessoes.get(String(id))?.socket !== socket) return indisponivel();
       try { permissao = await verificarPermissao(id, telefone); }

@@ -392,6 +392,7 @@ async function confirmar(tipo, empresa, usuario, token, escolhas) {
         continue;
       }
       const dados = { ...row.dados, empresa_id: empresa };
+      if(tipo==="produtos"&&dados.imagem!==undefined)dados.imagem=await require("../midias").instancia().importar(empresa,dados.imagem,"produtos",{formato:"nome"});
       if (
         tipo === "produtos" &&
         !centros.some((c) => c.descricao === dados.centroResultado)

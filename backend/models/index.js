@@ -203,6 +203,8 @@ module.exports = {
   ProdutoLembreteRecorrente,
   // PWA Push Notifications
   PushSubscription,
+  // Mídias persistentes: somente metadados; binários no armazenamento S3.
+  MidiaArquivo: require("../services/midias").modelo(sequelize),
   // Módulo Fiscal
   ConfiguracaoFiscal,
   NotaFiscal,

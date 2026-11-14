@@ -7,6 +7,7 @@ const {sequelize}=require('../models/Cliente');
   await require('../services/importacao/modelos').preparar();
   await require('../services/importacao/operacoes').prepararEstrutura(sequelize);
   await require('../services/importacao/pets').prepararEstrutura(sequelize);
+  await require('../services/midias').instancia().preparar();
   const q=sequelize.getQueryInterface();
   const indices=await q.showIndex('vendas');
   if(!indices.some(i=>i.name==='vendas_empresa_cliente_data'||i.fields?.slice(0,3).map(f=>f.attribute).join(',')==='empresa_id,clienteId,data'))await q.addIndex('vendas',['empresa_id','clienteId','data'],{name:'vendas_empresa_cliente_data'});
