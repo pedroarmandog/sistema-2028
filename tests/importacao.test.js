@@ -312,9 +312,10 @@ test("Importação CSV, XLS e XLSX com JWT real, banco isolado e duas empresas",
         "clientes",
         "Nome;Email\nVálido;misto@example.com\nSem email correto;errado\nVálido;",
       );
-      assert.equal(mistura.data.resumo.validos, 2);
+      assert.equal(mistura.data.resumo.validos, 3);
+      assert.equal(mistura.data.resumo.avisos, 1);
       const fim = await confirmar("clientes", mistura.data.token);
-      assert.equal(fim.data.criados, 2);
+      assert.equal(fim.data.criados, 3);
       assert.equal(fim.data.relatorio.length, 1);
       assert.equal(await Cliente.count({ where: { nome: "Válido" } }), 2);
     },

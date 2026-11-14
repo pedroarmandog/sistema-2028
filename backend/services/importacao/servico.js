@@ -23,6 +23,19 @@ function valorIdentidade(k, v) {
         .trim()
         .toLowerCase();
 }
+function encontrarMatches(tipo,existentes,dados){
+  const iguais=(r,k)=>dados[k]&&r[k]&&valorIdentidade(k,dados[k])===valorIdentidade(k,r[k]);
+  if(tipo!=='clientes')return existentes.filter(r=>fortes[tipo].some(k=>iguais(r,k)));
+  const legados=['codigo_legado','id_legado'].filter(k=>dados[k]);
+  const secundarios=existentes.filter(r=>['cpf','cnpj','email'].some(k=>iguais(r,k)));
+  if(!legados.length)return secundarios;
+  const principais=existentes.filter(r=>legados.some(k=>iguais(r,k)));
+  const divergente=r=>legados.some(k=>r[k]&&valorIdentidade(k,r[k])!==valorIdentidade(k,dados[k]));
+  // Dois códigos legados já conhecidos e distintos não viram uma pessoa só
+  // apenas porque o arquivo reutiliza um CPF/e-mail em mais de um cadastro.
+  const candidatos=secundarios.filter(r=>!divergente(r));
+  return [...new Map([...principais,...candidatos].map(r=>[String(r.id),r])).values()];
+}
 async function centrosDaEmpresa(empresa, transaction) {
   await banco.preparar();
   // Centros antigos eram um JSON global. Só os nomes já associados a produtos
@@ -183,19 +196,33 @@ async function analisar(
     attributes: ["hash"],
   });
   const hashes = new Set(anteriores.map((r) => r.hash));
-  const nomesVistos = new Set();
+  const nomesVistos = new Set(), documentosVistos = new Map();
   const vistos = new Set(),
     linhas = [];
   for (let idx = 0; idx < arquivo.linhas.length; idx++) {
     const celulas = arquivo.linhas[idx];
     if (!celulas.some((v) => String(v).trim())) continue;
-    const raw = {};
+    let raw = {};
+    const numericos = {};
     mapeamento.forEach((k, i) => {
-      if (k && k !== "ignorar") raw[k] = celulas[i] ?? "";
+      if (k && k !== "ignorar") {
+        raw[k] = celulas[i] ?? "";
+        if(Object.hasOwn(arquivo.numericos?.[idx]||{},i))numericos[k]=arquivo.numericos[idx][i];
+      }
     });
     const linha = { linha: idx + 2, acao: "criar", originais: celulas };
     try {
+      if(tipo==='clientes'){
+        const n=require('./normalizarCliente').preparar(raw,numericos);
+        raw=n.dados;linha.avisos=n.avisos;linha.preservados=n.preservados;
+      }
       const dados = converter(tipo, raw);
+      if(tipo==='clientes'&&dados.cpf){
+        const codigo=dados.codigo_legado||dados.id_legado;
+        const anterior=documentosVistos.get(dados.cpf);
+        if(codigo&&anterior&&anterior!==codigo)linha.avisos.push('CPF compartilhado por códigos legados distintos. Cadastros mantidos separados; confira o documento.');
+        if(codigo)documentosVistos.set(dados.cpf,codigo);
+      }
       if(tipo==='clientes'&&inteligencia.temHistorico(dados)){
         Object.assign(dados,inteligencia.normalizar({
           data_referencia_historico:dados.data_referencia_historico||opcoes.referencia,
@@ -235,17 +262,11 @@ async function analisar(
             Object.keys(dados)
               .sort()
               .map((k) => [k, dados[k]]),
+            ...(Object.keys(linha.preservados||{}).length ? [Object.entries(linha.preservados).sort(([a],[b])=>a.localeCompare(b))] : []),
           ]),
         )
         .digest("hex");
-      const matches = existentes.filter((r) =>
-        fortes[tipo].some(
-          (k) =>
-            dados[k] &&
-            r[k] &&
-            valorIdentidade(k, dados[k]) === valorIdentidade(k, r[k]),
-        ),
-      );
+      const matches = encontrarMatches(tipo,existentes,dados);
       const ids = [...new Set(matches.map((r) => String(r.id)))];
       if (ids.length > 1)
         falhar(
@@ -263,7 +284,9 @@ async function analisar(
       if (!linha.existente && nomesVistos.has(normalizar(dados.nome)))
         linha.aviso = "Nome repetido no arquivo. Confira antes de criar.";
       nomesVistos.add(normalizar(dados.nome));
-      const identidades = fortes[tipo]
+      const chavesIdentidade=tipo==='clientes'&&['codigo_legado','id_legado'].some(k=>dados[k])
+        ? ['codigo_legado','id_legado'] : fortes[tipo];
+      const identidades = chavesIdentidade
         .filter((k) => dados[k])
         .map((k) => k + ":" + valorIdentidade(k, dados[k]));
       if (identidades.some((k) => vistos.has(k)))
@@ -297,7 +320,8 @@ async function analisar(
       total: linhas.length,
       validos: linhas.filter((l) => !l.erro).length,
       erros: linhas.filter((l) => l.erro).length,
-      duplicados: linhas.filter((l) => l.aviso).length,
+      duplicados: linhas.filter((l) => l.aviso && !String(l.aviso).startsWith('Resumo histórico')).length,
+      avisos: linhas.filter(l=>l.avisos?.length).length,
     },
   };
 }
@@ -330,6 +354,7 @@ async function confirmar(tipo, empresa, usuario, token, escolhas) {
         : [];
     const modelo = modelos[tipo],
       rows = JSON.parse(lote.dados);
+    if(tipo==='clientes'&&rows.length&&rows.every(r=>r.erro))falhar('Nenhum registro válido para importar. Corrija os erros da prévia; nenhuma alteração foi feita.');
     let criados = 0,
       atualizados = 0,
       ignorados = 0;
@@ -368,14 +393,7 @@ async function confirmar(tipo, empresa, usuario, token, escolhas) {
       )
         falhar("Centro alterado ou removido. Analise novamente.");
       // Revalida identificadores no banco após adquirir o bloqueio da empresa.
-      const matches = atuais.filter((r) =>
-        fortes[tipo].some(
-          (k) =>
-            dados[k] &&
-            r[k] &&
-            valorIdentidade(k, dados[k]) === valorIdentidade(k, r[k]),
-        ),
-      );
+      const matches = encontrarMatches(tipo,atuais,dados);
       if (matches.length > 1)
         falhar(
           "Duplicidade ambígua na linha " + row.linha + ". Refaça a análise.",
@@ -398,6 +416,11 @@ async function confirmar(tipo, empresa, usuario, token, escolhas) {
           if(typeof antigos==='string'){try{antigos=JSON.parse(antigos);}catch{antigos=[];}}
           dados.telefones_adicionais=[...new Set([...(Array.isArray(antigos)?antigos:[]),...dados.telefones_adicionais])];
         }
+        if(tipo==='clientes'&&Object.keys(row.preservados||{}).length){
+          const nota='[Importação: dados de origem para conferência]\n'+Object.entries(row.preservados).map(([k,v])=>`${k}: ${v}`).join('\n');
+          const anterior=dados.observacoes||registro.observacoes||'';
+          dados.observacoes=anterior.includes(nota)?anterior:[anterior,nota].filter(Boolean).join('\n');
+        }
         await registro.update(dados, { transaction });
         atualizados++;
       } else {
@@ -412,6 +435,10 @@ async function confirmar(tipo, empresa, usuario, token, escolhas) {
         }
         if (tipo === "produtos")
           Object.assign(dados, { id: crypto.randomUUID(), tipo: "produto" });
+        if(tipo==='clientes'&&Object.keys(row.preservados||{}).length){
+          const nota='[Importação: dados de origem para conferência]\n'+Object.entries(row.preservados).map(([k,v])=>`${k}: ${v}`).join('\n');
+          dados.observacoes=[dados.observacoes,nota].filter(Boolean).join('\n');
+        }
         registro = await modelo.create(dados, { transaction });
         atuais.push(registro);
         criados++;
@@ -426,6 +453,7 @@ async function confirmar(tipo, empresa, usuario, token, escolhas) {
         await inteligencia.salvar(banco.sequelize,empresa,registro.id,row.dados,{transaction,lote:token});
         Object.assign(registro,{codigo_legado:dados.codigo_legado||registro.codigo_legado,id_legado:dados.id_legado||registro.id_legado});
       }
+      if(row.avisos?.length)relatorio.push({linha:row.linha,acao,motivo:row.avisos.join(' · '),registro:String(registro.id)});
       await banco.Linha.create(
         {
           empresa_id: empresa,
@@ -436,7 +464,7 @@ async function confirmar(tipo, empresa, usuario, token, escolhas) {
         { transaction },
       );
     }
-    const resultado = { criados, atualizados, ignorados, relatorio };
+    const resultado = { criados, atualizados, ignorados, relatorio, rejeitados:rows.filter(r=>r.erro).length, comAvisos:relatorio.filter(r=>r.acao).length };
     await lote.update(
       { resultado: JSON.stringify(resultado), dados: "[]" },
       { transaction },

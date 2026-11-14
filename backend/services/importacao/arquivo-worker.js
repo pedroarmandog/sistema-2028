@@ -27,6 +27,7 @@ try {
     sheetRows: 2502,
     bookVBA: true,
     cellDates: false,
+    cellNF: true,
     dateNF: "dd/mm/yyyy",
   });
   if (wb.vbaraw) throw new Error("Remova macros antes de importar.");
@@ -45,6 +46,20 @@ try {
     if (cell?.v != null && String(cell.v).length > 2000)
       throw new Error("Célula maior que 2.000 caracteres.");
   }
+  // Excel guarda datas como números. O formato de apresentação pode ser
+  // "YYYY-MM-DDhh:mm:ss"; não analisar esse texto como se fosse a data original.
+  const numericosPorLinha = {};
+  if(excel)for(const [endereco,cell] of Object.entries(sheet)){
+    if(endereco.startsWith('!')||cell.t!=='n'||!Number.isFinite(cell.v))continue;
+    const pos=XLSX.utils.decode_cell(endereco);
+    if(pos.r===ref.s.r)continue;
+    const indice=pos.r-ref.s.r-1;
+    (numericosPorLinha[indice]??={})[pos.c-ref.s.c]=cell.v;
+    if(cell.z&&XLSX.SSF.is_date(cell.z)){
+      const d=XLSX.SSF.parse_date_code(cell.v,{date1904:!!wb.Workbook?.WBProps?.date1904});
+      if(d){cell.t='s';cell.v=`${String(d.y).padStart(4,'0')}-${String(d.m).padStart(2,'0')}-${String(d.d).padStart(2,'0')}`;delete cell.w;}
+    }
+  }
   const linhas = XLSX.utils.sheet_to_json(sheet, {
     header: 1,
     raw: false,
@@ -55,7 +70,11 @@ try {
   if (!linhas.length) throw new Error("Arquivo vazio.");
   const cabecalho = linhas.shift().map(String);
   if (!cabecalho.length) throw new Error("Cabeçalho ausente.");
-  parentPort.postMessage({ cabecalho, linhas, abas: nomes, aba });
+  let referenciaSugerida=null;
+  const ultima=wb.Props?.ModifiedDate||wb.Props?.CreatedDate;
+  if(ultima&&Number.isFinite(+new Date(ultima))&&+new Date(ultima)<=Date.now())
+    referenciaSugerida=new Date(ultima).toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
+  parentPort.postMessage({ cabecalho, linhas, numericos:numericosPorLinha, referenciaSugerida, abas: nomes, aba });
 } catch (e) {
   parentPort.postMessage({ erro: e.message });
 }

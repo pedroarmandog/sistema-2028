@@ -55,7 +55,7 @@
         delete n.dataset.phDisabled;
       }
     });
-    modal.querySelector("[data-confirmar]").disabled = v || !previa?.token;
+    modal.querySelector("[data-confirmar]").disabled = v || !previa?.token || !previa?.linhas?.some(r=>!r.erro&&!r.repetida);
   }
   function invalidar() {
     previa = null;
@@ -180,7 +180,7 @@
         el(
           "td",
           row.erro ||
-            [row.aviso, row.classificacao].filter(Boolean).join(" · ") ||
+            [row.aviso, ...(row.avisos||[]), row.classificacao].filter(Boolean).join(" · ") ||
             "Válido",
         ),
       );
@@ -213,6 +213,13 @@
       t.append(tr);
     });
     box.append(t);
+    if(tipo==='clientes'){
+      const existentes=rows.filter(r=>r.existente&&!r.erro&&!r.repetida);
+      if(existentes.length)box.append(botao(`Atualizar os ${existentes.length} clientes identificados`,()=>{
+        existentes.forEach(r=>escolhas[r.linha]='atualizar');tabela();
+        aviso('Atualização selecionada para os cadastros identificados. Confira a prévia e confirme; opcionais vazios não apagam dados existentes.');
+      }));
+    }
     const pager = el("div");
     pager.className = "pager";
     const ant = botao("Anterior", () => {
@@ -278,15 +285,28 @@
         );
         return;
       }
+      if(tipo==='clientes'){
+        const historicos=['vendas_desde_cadastro','ticket_medio_desde_cadastro','vendas_ultimo_mes','vendas_ultima_semana','data_ultima_venda','quantidade_vendas_historicas'];
+        const precisaReferencia=d.mapeamento.some(k=>historicos.includes(k))&&!d.mapeamento.includes('data_referencia_historico');
+        const ref=modal.querySelector('#ph-referencia-historico');
+        if(precisaReferencia&&!ref.value){
+          if(d.referenciaSugerida)ref.value=d.referenciaSugerida;
+          invalidar();
+          aviso(d.referenciaSugerida
+            ? 'Referência sugerida a partir das propriedades do arquivo: '+d.referenciaSugerida.split('-').reverse().join('/')+'. Confira se corresponde à exportação e clique novamente em Analisar planilha.'
+            : 'Preencha a Data de referência dos indicadores, acima do mapeamento, e clique novamente em Analisar planilha.',true);
+          queueMicrotask(()=>ref.focus());return;
+        }
+      }
       previa = d;
       escolhas = {};
       pagina = 0;
       tabela();
       relatorio = d.linhas
-        .filter((r) => r.erro || r.repetida)
+        .filter((r) => r.erro || r.repetida || r.avisos?.length)
         .map((r) => ({
           linha: r.linha,
-          motivo: r.erro || r.aviso,
+          motivo: r.erro || [r.aviso,...(r.avisos||[])].filter(Boolean).join(" · "),
           registro: JSON.stringify(r.dados || r.originais),
         }));
       const r = d.resumo;
@@ -298,7 +318,8 @@
           r.erros +
           " com erro · " +
           r.duplicados +
-          " avisos de duplicidade. Confira as ações antes de confirmar.",
+          " avisos de duplicidade · "+(r.avisos||0)+" com avisos de campos opcionais. "+
+          (!d.linhas.some(l=>!l.erro&&!l.repetida)?'Nenhuma linha pendente válida para confirmar. Revise os erros ou verifique se a planilha já foi importada.':'Confira as ações antes de confirmar.'),
       );
     } catch (e) {
       invalidar();
@@ -309,6 +330,11 @@
   }
   async function confirmar() {
     if (!previa?.token) return;
+    const selecionados=previa.linhas.filter(r=>!r.erro&&!r.repetida&&(escolhas[String(r.linha)]||r.acao)!=='ignorar');
+    if(!selecionados.length){
+      aviso('Nenhum registro selecionado para criar ou atualizar. Se os clientes já existem, use Atualizar os clientes identificados; confira os erros e as ações da prévia.',true);
+      return;
+    }
     busy(true);
     aviso("Salvando registros. Aguarde…");
     try {
@@ -325,7 +351,7 @@
           d.atualizados +
           " atualizados · " +
           d.ignorados +
-          " ignorados.",
+          " ignorados"+(d.rejeitados?" ("+d.rejeitados+" com erro)":"")+" · "+(d.comAvisos||0)+" importados/atualizados com aviso. Baixe o relatório para conferir.",
       );
       modal.querySelector(".table-wrap").replaceChildren();
       modal

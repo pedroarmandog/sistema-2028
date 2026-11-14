@@ -133,6 +133,7 @@ function criarRotas(tipo) {
       res.json({
         ...previa,
         cabecalho: arquivo.cabecalho,
+        referenciaSugerida: arquivo.referenciaSugerida,
         abas: arquivo.abas,
         aba: arquivo.aba,
         mapeamento: mapa,
