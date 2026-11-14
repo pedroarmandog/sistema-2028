@@ -1192,6 +1192,8 @@
         formData.append("emails_adicionais", JSON.stringify(emailsAdicionais));
       }
 
+      window.PetHubClienteExtras?.anexar(formData);
+
       // Arquivo de imagem (se houver)
       const imagemInput = document.getElementById("imagemPerfil");
       if (imagemInput && imagemInput.files[0]) {

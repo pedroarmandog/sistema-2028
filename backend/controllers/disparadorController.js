@@ -11,6 +11,20 @@ const {
 const whatsappService = require("../services/whatsappService");
 
 
+async function contarIgnorados(campanhaId,empresaId){
+  const {Op,literal}=require('sequelize');
+  return Contato.count({where:{campanhaId,empresaId,status:'pausado',[Op.and]:literal("JSON_EXTRACT(meta, '$.ignoradoPorBloqueio') = true")}});
+}
+
+async function resumoCampanha(campanhaId,empresaId){
+  const base={campanhaId,empresaId};
+  const [total,enviados,erros,ignorados]=await Promise.all([
+    Contato.count({where:base}),Contato.count({where:{...base,status:'enviado'}}),
+    Contato.count({where:{...base,status:'erro'}}),contarIgnorados(campanhaId,empresaId),
+  ]);
+  return {total,enviados,erros,ignorados,pendentes:Math.max(0,total-enviados-erros-ignorados),percent:total?Math.round((enviados+erros+ignorados)/total*100):0};
+}
+
 function normalizeNumber(raw) {
   if (!raw) return null;
   const digits = String(raw).replace(/\D/g, "");
@@ -365,12 +379,14 @@ function startWorker(campanha, instanciaId) {
       const erros = await Contato.count({
         where: { campanhaId: campId, status: "erro" },
       });
-      const pendentes = Math.max(0, total - enviados - erros);
-      const percent = total > 0 ? Math.round((enviados / total) * 100) : 0;
+      const ignorados = await contarIgnorados(campId,empresaId);
+      const pendentes = Math.max(0, total - enviados - erros - ignorados);
+      const percent = total > 0 ? Math.round(((enviados + erros + ignorados) / total) * 100) : 0;
       enviarEventoCampanha(campId, {
         evento: "progress",
         total,
         enviados,
+        ignorados,
         pendentes,
         erros,
         percent,
@@ -436,7 +452,7 @@ function startWorker(campanha, instanciaId) {
           campAtual.status = "finalizada";
           await campAtual.save();
           // enviar evento final
-          enviarEventoCampanha(campId, { evento: "finished" });
+          enviarEventoCampanha(campId, { evento: "finished",...await resumoCampanha(campId,empresaId) });
           break;
         }
 
@@ -492,6 +508,17 @@ function startWorker(campanha, instanciaId) {
             : null,
         );
 
+        if (resultado.bloqueado) {
+          envio.status='cancelado';envio.erroMensagem=resultado.erro;
+          envio.tentativas=Math.max((envio.tentativas||1)-1,0);
+          await envio.save();
+          const {LogEnvio}=require('../models');
+          await LogEnvio.create({empresaId,envioAgendadoId:envio.id,evento:'ignorado_bloqueio',mensagem:resultado.erro}).catch(()=>{});
+          if(ctx.contatoId)await Contato.update({status:'pausado',meta:{...(typeof contato?.meta==='object'?contato.meta:{}),ignoradoPorBloqueio:true}},{where:{id:ctx.contatoId,campanhaId:campId,empresaId}});
+          if(ctx.contatoId)enviarEventoCampanha(campId,{evento:'contact',contatoId:ctx.contatoId,status:'ignorado',erro:resultado.erro});
+          enviarEventoCampanha(campId,{evento:'progress',...await resumoCampanha(campId,empresaId)});
+          continue;
+        }
         if (resultado.sucesso) {
           envio.status = "enviado";
           envio.dataEnvio = new Date();
@@ -526,13 +553,15 @@ function startWorker(campanha, instanciaId) {
             const erros = await Contato.count({
               where: { campanhaId: campId, status: "erro" },
             });
-            const pendentes = Math.max(0, total - enviados - erros);
+            const ignorados = await contarIgnorados(campId,empresaId);
+      const pendentes = Math.max(0, total - enviados - erros - ignorados);
             const percent =
-              total > 0 ? Math.round((enviados / total) * 100) : 0;
+              total > 0 ? Math.round(((enviados + erros + ignorados) / total) * 100) : 0;
             enviarEventoCampanha(campId, {
               evento: "progress",
               total,
               enviados,
+              ignorados,
               pendentes,
               erros,
               percent,
@@ -587,13 +616,15 @@ function startWorker(campanha, instanciaId) {
             const erros = await Contato.count({
               where: { campanhaId: campId, status: "erro" },
             });
-            const pendentes = Math.max(0, total - enviados - erros);
+            const ignorados = await contarIgnorados(campId,empresaId);
+      const pendentes = Math.max(0, total - enviados - erros - ignorados);
             const percent =
-              total > 0 ? Math.round((enviados / total) * 100) : 0;
+              total > 0 ? Math.round(((enviados + erros + ignorados) / total) * 100) : 0;
             enviarEventoCampanha(campId, {
               evento: "progress",
               total,
               enviados,
+              ignorados,
               pendentes,
               erros,
               percent,
@@ -821,10 +852,11 @@ async function eventoSSE(req, res) {
       const erros = await Contato.count({
         where: { campanhaId: id, status: "erro" },
       });
-      const pendentes = Math.max(0, total - enviados - erros);
-      const percent = total > 0 ? Math.round((enviados / total) * 100) : 0;
+      const ignorados = await contarIgnorados(id,empresaSSE);
+      const pendentes = Math.max(0, total - enviados - erros - ignorados);
+      const percent = total > 0 ? Math.round(((enviados + erros + ignorados) / total) * 100) : 0;
       res.write(
-        `data: ${JSON.stringify({ evento: "progress", total, enviados, pendentes, erros, percent })}\n\n`,
+        `data: ${JSON.stringify({ evento: "progress", total, enviados, ignorados, pendentes, erros, percent })}\n\n`,
       );
     } catch (e) {}
 

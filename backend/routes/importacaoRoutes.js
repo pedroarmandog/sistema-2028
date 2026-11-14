@@ -32,7 +32,7 @@ function criarRotas(tipo) {
     limits: {
       fileSize: 5 * 1024 * 1024,
       files: 1,
-      fields: 5,
+      fields: 8,
       fieldSize: 16000,
     },
   });
@@ -128,6 +128,7 @@ function criarRotas(tipo) {
         req.user.empresaId,
         req.body.centroPadrao,
         req.user.id,
+        {referencia:req.body.referenciaHistorico,conciliacao:req.body.conciliacaoHistorico},
       );
       res.json({
         ...previa,

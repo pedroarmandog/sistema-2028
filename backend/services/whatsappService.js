@@ -37,6 +37,7 @@ const importBaileys = () => import('@whiskeysockets/baileys');
 
 function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.toDataURL,
   agendar = setTimeout, cancelar = clearTimeout, agora = Date.now, atualizarResumo = async () => {}, registrar = () => {}, flushDiagnostico = async () => {},
+  verificarPermissao = async () => ({permitido:true}),
   pausaEnvio = () => new Promise(resolve => setTimeout(resolve, 3000 + Math.random() * 7000)) } = {}) {
   const sessoes = new Map(), listeners = new Map(), desligando = new Map(), avisos = new Map();
   const registrarEvento=(s,evento,dados={})=>{try{registrar(s.id,evento,{pareada:!!(s.pareada||s.auth?.creds.me||s.auth?.creds.registered),...dados});}catch{/* Diagnóstico não interrompe a sessão. */}};
@@ -445,6 +446,10 @@ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.
     try {
       await pausaEnvio();
       if (!isConectado(id) || sessoes.get(String(id))?.socket !== socket) return indisponivel();
+      let permissao;
+      try { permissao = await verificarPermissao(id, telefone); }
+      catch { return {sucesso:false,temporario:true,erro:'Não foi possível verificar as preferências de comunicação. Envio preservado.'}; }
+      if (!permissao.permitido) return {sucesso:false,bloqueado:true,ignorado:true,erro:permissao.erro};
       const numeros = await socket.onWhatsApp(...candidatos);
       const destino = candidatos.find(jid => numeros?.some(n => n.exists && n.jid === jid))
         || numeros?.find(n => n.exists)?.jid;
@@ -458,6 +463,10 @@ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.
         conteudo = mime ? { image: bytes, mimetype: mime, caption: texto || '' }
           : { document: bytes, fileName: path.basename(arquivo), mimetype: require('mime-types').lookup(arquivo) || 'application/octet-stream', caption: texto || '' };
       }
+      if (!isConectado(id) || sessoes.get(String(id))?.socket !== socket) return indisponivel();
+      try { permissao = await verificarPermissao(id, telefone); }
+      catch { return {sucesso:false,temporario:true,erro:'Não foi possível verificar as preferências de comunicação. Envio preservado.'}; }
+      if (!permissao.permitido) return {sucesso:false,bloqueado:true,ignorado:true,erro:permissao.erro};
       if (!isConectado(id) || sessoes.get(String(id))?.socket !== socket) return indisponivel();
       envioIniciado = true;
       const resultado = await socket.sendMessage(destino, conteudo);
@@ -535,4 +544,4 @@ async function atualizarResumo(id, status, numero) {
     ...(status === 'conectado' ? { ultimaConexao: new Date() } : {}) }, { where: { empresaId } });
 }
 const diagnostico=require('./whatsappDiagnostico');
-module.exports = { ...criarServico({ repositorio, atualizarResumo, registrar:diagnostico.registrar, flushDiagnostico:diagnostico.flush }), criarServico, substituirVariaveis, obterDiagnostico:diagnostico.historico };
+module.exports = { ...criarServico({ repositorio, atualizarResumo, verificarPermissao:require('./clienteComunicacao').verificar, registrar:diagnostico.registrar, flushDiagnostico:diagnostico.flush }), criarServico, substituirVariaveis, obterDiagnostico:diagnostico.historico };

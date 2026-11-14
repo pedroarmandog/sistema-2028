@@ -1,5 +1,6 @@
+const inteligencia=require('../services/clienteInteligencia');
 const {normalizarSexo} = require("../utils/sexoCliente");
-const { Cliente, Pet, Venda } = require("../models");
+const { Cliente, Pet, Venda, sequelize } = require("../models");
 // Usando importação centralizada do models/index.js com as associações configuradas
 
 exports.createCliente = async (req, res) => {
@@ -88,7 +89,7 @@ exports.createCliente = async (req, res) => {
       }
     }
 
-    const cliente = await Cliente.create({
+    const dadosCliente = {
       nome,
       cpf: cpf || null,
       rg: rg || null,
@@ -131,6 +132,13 @@ exports.createCliente = async (req, res) => {
       codigo_ibge_municipio: codigo_ibge_municipio || null,
       pais: pais || "Brasil",
       codigo_pais: codigo_pais || "1058",
+    };
+    const extras=inteligencia.normalizar(req.body);
+    if(Object.keys(extras).length)await inteligencia.preparar(sequelize);
+    const cliente=await sequelize.transaction(async transaction=>{
+      const row=await Cliente.create(dadosCliente,{transaction});
+      if(Object.keys(extras).length)await inteligencia.salvar(sequelize,req.user.empresaId,row.id,extras,{transaction});
+      return row;
     });
 
     res.status(201).json({
@@ -155,7 +163,7 @@ exports.createCliente = async (req, res) => {
 
     // Nota: boas_vindas é disparado no cadastro do primeiro pet (petController)
   } catch (err) {
-    if (err.status === 400) return res.status(400).json({success:false,error:err.message});
+    if (err.status >= 400 && err.status < 500) return res.status(err.status).json({success:false,error:err.message});
     console.error("Erro ao criar cliente:", err);
 
     // Tratar erros de duplicidade (CPF/email já cadastrados)
@@ -323,6 +331,8 @@ exports.updateCliente = async (req, res) => {
     const updates = {...req.body};
     delete updates.empresa_id;
     delete updates.id;
+    delete updates.createdAt;
+    delete updates.updatedAt;
     if ("sexo" in updates) updates.sexo = normalizarSexo(updates.sexo);
     if (updates.data_nascimento === "") {
       updates.data_nascimento = null;
@@ -398,11 +408,14 @@ exports.updateCliente = async (req, res) => {
       }
     }
 
-    const [updatedRows] = await Cliente.update(updates, {
-      where: {
-        id: id,
-        ...(req.user?.empresaId ? { empresa_id: req.user.empresaId } : {}),
-      },
+    const extras=inteligencia.normalizar(req.body);
+    if(Object.keys(extras).length)await inteligencia.preparar(sequelize);
+    const updatedRows=await sequelize.transaction(async transaction=>{
+      const row=await Cliente.findOne({where:{id,empresa_id:req.user.empresaId},transaction,lock:transaction.LOCK.UPDATE});
+      if(!row)return 0;
+      await row.update(updates,{transaction});
+      if(Object.keys(extras).length)await inteligencia.salvar(sequelize,req.user.empresaId,id,extras,{transaction});
+      return 1;
     });
 
     if (updatedRows === 0) {
@@ -420,7 +433,7 @@ exports.updateCliente = async (req, res) => {
       cliente: clienteAtualizado,
     });
   } catch (err) {
-    if (err.status === 400) return res.status(400).json({success:false,error:err.message});
+    if (err.status >= 400 && err.status < 500) return res.status(err.status).json({success:false,error:err.message});
     console.error("Erro ao atualizar cliente:", err);
     res.status(500).json({
       success: false,
@@ -448,8 +461,14 @@ exports.deleteCliente = async (req, res) => {
       });
     }
 
-    // Deletar o cliente
-    await cliente.destroy();
+    // Excluir somente complementos desta empresa junto com o cadastro.
+    const m=await inteligencia.preparar(sequelize);
+    await sequelize.transaction(async transaction=>{
+      await Cliente.findOne({where:{id,empresa_id:req.user.empresaId},transaction,lock:transaction.LOCK.UPDATE});
+      await m.Perfil.destroy({where:{cliente_id:id,empresa_id:req.user.empresaId},transaction});
+      await m.Historico.destroy({where:{cliente_id:id,empresa_id:req.user.empresaId},transaction});
+      await cliente.destroy({transaction});
+    });
 
     res.json({
       success: true,

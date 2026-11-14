@@ -1,3 +1,4 @@
+const inteligencia=require('../clienteInteligencia');
 const crypto = require("node:crypto");
 const { Op } = require("sequelize");
 const { Cliente } = require("../../models/Cliente");
@@ -12,7 +13,7 @@ const falhar = (mensagem) => {
 };
 const modelos = { clientes: Cliente, produtos: Produto };
 const fortes = {
-  clientes: ["cpf", "cnpj", "email"],
+  clientes: ["cpf", "cnpj", "email", "codigo_legado", "id_legado"],
   produtos: ["codigoBarras", "sku", "gtin"],
 };
 function valorIdentidade(k, v) {
@@ -58,7 +59,10 @@ function converter(tipo, raw) {
     const s = String(v ?? "").trim();
     if (s === "") continue;
     const attr = modelos[tipo].rawAttributes[k];
-    if (!attr) continue;
+    if (!attr) {
+      if(tipo==='clientes'&&(k in inteligencia.PERFIL||k in inteligencia.HISTORICO||['telefone2','telefone3'].includes(k)))dados[k]=s;
+      continue;
+    }
     if (attr.type.options?.length && s.length > attr.type.options.length)
       falhar(
         "Campo " + k + " excede " + attr.type.options.length + " caracteres.",
@@ -144,6 +148,12 @@ function converter(tipo, raw) {
   }
   if (dados.csosn && dados.cst_icms)
     falhar("Preencha apenas CST ICMS ou CSOSN.");
+  if(tipo==='clientes'){
+    Object.assign(dados,inteligencia.normalizar(raw));
+    const adicionais=['telefone2','telefone3'].filter(k=>dados[k]).map(k=>String(dados[k]).trim());
+    if(adicionais.length)dados.telefones_adicionais=adicionais;
+    delete dados.telefone2;delete dados.telefone3;
+  }
   return dados;
 }
 async function analisar(
@@ -153,6 +163,7 @@ async function analisar(
   empresa,
   centroPadrao,
   usuario,
+  opcoes = {},
 ) {
   const modelo = modelos[tipo],
     permitidos = campos(tipo);
@@ -163,6 +174,7 @@ async function analisar(
     falhar("Duas colunas foram associadas ao mesmo campo.");
   if (!usados.includes("nome")) falhar("Associe uma coluna ao Nome.");
   const existentes = await modelo.findAll({ where: { empresa_id: empresa } });
+  if(tipo==='clientes')await inteligencia.enriquecer(banco.sequelize,empresa,existentes);
   const centros = tipo === "produtos" ? await centrosDaEmpresa(empresa) : [];
   if (centroPadrao && !centros.some((c) => c.descricao === centroPadrao))
     falhar("Centro padrão não pertence à empresa.");
@@ -184,6 +196,15 @@ async function analisar(
     const linha = { linha: idx + 2, acao: "criar", originais: celulas };
     try {
       const dados = converter(tipo, raw);
+      if(tipo==='clientes'&&inteligencia.temHistorico(dados)){
+        Object.assign(dados,inteligencia.normalizar({
+          data_referencia_historico:dados.data_referencia_historico||opcoes.referencia,
+          modo_conciliacao:opcoes.conciliacao||'separado',
+        }));
+        if(!dados.data_referencia_historico)falhar('Informe a data de referência dos indicadores históricos.');
+        if(dados.data_ultima_venda&&dados.data_ultima_venda>dados.data_referencia_historico)falhar('Última venda posterior à referência histórica.');
+        linha.aviso='Resumo histórico consolidado; não serão criadas vendas individuais.';
+      }
       if (tipo === "produtos") {
         const declarado = dados.centroResultado;
         if (declarado) {
@@ -317,6 +338,7 @@ async function confirmar(tipo, empresa, usuario, token, escolhas) {
       where: { empresa_id: empresa },
       transaction,
     });
+    if(tipo==='clientes')await inteligencia.enriquecer(banco.sequelize,empresa,atuais,transaction);
     for (const row of rows) {
       const acao = escolhas[String(row.linha)] || row.acao;
       if (!["criar", "ignorar", "atualizar"].includes(acao))
@@ -371,6 +393,11 @@ async function confirmar(tipo, empresa, usuario, token, escolhas) {
           falhar(
             "Cadastro atualizado após a prévia. Analise o arquivo novamente.",
           );
+        if(tipo==='clientes'&&dados.telefones_adicionais){
+          let antigos=registro.telefones_adicionais||[];
+          if(typeof antigos==='string'){try{antigos=JSON.parse(antigos);}catch{antigos=[];}}
+          dados.telefones_adicionais=[...new Set([...(Array.isArray(antigos)?antigos:[]),...dados.telefones_adicionais])];
+        }
         await registro.update(dados, { transaction });
         atualizados++;
       } else {
@@ -388,6 +415,16 @@ async function confirmar(tipo, empresa, usuario, token, escolhas) {
         registro = await modelo.create(dados, { transaction });
         atuais.push(registro);
         criados++;
+      }
+      if(tipo==='clientes'){
+        // Ausências opcionais não apagam os dados já salvos. Mesclar telefones.
+        if(dados.telefones_adicionais?.length){
+          let antigos=registro.telefones_adicionais||[];
+          if(typeof antigos==='string'){try{antigos=JSON.parse(antigos);}catch{antigos=[];}}
+          await registro.update({telefones_adicionais:[...new Set([...(Array.isArray(antigos)?antigos:[]),...dados.telefones_adicionais])]},{transaction});
+        }
+        await inteligencia.salvar(banco.sequelize,empresa,registro.id,row.dados,{transaction,lote:token});
+        Object.assign(registro,{codigo_legado:dados.codigo_legado||registro.codigo_legado,id_legado:dados.id_legado||registro.id_legado});
       }
       await banco.Linha.create(
         {

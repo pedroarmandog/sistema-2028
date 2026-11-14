@@ -258,6 +258,10 @@
     if (mapa.length) form.append("mapeamento", JSON.stringify(mapa));
     const aba = modal.querySelector("#ph-aba")?.value;
     if (aba) form.append("aba", aba);
+    if(tipo==='clientes'){
+      form.append('referenciaHistorico',modal.querySelector('#ph-referencia-historico')?.value||'');
+      form.append('conciliacaoHistorico',modal.querySelector('#ph-conciliacao-historico')?.value||'separado');
+    }
     form.append("centroPadrao", modal.querySelector("#ph-centro")?.value || "");
     busy(true);
     aviso("Analisando arquivo…");
@@ -386,6 +390,13 @@
       escolher(e.dataTransfer.files[0]);
     };
     main.append(drop);
+    if(tipo==='clientes'){
+      const referencia=el('label','Data de referência dos indicadores da planilha (preencher se houver resumo histórico)');
+      const inputRef=el('input');inputRef.type='date';inputRef.id='ph-referencia-historico';inputRef.onchange=invalidar;referencia.append(inputRef);main.append(referencia);
+      const conciliacao=el('label','Conciliação do histórico');const op=el('select');op.id='ph-conciliacao-historico';
+      for(const[v,t]of [['separado','Manter separado dos totais PetHub (recomendado até conferir)'],['somar_posteriores','Somar apenas vendas após o corte histórico']]){const o=el('option',t);o.value=v;op.append(o);}
+      op.onchange=invalidar;conciliacao.append(op);main.append(conciliacao,el('p','Resumos não criam vendas. Último mês/semana ficam associados à referência informada. Atualizações não apagam campos opcionais vazios.'));
+    }
     const progress = el("progress");
     progress.hidden = true;
     main.append(progress);

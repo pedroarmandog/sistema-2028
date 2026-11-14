@@ -75,7 +75,10 @@ async function processarEnvio(envio,LogEnvio) {
   try {resultado=await whatsappService.enviarMensagem(empresaId,envio.telefoneDestino,envio.conteudoFinal,envio.imagemPath);}
   catch {resultado={sucesso:false,incerto:true,erro:'Operação interrompida sem confirmação de envio.'};}
   try {
-    if(resultado.sucesso) {
+    if(resultado.bloqueado) {
+      await envio.update({status:'cancelado',tentativas:anteriores,erroMensagem:resultado.erro});
+      await D.marcar(envio,'cancelado');
+    } else if(resultado.sucesso) {
       await envio.update({status:'enviado',dataEnvio:new Date(),tentativas:anteriores+1});
       await D.marcar(envio,'enviado',resultado.mensagemId);
     } else if(resultado.incerto) {
@@ -92,7 +95,7 @@ async function processarEnvio(envio,LogEnvio) {
     await D.marcar(envio,'incerto').catch(()=>{});
     return {sucesso:false,incerto:true,erro:'Envio com resultado incerto. Confira antes de reenviar.'};
   }
-  await LogEnvio.create({empresaId,envioAgendadoId:envio.id,evento:resultado.sucesso?'envio_sucesso':'envio_erro',
+  await LogEnvio.create({empresaId,envioAgendadoId:envio.id,evento:resultado.bloqueado?'ignorado_bloqueio':resultado.sucesso?'envio_sucesso':'envio_erro',
     mensagem:resultado.sucesso?'Confirmado pelo WhatsApp':resultado.erro,detalhes:{mensagemId:resultado.mensagemId||null,incerto:!!resultado.incerto}}).catch(()=>{});
   return resultado;
 }

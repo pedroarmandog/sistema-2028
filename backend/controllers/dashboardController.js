@@ -75,8 +75,7 @@ exports.resumo = async (req, res) => {
       return res.status(403).json({ error: "Empresa nao identificada. Contate o suporte." });
     }
     const periodo = require('../utils/periodoBrasilia').periodoMes();
-    const clientesMesAtual = await Cliente.count({where:{empresa_id:empresaId,
-      createdAt:{[Op.gte]:periodo.inicio,[Op.lt]:periodo.fim}}});
+    const clientesMesAtual = await require('../services/clienteInteligencia').clientesNoMes(sequelize,empresaId,periodo);
     const cacheKey = `dashboard:resumo:${empresaId}:${periodo.hoje}`;
     const cached = cache.get(cacheKey);
     if (cached) return res.json({...cached,clientesMes:clientesMesAtual});

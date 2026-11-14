@@ -35,6 +35,7 @@ module.exports = (sequelize) => {
           "desconectado",
           "mensagem_ativada",
           "mensagem_desativada",
+          "ignorado_bloqueio",
         ),
         allowNull: false,
       },

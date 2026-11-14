@@ -850,7 +850,7 @@
           '</td><td style="padding:8px"><span style="color:' +
           statusColor +
           ';font-weight:600">' +
-          escapeHtml(c.status || "pendente") +
+          escapeHtml(c.meta?.ignoradoPorBloqueio ? "ignorado por bloqueio" : c.status || "pendente") +
           "</span></td>";
         tblBody.appendChild(tr);
       }

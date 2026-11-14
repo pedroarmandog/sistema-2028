@@ -27,6 +27,7 @@ try {
     sheetRows: 2502,
     bookVBA: true,
     cellDates: false,
+    dateNF: "dd/mm/yyyy",
   });
   if (wb.vbaraw) throw new Error("Remova macros antes de importar.");
   const nomes = wb.SheetNames;
@@ -47,6 +48,7 @@ try {
   const linhas = XLSX.utils.sheet_to_json(sheet, {
     header: 1,
     raw: false,
+    dateNF: "dd/mm/yyyy",
     defval: "",
     blankrows: true,
   });

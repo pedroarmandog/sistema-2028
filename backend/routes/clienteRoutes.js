@@ -20,6 +20,12 @@ router.use((req,res,next) => {
   next();
 });
 
+const inteligencia = require('../controllers/clienteInteligenciaController');
+const { exigePermissao } = require('../middleware/exigePermissao');
+router.get('/:id/inteligencia', inteligencia.obter);
+router.get('/:id/analise-vendas', inteligencia.analise);
+router.put('/:id/inteligencia', exigePermissao('cliente.editar','cliente.novo'), inteligencia.salvar);
+
 // Rotas para clientes (protegidas por empresa)
 router.post(
   "/",
