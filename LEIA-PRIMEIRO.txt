@@ -1,9 +1,13 @@
-PETHUB — MÍDIAS PERSISTENTES
+PETHUB — UF E CEP DE CLIENTES
 
-1. Antes de fazer deploy, preserve a pasta uploads da instância atual e o backup do banco.
-2. Abra docs/MIDIAS-PERSISTENTES-PETHUB.md: configuração do R2, variáveis, instalação, migração e Render.
-3. Copie SOMENTE os arquivos deste pacote para a raiz do projeto, mantendo as subpastas. Preserve seus outros arquivos.
-4. Configure o armazenamento; novos uploads serão recusados claramente enquanto MEDIA_S3_* não estiver configurado.
-5. Consulte docs/VALIDACAO-MIDIAS.txt e docs/ARQUIVOS-MIDIAS.txt.
+Somente arquivos novos/alterados desta tarefa, sobre a última versão trabalhada. Preserve os outros arquivos do projeto.
 
-Não houve migração/deploy real nem recuperação confirmada do banco de produção nesta entrega. Não sobrescreva seu .env com o exemplo.
+1. Faça backup dos arquivos e do banco.
+2. Copie backend, frontend, tests e docs para a raiz do projeto, mantendo subpastas.
+3. Leia docs/CLIENTES-UF-CEP.md.
+4. Execute node backend/scripts/preparar-clientes-uf.js (usa o banco do seu .env). Se estado já existir, não altera nada.
+5. Execute node --test tests/cliente-uf.test.js.
+6. Faça commit/deploy pela rotina habitual. Não há variáveis novas nem mudanças em tokens. Mantenha o pre-deploy preparar-clientes-inteligencia.js se já o utiliza.
+7. Atualize a página com Ctrl+F5 e siga o roteiro de validação do guia.
+
+Lista de arquivos e resultados reais dos testes estão em docs/. Nenhum dado de produção foi alterado aqui.

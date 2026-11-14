@@ -726,6 +726,7 @@ async function exportToExcel() {
       CPF: cliente.cpf || "Não informado",
       "Grupo de Cliente": cliente.grupo_cliente || "Não informado",
       Cidade: cliente.cidade || "Não informado",
+      UF: cliente.estado || "",
       "Data de Nascimento": cliente.data_nascimento
         ? new Date(cliente.data_nascimento).toLocaleDateString("pt-BR")
         : "Não informado",
@@ -753,6 +754,7 @@ async function exportToExcel() {
       { wch: 15 }, // CPF
       { wch: 20 }, // Grupo de Cliente
       { wch: 20 }, // Cidade
+      { wch: 8 }, // UF
       { wch: 18 }, // Data de Nascimento
       { wch: 15 }, // Data de Cadastro
       { wch: 15 }, // Hora de Cadastro

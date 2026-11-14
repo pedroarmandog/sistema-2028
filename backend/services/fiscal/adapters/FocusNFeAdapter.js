@@ -314,7 +314,7 @@ class FocusNFeAdapter extends FiscalService {
     const docEmit = _soDigitos(emitente.cnpj);
     const docDest = _soDigitos(destinatario.documento);
     const ufEmit = (endEmit.uf || "").toUpperCase();
-    const ufDest = (endDest.uf || "").toUpperCase();
+    const ufDest = require("../../../utils/ufBrasil").normalizarUF(endDest.uf,{estrito:false}) || "";
     const localDestino = !ufDest || ufEmit === ufDest ? "1" : "2";
 
     const ieDest = _limpar(destinatario.ie);
@@ -541,7 +541,7 @@ class FocusNFeAdapter extends FiscalService {
       if (!corpo.numero_destinatario) faltando.push("numero do endereco");
       if (!corpo.bairro_destinatario) faltando.push("bairro");
       if (!corpo.municipio_destinatario) faltando.push("municipio");
-      if (!corpo.uf_destinatario) faltando.push("UF");
+      if (!corpo.uf_destinatario) faltando.push("Estado (UF) válido do cliente — abra Clientes → Editar → Endereço e selecione a UF");
       if (faltando.length) {
         throw new Error(
           "NF-e exige cliente cadastrado com CPF/CNPJ e endereco completo. Faltando: " +

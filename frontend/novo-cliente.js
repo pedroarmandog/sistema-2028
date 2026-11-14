@@ -93,7 +93,9 @@
       complemento: cliente.complemento,
       bairro: cliente.bairro,
       cidade: cliente.cidade,
-      estado: cliente.estado,
+      codigo_ibge_municipio: cliente.codigo_ibge_municipio || "",
+      pais: cliente.pais || "Brasil",
+      estado: window.ClienteEndereco?.normalizarUF(cliente.estado) || "",
       limiteCredito: cliente.limite_credito,
       grupoCliente: cliente.grupo_cliente,
       perfilDesconto: cliente.perfil_desconto,
@@ -113,6 +115,11 @@
         }
       }
     });
+
+    const ufField = document.getElementById("estado");
+    if(ufField && cliente.estado && !window.ClienteEndereco?.normalizarUF(cliente.estado))
+      ufField.dataset.estadoLegado = String(cliente.estado);
+    else if(ufField) delete ufField.dataset.estadoLegado;
 
     // Carregar telefones adicionais
     if (
@@ -714,116 +721,11 @@
   }
 
   setupCepSearch() {
-    const btnSearchCep = document.querySelector(".btn-search-cep");
-    const cepInput = document.getElementById("cep");
-
-    if (btnSearchCep && cepInput) {
-      // Evento do botão de busca
-      btnSearchCep.addEventListener("click", () => {
-        const cep = cepInput.value.replace(/\D/g, "");
-        if (cep.length === 8) {
-          this.searchCep(cep);
-        } else {
-          alert("CEP deve conter 8 dígitos");
-        }
-      });
-
-      // Evento ao sair do campo CEP (blur)
-      cepInput.addEventListener("blur", () => {
-        const cep = cepInput.value.replace(/\D/g, "");
-        if (cep.length === 8) {
-          this.searchCep(cep);
-        }
-      });
-
-      // Formatação automática do CEP
-      cepInput.addEventListener("input", (e) => {
-        let value = e.target.value.replace(/\D/g, "");
-        if (value.length <= 8) {
-          value = value.replace(/^(\d{5})(\d)/, "$1-$2");
-          e.target.value = value;
-        }
-      });
-
-      // Busca automática ao completar 8 dígitos
-      cepInput.addEventListener("keyup", (e) => {
-        const cep = e.target.value.replace(/\D/g, "");
-        if (cep.length === 8) {
-          this.searchCep(cep);
-        }
-      });
-    }
+    this._cepEndereco = window.ClienteEndereco?.instalar({apiBase:window.VPS_URL||''});
   }
 
-  async searchCep(cep) {
-    // Validar CEP
-    if (!this.isValidCep(cep)) {
-      this.showMessage("CEP inválido. Digite um CEP com 8 dígitos.", "error");
-      return;
-    }
-
-    try {
-      // Mostrar loading no botão
-      const btnSearchCep = document.querySelector(".btn-search-cep");
-      const originalContent = btnSearchCep.innerHTML;
-      btnSearchCep.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-      btnSearchCep.disabled = true;
-
-      const apiBase = (window.VPS_URL || "") + "/api";
-      const response = await fetch(`${apiBase}/cep/${cep}`, {
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error("Erro na requisição");
-      }
-
-      const data = await response.json();
-
-      if (!data.erro) {
-        // Preencher campos com os dados retornados da API
-        const enderecoField = document.getElementById("endereco");
-        const bairroField = document.getElementById("bairro");
-        const cidadeField = document.getElementById("cidade");
-
-        if (enderecoField) enderecoField.value = data.logradouro || "";
-        if (bairroField) bairroField.value = data.bairro || "";
-        if (cidadeField) cidadeField.value = data.localidade || "";
-
-        // Verificar se existe campo UF (estado)
-        const ufField =
-          document.getElementById("uf") || document.getElementById("estado");
-        if (ufField) ufField.value = data.uf || "";
-
-        // Focus no campo número após preenchimento automático
-        const numeroField = document.getElementById("numero");
-        if (numeroField) {
-          setTimeout(() => numeroField.focus(), 100);
-        }
-
-        // Mostrar mensagem de sucesso
-        this.showMessage(
-          "✅ Endereço encontrado e preenchido automaticamente!",
-          "success",
-        );
-      } else {
-        this.showMessage(
-          "❌ CEP não encontrado. Verifique o número digitado.",
-          "error",
-        );
-      }
-    } catch (error) {
-      console.error("Erro ao buscar CEP:", error);
-      this.showMessage(
-        "❌ Erro ao buscar CEP. Verifique sua conexão e tente novamente.",
-        "error",
-      );
-    } finally {
-      // Restaurar botão
-      const btnSearchCep = document.querySelector(".btn-search-cep");
-      btnSearchCep.innerHTML = '<i class="fas fa-search"></i>';
-      btnSearchCep.disabled = false;
-    }
+  searchCep(cep) {
+    return this._cepEndereco?.consultar(cep,true);
   }
 
   isValidCep(cep) {
@@ -1148,7 +1050,9 @@
         if (elemento) {
           if (elemento.type === "checkbox") {
             formData.append(backendField, elemento.checked);
-          } else if (elemento.value || backendField === "sexo") {
+          } else if (backendField === "estado" && elemento.dataset.estadoLegado && !elemento.value) {
+            // Dado antigo desconhecido: preservar até o usuário escolher uma UF.
+          } else if (elemento.value || backendField === "sexo" || backendField === "estado") {
             formData.append(backendField, elemento.value);
           }
         }

@@ -1,0 +1,20 @@
+PETHUB — ARQUIVOS NOVOS/ALTERADOS: UF E CEP
+
+ALTERADO  backend/app.js
+ALTERADO  backend/controllers/clienteController.js
+ALTERADO  backend/scripts/preparar-clientes-inteligencia.js
+NOVO      backend/scripts/preparar-clientes-uf.js
+NOVO      backend/services/clienteEndereco.js
+NOVO      backend/services/consultaCep.js
+ALTERADO  backend/services/fiscal/FiscalPayloadBuilder.js
+ALTERADO  backend/services/fiscal/adapters/FocusNFeAdapter.js
+ALTERADO  backend/services/importacao/campos.js
+ALTERADO  backend/services/importacao/normalizarCliente.js
+ALTERADO  backend/services/importacao/servico.js
+ALTERADO  backend/services/listagemClientes.js
+NOVO      backend/utils/ufBrasil.js
+NOVO      frontend/cliente-endereco.js
+ALTERADO  frontend/clientes-novo.js
+ALTERADO  frontend/novo-cliente.html
+ALTERADO  frontend/novo-cliente.js
+NOVO      tests/cliente-uf.test.js

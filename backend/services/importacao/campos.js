@@ -36,7 +36,7 @@ const clientes = {
   complemento: ["Complemento"],
   bairro: ["Bairro"],
   cidade: ["Cidade", "Município"],
-  estado: ["Estado", "UF"],
+  estado: ["Estado", "UF", "Estado (UF)"],
   grupo_cliente: ["Grupo cliente"],
   perfil_desconto: ["Perfil desconto"],
   como_nos_conheceu: ["Como nos conheceu"],

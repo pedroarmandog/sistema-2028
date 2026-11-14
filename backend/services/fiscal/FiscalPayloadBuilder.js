@@ -158,7 +158,7 @@ class FiscalPayloadBuilder {
         bairro: cliente.bairro || null,
         municipio: cliente.cidade || null,
         codigo_ibge: cliente.codigo_ibge_municipio || null,
-        uf: cliente.estado || null,
+        uf: require("../../utils/ufBrasil").normalizarUF(cliente.estado,{estrito:false}),
         cep: (cliente.cep || "").replace(/\D/g, ""),
         pais: cliente.pais || "Brasil",
         codigo_pais: cliente.codigo_pais || "1058",

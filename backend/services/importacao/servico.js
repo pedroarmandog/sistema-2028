@@ -117,6 +117,7 @@ function converter(tipo, raw) {
         falhar(k + " fora do limite.");
     }
   }
+  if (dados.estado) dados.estado = require("../../utils/ufBrasil").normalizarUF(dados.estado);
   if (dados.sexo) dados.sexo = normalizarSexo(dados.sexo);
   if (dados.tipo_pessoa) {
     const v = normalizar(dados.tipo_pessoa);

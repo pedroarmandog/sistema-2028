@@ -1073,11 +1073,12 @@
                         <div class="form-group cep-group">
                             <label for="cep">CEP</label>
                             <div class="input-with-button">
-                                <input type="text" id="cep" name="cep" class="form-control" placeholder="00000-000">
-                                <button type="button" class="btn-search-cep">
+                                <input type="text" id="cep" name="cep" class="form-control" placeholder="00000-000" inputmode="numeric" autocomplete="postal-code" maxlength="9" aria-describedby="cep-status">
+                                <button type="button" class="btn-search-cep" aria-label="Consultar CEP novamente">
                                     <i class="fas fa-search"></i>
                                 </button>
                             </div>
+                            <small id="cep-status" role="status" aria-live="polite" style="display:block;min-height:1.25em;margin-top:4px;color:#526579"></small>
                         </div>
                         
                         <div class="form-group">
@@ -1107,6 +1108,40 @@
                             <input type="text" id="cidade" name="cidade" class="form-control" placeholder="Digite para pesquisar">
                         </div>
                         
+                        <div class="form-group">
+                            <label for="estado">Estado (UF)</label>
+                            <select id="estado" name="estado" class="form-control" autocomplete="address-level1">
+                                <option value="">Selecione o estado</option>
+                                <option value="AC">Acre (AC)</option>
+                                <option value="AL">Alagoas (AL)</option>
+                                <option value="AP">Amapá (AP)</option>
+                                <option value="AM">Amazonas (AM)</option>
+                                <option value="BA">Bahia (BA)</option>
+                                <option value="CE">Ceará (CE)</option>
+                                <option value="DF">Distrito Federal (DF)</option>
+                                <option value="ES">Espírito Santo (ES)</option>
+                                <option value="GO">Goiás (GO)</option>
+                                <option value="MA">Maranhão (MA)</option>
+                                <option value="MT">Mato Grosso (MT)</option>
+                                <option value="MS">Mato Grosso do Sul (MS)</option>
+                                <option value="MG">Minas Gerais (MG)</option>
+                                <option value="PR">Paraná (PR)</option>
+                                <option value="PB">Paraíba (PB)</option>
+                                <option value="PA">Pará (PA)</option>
+                                <option value="PE">Pernambuco (PE)</option>
+                                <option value="PI">Piauí (PI)</option>
+                                <option value="RN">Rio Grande do Norte (RN)</option>
+                                <option value="RS">Rio Grande do Sul (RS)</option>
+                                <option value="RJ">Rio de Janeiro (RJ)</option>
+                                <option value="RO">Rondônia (RO)</option>
+                                <option value="RR">Roraima (RR)</option>
+                                <option value="SC">Santa Catarina (SC)</option>
+                                <option value="SE">Sergipe (SE)</option>
+                                <option value="SP">São Paulo (SP)</option>
+                                <option value="TO">Tocantins (TO)</option>
+                            </select>
+                        </div>
+
                         <div class="form-group">
                             <label for="proximidade">Proximidade</label>
                             <input type="text" id="proximidade" name="proximidade" class="form-control">
@@ -1316,6 +1351,7 @@
     </div>
 
         <!-- Script específico da página (garante que o handler de formulário seja carregado) -->
+        <script src="cliente-endereco.js"></script>
         <script src="novo-cliente.js"></script>
 
     <script src="/cliente-inteligencia.js"></script>

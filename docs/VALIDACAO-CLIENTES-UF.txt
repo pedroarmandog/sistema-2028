@@ -1,0 +1,21 @@
+PETHUB — VALIDAÇÃO UF/CEP — 14/11/2026
+Ambiente: Linux, Node v24.22.1.
+
+node --test tests/cliente-uf.test.js: 10 testes, 10 aprovados.
+node --test --test-concurrency=1 tests/*.test.js backend/scripts/lab-fiscal/teste.js:
+171 testes, 171 aprovados, 0 falhas, 0 cancelados, 0 ignorados.
+17 arquivos JavaScript novos/alterados aprovados em node --check.
+package.json e package-lock.json não foram alterados; não foram adicionadas dependências.
+Frontend estático: o projeto não tem script de build.
+
+HTTP local real com JWT e banco SQLite em memória: criar, atualizar, reler, listar UF; CPF/CEP/endereço do destinatário; isolamento entre empresas; vínculo de pet preservado.
+Fiscal: implementação real de Builder/FocusNFeAdapter exercitada até prepararTransmissao. UF do cliente ES foi mapeada mesmo com emitente MG. Ausência de UF impediu preparação com mensagem orientativa. Zero chamadas de transmissão fiscal nesse teste.
+CEP: DOM simulado e fetch controlado; input/colar, preenchimento, corridas, cancelamento, timeout, erros, dados vazios e alterações manuais. Número e complemento conservados. Backend HTTPS simulado: erro 400/404/502/504, JSON, limite de resposta e campos legados para outras telas.
+Migração: tabela SQLite com cliente antigo e sem estado; coluna adicionada, cliente preservado e segunda execução sem alterações.
+Importação: coluna ausente continua opcional; nome completo normalizado; estado inválido preservado em aviso.
+
+npm start: servidor iniciou e escutou porta local 31988, encerrado controladamente após 8 segundos. Banco propositalmente inacessível em 127.0.0.1:1: avisos de conexão/chaves não configuradas eram esperados. Não representa inicialização funcional com TiDB/serviços reais.
+
+Uma execução inicial paralela apresentou timeout no teste antigo de persistência do WhatsApp; a suíte final sequencial passou integralmente. Nenhum código/teste de WhatsApp foi alterado nesta tarefa.
+Chromium não conseguiu iniciar neste ambiente; não houve verificação visual por navegador. Roteiro de desktop/celular consta no guia.
+Não foram feitos deploy Render, alteração no TiDB de produção, uso de tokens Focus reais nem transmissão de qualquer nota fiscal. Não houve validação com aparelho PWA real.

@@ -28,6 +28,7 @@ function preparar(raw,numericos={}){
     const cnpj=String(dados.cnpj).replace(/\D/g,'');
     if(cnpj.length!==14)preservar('cnpj','Quantidade de dígitos inválida.');else dados.cnpj=cnpj;
   }
+  if(String(dados.estado??'').trim()){try{dados.estado=require('../../utils/ufBrasil').normalizarUF(dados.estado);}catch{preservar('estado','UF inválida; selecione uma UF no cadastro antes de emitir NF-e.');}}
   if(String(dados.email??'').trim()&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(dados.email).trim()))preservar('email','E-mail inválido.');
   // Datas opcionais continuam sendo validadas pelo conversor. Não presumir uma
   // referência de faturamento nem corrigir uma data civil impossível.

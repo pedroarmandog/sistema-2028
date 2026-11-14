@@ -1079,35 +1079,8 @@ app.use("/api/dashboard/full", dashboardFullRoutes);
 // PWA Mobile — Push Notifications
 app.use("/api/push", pushNotificationRoutes);
 
-// Proxy público para busca de CEP via ViaCEP (sem autenticação)
-app.get("/api/cep/:cep", async (req, res) => {
-  try {
-    const cep = req.params.cep.replace(/\D/g, "");
-    if (!/^\d{8}$/.test(cep))
-      return res.status(400).json({ erro: "CEP inválido" });
-    const https = require("https");
-    const url = `https://viacep.com.br/ws/${cep}/json/`;
-    https
-      .get(url, (resp) => {
-        let data = "";
-        resp.on("data", (chunk) => {
-          data += chunk;
-        });
-        resp.on("end", () => {
-          try {
-            res.json(JSON.parse(data));
-          } catch (_) {
-            res.status(500).json({ erro: "Resposta inválida do ViaCEP" });
-          }
-        });
-      })
-      .on("error", (e) => {
-        res.status(500).json({ erro: "Erro ao consultar ViaCEP" });
-      });
-  } catch (e) {
-    res.status(500).json({ erro: "Erro interno" });
-  }
-});
+// Reutiliza a rota de CEP existente, com timeout e erros controlados.
+app.get("/api/cep/:cep",require("./services/consultaCep").endpoint());
 app.use("/api/unidades", unidadeRoutes);
 app.use("/api/fornecedores", fornecedorRoutes);
 app.use("/api/categorias-financeiras", categoriaFinanceiraRoutes);

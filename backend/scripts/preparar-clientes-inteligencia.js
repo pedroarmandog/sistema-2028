@@ -2,6 +2,7 @@
 require('dotenv').config({quiet:true});process.env.NODE_ENV='production';
 const {sequelize}=require('../models/Cliente');
 (async()=>{try{
+  await require('../services/clienteEndereco').prepararEstrutura(sequelize);
   await require('../services/clienteInteligencia').preparar(sequelize);
   await require('../services/clienteComunicacao').prepararAuditoria(sequelize);
   await require('../services/importacao/modelos').preparar();

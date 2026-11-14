@@ -1,3 +1,4 @@
+const {normalizarUF}=require("../utils/ufBrasil");
 const inteligencia=require('../services/clienteInteligencia');
 const {normalizarSexo} = require("../utils/sexoCliente");
 const { Cliente, Pet, Venda, sequelize } = require("../models");
@@ -106,7 +107,7 @@ exports.createCliente = async (req, res) => {
       complemento,
       bairro,
       cidade,
-      estado,
+      estado: normalizarUF(estado),
       limite_credito,
       grupo_cliente,
       perfil_desconto,
@@ -289,6 +290,7 @@ exports.updateCliente = async (req, res) => {
     delete updates.importacao_ref;
     delete updates.createdAt;
     delete updates.updatedAt;
+    if ("estado" in updates) updates.estado = normalizarUF(updates.estado);
     if ("sexo" in updates) updates.sexo = normalizarSexo(updates.sexo);
     if (updates.data_nascimento === "") {
       updates.data_nascimento = null;
