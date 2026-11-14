@@ -22,6 +22,7 @@ router.use((req,res,next) => {
 
 const inteligencia = require('../controllers/clienteInteligenciaController');
 const { exigePermissao } = require('../middleware/exigePermissao');
+router.get('/busca-venda', require('../services/buscaClientesVenda').endpoint);
 router.get('/:id/inteligencia', inteligencia.obter);
 router.get('/:id/analise-vendas', inteligencia.analise);
 router.put('/:id/inteligencia', exigePermissao('cliente.editar','cliente.novo'), inteligencia.salvar);

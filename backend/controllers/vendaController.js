@@ -1,3 +1,4 @@
+const {vincularCliente}=require('../services/vendaCliente');
 const { Venda } = require("../models/Venda");
 const { Op } = require("sequelize");
 const Produto = require("../models/Produto");
@@ -105,6 +106,7 @@ function dadosComerciais(body) {
 exports.criarVenda = async (req, res) => {
   try {
     const dados = dadosComerciais(req.body);
+    await vincularCliente(Cliente,req.user?.empresaId,dados);
 
     // --- Enriquecer itens com produto.id e perfilComissao via nome ---
     if (Array.isArray(dados.itens) && dados.itens.length > 0) {
@@ -171,15 +173,6 @@ exports.criarVenda = async (req, res) => {
         attributes: ["id"],
       }).catch(() => null);
       if (prof) dados.profissionalId = prof.id;
-    }
-
-    // --- Resolver clienteId pelo nome se não vier preenchido ---
-    if (!dados.clienteId && dados.cliente) {
-      const cli = await Cliente.findOne({
-        where: { empresa_id:req.user.empresaId, nome: dados.cliente.trim() },
-        attributes: ["id"],
-      }).catch(() => null);
-      if (cli) dados.clienteId = cli.id;
     }
 
     const venda = await Venda.create({
@@ -393,6 +386,7 @@ exports.criarVenda = async (req, res) => {
       }
     });
   } catch (error) {
+    if(error.status)return res.status(error.status).json({erro:error.message});
     console.error("Erro ao criar venda:", error);
     res.status(500).json({ erro: "Erro ao criar venda" });
   }
@@ -427,7 +421,9 @@ exports.atualizarVenda = async (req, res) => {
       return res.status(403).json({ erro: "Acesso negado" });
     }
 
-    await venda.update(dadosComerciais(req.body));
+    const dados=dadosComerciais(req.body);
+    if(Object.hasOwn(dados,'clienteId')||Object.hasOwn(dados,'cliente'))await vincularCliente(Cliente,req.user.empresaId,dados);
+    await venda.update(dados);
 
     // Recarregar venda com dados atualizados para o push
     const vendaAtualizada = await Venda.findByPk(req.params.id);
@@ -475,6 +471,7 @@ exports.atualizarVenda = async (req, res) => {
 
     res.json(vendaAtualizada);
   } catch (error) {
+    if(error.status)return res.status(error.status).json({erro:error.message});
     console.error("Erro ao atualizar venda:", error);
     res.status(500).json({ erro: "Erro ao atualizar venda" });
   }

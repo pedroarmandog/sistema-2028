@@ -1638,97 +1638,22 @@ function fetchWithTimeout(resource, options = {}, timeout = 4000) {
   return fetch(resource, finalOpts).finally(() => clearTimeout(id));
 }
 
-// Função para carregar clientes da API real (modelo copiado de clientes.js)
-async function carregarClientesDoSistema() {
-  console.log("🔍 INÍCIO carregarClientesDoSistema (nova-venda)...");
-
-  try {
-    console.log("📡 Fazendo fetch para API de clientes...");
-    // Usar fetch com timeout e tentar localhost como preferência, depois fallback
-    let response = null;
-    try {
-      response = await fetchWithTimeout("/api/clientes", {}, 3000);
-    } catch (err) {
-      console.warn(
-        "⚠️ Fallback para rota relativa por timeout/erro",
-        err && err.message,
-      );
-      try {
-        response = await fetchWithTimeout("/api/clientes", {}, 2500);
-      } catch (err2) {
-        throw err2;
-      }
-    }
-
-    console.log("📡 Response status:", response && response.status);
-    if (!response || !response.ok) {
-      throw new Error(
-        `HTTP error! status: ${response ? response.status : "no-response"}`,
-      );
-    }
-
-    const data = await response.json();
-    console.log("📄 Dados recebidos da API:", data);
-
-    // A API retorna {success: true, clientes: [...]}
-    if (data.success && Array.isArray(data.clientes)) {
-      console.log("🎯 Clientes carregados da API:", data.clientes.length);
-      return data.clientes;
-    } else {
-      console.error("❌ Formato de resposta inválido:", data);
-      throw new Error("Formato de resposta inválido");
-    }
-  } catch (error) {
-    console.error("❌ Erro ao carregar clientes da API:", error);
-
-    // Fallback para dados mock apenas em caso de erro
-    console.log("🔄 Usando dados mock como fallback...");
-    const clientesMock = [
-      {
-        id: 1,
-        codigo: "001",
-        nome: "João Silva",
-        telefone: "(11) 99999-8888",
-        email: "joao@email.com",
-        endereco: "Rua A, 123",
-      },
-      {
-        id: 2,
-        codigo: "002",
-        nome: "Maria Santos",
-        telefone: "(11) 88888-7777",
-        email: "maria@email.com",
-        endereco: "Av. B, 456",
-      },
-      {
-        id: 3,
-        codigo: "003",
-        nome: "Pedro Costa",
-        telefone: "(11) 77777-6666",
-        email: "pedro@email.com",
-        endereco: "Rua C, 789",
-      },
-      {
-        id: 4,
-        codigo: "004",
-        nome: "Ana Oliveira",
-        telefone: "(11) 66666-5555",
-        email: "ana@email.com",
-        endereco: "Av. D, 321",
-      },
-      {
-        id: 5,
-        codigo: "005",
-        nome: "Carlos Souza",
-        telefone: "(11) 55555-4444",
-        email: "carlos@email.com",
-        endereco: "Rua E, 654",
-      },
-    ];
-    console.log("📋 Usando dados mock de clientes:", clientesMock.length);
-    return clientesMock;
-  }
-} // Função para carregar profissionais do sistema via API real
+// Busca filtrada no servidor: não depende da primeira página de cadastros.
+const clientesBuscaVenda = new Map();
+let revisaoBuscaCliente = 0;
+async function carregarClientesDoSistema(termo = "", id = null) {
+  const query = new URLSearchParams(id != null ? {id:String(id)} : {search:termo});
+  const response = await fetchWithTimeout('/api/clientes/busca-venda?' + query, {
+    credentials:'include', cache:'no-store',
+  }, 15000);
+  if (!response.ok) throw new Error([401,403].includes(response.status)
+    ? 'Sessão indisponível. Entre novamente no sistema.'
+    : 'Não foi possível pesquisar clientes. Tente novamente.');
+  const data=await response.json();
+  if (!data.success || !Array.isArray(data.clientes)) throw new Error('Resposta de clientes inválida.');
+  return data.clientes;
+}
+// Função para carregar profissionais do sistema via API real
 async function carregarProfissionaisDoSistema() {
   try {
     let response;
@@ -1758,62 +1683,29 @@ async function carregarProfissionaisDoSistema() {
 
 // Função para filtrar e exibir clientes
 async function buscarClientes(termo) {
-  const dropdown = document.getElementById("clientesDropdown");
-
-  if (!termo.trim()) {
-    dropdown.style.display = "none";
-    return;
-  }
-
-  // Mostrar loading
-  dropdown.innerHTML = '<div class="loading">Carregando clientes...</div>';
-  dropdown.style.display = "block";
-
+  const dropdown = document.getElementById('clientesDropdown');
+  if (!dropdown) return;
+  const revisao=++revisaoBuscaCliente;
+  if (!String(termo||'').trim()) { dropdown.replaceChildren();dropdown.style.display='none';return; }
+  const aviso = texto => {const n=document.createElement('div');n.className='no-results';n.textContent=texto;dropdown.replaceChildren(n);dropdown.style.display='block';};
+  aviso('Carregando clientes…');
   try {
-    // Carregar clientes
-    const clientes = await carregarClientesDoSistema();
-    console.log(
-      "🔍 Buscando clientes com termo:",
-      termo,
-      "Total:",
-      clientes.length,
-    );
-
-    // Filtrar clientes
-    const clientesFiltrados = clientes.filter(
-      (cliente) =>
-        cliente.nome.toLowerCase().includes(termo.toLowerCase()) ||
-        cliente.telefone.includes(termo) ||
-        String(cliente.codigo).includes(termo) ||
-        (cliente.email &&
-          cliente.email.toLowerCase().includes(termo.toLowerCase())),
-    );
-
-    console.log("📋 Clientes filtrados:", clientesFiltrados.length);
-
-    // Renderizar dropdown
-    if (clientesFiltrados.length > 0) {
-      dropdown.innerHTML = clientesFiltrados
-        .map(
-          (cliente) => `
-                <div class="cliente-item" onclick="selecionarCliente(${cliente.id})">
-                    <span class="nome">${cliente.nome}</span>
-                    <span class="detalhes">${cliente.telefone} • Cód: ${cliente.codigo}</span>
-                </div>
-            `,
-        )
-        .join("");
-      dropdown.style.display = "block";
-    } else {
-      dropdown.innerHTML =
-        '<div class="no-results">Nenhum cliente encontrado</div>';
-      dropdown.style.display = "block";
+    const clientes=await carregarClientesDoSistema(termo);
+    if(revisao!==revisaoBuscaCliente)return;
+    clientesBuscaVenda.clear();dropdown.replaceChildren();
+    if(!clientes.length){aviso('Nenhum cliente encontrado');return;}
+    for(const cliente of clientes){
+      clientesBuscaVenda.set(String(cliente.id),cliente);
+      const item=document.createElement('button');item.type='button';item.className='cliente-item';
+      item.style.cssText='display:block;width:100%;text-align:left;border:0;background:white;cursor:pointer';
+      const nome=document.createElement('span'),detalhes=document.createElement('span');
+      nome.className='nome';nome.textContent=cliente.nome||'Cliente sem nome';
+      detalhes.className='detalhes';detalhes.textContent=`${cliente.telefone||'Sem telefone'} • Cód: ${cliente.codigo||cliente.id}`;
+      item.append(nome,detalhes);item.onclick=()=>selecionarCliente(cliente.id);dropdown.append(item);
     }
-  } catch (error) {
-    console.error("❌ Erro ao buscar clientes:", error);
-    dropdown.innerHTML =
-      '<div class="no-results">Erro ao carregar clientes</div>';
-    dropdown.style.display = "block";
+    dropdown.style.display='block';
+  } catch(error) {
+    if(revisao===revisaoBuscaCliente)aviso(error.message||'Erro ao carregar clientes');
   }
 }
 
@@ -1885,35 +1777,16 @@ async function buscarProfissionais(termo) {
 // Função para selecionar um cliente
 async function selecionarCliente(clienteId) {
   try {
-    const clientes = await carregarClientesDoSistema();
-    const cliente = clientes.find((c) => c.id === clienteId);
-
-    if (cliente) {
-      clienteSelecionado = cliente;
-
-      // Atualizar campo de pesquisa
-      const inputCliente = document.getElementById("pesquisarCliente");
-      inputCliente.value = cliente.nome;
-
-      // Mostrar cliente selecionado
-      const clienteSelecionadoDiv =
-        document.getElementById("clienteSelecionado");
-      clienteSelecionadoDiv.querySelector(".cliente-nome").textContent =
-        cliente.nome;
-      clienteSelecionadoDiv.querySelector(".cliente-detalhes").textContent =
-        `${cliente.telefone} • Cód: ${cliente.codigo}`;
-      clienteSelecionadoDiv.style.display = "flex";
-
-      // Ocultar dropdown
-      document.getElementById("clientesDropdown").style.display = "none";
-
-      console.log("✅ Cliente selecionado:", cliente);
-    } else {
-      console.error("❌ Cliente não encontrado:", clienteId);
-    }
-  } catch (error) {
-    console.error("❌ Erro ao selecionar cliente:", error);
-  }
+    const cliente=clientesBuscaVenda.get(String(clienteId)) || (await carregarClientesDoSistema('',clienteId))[0];
+    if(!cliente)throw new Error('Cliente não encontrado nesta empresa. Pesquise novamente.');
+    revisaoBuscaCliente++;
+    clienteSelecionado=cliente;
+    document.getElementById('pesquisarCliente').value=cliente.nome;
+    const box=document.getElementById('clienteSelecionado');
+    box.querySelector('.cliente-nome').textContent=cliente.nome;
+    box.querySelector('.cliente-detalhes').textContent=`${cliente.telefone||'Sem telefone'} • Cód: ${cliente.codigo||cliente.id}`;
+    box.style.display='flex';document.getElementById('clientesDropdown').style.display='none';
+  } catch(error) {mostrarNotificacao('error',error.message||'Não foi possível selecionar o cliente.');}
 }
 
 // Função para selecionar um profissional
@@ -1955,6 +1828,7 @@ async function selecionarProfissional(profissionalCodigo) {
 // Função para remover cliente selecionado
 function removerClienteSelecionado() {
   clienteSelecionado = null;
+  revisaoBuscaCliente++;
   __safeSetValue("pesquisarCliente", "");
   document.getElementById("clienteSelecionado").style.display = "none";
   console.log("🗑️ Cliente removido da venda");
@@ -1976,6 +1850,14 @@ function configurarBuscaClientesProfissionais() {
   if (inputCliente) {
     console.log("✅ Configurando busca de clientes");
 
+    inputCliente.addEventListener('input', function () {
+      revisaoBuscaCliente++;
+      if (clienteSelecionado && this.value !== clienteSelecionado.nome) {
+        clienteSelecionado=null;
+        const box=document.getElementById('clienteSelecionado');if(box)box.style.display='none';
+      }
+      if(!this.value.trim())document.getElementById('clientesDropdown').style.display='none';
+    });
     // Evento de digitação para clientes
     inputCliente.addEventListener(
       "input",
@@ -2072,7 +1954,13 @@ function obterDadosVenda() {
 }
 
 // Atualizar a função de finalização da venda para incluir cliente e profissional
+function validarClienteDaVenda() {
+  const texto=document.getElementById('pesquisarCliente')?.value.trim();
+  if(texto && !clienteSelecionado?.id){mostrarNotificacao('warning','Selecione o cliente nos resultados ou limpe o campo para vender sem cliente.');return false;}
+  return true;
+}
 async function finalizarVendaComDados() {
+  if(!validarClienteDaVenda())return;
   if (itensVenda.length === 0) {
     mostrarNotificacao(
       "warning",
@@ -3512,6 +3400,7 @@ function configurarModalPagamento(modal, overlay, totalVenda) {
         }
       }
 
+      if(!validarClienteDaVenda())return;
       // Salvar venda
       // Preferir enviar o objeto selecionado (com id) quando disponível
       const dadosVenda = {
