@@ -1,0 +1,8 @@
+PETHUB — TESTAR CONEXÃO FOCUS — ARQUIVOS
+
+NOVO      backend/services/fiscal/FocusDiagnostico.js
+NOVO      backend/controllers/focusDiagnosticoController.js
+ALTERADO  backend/routes/configuracaoFiscalRoutes.js
+NOVO      frontend/fiscal-focus-diagnostico.js
+ALTERADO  frontend/configuracoes/configuracao-fiscal.html
+NOVO      tests/focus-diagnostico.test.js

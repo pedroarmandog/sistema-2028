@@ -1,13 +1,11 @@
-PETHUB — UF E CEP DE CLIENTES
+PETHUB — TESTAR CONEXÃO FOCUS
 
-Somente arquivos novos/alterados desta tarefa, sobre a última versão trabalhada. Preserve os outros arquivos do projeto.
+Somente 6 arquivos de código/teste novos ou alterados, mais documentação.
+Copie mantendo as subpastas, sem apagar os demais arquivos do projeto atual.
 
-1. Faça backup dos arquivos e do banco.
-2. Copie backend, frontend, tests e docs para a raiz do projeto, mantendo subpastas.
-3. Leia docs/CLIENTES-UF-CEP.md.
-4. Execute node backend/scripts/preparar-clientes-uf.js (usa o banco do seu .env). Se estado já existir, não altera nada.
-5. Execute node --test tests/cliente-uf.test.js.
-6. Faça commit/deploy pela rotina habitual. Não há variáveis novas nem mudanças em tokens. Mantenha o pre-deploy preparar-clientes-inteligencia.js se já o utiliza.
-7. Atualize a página com Ctrl+F5 e siga o roteiro de validação do guia.
+No Render, configure FOCUS_NFE_MASTER_TOKEN e FOCUS_NFE_DIAGNOSTIC_ADMIN_IDS (IDs reais da tabela admins). JWT_SECRET administrativo deve continuar configurado.
+Não mude tokens de emissão, ambiente fiscal, banco, certificados ou pre-deploy por causa deste recurso. Não há migração.
 
-Lista de arquivos e resultados reais dos testes estão em docs/. Nenhum dado de produção foi alterado aqui.
+Leia docs/FOCUS-DIAGNOSTICO.md para obter seu ID de admin e acessar o botão. Ele só aparece com sessão válida do painel administrativo e ID autorizado no servidor.
+Testes: node --test tests/focus-diagnostico.test.js
+Resultado real da suíte completa: 176 aprovados. Consulta real Focus e deploy ainda dependem da sua configuração.

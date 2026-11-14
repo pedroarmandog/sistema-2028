@@ -1693,6 +1693,28 @@
         </div>
       </div>
 
+      <section id="focusDiagnostico" class="fiscal-section" hidden>
+        <h3><i class="fas fa-plug" aria-hidden="true"></i> Diagnóstico Focus NFe</h3>
+        <p id="focusDiagnosticoEmpresa" style="font-size:13px;color:#526579"></p>
+        <p style="font-size:12px;color:#526579">Acesso restrito à administração da plataforma. Consulta cadastral de produção, somente leitura; não altera o ambiente de emissão selecionado acima.</p>
+        <button type="button" id="btnTestarFocus" class="btn-salvar-fiscal" style="margin:8px 0;max-width:100%;white-space:normal">
+          <i class="fas fa-plug" aria-hidden="true"></i> Testar Conexão Focus
+        </button>
+        <div id="focusDiagnosticoResultado" hidden role="status" aria-live="polite" aria-busy="false">
+          <p id="focusDiagnosticoStatus" style="font-weight:600"></p>
+          <dl id="focusDiagnosticoLinhas"></dl>
+        </div>
+      </section>
+      <style>
+        #focusDiagnostico[hidden],#focusDiagnosticoResultado[hidden]{display:none!important}
+        #focusDiagnosticoResultado{margin-top:12px;padding:14px;border:1px solid #d7e0e8;border-radius:10px;background:#f8fafc;overflow-wrap:anywhere}
+        #focusDiagnosticoResultado[data-estado="sucesso"]{border-color:#9bd6b3;background:#effbf3;color:#155735}
+        #focusDiagnosticoResultado[data-estado="erro"]{border-color:#f0b5b5;background:#fff6f6;color:#842828}
+        #focusDiagnosticoLinhas{display:grid;grid-template-columns:minmax(130px,1fr) 3fr;gap:8px 14px;font-size:13px;margin:0}
+        #focusDiagnosticoLinhas dt{font-weight:600}#focusDiagnosticoLinhas dd{margin:0}
+        @media(max-width:600px){#focusDiagnosticoLinhas{grid-template-columns:1fr;gap:4px}#focusDiagnosticoLinhas dd{margin-bottom:9px}#btnTestarFocus{width:100%}}
+      </style>
+
       <!-- Seção: Fluxo de Emissão -->
       <div class="fiscal-section">
         <h3><i class="fas fa-cogs"></i> Fluxo de Emissão</h3>
@@ -1889,6 +1911,7 @@
       ></div>
     </div>
 
+    <script src="../fiscal-focus-diagnostico.js"></script>
     <script>
       const API = window.API_BASE_URL || "";
 
@@ -1899,6 +1922,7 @@
           });
           if (!resp.ok) throw new Error("HTTP " + resp.status);
           const data = await resp.json();
+          window.dispatchEvent(new CustomEvent("pethub:fiscal:carregada",{detail:{empresaId:data.empresa_id}}));
           const campos = [
             "provedor_api",
             "token_api",

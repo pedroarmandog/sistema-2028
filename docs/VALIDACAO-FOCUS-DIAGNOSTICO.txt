@@ -1,0 +1,19 @@
+PETHUB — DIAGNÓSTICO FOCUS — VALIDAÇÃO 14/11/2026
+Linux, Node v24.22.1.
+
+Instalação: npm ci --omit=dev aprovado; 539 pacotes, patch libsignal aplicado.
+Sem novas dependências, sem migração de banco.
+Sintaxe: node --check aprovado nos cinco arquivos JavaScript novos/alterados.
+Suíte final: node --test --test-concurrency=1 tests/*.test.js backend/scripts/lab-fiscal/teste.js
+176 testes, 176 aprovados, zero falhas/cancelamentos/ignorados.
+Cinco grupos específicos de focus-diagnostico.test.js incluídos nessa suíte.
+
+Cenários específicos: CNPJ/DV/pontuação, token ausente, Basic com senha vazia, URL fixa somente GET, redirect bloqueado, HTTP 200/400/401/403/404/429/500/302, rede/DNS e timeout simulados, sem retry, corpo do provedor não exposto.
+HTTP local real com JWT: token ERP e admin fora da lista bloqueados; admin inativo/claims inválidas bloqueados; JWT_SECRET ausente bloqueado; allowlist revogada bloqueia; empresa escolhida é lida do banco; body adulterado recusado; consulta duplicada 409 e cooldown 429.
+Registros da empresa comparados antes/depois, sem alteração.
+Token fictício e Basic ausentes das respostas e logs capturados.
+Frontend em DOM simulado: ocultação para comum, autorização positiva, desabilitação, duplo clique, painel com emissão não testada e A1 não verificado.
+
+Smoke de npm start: API escutou porta local 31989. Encerramento controlado após 8 segundos; banco propositalmente inacessível em 127.0.0.1:1. Avisos de banco e chaves não configuradas eram esperados. Não é validação funcional com TiDB e provedores reais.
+Navegador Chromium não iniciou; visual desktop/mobile real não foi validado.
+Não foram usados Token Master/CNPJs de produção na rede, nem realizado deploy, consulta Focus real, emissão fiscal, acesso ao TiDB de produção ou alteração de credenciais.

@@ -15,11 +15,17 @@ const {
  * Rotas: /api/fiscal
  *
  * Gerencia configuração fiscal e operações de apoio à Central Fiscal.
- * Todas as rotas exigem autenticação (authUser).
+ * Configurações exigem authUser; diagnóstico global exige authAdmin e autorização explícita.
  *
  * SEGURANÇA: GET/POST /api/fiscal/configuracao exigem a permissão
  * `gerenciar_configuracao_fiscal` (ver middleware/exigePermissao.js).
  */
+
+// Diagnóstico global: sessão do painel + autorização explícita, nunca permissão do pet shop.
+const {authAdmin}=require("../middleware/authAdmin");
+const diagnostico=require("../controllers/focusDiagnosticoController");
+router.get("/diagnostico-focus/permissao",authAdmin,diagnostico.autorizado,diagnostico.permissao);
+router.post("/testar-conexao-focus",authAdmin,diagnostico.autorizado,diagnostico.executar);
 
 router.use(authUser);
 
