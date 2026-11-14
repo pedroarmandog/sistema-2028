@@ -331,6 +331,7 @@ exports.updateCliente = async (req, res) => {
     const updates = {...req.body};
     delete updates.empresa_id;
     delete updates.id;
+    delete updates.importacao_ref;
     delete updates.createdAt;
     delete updates.updatedAt;
     if ("sexo" in updates) updates.sexo = normalizarSexo(updates.sexo);

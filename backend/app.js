@@ -1852,13 +1852,15 @@ function startServer() {
     // Restaurar credenciais/chaves cifradas; status antigo não gera um novo QR.
     const whatsappService = require("./services/whatsappService");
     whatsappService.iniciarMonitor();
+    const importacaoClientes=require("./services/importacao/operacoes").instancia();
+    importacaoClientes.iniciarMonitor();
     let encerrandoWhatsapp = false;
     const encerrarServidor = async () => {
       if (encerrandoWhatsapp) return;
       encerrandoWhatsapp = true;
       const limite = setTimeout(() => process.exit(0), 8000);
       limite.unref();
-      await whatsappService.suspender(); // Preserva o vínculo, sem logout.
+      await Promise.allSettled([whatsappService.suspender(),importacaoClientes.parar()]); // Sessão preservada e checkpoint de importação seguro.
       server.close(() => process.exit(0));
     };
     process.once("SIGTERM", encerrarServidor);

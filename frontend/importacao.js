@@ -15,6 +15,7 @@
     pagina = 0,
     ocupado = false,
     relatorio = [];
+  let operacao=null,timerOperacao=null;
   const el = (tag, texto) => {
     const n = document.createElement(tag);
     if (texto != null) n.textContent = texto;
@@ -35,7 +36,7 @@
     });
     const d = await r.json();
     if (!r.ok)
-      throw new Error(d.erro || d.error || "Falha ao acessar a importação.");
+      throw Object.assign(new Error(d.erro || d.error || "Falha ao acessar a importação."),{status:r.status,operacaoId:d.operacaoId});
     return d;
   }
   function aviso(texto, erro = false) {
@@ -64,7 +65,8 @@
     relatorio = [];
   }
   function fechar() {
-    if (ocupado) return;
+    if (ocupado && !operacao) return;
+    clearTimeout(timerOperacao);timerOperacao=null;operacao=null;
     modal.remove();
     modal = null;
     anterior?.focus();
@@ -271,7 +273,7 @@
     }
     form.append("centroPadrao", modal.querySelector("#ph-centro")?.value || "");
     busy(true);
-    aviso("Analisando arquivo…");
+    aviso("Lendo arquivo, validando registros e verificando duplicidades…");
     try {
       const d = await request(root + "/analisar", {
         method: "POST",
@@ -328,8 +330,86 @@
       busy(false);
     }
   }
+  const duracao = n => {
+    if(n==null)return 'Calculando…';
+    if(n<60)return `${Math.max(0,Math.round(n))} s`;
+    return `${Math.floor(n/60)} min ${Math.round(n%60)} s`;
+  };
+  function painelOperacao(){
+    let box=modal.querySelector('.ph-job');if(box)return box;
+    box=el('section');box.className='ph-job';box.setAttribute('aria-label','Andamento da importação');
+    const titulo=el('h3','Importando seus clientes'),fase=el('p');fase.dataset.jobFase='';fase.setAttribute('role','status');
+    const trilha=el('div');trilha.className='ph-job-track';
+    const barra=el('div');barra.className='ph-job-bar';barra.setAttribute('role','progressbar');barra.setAttribute('aria-valuemin','0');barra.setAttribute('aria-valuemax','100');barra.setAttribute('aria-label','Registros confirmados');
+    const fill=el('div');fill.className='ph-job-fill';barra.append(fill);
+    const pet=el('div');pet.className='ph-job-pet';pet.setAttribute('aria-hidden','true');
+    // SVG local e estático; nunca inclui conteúdo da planilha.
+    pet.innerHTML='<svg viewBox="0 0 100 65" width="76" height="50" xmlns="http://www.w3.org/2000/svg"><g fill="#ffaa33" stroke="#293f50" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path class="ph-job-tail" d="M21 35Q5 37 10 22" fill="none"/><path class="ph-job-leg leg-back" d="M31 43v14h10" fill="none"/><path class="ph-job-leg" d="M57 43v14h10" fill="none"/><rect x="20" y="25" width="49" height="24" rx="12"/><path d="M62 24q4-18 20-13l6 17 7 5q1 10-13 10H66z"/><path d="M68 15l-5 18q10 4 13-17" fill="#c4752f"/><circle cx="82" cy="24" r="1.7" fill="#293f50"/><path d="M91 31h4l-1 4z" fill="#293f50"/><path d="M65 31l4 13" stroke="#1c9554" stroke-width="5"/></g></svg>';
+    trilha.append(barra,pet);
+    const percentual=el('strong','0%');percentual.className='ph-job-percent';percentual.dataset.jobPercent='';
+    const quantidade=el('p','0 registros confirmados');quantidade.dataset.jobQuantidade='';
+    const tempos=el('div');tempos.className='ph-job-times';for(const[k,label]of [['decorrido','Tempo decorrido'],['restante','Tempo restante estimado']]){const n=el('span');n.dataset.jobTempo=k;n.append(el('small',label),el('strong','Calculando…'));tempos.append(n);}
+    const contadores=el('div');contadores.className='ph-job-counts';for(const[k,label]of [['criados','Criados'],['atualizados','Atualizados'],['ignorados','Ignorados'],['rejeitados','Com erro']]){const n=el('div');n.append(el('strong','0'),el('span',label));n.dataset.jobContador=k;contadores.append(n);}
+    const msg=el('p');msg.dataset.jobMensagem='';msg.className='ph-job-message';msg.setAttribute('aria-live','polite');
+    const retomar=botao('Retomar com segurança',async()=>{
+      retomar.disabled=true;
+      try{const d=await request(root+'/operacoes/'+operacao.id+'/retomar',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});operacao=d.operacao;renderOperacao();consultarOperacao();}
+      catch(e){msg.textContent=e.message;}finally{retomar.disabled=false;}
+    },'primary');retomar.dataset.jobRetomar='';retomar.hidden=true;
+    const nova=botao('Importar outra planilha',()=>{
+      clearTimeout(timerOperacao);operacao=null;previa=null;relatorio=[];
+      modal.querySelectorAll('main > *').forEach(n=>{if(n!==box)n.style.display=n.dataset.jobDisplay||'';});
+      box.remove();modal.querySelector('[data-confirmar]').hidden=false;
+      modal.querySelector('[data-fechar-importacao]').textContent='Cancelar';busy(false);aviso('Selecione o arquivo e analise novamente.');
+    });nova.dataset.jobNova='';nova.hidden=true;
+    box.append(titulo,fase,trilha,percentual,quantidade,tempos,contadores,msg,retomar,nova);
+    modal.querySelectorAll('main > *').forEach(n=>{n.dataset.jobDisplay=n.style.display;n.style.display='none';});
+    modal.querySelector('main').append(box);return box;
+  }
+  function renderOperacao(){
+    if(!modal||!operacao)return;
+    const box=painelOperacao(),o=operacao;
+    box.classList.toggle('executando',o.estado==='processando');box.classList.toggle('concluido',o.estado==='concluido');
+    box.querySelector('h3').textContent=o.estado==='concluido'?'Importação concluída ✓':o.estado==='interrompido'?'Importação interrompida':'Importando seus clientes';
+    box.querySelector('[data-job-fase]').textContent=o.fase;
+    const pct=Math.max(0,Math.min(100,o.percentual||0));box.style.setProperty('--job-progresso',pct+'%');
+    box.querySelector('[role="progressbar"]').setAttribute('aria-valuenow',String(pct));
+    box.querySelector('[data-job-percent]').textContent=pct+'%';
+    box.querySelector('[data-job-quantidade]').textContent=`${o.processados} de ${o.total} registros confirmados`;
+    for(const k of ['criados','atualizados','ignorados','rejeitados'])box.querySelector(`[data-job-contador="${k}"] strong`).textContent=o[k]||0;
+    box.querySelector('[data-job-tempo="decorrido"] strong').textContent=duracao(o.decorridoSegundos);
+    box.querySelector('[data-job-tempo="restante"] strong').textContent=o.estado==='concluido'?'Concluído':o.lento?'Aguardando confirmação do lote…':duracao(o.restanteSegundos);
+    box.querySelector('[data-job-mensagem]').textContent=o.erro||(o.lento?'Sem um novo checkpoint recente. Os números exibidos são os já confirmados no banco.':o.estado==='concluido'?'Os resultados foram confirmados. Você pode baixar o relatório.':'Você pode fechar esta janela. A importação continua no servidor.');
+    box.querySelector('[data-job-retomar]').hidden=!o.retomavel;box.querySelector('[data-job-nova]').hidden=o.estado!=='concluido';
+    modal.querySelector('[data-confirmar]').hidden=true;
+    modal.querySelector('[data-fechar-importacao]').textContent='Fechar acompanhamento';
+    modal.querySelector('[data-relatorio-importacao]').disabled=o.estado!=='concluido';
+  }
+  async function consultarOperacao(){
+    clearTimeout(timerOperacao);if(!modal||!operacao)return;
+    const id=operacao.id;let atraso=1500;
+    try{
+      const d=await request(root+'/operacoes/'+id);if(!modal||operacao?.id!==id)return;
+      operacao=d.operacao;renderOperacao();
+      if(['concluido','interrompido'].includes(operacao.estado))return;
+    }catch(e){
+      if(!modal||operacao?.id!==id)return;
+      const msg=painelOperacao().querySelector('[data-job-mensagem]');msg.textContent='Não foi possível atualizar o andamento. A operação não foi cancelada. '+e.message;
+      atraso=5000;if([401,403,404].includes(e.status))return;
+    }
+    timerOperacao=setTimeout(consultarOperacao,atraso);
+  }
+  function acompanhar(o){
+    operacao=o;previa=null;busy(false);renderOperacao();consultarOperacao();
+  }
+  async function baixarRelatorio(){
+    try{
+      if(operacao){const d=await request(root+'/operacoes/'+operacao.id+'/relatorio');relatorio=d.relatorio||[];}
+      csv([['Linha','Ação','Motivo','Registro'],...relatorio.map(r=>[r.linha,r.acao||'',r.motivo,r.registro||''])],tipo+'-relatorio.csv');
+    }catch(e){if(operacao)painelOperacao().querySelector('[data-job-mensagem]').textContent=e.message;else aviso(e.message,true);}
+  }
   async function confirmar() {
-    if (!previa?.token) return;
+    if (ocupado || !previa?.token) return;
     const selecionados=previa.linhas.filter(r=>!r.erro&&!r.repetida&&(escolhas[String(r.linha)]||r.acao)!=='ignorar');
     if(!selecionados.length){
       aviso('Nenhum registro selecionado para criar ou atualizar. Se os clientes já existem, use Atualizar os clientes identificados; confira os erros e as ações da prévia.',true);
@@ -338,11 +418,12 @@
     busy(true);
     aviso("Salvando registros. Aguarde…");
     try {
-      const d = await request(root + "/confirmar", {
+      const d = await request(root + (tipo==='clientes'?'/operacoes':'/confirmar'), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: previa.token, escolhas }),
       });
+      if(tipo==='clientes'){acompanhar(d.operacao);return;}
       relatorio = d.relatorio;
       previa = null;
       aviso(
@@ -358,9 +439,13 @@
         .querySelector("footer")
         .append(botao("Atualizar lista", () => location.reload(), "primary"));
     } catch (e) {
+      if(tipo==='clientes'&&e.operacaoId){
+        try{const d=await request(root+'/operacoes/'+e.operacaoId);acompanhar(d.operacao);return;}catch{}
+      }
       aviso(e.message, true);
     } finally {
       busy(false);
+      if(operacao)renderOperacao();
     }
   }
   async function abrir() {
@@ -461,19 +546,9 @@
       confirm = botao("Confirmar importação", confirmar, "primary");
     confirm.dataset.confirmar = "";
     confirm.disabled = true;
-    footer.append(
-      botao("Baixar relatório", () =>
-        csv(
-          [
-            ["Linha", "Motivo", "Registro"],
-            ...relatorio.map((r) => [r.linha, r.motivo, r.registro || ""]),
-          ],
-          tipo + "-relatorio.csv",
-        ),
-      ),
-      botao("Cancelar", fechar),
-      confirm,
-    );
+    const baixar=botao('Baixar relatório',baixarRelatorio);baixar.dataset.relatorioImportacao='';
+    const fecharBtn=botao('Cancelar',fechar);fecharBtn.dataset.fecharImportacao='';
+    footer.append(baixar,fecharBtn,confirm);
     dialog.append(header, main, footer);
     modal.append(dialog);
     document.body.append(modal);
@@ -490,6 +565,11 @@
         o.value = nome;
         select.append(o);
       });
+      if(tipo==='clientes'){
+        const atual=await request(root+'/operacoes/atual');
+        if(atual.operacao&&['pendente','processando','interrompido'].includes(atual.operacao.estado)){acompanhar(atual.operacao);return;}
+        if(atual.operacao)main.append(botao('Ver última importação',()=>acompanhar(atual.operacao)));
+      }
       aviso(
         tipo === "produtos" && !meta.centros.length
           ? "Cadastre um Centro de Resultado na empresa antes de importar os produtos."
@@ -499,6 +579,7 @@
       aviso(e.message, true);
     } finally {
       busy(false);
+      if(operacao)renderOperacao();
     }
   }
   function iniciar() {

@@ -177,6 +177,8 @@ const sequelize = global.__SEQUELIZE_SINGLETON__.sequelize;
 const Cliente = sequelize.define(
   "Cliente",
   {
+    // Identificador técnico de inserção em lote: nunca enviado pelo usuário.
+    importacao_ref: { type: DataTypes.STRING(64), allowNull: true },
     // Dados Pessoais
     nome: { type: DataTypes.STRING, allowNull: false },
     cpf: { type: DataTypes.STRING },

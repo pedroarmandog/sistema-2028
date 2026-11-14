@@ -1,79 +1,146 @@
-# PetHub — correção da importação de Clientes (12).xlsx
+# PetHub — importação de clientes em lotes e progresso persistente
 
-Aplicar sobre os pacotes Inteligência de Clientes e correção de Nova Venda desta conversa. Entrega incremental, somente arquivos novos/alterados. A planilha original não foi modificada e seus dados pessoais não foram incluídos neste ZIP.
+## Instalação e Render
 
-## Diagnóstico confirmado com o arquivo enviado
+Este ZIP contém somente os arquivos novos/alterados desta melhoria, além deste guia e dos números medidos. Ele complementa a versão com as correções anteriores de clientes, importação Excel, inteligência comercial e WhatsApp. Não contém `.env`, dependências, planilhas reais, senhas nem dados de clientes.
 
-A planilha tem 499 linhas com algum conteúdo. Dessas, **495 têm nome**. As linhas 2, 3, 4 e 5 não possuem nome; não é possível criar um cliente identificável a partir delas, e a correção continua rejeitando essas quatro linhas. O intervalo Excel contém ainda linhas vazias/formatadas, que não são cadastros.
+1. Extraia o ZIP. Copie as pastas `backend`, `frontend` e `tests` para a raiz do `sistema-2028`, preservando os caminhos e substituindo os arquivos correspondentes. Não crie outra pasta `backend` dentro de `backend`.
+2. No Render → serviço da API → Settings, mantenha:
+   - Build Command: `npm ci --omit=dev`
+   - **Pre-Deploy Command: `node backend/scripts/preparar-clientes-inteligencia.js`**
+   - Start Command: `npm start`
+3. O comando de Pre-Deploy já utilizado agora prepara também a estrutura desta melhoria. Ele precisa executar com o código novo antes de a nova versão atender requisições. Não é necessário editar manualmente o TiDB.
+4. Não há dependência npm nova nem alteração do lockfile. Opcionalmente defina `IMPORTACAO_CLIENTES_LOTE=50`. Padrão 50; intervalo efetivo 10–200. Comece com 50. Lotes menores dão checkpoints mais frequentes, mas aumentam as consultas.
+5. Faça commit/push dos arquivos substituídos e acompanhe o deploy. Após ele concluir, recarregue a página com Ctrl+Shift+R.
 
-As datas de cadastro são números internos do Excel com formato personalizado `YYYY-MM-DDhh:mm:ss`. O texto exibido junta a data e a hora, por exemplo `2022-01-1317:43:27`, e o conversor anterior tentava validá-lo como uma data simples. Alterar apenas o formato padrão de datas do leitor não resolvia esse formato personalizado.
-
-A coluna CPF também contém números, não somente texto. Na análise do arquivo, 184 CPFs podem recuperar zeros à esquerda e passam pela verificação dos dígitos. Outros 36 valores não são CPFs válidos. A validação anterior tratava a falta de dígitos como erro fatal da linha, impedindo o cadastro de pessoas cujo nome e demais dados eram utilizáveis.
-
-Além disso, o resultado final agrupava erros e decisões de ignorar na mesma contagem. Era possível confirmar uma prévia inteiramente inválida e receber apenas “0 criados, 0 atualizados, 499 ignorados”, sem concluir nenhuma importação real.
-
-## O que foi corrigido
-
-1. Datas numéricas do Excel são lidas pelo valor interno e pelo formato da célula. São convertidas para data civil ISO antes da validação, incluindo formatos personalizados com horário e calendário Excel 1904. O dia não é deslocado pelo fuso do servidor. O campo de cadastro original continua guardando a data, conforme a estrutura já implantada.
-2. A origem numérica dos documentos é preservada na leitura. Zeros à esquerda do CPF só são recuperados quando o resultado tem 11 dígitos e passa pela verificação dos dígitos verificadores. Texto curto não é preenchido por suposição.
-3. CPF inválido não é usado para identificar/mesclar clientes nem gravado como CPF fiscal. O cliente com nome pode ser importado com aviso; o valor original fica nas Observações para conferência e o CPF existente válido não é apagado numa atualização. E-mail inválido e CNPJ com quantidade de dígitos inválida também geram aviso e preservação do original, sem derrubar o cadastro completo. Esta entrega não implementa uma nova validação completa de CNPJ.
-4. Códigos/IDs legados identificam as fichas do sistema de origem. Duas fichas de códigos diferentes já conhecidos não são fundidas apenas por compartilharem CPF/e-mail. Conflitos ambíguos de identificadores continuam exigindo revisão. Nome parecido sozinho não autoriza sobrescrever outra pessoa.
-5. A prévia mostra avisos de opcionais separadamente dos erros impeditivos. O relatório inclui os avisos dos registros importados/atualizados.
-6. Confirmação é desabilitada quando não há linha válida pendente. A API de clientes também recusa um lote inteiramente inválido. Se todos os registros estão marcados Ignorar, a tela pede que o usuário selecione criar/atualizar, em vez de apresentar uma importação vazia como concluída.
-7. Foi adicionado o botão **Atualizar os clientes identificados** para selecionar explicitamente a atualização dos cadastros encontrados. Não há sobrescrita automática: confira a prévia e confirme. Campos opcionais vazios continuam preservando os dados existentes.
-8. Para indicadores históricos, a tela pode sugerir a referência pelas propriedades de criação/modificação do arquivo. É uma sugestão, não uma prova da data de referência comercial. A tela pede conferência e nova análise antes de habilitar a confirmação. Se não houver metadado confiável, a data deve ser preenchida manualmente.
-
-## Resultado da reprodução com a sua planilha
-
-Em banco isolado, vazio para a empresa de teste, usando o arquivo exato recebido e referência de teste 13/11/2026:
-
-| Etapa | Resultado |
-| --- | --- |
-| Prévia | 499 linhas, 495 válidas, 4 sem nome |
-| Confirmação | **495 criados, 0 atualizados, 4 ignorados** |
-| Reanálise do mesmo arquivo | 495 linhas já importadas reconhecidas, sem criar duplicidades |
-
-Os avisos de documentos não foram escondidos para atingir essa contagem: os valores problemáticos ficam preservados para revisão. Os quatro registros sem nome não viraram clientes fictícios.
-
-Esse teste não importou nada no seu Render/TiDB. Se sua empresa já tiver clientes identificados, parte do resultado será Atualizados/Ignorados conforme as ações que você escolher; não é correto prometer 495 clientes novos em um banco já preenchido.
-
-## Como aplicar e importar
-
-1. Extraia o ZIP e mescle as pastas `backend`, `frontend` e `tests` na raiz de `sistema-2028`. Substitua somente os arquivos recebidos. Não apague as pastas inteiras do projeto.
-2. No PowerShell:
+No PowerShell, na raiz do projeto:
 
 ```powershell
 cd "C:\Users\pedro\OneDrive\Área de Trabalho\sistema-2028"
-node --test .\tests\*.test.js
+$testes = Get-ChildItem .\tests\*.test.js | ForEach-Object { $_.FullName }
+node --test $testes
 ```
 
-3. Faça commit dos arquivos recebidos no VS Code e sincronize com o GitHub. Faça o deploy do backend e frontend juntos.
-4. Mantenha o Pre-Deploy já configurado para `node backend/scripts/preparar-clientes-inteligencia.js`. Esta correção não adiciona migração, tabela, variável de ambiente ou dependência.
-5. Após o deploy, atualize a página com Ctrl+F5, abra Importar Clientes novamente e selecione o arquivo original. Não reutilize o token/prévia da tentativa anterior; analise novamente.
-6. Confira os mapeamentos e a **Data de referência dos indicadores**, acima do mapeamento. Neste arquivo as propriedades sugerem **13/11/2026**. Use essa data apenas se corresponder à exportação/resumo; caso contrário, informe a referência correta. Clique de novo em Analisar planilha após conferir a sugestão.
-7. Confira a prévia: as quatro linhas sem nome podem continuar com erro; os 495 clientes com nome devem ser utilizáveis, salvo conflitos reais com os cadastros já presentes no seu banco.
-8. Se o sistema encontrar clientes existentes e você quiser completar/atualizar seus dados, clique em **Atualizar os clientes identificados**, confira as ações e confirme. Clientes que só tenham nome semelhante, sem identificador confiável, precisam de revisão manual; não force uma mesclagem pelo nome.
-9. Confirme e baixe o relatório. Confira as Observações dos cadastros com documento/e-mail de origem para corrigir antes de usá-los numa operação fiscal.
+Se quiser preparar a estrutura manualmente no banco configurado no `.env` (esse comando acessa o banco de verdade):
 
-Não é necessário editar a planilha para apagar datas, completar CPFs indiscriminadamente ou cadastrar nomes fictícios nas quatro linhas vazias. Não são geradas vendas individuais a partir dos totais históricos; as regras de análise/conciliacão anteriores permanecem.
+```powershell
+node .\backend\scripts\preparar-clientes-inteligencia.js
+```
 
-## Arquivos entregues
+Para enviar, confira primeiro o que será incluído:
 
-| Arquivo | Alteração |
-| --- | --- |
-| `backend/services/importacao/arquivo-worker.js` | Datas reais Excel, metadados numéricos e sugestão de referência |
-| `backend/services/importacao/normalizarCliente.js` | Novo tratamento de CPF e opcionais, com avisos/preservação do original |
-| `backend/services/importacao/servico.js` | Integração das normalizações, preservação em observações, identificação segura por legado e rejeição de lote totalmente inválido |
-| `backend/routes/importacaoRoutes.js` | Devolve a sugestão de referência para a tela |
-| `frontend/importacao.js` | Avisos visíveis, conferência da referência, atualização explícita em lote e bloqueio de confirmação vazia |
-| `tests/importacao-planilha-legada.test.js` | Reprodução anonimizada do formato e dos casos problemáticos |
-| `tests/importacao.test.js` | Ajusta a expectativa do teste anterior para opcionais inválidos com aviso/preservação |
+```powershell
+git status --short
+git add backend/app.js backend/models/Cliente.js backend/controllers/clienteController.js backend/services/importacao/servico.js backend/services/importacao/operacoes.js backend/routes/importacaoRoutes.js backend/scripts/preparar-clientes-inteligencia.js backend/scripts/benchmark-importacao.js frontend/importacao.js frontend/importacao.css tests/importacao-progresso.test.js tests/browser/importacao-progresso.ui.cjs
+git commit -m "Importacao de clientes em lotes com progresso persistente"
+git push origin main
+```
 
-## Validação
+Não inclua `.env` no commit.
 
-- **107 testes aprovados, zero falhas** na suíte completa do projeto local.
-- Oito testes no novo arquivo cobrem CPF numérico com zeros, CPF/e-mail inválido preservado, 499 linhas com quatro sem nome, datas personalizadas com hora, 495 criações, snapshots, reimportação, CPF compartilhado por fichas legadas distintas, atualização sem apagar CPF válido, lote inválido e isolamento entre empresas.
-- Reprodução adicional com o arquivo real enviado: 495 criados e quatro ignorados no banco de teste, seguida de reanálise sem duplicação.
-- Sintaxe dos arquivos JavaScript alterados conferida.
-- Não houve acesso ao banco de produção, envio de WhatsApp/SMS ou alteração no módulo fiscal.
-- A inspeção visual no navegador e a confirmação no Render/TiDB continuam pendentes; a reprodução foi feita pela API/worker real com HTTP/JWT/SQLite em memória. A planilha real não é distribuída junto aos testes, que usam clientes fictícios.
+## Diagnóstico
+
+A leitura CSV/XLS/XLSX já ocorria em worker separado, com limites de tamanho, fórmulas/macros bloqueadas e mapeamento/normalização antes da gravação. Esses mecanismos foram preservados.
+
+O gargalo encontrado na confirmação era uma transação abrangendo toda a planilha, com gravações e buscas individuais sequenciais para cliente, perfil, histórico e comprovante de importação. No cenário com histórico, o fluxo síncrono preservado executou aproximadamente dez comandos SQL por novo cliente. Uma conexão remota soma latência a cada ida ao banco. Não tive acesso às métricas do Render/TiDB para atribuir os dez minutos exclusivamente à rede ou confirmar a região/pool em produção.
+
+Agora há buscas agrupadas por lote, `bulkCreate`, atualizações por upsert e transações curtas. Os IDs dos clientes inseridos são consultados por uma referência técnica única: não há suposição de IDs consecutivos, particularmente importante no TiDB. A análise continua carregando os clientes da própria empresa para conferir duplicidades; não se tornou um índice global em memória nem um cruzamento entre empresas. O ganho medido abaixo é principalmente da confirmação/gravação.
+
+## Funcionamento e recuperação
+
+- Confirmar cria uma operação durável e devolve HTTP 202 com ID. Não espera gravar toda a planilha.
+- O mesmo token de prévia devolve a mesma operação. Um bloqueio da empresa e um índice único impedem duplicação por duas abas/cliques. Uma empresa mantém uma operação ativa ou interrompida de cada vez.
+- O monitor inicia com a API e processa um lote por vez neste processo Node, alternando operações pela atualização mais antiga. Não existe paralelismo ilimitado nem novo serviço externo.
+- Dados normalizados, escolhas, cursor, contadores e relatório ficam no TiDB. Não dependem do arquivo temporário nem do disco do Render.
+- Cliente, perfil, resumo histórico, comprovante e checkpoint são confirmados juntos. Se o lote falhar, seu progresso não é publicado como concluído. Lotes anteriores permanecem salvos.
+- Após reinício, o monitor retoma o cursor persistido. Uma interrupção abrupta pode exigir até aproximadamente dois minutos para expirar a posse anterior. Desligamento normal libera a posse ao terminar o lote corrente.
+- Se houver erro de gravação, a operação fica **Interrompida**, preserva os contadores confirmados e oferece **Retomar com segurança**. Não confirme a planilha novamente para contornar a interrupção.
+- Uma resposta de COMMIT perdida é tratada relendo o checkpoint salvo; a retomada não reinicia da primeira linha.
+- Ao terminar, o relatório final fica disponível. A cópia dos dados normalizados é removida da operação/prévia; contadores e relatório permanecem no banco.
+
+### Interface
+
+A segunda etapa do modal esconde o mapeamento e apresenta cachorro SVG leve, barra, percentual, etapa, quantidade, duração, estimativa e quatro contadores separados: criados, atualizados, ignorados e rejeitados. O relatório inclui ação/motivo para cada linha.
+
+O navegador consulta o status a cada 1,5 segundo. O percentual vem exclusivamente do cursor confirmado no banco. A estimativa usa a média móvel do tempo dos lotes; inicialmente mostra “Calculando”. Sem checkpoint recente, informa espera e suspende a estimativa. A animação das patas não aumenta o percentual. O cachorro avança conforme o percentual recebido. CSS respeita movimento reduzido e telas pequenas.
+
+Na leitura/análise inicial, o indicador é indeterminado, porque essa etapa não publica checkpoints por linha; não há porcentagem simulada. A etapa de finalização só passa a “Concluída” depois de persistir o resultado.
+
+Fechar o modal ou atualizar a página não cancela a importação. Ao reabrir Importar Clientes, a operação ativa é recuperada do backend. Para ver uma já terminada, use **Ver última importação**.
+
+## Banco, segurança e preservação
+
+A preparação é aditiva e idempotente, sem `force`/`alter` geral:
+
+- Cria `importacoes_operacoes`, com índices de empresa/lote único, recuperação e estado por empresa.
+- Acrescenta `Clientes.importacao_ref`, nullable, com índice único `clientes_importacao_ref`.
+- Acrescenta índice iniciando por `empresa_id` em Clientes se não existir um equivalente (`clientes_empresa_importacao`).
+- Mantém os índices existentes de códigos/IDs legados por empresa e dos resumos por empresa/cliente/referência. CPF/e-mail normalizados na consulta podem usar funções SQL; não afirmo que seus índices simples acelerem essa comparação integralmente. O filtro da empresa continua obrigatório.
+
+Todas as rotas usam autenticação, empresa do backend e a permissão existente `cliente.novo`. Status/relatórios de outra empresa retornam 404. O progresso não expõe o conjunto de dados bruto. Logs técnicos contêm ID da operação, empresa, checkpoint e código de erro, sem planilhas, tokens ou conteúdo dos clientes. A referência técnica é protegida contra edição pelo cadastro manual.
+
+Opcionais vazios não apagam valores existentes. Continuam preservados: códigos legados, Instagram, telefones adicionais, bloqueios, data original do cadastro, resumo/ticket histórico e corte de conciliação. Resumo importado não cria vendas fictícias nem movimenta estoque/financeiro. O envio de WhatsApp, pets e vendas não foi reimplementado. A importação de produtos mantém seu contrato anterior e não foi convertida para jobs nesta entrega.
+
+## Medições reais
+
+Node v24.22.1; SQLite em memória; lote 50; processo novo por cenário; uma medição por combinação. Comparação entre confirmação síncrona preservada e nova operação em lotes. O tempo abaixo começa depois da prévia e inclui criação/finalização da operação e consultas de acompanhamento do benchmark. Não inclui upload, latência real Render/TiDB, intervalo do monitor nem espera do polling visual. A prévia foi medida separadamente no JSON.
+
+| Clientes | Síncrono anterior | Em lotes | Comandos SQL antes → depois | Registros/s em lotes | Resposta inicial |
+|---:|---:|---:|---:|---:|---:|
+| 10 | 0.067 s | 0.053 s | 108 → 59 | 187.5 | 9 ms |
+| 100 | 0.356 s | 0.144 s | 1.008 → 81 | 695.8 | 11.1 ms |
+| 500 | 1.357 s | 0.260 s | 5.008 → 257 | 1922.5 | 8.1 ms |
+| 1.000 | 2.611 s | 0.646 s | 10.008 → 477 | 1548.8 | 8.6 ms |
+| 2.500 | 7.539 s | 1.528 s | 25.008 → 1.137 | 1636.6 | 11.5 ms |
+
+Em cada volume foram confirmados exatamente N clientes novos, sem criação na outra empresa. Fora do tempo medido, os mesmos N clientes foram atualizados pelo novo fluxo: zero duplicados, N atualizados, histórico mantido e relatório com N linhas. Arquivo `benchmark-medido.json` contém todos os resultados. São medições locais, não uma promessa de duração em produção.
+
+Para reproduzir em banco descartável em memória, sem TiDB nem transmissão externa:
+
+```powershell
+node .\backend\scripts\benchmark-importacao.js .\benchmark-importacao-local.json
+```
+
+## Validação realizada e limites
+
+- **117 testes aprovados**, incluindo regressões existentes e novos testes do processamento assíncrono.
+- Testados: checkpoint confirmado, total consistente, relatório, clique repetido, restauração por consulta autenticada, reinício simulado com novo processador, posse expirada, rollback, perda da resposta após COMMIT, IDs esparsos, atualização preservando opcionais/saldos/histórico, reimportação sem duplicação, duas empresas e ETA desatualizada.
+- A planilha real enviada foi processada localmente pelo parser e pelo novo fluxo: **499 linhas, 495 criados, 4 rejeitados sem nome**, relatório de 499 linhas. Seus dados não fazem parte deste pacote.
+- Benchmarks de 10/100/500/1.000/2.500 executados; os mesmos volumes foram atualizados e conferidos.
+- Sintaxe dos JavaScripts alterados verificada. Não existe script de build neste projeto. Não executei inicialização da API contra suas credenciais de produção nem migração/deploy no seu TiDB/Render; os testes utilizam banco isolado.
+- Teste de navegador preparado em `tests/browser/importacao-progresso.ui.cjs`: cobre progresso sem avanço por relógio, esconder mapeamento, fechar/reabrir, recarregar, 375px e movimento reduzido. **Não executado com sucesso aqui**: Chromium foi bloqueado pelo ambiente ao abrir seu socket. Portanto, aparência/interação final ainda precisam de conferência no seu navegador.
+
+Opcional para executar esse teste visual em uma cópia local do projeto:
+
+```powershell
+npm install --no-save --package-lock=false playwright
+npx playwright install chromium
+node .\tests\browser\importacao-progresso.ui.cjs
+```
+
+Playwright é apenas ferramenta de teste local. Não acrescente instalação de navegador ao Build Command do Render.
+
+## Roteiro após deploy
+
+1. Em uma empresa de teste, importe uma planilha com códigos legados e histórico, confira a referência e o mapeamento e confirme uma vez.
+2. Observe contadores/percentual por lotes. Em TiDB muito rápido, vários checkpoints podem ser concluídos entre duas consultas da tela; isso não é avanço falso.
+3. Feche o modal e reabra. Recarregue a página durante uma operação maior: a mesma operação deve reaparecer.
+4. Aguarde Concluída; baixe o relatório. Confira criados + atualizados + ignorados + rejeitados = total.
+5. Reimporte a mesma planilha e confira ausência de duplicados. Para alterar fichas, modifique a origem e selecione Atualizar explicitamente na prévia.
+6. Confira no cadastro um telefone/Instagram/bloqueio e um histórico anterior. Na outra empresa, confirme que os clientes e o andamento não aparecem.
+7. Para validar reinício em ambiente de teste, reinicie a API durante uma importação maior. Aguarde a recuperação da posse e confira retomada do cursor, sem recriar os lotes anteriores. Uma planilha pequena pode terminar antes do reinício.
+
+## Arquivos de código novos/alterados
+
+- `backend/app.js`
+- `backend/models/Cliente.js`
+- `backend/controllers/clienteController.js`
+- `backend/services/importacao/servico.js`
+- `backend/services/importacao/operacoes.js`
+- `backend/routes/importacaoRoutes.js`
+- `backend/scripts/preparar-clientes-inteligencia.js`
+- `backend/scripts/benchmark-importacao.js`
+- `frontend/importacao.js`
+- `frontend/importacao.css`
+- `tests/importacao-progresso.test.js`
+- `tests/browser/importacao-progresso.ui.cjs`

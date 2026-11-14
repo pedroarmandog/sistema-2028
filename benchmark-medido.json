@@ -1,0 +1,160 @@
+{
+  "ambiente": {
+    "node": "v24.22.1",
+    "banco": "SQLite em memória, sem latência Render/TiDB",
+    "lote": 50,
+    "medicoesPorCenario": 1
+  },
+  "resultados": [
+    {
+      "modo": "anterior",
+      "total": 10,
+      "previaMs": 27.6,
+      "duracaoMs": 67.4,
+      "registrosPorSegundo": 148.3,
+      "consultas": 108,
+      "respostaMs": null,
+      "checkpoints": 0,
+      "criados": 10,
+      "atualizados": 0,
+      "validacaoAtualizacao": null
+    },
+    {
+      "modo": "lotes",
+      "total": 10,
+      "previaMs": 29.4,
+      "duracaoMs": 53.3,
+      "registrosPorSegundo": 187.5,
+      "consultas": 59,
+      "respostaMs": 9,
+      "checkpoints": 2,
+      "criados": 10,
+      "atualizados": 0,
+      "validacaoAtualizacao": {
+        "atualizados": 10,
+        "criados": 0,
+        "historicosPreservados": 10
+      }
+    },
+    {
+      "modo": "anterior",
+      "total": 100,
+      "previaMs": 65.6,
+      "duracaoMs": 356,
+      "registrosPorSegundo": 280.9,
+      "consultas": 1008,
+      "respostaMs": null,
+      "checkpoints": 0,
+      "criados": 100,
+      "atualizados": 0,
+      "validacaoAtualizacao": null
+    },
+    {
+      "modo": "lotes",
+      "total": 100,
+      "previaMs": 65.6,
+      "duracaoMs": 143.7,
+      "registrosPorSegundo": 695.8,
+      "consultas": 81,
+      "respostaMs": 11.1,
+      "checkpoints": 3,
+      "criados": 100,
+      "atualizados": 0,
+      "validacaoAtualizacao": {
+        "atualizados": 100,
+        "criados": 0,
+        "historicosPreservados": 100
+      }
+    },
+    {
+      "modo": "anterior",
+      "total": 500,
+      "previaMs": 196.6,
+      "duracaoMs": 1357.3,
+      "registrosPorSegundo": 368.4,
+      "consultas": 5008,
+      "respostaMs": null,
+      "checkpoints": 0,
+      "criados": 500,
+      "atualizados": 0,
+      "validacaoAtualizacao": null
+    },
+    {
+      "modo": "lotes",
+      "total": 500,
+      "previaMs": 131.6,
+      "duracaoMs": 260.1,
+      "registrosPorSegundo": 1922.5,
+      "consultas": 257,
+      "respostaMs": 8.1,
+      "checkpoints": 11,
+      "criados": 500,
+      "atualizados": 0,
+      "validacaoAtualizacao": {
+        "atualizados": 500,
+        "criados": 0,
+        "historicosPreservados": 500
+      }
+    },
+    {
+      "modo": "anterior",
+      "total": 1000,
+      "previaMs": 202.6,
+      "duracaoMs": 2611.4,
+      "registrosPorSegundo": 382.9,
+      "consultas": 10008,
+      "respostaMs": null,
+      "checkpoints": 0,
+      "criados": 1000,
+      "atualizados": 0,
+      "validacaoAtualizacao": null
+    },
+    {
+      "modo": "lotes",
+      "total": 1000,
+      "previaMs": 209.9,
+      "duracaoMs": 645.6,
+      "registrosPorSegundo": 1548.8,
+      "consultas": 477,
+      "respostaMs": 8.6,
+      "checkpoints": 21,
+      "criados": 1000,
+      "atualizados": 0,
+      "validacaoAtualizacao": {
+        "atualizados": 1000,
+        "criados": 0,
+        "historicosPreservados": 1000
+      }
+    },
+    {
+      "modo": "anterior",
+      "total": 2500,
+      "previaMs": 529.7,
+      "duracaoMs": 7539.2,
+      "registrosPorSegundo": 331.6,
+      "consultas": 25008,
+      "respostaMs": null,
+      "checkpoints": 0,
+      "criados": 2500,
+      "atualizados": 0,
+      "validacaoAtualizacao": null
+    },
+    {
+      "modo": "lotes",
+      "total": 2500,
+      "previaMs": 437.3,
+      "duracaoMs": 1527.6,
+      "registrosPorSegundo": 1636.6,
+      "consultas": 1137,
+      "respostaMs": 11.5,
+      "checkpoints": 51,
+      "criados": 2500,
+      "atualizados": 0,
+      "validacaoAtualizacao": {
+        "atualizados": 2500,
+        "criados": 0,
+        "historicosPreservados": 2500
+      }
+    }
+  ]
+}

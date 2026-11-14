@@ -333,6 +333,11 @@ async function confirmar(tipo, empresa, usuario, token, escolhas) {
       lock: transaction.LOCK.UPDATE,
     });
     if (!empresaRow) falhar("Empresa indisponível.");
+    if(tipo==='clientes'&&banco.sequelize.models.ImportacaoOperacao){
+      const ativa=await banco.sequelize.models.ImportacaoOperacao.findOne({where:{empresa_id:empresa,estado:{[Op.in]:['pendente','processando','interrompido']}},transaction});
+      if(ativa)throw Object.assign(new Error('Há uma operação em lotes para acompanhar ou retomar nesta empresa.'),{status:409,operacaoId:ativa.id});
+    }
+
     const lote = await banco.Lote.findOne({
       where: { id: token, empresa_id: empresa, usuario_id: usuario, tipo },
       transaction,
@@ -472,4 +477,4 @@ async function confirmar(tipo, empresa, usuario, token, escolhas) {
     return resultado;
   });
 }
-module.exports = { analisar, confirmar, centrosDaEmpresa };
+module.exports = { analisar, confirmar, centrosDaEmpresa, encontrarMatches, valorIdentidade };

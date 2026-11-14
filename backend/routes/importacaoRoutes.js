@@ -36,6 +36,19 @@ function criarRotas(tipo) {
       fieldSize: 16000,
     },
   });
+  if(tipo==='clientes'){
+    const operacoes=()=>require('../services/importacao/operacoes').instancia();
+    const tratar=fn=>async(req,res,next)=>{try{await fn(req,res);}catch(e){if(e.operacaoId)return res.status(e.status||409).json({erro:e.message,operacaoId:e.operacaoId});next(e);}};
+    router.post('/operacoes',tratar(async(req,res)=>{
+      const p=operacoes();const op=await p.iniciar(req.user.empresaId,req.user.id,req.body.token,req.body.escolhas||{});
+      res.status(202).json({operacao:op});
+      if(require.main?.filename===path.resolve(__dirname,'../app.js'))p.iniciarMonitor();
+    }));
+    router.get('/operacoes/atual',tratar(async(req,res)=>res.json({operacao:await operacoes().atual(req.user.empresaId)})));
+    router.get('/operacoes/:id',tratar(async(req,res)=>res.json({operacao:await operacoes().obter(req.user.empresaId,req.params.id)})));
+    router.get('/operacoes/:id/relatorio',tratar(async(req,res)=>res.json(await operacoes().relatorioFinal(req.user.empresaId,req.params.id))));
+    router.post('/operacoes/:id/retomar',tratar(async(req,res)=>res.json({operacao:await operacoes().retomar(req.user.empresaId,req.params.id)})));
+  }
   router.get("/modelo", (req, res) => {
     const headers = Object.values(campos(tipo)).map((v) => v[0]);
     res
@@ -175,9 +188,11 @@ function criarRotas(tipo) {
         erro:
           err instanceof multer.MulterError
             ? "Arquivo excede 5 MB ou quantidade de campos permitida."
-            : status < 500
+            : status < 500 || err.publica
               ? err.message
-              : "Não foi possível concluir a importação. Nenhum registro desta confirmação foi gravado. Tente novamente.",
+              : tipo === 'clientes'
+                ? "Não foi possível atualizar a importação. Consulte o andamento antes de tentar novamente; os lotes confirmados permanecem salvos."
+                : "Não foi possível concluir a importação. Nenhum registro desta confirmação foi gravado. Tente novamente.",
       });
   });
   return router;
