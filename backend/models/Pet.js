@@ -1,4 +1,4 @@
-﻿const { DataTypes } = require("sequelize");
+const { DataTypes } = require("sequelize");
 const { sequelize } = require("./Cliente");
 
 const Pet = sequelize.define(
@@ -9,6 +9,13 @@ const Pet = sequelize.define(
       primaryKey: true,
       autoIncrement: true,
     },
+    codigo_legado: { type: DataTypes.STRING(80), allowNull: true },
+    origem_importacao: { type: DataTypes.STRING(80), allowNull: true },
+    importacao_ref: { type: DataTypes.STRING(64), allowNull: true },
+    especie: { type: DataTypes.STRING(100), allowNull: true },
+    cor: { type: DataTypes.STRING(100), allowNull: true },
+    peso: { type: DataTypes.DECIMAL(10,3), allowNull: true },
+    idade_informada: { type: DataTypes.STRING(100), allowNull: true },
     nome: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -55,7 +62,6 @@ const Pet = sequelize.define(
     chip: {
       type: DataTypes.STRING,
       allowNull: true,
-      unique: true,
     },
     pedigree_rg: {
       type: DataTypes.STRING,

@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8" />
@@ -19,7 +19,8 @@
     <link rel="stylesheet" href="./meus-pets.css" />
     <link rel="stylesheet" href="../colors.css" />
     <link rel="stylesheet" href="../dashboard.css" />
-  </head>
+  <link rel="stylesheet" href="/importacao.css">
+</head>
   <body>
     <!-- Sidebar -->
     <div class="sidebar">
@@ -1838,6 +1839,8 @@
         </div>
       </div>
     </div>
-  </body>
+  <script src="/importacao.js" data-tipo="pets" data-alvo=".actions-right"></script>
+<script>document.addEventListener("pethub:importacao-concluida",e=>{if(e.detail.tipo==="pets"){const b=document.createElement("button");b.textContent="Atualizar pets importados";b.onclick=()=>location.reload();document.querySelector(".actions-right").append(b);}});</script>
+</body>
 </html>
 

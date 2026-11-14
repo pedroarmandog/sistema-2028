@@ -7,7 +7,8 @@ test('Cadastro e edição aceitam os valores do formulário e preservam empresa'
  // Carrega a definição real do modelo sem abrir a conexão TiDB do projeto.
  const fonte=fs.readFileSync(require.resolve('../backend/models/Cliente'),'utf8');
  const Cliente=vm.runInNewContext(fonte.slice(fonte.indexOf('const Cliente = sequelize.define('),fonte.indexOf('module.exports = { Cliente'))+'\nCliente;',{sequelize,DataTypes,require});
- await sequelize.sync();t.after(()=>sequelize.close());
+ const Empresa=sequelize.define('Empresa',{nome:DataTypes.STRING});
+ await sequelize.sync();await Empresa.create({id:1,nome:'Empresa fictícia'});t.after(()=>sequelize.close());
  const id=require.resolve('../backend/models');require.cache[id]={id,filename:id,loaded:true,exports:{Cliente,sequelize}};
  const push=require.resolve('../backend/services/pushNotificationService');require.cache[push]={id:push,filename:push,loaded:true,exports:{notificarEmpresa:async()=>{}}};
  const c=require('../backend/controllers/clienteController');

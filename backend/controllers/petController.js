@@ -45,7 +45,7 @@ exports.createPet = async (req, res) => {
     }
 
     // Verificar se o cliente existe
-    const cliente = await Cliente.findByPk(cliente_id);
+    const cliente = await Cliente.findOne({where:{id:cliente_id,empresa_id:req.user?.empresaId}});
     if (!cliente) {
       return res.status(400).json({
         success: false,
@@ -210,6 +210,7 @@ exports.getAllPets = async (req, res) => {
           model: Cliente,
           as: "cliente",
           attributes: ["id", "nome", "email", "telefone"],
+          where:{empresa_id:req.user.empresaId},required:true,
         },
       ],
       order: [["createdAt", "DESC"]],
@@ -242,6 +243,7 @@ exports.getPetById = async (req, res) => {
           model: Cliente,
           as: "cliente",
           attributes: ["id", "nome", "email", "telefone"],
+          where:{empresa_id:req.user.empresaId},required:true,
         },
       ],
     });
@@ -361,7 +363,7 @@ exports.updatePet = async (req, res) => {
     }
 
     // Verificar se o cliente existe
-    const cliente = await Cliente.findByPk(cliente_id);
+    const cliente = await Cliente.findOne({where:{id:cliente_id,empresa_id:req.user?.empresaId}});
     if (!cliente) {
       return res.status(400).json({
         success: false,

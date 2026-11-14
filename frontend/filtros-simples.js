@@ -710,6 +710,7 @@ async function buscarClientesDaAPI() {
 
 // Aplicar filtros de forma simples
 function aplicarFiltrosSimples() {
+  if(window.PetHubClientesPagina)return window.PetHubClientesPagina.filtros();
   // TEMPORARIAMENTE DESABILITADO para testar paginação
   if (!sistemaFiltrosAtivo) {
     console.log("🚫 Sistema de filtros desabilitado - pular aplicação");

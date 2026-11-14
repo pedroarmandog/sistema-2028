@@ -8,10 +8,10 @@ const hash=v=>crypto.createHash('sha256').update(JSON.stringify(v)).digest('hex'
 const estadosAtivos=['pendente','processando'];
 function modelo(db){return db.models.ImportacaoOperacao||db.define('ImportacaoOperacao',{
  id:{type:DataTypes.STRING(36),primaryKey:true},empresa_id:{type:DataTypes.INTEGER,allowNull:false},usuario_id:{type:DataTypes.INTEGER,allowNull:false},lote_id:{type:DataTypes.STRING(36),allowNull:false},
- estado:{type:DataTypes.STRING(24),allowNull:false},fase:DataTypes.STRING(120),total:DataTypes.INTEGER,cursor:{type:DataTypes.INTEGER,defaultValue:0},
+ tipo:{type:DataTypes.STRING(16),allowNull:false,defaultValue:'clientes'},estado:{type:DataTypes.STRING(24),allowNull:false},fase:DataTypes.STRING(120),total:DataTypes.INTEGER,cursor:{type:DataTypes.INTEGER,defaultValue:0},
  criados:{type:DataTypes.INTEGER,defaultValue:0},atualizados:{type:DataTypes.INTEGER,defaultValue:0},ignorados:{type:DataTypes.INTEGER,defaultValue:0},rejeitados:{type:DataTypes.INTEGER,defaultValue:0},
  dados:DataTypes.TEXT('long'),escolhas:DataTypes.TEXT('long'),relatorio:DataTypes.TEXT('long'),resultado:DataTypes.TEXT('long'),
- ms_por_registro:DataTypes.DOUBLE,iniciadoEm:DataTypes.DATE,progressoEm:DataTypes.DATE,concluidoEm:DataTypes.DATE,dono:DataTypes.STRING(36),lease_ate:DataTypes.BIGINT,erro:DataTypes.STRING(300),tentativas:{type:DataTypes.INTEGER,defaultValue:0},
+ vinculos_pendentes:{type:DataTypes.INTEGER,defaultValue:0},ms_por_registro:DataTypes.DOUBLE,iniciadoEm:DataTypes.DATE,progressoEm:DataTypes.DATE,concluidoEm:DataTypes.DATE,dono:DataTypes.STRING(36),lease_ate:DataTypes.BIGINT,erro:DataTypes.STRING(300),tentativas:{type:DataTypes.INTEGER,defaultValue:0},
 },{tableName:'importacoes_operacoes',indexes:[
  {unique:true,name:'importacao_empresa_lote',fields:['empresa_id','lote_id']},
  {name:'importacao_recuperacao',fields:['estado','lease_ate','updatedAt']},
@@ -23,7 +23,10 @@ async function prepararEstrutura(db){
  const indices=await q.showIndex(table);
  if(!indices.some(i=>i.name==='clientes_importacao_ref'))await q.addIndex(table,['importacao_ref'],{name:'clientes_importacao_ref',unique:true});
  if(!indices.some(i=>i.fields?.[0]?.attribute==='empresa_id'))await q.addIndex(table,['empresa_id','id'],{name:'clientes_empresa_importacao'});
- await modelo(db).sync();
+ const Job=modelo(db);await Job.sync();
+ const jobCols=await q.describeTable(Job.getTableName());
+ if(!jobCols.tipo)await q.addColumn(Job.getTableName(),'tipo',{type:DataTypes.STRING(16),allowNull:false,defaultValue:'clientes'});
+ if(!jobCols.vinculos_pendentes)await q.addColumn(Job.getTableName(),'vinculos_pendentes',{type:DataTypes.INTEGER,defaultValue:0});
 }
 const extras=Object.keys({...I.PERFIL,...I.HISTORICO});
 const atributosCliente=dados=>Object.fromEntries(Object.entries(dados).filter(([k])=>!extras.includes(k)&&!['id','empresa_id','createdAt','updatedAt','importacao_ref'].includes(k)));
@@ -53,33 +56,34 @@ function criarProcessador({db,Cliente=db.models.Cliente,Empresa=db.models.Empres
   const stale=r.progressoEm?agora()-+new Date(r.progressoEm)>30000:elapsed>30000;
   const percentual=r.total?Math.floor(Number(r.cursor||0)/r.total*100):0;
   const eta=r.cursor>0&&r.cursor<r.total&&r.ms_por_registro&&!stale&&r.estado==='processando'?Math.ceil(r.ms_por_registro*(r.total-r.cursor)/1000):null;
-  return {id:r.id,estado:r.estado,fase:r.fase,total:r.total,processados:r.cursor,percentual,criados:r.criados,atualizados:r.atualizados,ignorados:r.ignorados,rejeitados:r.rejeitados,
+  return {id:r.id,vinculosPendentes:r.tipo==='pets'?Number(r.vinculos_pendentes||0):undefined,tipo:r.tipo||'clientes',vinculados:r.tipo==='pets'?Number(r.criados||0)+Number(r.atualizados||0):undefined,estado:r.estado,fase:r.fase,total:r.total,processados:r.cursor,percentual,criados:r.criados,atualizados:r.atualizados,ignorados:r.ignorados,rejeitados:r.rejeitados,
    iniciadoEm:r.iniciadoEm,progressoEm:r.progressoEm,decorridoSegundos:Math.floor(elapsed/1000),restanteSegundos:eta,lento:stale&&estadosAtivos.includes(r.estado),
    erro:r.erro,resultado:r.resultado?json(r.resultado):null,retomavel:r.estado==='interrompido'};
  }
- async function iniciar(empresa,usuario,token,escolhas={}){
+ async function iniciar(empresa,usuario,token,escolhas={},tipo='clientes'){
   await preparar();if(!/^[a-f0-9-]{36}$/.test(token||''))throw I.erro('Prévia inválida.');
-  if(!escolhas||typeof escolhas!=='object'||Array.isArray(escolhas)||Object.values(escolhas).some(v=>!['criar','atualizar','ignorar'].includes(v)))throw I.erro('Ações inválidas.');
+  if(!['clientes','pets'].includes(tipo))throw I.erro('Tipo inválido.');
+  if(!escolhas||typeof escolhas!=='object'||Array.isArray(escolhas)||Object.values(escolhas).some(v=>tipo==='clientes'?!['criar','atualizar','ignorar'].includes(v):!v||typeof v!=='object'||!['criar','atualizar','ignorar'].includes(v.acao)||v.cliente_id!=null&&(!Number.isSafeInteger(Number(v.cliente_id))||Number(v.cliente_id)<1)||v.distinto!=null&&typeof v.distinto!=='boolean'))throw I.erro('Ações inválidas.');
   const row=await db.transaction(async transaction=>{
    const emp=await Empresa.findByPk(empresa,{transaction,lock:transaction.LOCK.UPDATE});if(!emp)throw I.erro('Empresa indisponível.',403);
-   const existente=await Job.findOne({where:{empresa_id:empresa,lote_id:token},transaction});if(existente)return existente;
+   const existente=await Job.findOne({where:{empresa_id:empresa,lote_id:token,tipo},transaction});if(existente)return existente;
    const ativo=await Job.findOne({where:{empresa_id:empresa,estado:{[Op.in]:[...estadosAtivos,'interrompido']}},transaction});
    if(ativo)throw Object.assign(I.erro('Já existe uma importação para acompanhar ou retomar nesta empresa.',409),{operacaoId:ativo.id});
-   const lote=await Lote.findOne({where:{id:token,empresa_id:empresa,usuario_id:usuario,tipo:'clientes'},transaction,lock:transaction.LOCK.UPDATE});
+   const lote=await Lote.findOne({where:{id:token,empresa_id:empresa,usuario_id:usuario,tipo},transaction,lock:transaction.LOCK.UPDATE});
    if(!lote)throw I.erro('Importação não encontrada.',404);
    if(lote.resultado)throw I.erro('Esta prévia já foi confirmada pelo fluxo anterior. Analise novamente.',409);
    if(+new Date(lote.expira)<agora())throw I.erro('Prévia expirada. Analise novamente.');
    const rows=json(lote.dados);if(!rows.length||rows.every(r=>r.erro))throw I.erro('Nenhum registro válido para importar.');
-   return Job.create({id:crypto.randomUUID(),empresa_id:empresa,usuario_id:usuario,lote_id:token,estado:'pendente',fase:'Aguardando processamento',total:rows.length,cursor:0,dados:lote.dados,escolhas:JSON.stringify(escolhas),relatorio:'[]',lease_ate:0},{transaction});
+   return Job.create({id:crypto.randomUUID(),empresa_id:empresa,usuario_id:usuario,lote_id:token,tipo,vinculos_pendentes:tipo==='pets'?rows.filter(r=>!r.erro&&!r.repetida&&(escolhas[String(r.linha)]?.acao||r.acao)!=='ignorar'&&!escolhas[String(r.linha)]?.cliente_id&&r.vinculo?.situacao!=='automatico').length:0,estado:'pendente',fase:'Aguardando processamento',total:rows.length,cursor:0,dados:lote.dados,escolhas:JSON.stringify(escolhas),relatorio:'[]',lease_ate:0},{transaction});
   });return dto(row);
  }
- async function obter(empresa,id){await preparar();const row=await Job.findOne({where:{empresa_id:empresa,id},attributes:{exclude:['dados','escolhas','relatorio','resultado']}});if(!row)throw I.erro('Operação não encontrada.',404);return dto(row);}
- async function atual(empresa){await preparar();const row=await Job.findOne({where:{empresa_id:empresa},attributes:{exclude:['dados','escolhas','relatorio','resultado']},order:[['createdAt','DESC'],['id','DESC']]});return row?dto(row):null;}
- async function relatorioFinal(empresa,id){await preparar();const row=await Job.findOne({where:{empresa_id:empresa,id},attributes:['estado','resultado']});if(!row)throw I.erro('Operação não encontrada.',404);if(row.estado!=='concluido')throw I.erro('Relatório disponível após concluir a importação.',409);return json(row.resultado);}
- async function retomar(empresa,id){await preparar();
+ async function obter(empresa,id,tipo='clientes'){await preparar();const row=await Job.findOne({where:{empresa_id:empresa,id,tipo},attributes:{exclude:['dados','escolhas','relatorio','resultado']}});if(!row)throw I.erro('Operação não encontrada.',404);return dto(row);}
+ async function atual(empresa,tipo='clientes'){await preparar();const row=await Job.findOne({where:{empresa_id:empresa,tipo},attributes:{exclude:['dados','escolhas','relatorio','resultado']},order:[['createdAt','DESC'],['id','DESC']]});return row?dto(row):null;}
+ async function relatorioFinal(empresa,id,tipo='clientes'){await preparar();const row=await Job.findOne({where:{empresa_id:empresa,id,tipo},attributes:['estado','resultado']});if(!row)throw I.erro('Operação não encontrada.',404);if(row.estado!=='concluido')throw I.erro('Relatório disponível após concluir a importação.',409);return json(row.resultado);}
+ async function retomar(empresa,id,tipo='clientes'){await preparar();
   const row=await db.transaction(async transaction=>{
    await Empresa.findByPk(empresa,{transaction,lock:transaction.LOCK.UPDATE});
-   const r=await Job.findOne({where:{id,empresa_id:empresa},transaction,lock:transaction.LOCK.UPDATE});if(!r)throw I.erro('Operação não encontrada.',404);
+   const r=await Job.findOne({where:{id,empresa_id:empresa,tipo},transaction,lock:transaction.LOCK.UPDATE});if(!r)throw I.erro('Operação não encontrada.',404);
    if(r.estado==='interrompido')await r.update({estado:'pendente',fase:'Aguardando retomada',erro:null,tentativas:0,dono:null,lease_ate:0},{transaction});return r;
   });return dto(row);
  }
@@ -99,6 +103,13 @@ function criarProcessador({db,Cliente=db.models.Cliente,Empresa=db.models.Empres
    if(!job||job.dono!==dono||job.estado!=='processando')return;
    const rows=json(job.dados),escolhas=json(job.escolhas),slice=rows.slice(job.cursor,job.cursor+batch),relatorio=json(job.relatorio||'[]');
    if(!slice.length)return finalizar(job,transaction,relatorio);
+   async function checkpoint(cont){
+    const cursor=job.cursor+slice.length;
+   await job.update({cursor,...Object.fromEntries(Object.entries(cont).map(([k,n])=>[k,Number(job[k]||0)+n])),relatorio:JSON.stringify(relatorio),fase:cursor===job.total?'Finalizando relatório':'Conferindo e salvando lote',progressoEm:new Date(agora()),lease_ate:agora()+leaseMs,erro:null,tentativas:0,ms_por_registro:job.ms_por_registro?job.ms_por_registro*0.7+(Math.max(1,agora()-inicio)/slice.length)*0.3:Math.max(1,agora()-inicio)/slice.length},{transaction});
+   await antesCommit({job,cont,transaction});
+   return {cursor,total:job.total,linhas:slice.length};
+   }
+   if(job.tipo==='pets')return checkpoint(await require('./pets').gravarLote({db,job,slice,escolhas,transaction,relatorio}));
    const ids=slice.map(r=>Number(r.existente)).filter(Number.isSafeInteger);
    const codigos=slice.map(r=>r.dados?.codigo_legado).filter(Boolean),legados=slice.map(r=>r.dados?.id_legado).filter(Boolean);
    const {Perfil,Historico}=I.modelos(db);
@@ -173,15 +184,13 @@ function criarProcessador({db,Cliente=db.models.Cliente,Empresa=db.models.Empres
    if(perfisGravar.length)await Perfil.bulkCreate(perfisGravar,{transaction,validate:true,updateOnDuplicate:[...Object.keys(I.PERFIL),'updatedAt'],conflictAttributes:['empresa_id','cliente_id']});
    if(histGravar.length)await Historico.bulkCreate(histGravar,{transaction,validate:true,updateOnDuplicate:[...Object.keys(I.HISTORICO),'updatedAt'],conflictAttributes:['id']});
    if(marcas.length)await Linha.bulkCreate(marcas,{transaction});
-   const cursor=job.cursor+slice.length;
-   await job.update({cursor,...Object.fromEntries(Object.entries(cont).map(([k,n])=>[k,Number(job[k]||0)+n])),relatorio:JSON.stringify(relatorio),fase:cursor===job.total?'Finalizando relatório':'Conferindo e salvando lote',progressoEm:agoraDate,lease_ate:agora()+leaseMs,erro:null,tentativas:0,ms_por_registro:job.ms_por_registro?job.ms_por_registro*0.7+(Math.max(1,agora()-inicio)/slice.length)*0.3:Math.max(1,agora()-inicio)/slice.length},{transaction});
-   await antesCommit({job,cont,transaction});
-   return {cursor,total:job.total,linhas:slice.length};
+   return checkpoint(cont);
   });
   if(confirmado)log.info(`[Importação][empresa:${empresa}][op:${id}] checkpoint confirmado ${confirmado.cursor}/${confirmado.total}; lote=${confirmado.linhas}`);
  }
  async function finalizar(job,transaction,relatorio){
-  const resultado={criados:job.criados,atualizados:job.atualizados,ignorados:job.ignorados,rejeitados:job.rejeitados,relatorio,comAvisos:relatorio.filter(r=>r.aviso).length};
+  relatorio.sort((a,b)=>a.linha-b.linha);
+  const resultado={tipo:job.tipo||'clientes',criados:job.criados,atualizados:job.atualizados,ignorados:job.ignorados,rejeitados:job.rejeitados,relatorio,comAvisos:relatorio.filter(r=>r.aviso).length};
   await Lote.update({resultado:JSON.stringify({...resultado,ignorados:resultado.ignorados+resultado.rejeitados}),dados:'[]'},{where:{id:job.lote_id,empresa_id:job.empresa_id},transaction});
   await job.update({estado:'concluido',fase:'Importação concluída',resultado:JSON.stringify(resultado),dados:'[]',concluidoEm:new Date(agora()),erro:null,dono:null,lease_ate:0},{transaction});
  }

@@ -1,5 +1,6 @@
 const { parentPort, workerData } = require("node:worker_threads");
 try {
+  const maxLinhas=Math.max(1,Math.min(10000,parseInt(workerData.maxLinhas,10)||2500));
   const XLSX = require("xlsx"),
     bytes = Buffer.from(workerData.bytes);
   const xlsx = workerData.ext === "xlsx";
@@ -24,7 +25,7 @@ try {
     raw: true,
     cellFormula: true,
     cellHTML: false,
-    sheetRows: 2502,
+    sheetRows: maxLinhas+2,
     bookVBA: true,
     cellDates: false,
     cellNF: true,
@@ -36,9 +37,9 @@ try {
   if (!nomes.includes(aba)) throw new Error("Selecione uma aba válida.");
   const sheet = wb.Sheets[aba],
     ref = XLSX.utils.decode_range(sheet["!fullref"] || sheet["!ref"] || "A1");
-  if (ref.e.r > 2500 || ref.e.c > 79)
+  if (ref.e.r > maxLinhas || ref.e.c > 79)
     throw new Error(
-      "Limite de 2.500 linhas de dados e 80 colunas por arquivo.",
+      `Limite de ${maxLinhas} linhas de dados e 80 colunas por arquivo.`,
     );
   for (const [k, cell] of Object.entries(sheet)) {
     if (!k.startsWith("!") && (cell.f || cell.l))

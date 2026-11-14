@@ -1384,6 +1384,7 @@ function calcularIdadePet(dataNascimento) {
 
 // Renderizar lista de pets na seção #petsList
 function renderPets(pets) {
+  const seguro=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const container = document.getElementById("petsList");
   if (!container) return;
 
@@ -1453,7 +1454,7 @@ function renderPets(pets) {
     titleRow.style.alignItems = "center";
 
     const nameEl = document.createElement("div");
-    nameEl.innerHTML = `<strong style="font-size:16px">${pet.nome || "Sem nome"}</strong>`;
+    nameEl.innerHTML = `<strong style="font-size:16px">${seguro(pet.nome || "Sem nome")}</strong>`;
 
     // Badge de estado (ex: Calmo) — opcional, placeholder
     const badge = document.createElement("div");
@@ -1480,7 +1481,7 @@ function renderPets(pets) {
 
     const idadeText = pet.data_nascimento
       ? calcularIdadePet(pet.data_nascimento)
-      : "";
+      : pet.idade_informada || "";
     // Preparar tags: suporta array JSON ou string separada por vírgulas
     let tagsArray = [];
     if (pet.tags) {
@@ -1509,16 +1510,16 @@ function renderPets(pets) {
 
     const tagsHtml =
       tagsArray.length > 0
-        ? `<div style="margin-top:8px">Tags: ${tagsArray.map((tag) => `<span style=\"display:inline-block;background:#eef6ff;color:#0366d6;padding:4px 8px;border-radius:12px;font-size:12px;margin-right:6px;\">${tag}</span>`).join("")}</div>`
+        ? `<div style="margin-top:8px">Tags: ${tagsArray.map((tag) => `<span style=\"display:inline-block;background:#eef6ff;color:#0366d6;padding:4px 8px;border-radius:12px;font-size:12px;margin-right:6px;\">${seguro(tag)}</span>`).join("")}</div>`
         : "";
 
     details.innerHTML = `
-                <div>Espécie: ${pet.especie || pet.raca || "---"}</div>
-                <div>Raça: ${pet.raca || pet.especie || "---"}</div>
-                <div>Gênero: ${pet.genero || "---"}</div>
-                <div>Idade: ${idadeText}</div>
-                <div>Porte: ${pet.porte || "---"}</div>
-                <div>Pelagem: ${pet.pelagem || "---"}</div>
+                <div>Espécie: ${seguro(pet.especie || pet.raca || "---")}</div>
+                <div>Raça: ${seguro(pet.raca || pet.especie || "---")}</div>
+                <div>Gênero: ${seguro(pet.genero || "---")}</div>
+                <div>Idade: ${seguro(idadeText)}</div>
+                <div>Porte: ${seguro(pet.porte || "---")}</div>
+                <div>Pelagem: ${seguro(pet.pelagem || "---")}</div>
                 <div>Planos Contratados: </div>
                 ${tagsHtml}
             `;

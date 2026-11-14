@@ -93,6 +93,7 @@ const produtos = {
   observacao: ["Observação"],
 };
 function campos(tipo) {
+  if(tipo==='pets')return require('./pets').campos;
   return tipo === "clientes" ? clientes : produtos;
 }
 function sugerir(tipo, coluna) {

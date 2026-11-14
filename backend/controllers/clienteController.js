@@ -136,6 +136,8 @@ exports.createCliente = async (req, res) => {
     const extras=inteligencia.normalizar(req.body);
     if(Object.keys(extras).length)await inteligencia.preparar(sequelize);
     const cliente=await sequelize.transaction(async transaction=>{
+      const empresa=await sequelize.models.Empresa.findByPk(req.user.empresaId,{transaction,lock:transaction.LOCK.UPDATE});
+      if(!empresa)throw Object.assign(new Error('Empresa indisponível.'),{status:403});
       const row=await Cliente.create(dadosCliente,{transaction});
       if(Object.keys(extras).length)await inteligencia.salvar(sequelize,req.user.empresaId,row.id,extras,{transaction});
       return row;
@@ -190,58 +192,9 @@ exports.createCliente = async (req, res) => {
   }
 };
 
-exports.getAllClientes = async (req, res) => {
-  try {
-    const { search } = req.query;
-    let whereClause = {};
-
-    if (search) {
-      const { Op } = require("sequelize");
-      whereClause = {
-        [Op.or]: [
-          { nome: { [Op.like]: `%${search}%` } },
-          { email: { [Op.like]: `%${search}%` } },
-          { telefone: { [Op.like]: `%${search}%` } },
-          { cpf: { [Op.like]: `%${search}%` } },
-        ],
-      };
-    }
-
-    // Filtro obrigatório por empresa
-    if (req.user?.empresaId) {
-      whereClause.empresa_id = req.user.empresaId;
-    }
-
-    const limit = Math.min(parseInt(req.query.limit, 10) || 100, 1000);
-    const offset = parseInt(req.query.offset, 10) || 0;
-    const clientes = await Cliente.findAll({
-      where: whereClause,
-      attributes: [
-        "id",
-        "nome",
-        "email",
-        "telefone",
-        "cpf",
-        "cidade",
-        "ativo",
-        "createdAt",
-        "grupo_cliente",
-        "imagem_perfil",
-        "data_nascimento",
-      ],
-      order: [["createdAt", "DESC"]], // Ordenar por data de criação (mais recente primeiro)
-      limit,
-      offset,
-    });
-
-    res.json({ success: true, clientes: clientes });
-  } catch (err) {
-    console.error("Erro ao buscar clientes:", err);
-    res.status(500).json({
-      success: false,
-      error: "Erro ao buscar os clientes",
-    });
-  }
+exports.getAllClientes = async (req,res) => {
+  try {return res.json(await require('../services/listagemClientes').listar(sequelize,req.user?.empresaId,req.query));}
+  catch(e){return res.status(e.status||500).json({success:false,error:e.status?e.message:'Não foi possível listar clientes.'});}
 };
 
 exports.getClienteById = async (req, res) => {
@@ -267,6 +220,7 @@ exports.getClienteById = async (req, res) => {
             "pelagem",
             "chip",
             "pedigree_rg",
+            "especie", "cor", "peso", "idade_informada", "codigo_legado", "origem_importacao",
             "alergias",
             "observacao",
             "tags",
@@ -412,6 +366,8 @@ exports.updateCliente = async (req, res) => {
     const extras=inteligencia.normalizar(req.body);
     if(Object.keys(extras).length)await inteligencia.preparar(sequelize);
     const updatedRows=await sequelize.transaction(async transaction=>{
+      const empresa=await sequelize.models.Empresa.findByPk(req.user.empresaId,{transaction,lock:transaction.LOCK.UPDATE});
+      if(!empresa)throw Object.assign(new Error('Empresa indisponível.'),{status:403});
       const row=await Cliente.findOne({where:{id,empresa_id:req.user.empresaId},transaction,lock:transaction.LOCK.UPDATE});
       if(!row)return 0;
       await row.update(updates,{transaction});
@@ -465,6 +421,8 @@ exports.deleteCliente = async (req, res) => {
     // Excluir somente complementos desta empresa junto com o cadastro.
     const m=await inteligencia.preparar(sequelize);
     await sequelize.transaction(async transaction=>{
+      const empresa=await sequelize.models.Empresa.findByPk(req.user.empresaId,{transaction,lock:transaction.LOCK.UPDATE});
+      if(!empresa)throw Object.assign(new Error('Empresa indisponível.'),{status:403});
       await Cliente.findOne({where:{id,empresa_id:req.user.empresaId},transaction,lock:transaction.LOCK.UPDATE});
       await m.Perfil.destroy({where:{cliente_id:id,empresa_id:req.user.empresaId},transaction});
       await m.Historico.destroy({where:{cliente_id:id,empresa_id:req.user.empresaId},transaction});

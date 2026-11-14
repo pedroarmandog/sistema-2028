@@ -24,7 +24,7 @@ function criarRotas(tipo) {
     exigePermissao(
       ...(tipo === "clientes"
         ? ["cliente.novo"]
-        : ["item.novo.produto", "item.novo"]),
+        : tipo === "pets" ? ["pet.novo", "pet.editar"] : ["item.novo.produto", "item.novo"]),
     ),
   );
   const upload = multer({
@@ -36,18 +36,22 @@ function criarRotas(tipo) {
       fieldSize: 16000,
     },
   });
-  if(tipo==='clientes'){
+  if(['clientes','pets'].includes(tipo)){
     const operacoes=()=>require('../services/importacao/operacoes').instancia();
     const tratar=fn=>async(req,res,next)=>{try{await fn(req,res);}catch(e){if(e.operacaoId)return res.status(e.status||409).json({erro:e.message,operacaoId:e.operacaoId});next(e);}};
     router.post('/operacoes',tratar(async(req,res)=>{
-      const p=operacoes();const op=await p.iniciar(req.user.empresaId,req.user.id,req.body.token,req.body.escolhas||{});
+      const p=operacoes();const op=await p.iniciar(req.user.empresaId,req.user.id,req.body.token,req.body.escolhas||{},tipo);
       res.status(202).json({operacao:op});
       if(require.main?.filename===path.resolve(__dirname,'../app.js'))p.iniciarMonitor();
     }));
-    router.get('/operacoes/atual',tratar(async(req,res)=>res.json({operacao:await operacoes().atual(req.user.empresaId)})));
-    router.get('/operacoes/:id',tratar(async(req,res)=>res.json({operacao:await operacoes().obter(req.user.empresaId,req.params.id)})));
-    router.get('/operacoes/:id/relatorio',tratar(async(req,res)=>res.json(await operacoes().relatorioFinal(req.user.empresaId,req.params.id))));
-    router.post('/operacoes/:id/retomar',tratar(async(req,res)=>res.json({operacao:await operacoes().retomar(req.user.empresaId,req.params.id)})));
+    router.get('/operacoes/atual',tratar(async(req,res)=>res.json({operacao:await operacoes().atual(req.user.empresaId,tipo)})));
+    router.get('/operacoes/:id',tratar(async(req,res)=>res.json({operacao:await operacoes().obter(req.user.empresaId,req.params.id,tipo)})));
+    router.get('/operacoes/:id/relatorio',tratar(async(req,res)=>res.json(await operacoes().relatorioFinal(req.user.empresaId,req.params.id,tipo))));
+    router.post('/operacoes/:id/retomar',tratar(async(req,res)=>res.json({operacao:await operacoes().retomar(req.user.empresaId,req.params.id,tipo)})));
+  }
+  if(tipo==='pets'){
+    router.get('/tutores',async(req,res,next)=>{try{const clientes=await require('../services/buscaClientesVenda').buscar(require('../models/Cliente').Cliente,req.user.empresaId,req.query);res.json({clientes});}catch(e){next(e);}});
+    router.post('/tutores',exigePermissao('cliente.novo'),async(req,res,next)=>{try{res.status(201).json({cliente:await require('../services/importacao/pets').criarTutor(req.user.empresaId,req.user.id,req.body.token,req.body.linha)});}catch(e){next(e);}});
   }
   router.get("/modelo", (req, res) => {
     const headers = Object.values(campos(tipo)).map((v) => v[0]);
@@ -65,6 +69,7 @@ function criarRotas(tipo) {
       await banco.preparar();
       res.json({
         campos: campos(tipo),
+        limites:{linhas:Math.max(1,Math.min(10000,parseInt(process.env.IMPORTACAO_MAX_LINHAS,10)||2500)),megabytes:5},
         centros:
           tipo === "produtos"
             ? (await service.centrosDaEmpresa(req.user.empresaId)).map(
@@ -98,7 +103,7 @@ function criarRotas(tipo) {
         const w = new Worker(
           path.resolve(__dirname, "../services/importacao/arquivo-worker.js"),
           {
-            workerData: { bytes: req.file.buffer, ext, aba: req.body.aba },
+            workerData: { bytes: req.file.buffer, ext, aba: req.body.aba, maxLinhas:Math.max(1,Math.min(10000,parseInt(process.env.IMPORTACAO_MAX_LINHAS,10)||2500)) },
             resourceLimits: { maxOldGenerationSizeMb: 96 },
           },
         );
@@ -134,7 +139,7 @@ function criarRotas(tipo) {
           mapeamento: mapa,
           precisaMapear: true,
         });
-      const previa = await service.analisar(
+      const previa = tipo==='pets' ? await require('../services/importacao/pets').analisar(arquivo,mapa,req.user.empresaId,req.user.id,req.body.origemImportacao||'legado') : await service.analisar(
         tipo,
         arquivo,
         mapa,
@@ -160,6 +165,7 @@ function criarRotas(tipo) {
     }
   });
   router.post("/confirmar", async (req, res, next) => {
+    if(tipo==='pets')return res.status(400).json({erro:'Use a operação em lotes após conferir os tutores.'});
     try {
       await banco.preparar();
       if (!/^[0-9a-f-]{36}$/.test(req.body.token || ""))

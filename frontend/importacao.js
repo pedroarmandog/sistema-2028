@@ -3,9 +3,9 @@
   const config = document.currentScript.dataset;
   const tipo = config.tipo;
   const root =
-    tipo === "clientes" ? "/api/clientes/importacao" : "/api/itens/importacao";
+    tipo === "pets" ? "/api/pets/importacao" : tipo === "clientes" ? "/api/clientes/importacao" : "/api/itens/importacao";
   const titulo =
-    tipo === "clientes" ? "Importar Clientes" : "Importar Produtos";
+    tipo === "pets" ? "Importar Pets" : tipo === "clientes" ? "Importar Clientes" : "Importar Produtos";
   let modal,
     anterior,
     arquivo,
@@ -15,7 +15,8 @@
     pagina = 0,
     ocupado = false,
     relatorio = [];
-  let operacao=null,timerOperacao=null;
+  const emLotes=["clientes","pets"].includes(tipo);
+  let operacao=null,timerOperacao=null,conclusaoEmitida=null;
   const el = (tag, texto) => {
     const n = document.createElement(tag);
     if (texto != null) n.textContent = texto;
@@ -159,6 +160,7 @@
   function tabela() {
     const box = modal.querySelector(".table-wrap");
     box.replaceChildren();
+    if(tipo==='pets')return tabelaPets(box);
     const t = el("table"),
       head = el("tr");
     ["Linha", "Registro", "Validação / classificação", "Ação"].forEach((s) =>
@@ -271,6 +273,7 @@
       form.append('referenciaHistorico',modal.querySelector('#ph-referencia-historico')?.value||'');
       form.append('conciliacaoHistorico',modal.querySelector('#ph-conciliacao-historico')?.value||'separado');
     }
+    if(tipo==='pets')form.append('origemImportacao',modal.querySelector('#ph-origem-pets')?.value||'legado');
     form.append("centroPadrao", modal.querySelector("#ph-centro")?.value || "");
     busy(true);
     aviso("Lendo arquivo, validando registros e verificando duplicidades…");
@@ -312,6 +315,9 @@
           registro: JSON.stringify(r.dados || r.originais),
         }));
       const r = d.resumo;
+      if(tipo==='pets'){
+        atualizarResumoPets();return;
+      }
       aviso(
         r.total +
           " registros · " +
@@ -330,6 +336,37 @@
       busy(false);
     }
   }
+  function atualizarResumoPets(){
+    if(!previa)return;const selecionados=previa.linhas.filter(r=>!r.erro&&!r.repetida&&(escolhas[r.linha]?.acao||r.acao)!=='ignorar');
+    const confirmados=selecionados.filter(r=>escolhas[r.linha]?.cliente_id||r.vinculo?.situacao==='automatico').length;
+    aviso(`Conferir vínculo dos pets: ${previa.resumo.total} linhas · ${selecionados.length} selecionados · ${confirmados} tutores confirmados · ${selecionados.length-confirmados} vínculos para revisar · ${previa.resumo.erros} com erro. Confira as ações antes de confirmar.`);
+  }
+  function tabelaPets(box){
+    box.append(el('h3','Conferir vínculo dos pets'));
+    const t=el('table'),head=el('tr');for(const label of ['Linha / Pet','Tutor na planilha','Cliente encontrado / situação','Ação'])head.append(el('th',label));t.append(head);
+    for(const row of previa.linhas.slice(pagina*25,pagina*25+25)){
+      const tr=el('tr'),v=row.vinculo||{},d=row.dados||{};
+      tr.append(el('td',`${row.linha} · ${d.nome||'Sem nome'}`),el('td',[d.tutor_nome,d.tutor_codigo&&'Código: '+d.tutor_codigo,d.tutor_telefone].filter(Boolean).join(' · ')));
+      const vinculo=el('td'),acao=el('td');tr.append(vinculo,acao);t.append(tr);
+      if(row.erro||row.repetida){vinculo.textContent=row.erro||row.aviso;acao.textContent='Ignorar';continue;}
+      const choice=escolhas[row.linha]??={acao:row.acao};
+      const status=el('p',choice.cliente_nome||v.cliente?.nome||v.motivo||'Tutor pendente');vinculo.append(status);
+      const busca=el('input');busca.type='search';busca.placeholder='Pesquisar tutor por nome, telefone ou CPF';busca.setAttribute('aria-label','Pesquisar tutor da linha '+row.linha);
+      const resultados=el('select');resultados.setAttribute('aria-label','Escolher tutor da linha '+row.linha);
+      const escolher=(clientes)=>{resultados.replaceChildren();const vazio=el('option','Selecione o tutor');vazio.value='';resultados.append(vazio);for(const c of clientes){const o=el('option',`${c.nome} · ${c.telefone||'sem telefone'} · #${c.id}`);o.value=c.id;resultados.append(o);}resultados.onchange=()=>{const c=clientes.find(c=>String(c.id)===resultados.value);if(c){choice.cliente_id=c.id;choice.cliente_nome=c.nome;atualizarResumoPets();status.textContent=c.nome+' · vínculo selecionado manualmente';}else{delete choice.cliente_id;delete choice.cliente_nome;status.textContent=v.motivo||'Tutor pendente';atualizarResumoPets();}};};
+      escolher(v.candidatos||[]);let tempo,numero=0;busca.oninput=()=>{clearTimeout(tempo);const n=++numero;tempo=setTimeout(async()=>{try{const r=await request(root+'/tutores?search='+encodeURIComponent(busca.value));if(n===numero)escolher(r.clientes);}catch(e){status.textContent=e.message;}},300);};
+      vinculo.append(busca,resultados);
+      if(v.situacao!=='automatico'&&d.tutor_nome&&d.tutor_telefone)vinculo.append(botao('Cadastrar tutor da planilha',async()=>{
+        if(!confirm(`Cadastrar o tutor ${d.tutor_nome} com o telefone ${d.tutor_telefone}? O backend verificará duplicidades.`))return;
+        try{const r=await request(root+'/tutores',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:previa.token,linha:row.linha})});choice.cliente_id=r.cliente.id;choice.cliente_nome=r.cliente.nome;tabela();}catch(e){status.textContent=e.message;}
+      }));
+      const select=el('select');select.setAttribute('aria-label','Ação da linha '+row.linha);
+      for(const[value,label]of row.existente?[['ignorar','Ignorar existente'],['atualizar','Atualizar pet identificado']]:[['criar','Importar pet'],['ignorar','Ignorar']]){const o=el('option',label);o.value=value;select.append(o);}select.value=choice.acao;select.onchange=()=>{choice.acao=select.value;atualizarResumoPets();};acao.append(select);
+      if(row.aviso)acao.append(el('p',row.aviso));
+      if(row.possivel_duplicado){const label=el('label','Confirmo que é outro animal'),ck=el('input');ck.type='checkbox';ck.checked=!!choice.distinto;ck.onchange=()=>{choice.distinto=ck.checked;atualizarResumoPets();};label.prepend(ck);acao.append(label);}
+    }
+    box.append(t);const pager=el('div');pager.className='pager';const a=botao('Anterior',()=>{pagina--;tabela();}),p=botao('Próxima',()=>{pagina++;tabela();});a.disabled=pagina===0;p.disabled=(pagina+1)*25>=previa.linhas.length;pager.append(a,el('span',`Página ${pagina+1} de ${Math.ceil(previa.linhas.length/25)}`),p);box.append(pager);
+  }
   const duracao = n => {
     if(n==null)return 'Calculando…';
     if(n<60)return `${Math.max(0,Math.round(n))} s`;
@@ -338,7 +375,7 @@
   function painelOperacao(){
     let box=modal.querySelector('.ph-job');if(box)return box;
     box=el('section');box.className='ph-job';box.setAttribute('aria-label','Andamento da importação');
-    const titulo=el('h3','Importando seus clientes'),fase=el('p');fase.dataset.jobFase='';fase.setAttribute('role','status');
+    const titulo=el('h3',tipo==='pets'?'Importando seus pets':'Importando seus clientes'),fase=el('p');fase.dataset.jobFase='';fase.setAttribute('role','status');
     const trilha=el('div');trilha.className='ph-job-track';
     const barra=el('div');barra.className='ph-job-bar';barra.setAttribute('role','progressbar');barra.setAttribute('aria-valuemin','0');barra.setAttribute('aria-valuemax','100');barra.setAttribute('aria-label','Registros confirmados');
     const fill=el('div');fill.className='ph-job-fill';barra.append(fill);
@@ -370,7 +407,7 @@
     if(!modal||!operacao)return;
     const box=painelOperacao(),o=operacao;
     box.classList.toggle('executando',o.estado==='processando');box.classList.toggle('concluido',o.estado==='concluido');
-    box.querySelector('h3').textContent=o.estado==='concluido'?'Importação concluída ✓':o.estado==='interrompido'?'Importação interrompida':'Importando seus clientes';
+    box.querySelector('h3').textContent=o.estado==='concluido'?'Importação concluída ✓':o.estado==='interrompido'?'Importação interrompida':tipo==='pets'?'Importando seus pets':'Importando seus clientes';
     box.querySelector('[data-job-fase]').textContent=o.fase;
     const pct=Math.max(0,Math.min(100,o.percentual||0));box.style.setProperty('--job-progresso',pct+'%');
     box.querySelector('[role="progressbar"]').setAttribute('aria-valuenow',String(pct));
@@ -381,6 +418,8 @@
     box.querySelector('[data-job-tempo="restante"] strong').textContent=o.estado==='concluido'?'Concluído':o.lento?'Aguardando confirmação do lote…':duracao(o.restanteSegundos);
     box.querySelector('[data-job-mensagem]').textContent=o.erro||(o.lento?'Sem um novo checkpoint recente. Os números exibidos são os já confirmados no banco.':o.estado==='concluido'?'Os resultados foram confirmados. Você pode baixar o relatório.':'Você pode fechar esta janela. A importação continua no servidor.');
     box.querySelector('[data-job-retomar]').hidden=!o.retomavel;box.querySelector('[data-job-nova]').hidden=o.estado!=='concluido';
+    if(tipo==='pets')box.querySelector('[data-job-quantidade]').textContent+=` · ${o.vinculados||0} pets vinculados · ${o.vinculosPendentes||0} vínculos pendentes de revisão`;
+    if(o.estado==='concluido'&&conclusaoEmitida!==o.id){conclusaoEmitida=o.id;document.dispatchEvent(new CustomEvent('pethub:importacao-concluida',{detail:{id:o.id,tipo}}));}
     modal.querySelector('[data-confirmar]').hidden=true;
     modal.querySelector('[data-fechar-importacao]').textContent='Fechar acompanhamento';
     modal.querySelector('[data-relatorio-importacao]').disabled=o.estado!=='concluido';
@@ -410,7 +449,11 @@
   }
   async function confirmar() {
     if (ocupado || !previa?.token) return;
-    const selecionados=previa.linhas.filter(r=>!r.erro&&!r.repetida&&(escolhas[String(r.linha)]||r.acao)!=='ignorar');
+    const selecionados=previa.linhas.filter(r=>!r.erro&&!r.repetida&&(tipo==='pets'?(escolhas[String(r.linha)]?.acao||r.acao):(escolhas[String(r.linha)]||r.acao))!=='ignorar');
+    if(tipo==='pets'){
+      if(selecionados.some(r=>!escolhas[r.linha]?.cliente_id&&(r.vinculo?.situacao!=='automatico'||!r.cliente_id))){aviso('Existem pets selecionados sem tutor confirmado. Pesquise e escolha o tutor ou marque Ignorar.',true);return;}
+      if(selecionados.some(r=>r.possivel_duplicado&&!escolhas[r.linha]?.distinto)){aviso('Confira os pets de mesmo nome: confirme se são animais distintos ou marque Ignorar.',true);return;}
+    }
     if(!selecionados.length){
       aviso('Nenhum registro selecionado para criar ou atualizar. Se os clientes já existem, use Atualizar os clientes identificados; confira os erros e as ações da prévia.',true);
       return;
@@ -418,12 +461,12 @@
     busy(true);
     aviso("Salvando registros. Aguarde…");
     try {
-      const d = await request(root + (tipo==='clientes'?'/operacoes':'/confirmar'), {
+      const d = await request(root + (emLotes?'/operacoes':'/confirmar'), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token: previa.token, escolhas }),
       });
-      if(tipo==='clientes'){acompanhar(d.operacao);return;}
+      if(emLotes){acompanhar(d.operacao);return;}
       relatorio = d.relatorio;
       previa = null;
       aviso(
@@ -439,7 +482,7 @@
         .querySelector("footer")
         .append(botao("Atualizar lista", () => location.reload(), "primary"));
     } catch (e) {
-      if(tipo==='clientes'&&e.operacaoId){
+      if(emLotes&&e.operacaoId){
         try{const d=await request(root+'/operacoes/'+e.operacaoId);acompanhar(d.operacao);return;}catch{}
       }
       aviso(e.message, true);
@@ -468,7 +511,7 @@
     main.append(
       el(
         "p",
-        tipo === "clientes"
+        tipo !== "produtos"
           ? "Importe sua planilha com as colunas em qualquer ordem. Nome é obrigatório."
           : "Nome, custo e venda são obrigatórios. Confira a classificação dos centros antes de salvar.",
       ),
@@ -501,6 +544,9 @@
       escolher(e.dataTransfer.files[0]);
     };
     main.append(drop);
+    if(tipo==='pets'){
+      const origem=el('label','Origem dos códigos legados dos pets');const campo=el('input');campo.id='ph-origem-pets';campo.value='legado';campo.maxLength=80;campo.onchange=invalidar;origem.append(campo);main.append(origem,el('p','Importe os clientes primeiro. Pets precisam de tutor confirmado; linhas pendentes podem ser ignoradas e analisadas depois. Não são criados pets sem tutor.'));
+    }
     if(tipo==='clientes'){
       const referencia=el('label','Data de referência dos indicadores da planilha (preencher se houver resumo histórico)');
       const inputRef=el('input');inputRef.type='date';inputRef.id='ph-referencia-historico';inputRef.onchange=invalidar;referencia.append(inputRef);main.append(referencia);
@@ -557,6 +603,7 @@
     busy(true);
     try {
       meta = await request(root + "/campos");
+      drop.firstChild.textContent=`Selecione ou arraste CSV, XLS ou XLSX. Até ${meta.limites?.megabytes||5} MB e ${meta.limites?.linhas||2500} registros por arquivo.`;
       const o = el("option", "Selecione se necessário");
       o.value = "";
       select.append(o);
@@ -565,7 +612,7 @@
         o.value = nome;
         select.append(o);
       });
-      if(tipo==='clientes'){
+      if(emLotes){
         const atual=await request(root+'/operacoes/atual');
         if(atual.operacao&&['pendente','processando','interrompido'].includes(atual.operacao.estado)){acompanhar(atual.operacao);return;}
         if(atual.operacao)main.append(botao('Ver última importação',()=>acompanhar(atual.operacao)));

@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+router.use("/importacao",require("./importacaoRoutes").criarRotas("pets"));
 const petController = require("../controllers/petController");
 const multer = require("multer");
 const { Agendamento, Periodicidade, Pet, Cliente } = require("../models");

@@ -1,0 +1,48 @@
+{
+  "ambiente": "Node 24.22.1; SQLite em memória; sem transmissão externa e sem acesso ao TiDB de produção",
+  "testesRegressao": 130,
+  "planilhaFornecida": {
+    "cenario": "planilha fornecida",
+    "analisados": 499,
+    "criados": 495,
+    "rejeitados": 4,
+    "totalBanco": 495,
+    "idsPaginados": 495,
+    "cadastrosOriginaisNoMes": 37,
+    "entradasPethubNoMes": 495,
+    "comCadastroOriginal": 458,
+    "semCadastroOriginal": 37
+  },
+  "petsCriacaoEReimportacao": [
+    {
+      "cenario": "pets",
+      "linhas": 10,
+      "ms": 73.3,
+      "criados": 10,
+      "reimportacaoDuplicados": 0
+    },
+    {
+      "cenario": "pets",
+      "linhas": 100,
+      "ms": 117.7,
+      "criados": 100,
+      "reimportacaoDuplicados": 0
+    },
+    {
+      "cenario": "pets",
+      "linhas": 500,
+      "ms": 863.3,
+      "criados": 500,
+      "reimportacaoDuplicados": 0
+    },
+    {
+      "cenario": "pets",
+      "linhas": 1100,
+      "ms": 3498.3,
+      "criados": 1100,
+      "reimportacaoDuplicados": 0
+    }
+  ],
+  "testeNavegador": "Preparado; execução impedida pelo socket do Chromium neste ambiente",
+  "patch": "git apply --check e aplicação em cópia da base, com igualdade dos 25 arquivos confirmada"
+}

@@ -22,6 +22,7 @@ router.use((req,res,next) => {
 
 const inteligencia = require('../controllers/clienteInteligenciaController');
 const { exigePermissao } = require('../middleware/exigePermissao');
+router.get('/auditoria-importacao',exigePermissao('cliente.novo'),async(req,res)=>{try{res.json(await require('../services/listagemClientes').auditoria(require('../models').sequelize,req.user.empresaId));}catch(e){res.status(500).json({erro:'Não foi possível consultar a auditoria.'});}});
 router.get('/busca-venda', require('../services/buscaClientesVenda').endpoint);
 router.get('/:id/inteligencia', inteligencia.obter);
 router.get('/:id/analise-vendas', inteligencia.analise);

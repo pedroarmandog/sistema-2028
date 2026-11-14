@@ -1,4 +1,4 @@
-﻿// Função para configurar event listeners dos filtros manualmente
+// Função para configurar event listeners dos filtros manualmente
 function setupFilterEventListeners() {
   console.log("🔧 Configurando event listeners dos filtros...");
 
@@ -175,6 +175,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 // Carregar clientes - carregamento inicial silencioso
 async function loadClients(forceRefresh = false) {
+  if(window.PetHubClientesPagina)return window.PetHubClientesPagina.carregar(forceRefresh);
   console.log("🔍 Carregando clientes...", forceRefresh ? "(FORÇADO)" : "");
 
   const tbody = document.getElementById("clientsTableBody");
@@ -315,6 +316,7 @@ window.displayClients = displayClients;
 
 // Função de refresh - SIMPLES E FUNCIONAL
 function refreshClientsFix() {
+  if(window.PetHubClientesPagina)return window.PetHubClientesPagina.carregar(true);
   console.log("🔄 Refresh iniciado");
 
   const tbody = document.getElementById("clientsTableBody");
@@ -388,6 +390,7 @@ function searchClients(event) {
 
 // Função de busca em tempo real
 function searchClientsRealTime(searchTerm) {
+  if(window.PetHubClientesPagina)return window.PetHubClientesPagina.busca(searchTerm);
   console.log("🔍 Busca em tempo real:", searchTerm);
 
   // Se não há termo de busca, usar todos os clientes
@@ -643,6 +646,13 @@ function showNotification(message, type) {
 
 // Função para exportar clientes para Excel
 async function exportToExcel() {
+  if(window.PetHubClientesPagina&&!window.__phExportacaoCompleta){
+    const anteriores=window.allClients,originais=window.originalClients;let pagina=0,clientes=[];
+    try{
+      while(true){const q=window.PetHubClientesPagina.parametros();q.set('limit','150');q.set('offset',String(pagina*150));const r=await fetch('/api/clientes?'+q,{cache:'no-store'});const d=await r.json();if(!r.ok)throw Error(d.error||'Falha na exportação.');clientes.push(...d.clientes);if(clientes.length>=d.paginacao.total)break;pagina++;}
+      window.allClients=clientes;window.originalClients=clientes;window.__phExportacaoCompleta=true;return await exportToExcel();
+    }finally{window.allClients=anteriores;window.originalClients=originais;window.__phExportacaoCompleta=false;}
+  }
   console.log("📊 Iniciando exportação para Excel...");
 
   try {
@@ -719,9 +729,8 @@ async function exportToExcel() {
       "Data de Nascimento": cliente.data_nascimento
         ? new Date(cliente.data_nascimento).toLocaleDateString("pt-BR")
         : "Não informado",
-      "Data de Cadastro": new Date(cliente.createdAt).toLocaleDateString(
-        "pt-BR",
-      ),
+      "Data de Cadastro": cliente.cadastro_original?cliente.cadastro_original.split("-").reverse().join("/"):new Date(cliente.createdAt).toLocaleDateString("pt-BR"),
+      "Entrada no PetHub": new Date(cliente.createdAt).toLocaleDateString("pt-BR"),
       "Hora de Cadastro": new Date(cliente.createdAt).toLocaleTimeString(
         "pt-BR",
       ),
@@ -1029,6 +1038,7 @@ function removerAcentos(texto) {
 
 // Função para aplicar filtros
 function applyFilters() {
+  if(window.PetHubClientesPagina)return window.PetHubClientesPagina.filtros();
   console.log("🔍 === APLICANDO FILTROS ===");
   console.log("📊 Estado dos filtros:", activeFiltros);
 
@@ -1406,6 +1416,7 @@ function nextPage() {
 
 // Função para atualizar a exibição dos clientes com paginação
 function updateDisplayAndPagination() {
+  if(window.PetHubClientesPagina)return window.PetHubClientesPagina.carregar(true);
   console.log(
     `🔄 Atualizando display: página ${window.currentPage}, ${window.itemsPerPage} itens por página, total ${window.totalClients}`,
   );
