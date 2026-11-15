@@ -61,3 +61,30 @@
 .pc-settings .pc-root .pc-sound-option input[type=radio]{width:17px;height:17px;padding:0;margin:0;flex-shrink:0;accent-color:#e99b18}
 .pc-settings .pc-root .pc-sound-option button{background:#edf1f6;color:#203449}
 .pc-settings .nav-item-with-submenu[data-pc-closed=true]:hover>.submenu{display:none}
+
+/* Standard ERP shell: fixed edge-to-edge header, separate settings title. */
+.pc-settings .pc-layout{padding:96px 24px 24px}
+.pc-settings .pc-layout>.pc-settings-header{position:fixed;top:0;left:120px;right:0;z-index:100;background:var(--bg-white,#fff);padding:15px 30px;border:0;border-radius:0;box-shadow:var(--shadow-medium,0 2px 6px #0002);display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:nowrap;min-height:76px;font:inherit}
+.pc-settings .pc-settings-header h1{font-size:24px;color:var(--bg-sidebar-start,#203449);line-height:1.35}
+.pc-settings .pc-settings-header .header-left{min-width:0;gap:15px}
+.pc-settings .pc-settings-header .header-right{gap:20px;min-width:0}
+.pc-settings .pc-settings-header .user-menu{white-space:nowrap}
+.pc-settings .pc-settings-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:1600px;margin:0 auto 18px}
+.pc-settings .pc-settings-heading h2{font-size:20px;margin:0;color:#203449}
+.pc-settings .pc-settings-heading p{font:13px/1.6 system-ui,sans-serif;color:#64748b;margin:4px 0 0}
+.pc-settings .pc-settings-header .btn-calendar{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;min-height:40px}
+.pc-settings .pc-settings-header .search-box{position:relative}
+.pc-settings .pc-menu-results{position:absolute;top:calc(100% + 8px);left:0;right:0;background:white;border:1px solid #dce5ef;border-radius:10px;box-shadow:0 8px 24px #14283e20;max-height:320px;overflow:auto;z-index:200}
+.pc-settings .pc-menu-results[hidden]{display:none}
+.pc-settings .pc-menu-results a{display:block;padding:12px;color:#203449;text-decoration:none;font:14px system-ui}
+.pc-settings .pc-menu-results a:hover,.pc-settings .pc-menu-results a:focus{background:#edf1f6}
+.pc-settings .pc-menu-results p{padding:12px;font:13px system-ui;color:#64748b}
+.pc-settings .sidebar .logo{min-height:89px;padding:6px 3px}
+.pc-settings .sidebar .logo-pet-cria{width:113px;height:77px;max-width:100%;object-fit:contain;border-radius:0;margin:0}
+.pc-settings .sidebar .logo-pet-cria[hidden],.pc-settings [data-pc-company-name][hidden]{display:none!important}
+.pc-settings [data-pc-company-name]{font:600 13px/1.4 system-ui;text-align:center;overflow-wrap:anywhere;padding:4px;color:#fff}
+.pc-settings.pc-sidebar-collapsed .pc-settings-header{left:0}
+@media(max-width:1200px){.pc-settings .pc-settings-header .header-right{gap:12px}.pc-settings .pc-settings-header .search-box input{width:190px}.pc-settings .pc-settings-header h1{font-size:21px}}
+@media(max-width:950px){.pc-settings .pc-layout>.pc-settings-header{flex-wrap:wrap;padding:12px 20px}.pc-settings .pc-layout{padding-top:142px}.pc-settings .pc-settings-header .header-right{flex:1;justify-content:flex-end;flex-wrap:wrap}.pc-settings .pc-settings-header .search-box input{width:180px}}
+@media(max-width:700px){.pc-settings .pc-layout{padding:160px 12px 16px}.pc-settings .pc-layout>.pc-settings-header{left:0;padding:10px 14px;gap:8px}.pc-settings .pc-settings-header .header-left{flex:1}.pc-settings .pc-settings-header .header-right{width:100%;flex-basis:100%;justify-content:flex-start;gap:10px}.pc-settings .pc-settings-header h1{font-size:20px}.pc-settings .pc-settings-header .search-box{flex:1;min-width:130px}.pc-settings .pc-settings-header .search-box input{width:100%;min-width:0}.pc-settings .pc-settings-header .user-menu{margin-left:auto}.pc-settings .pc-settings-heading{align-items:flex-start;flex-direction:column;gap:8px}.pc-settings .pc-settings-header .dropdown-menu{left:0;right:auto;min-width:220px}.pc-settings .pc-settings-header .btn-primary{padding:9px 11px;font-size:12px}}
+@media(max-width:430px){.pc-settings .pc-layout{padding-top:200px}.pc-settings .pc-settings-header .search-box{order:5;flex-basis:100%}}

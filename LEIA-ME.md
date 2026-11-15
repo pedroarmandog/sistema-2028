@@ -1,105 +1,79 @@
-# PetHub — configurações do app em abas e menu completo
+# PetHub — logo da empresa e cabeçalho padrão nas configurações do Cliente
 
-## O que muda
+Esta correção é incremental sobre o pacote de abas já instalado. Não substitua nem apague a pasta frontend inteira.
 
-A página real é **`/configuracoes/portal-cliente.html`**. Ela passa a ter quatro abas, sem recarregar a página:
+## Correção
 
-| Aba | Conteúdo |
+A tela `/configuracoes/portal-cliente.html` usava um cabeçalho próprio em formato de card, afastado das margens. Além disso, a sidebar era inserida depois da inicialização dos scripts tradicionais da logo e permanecia com a imagem padrão.
+
+Agora:
+
+- A barra superior é fixa no topo, de ponta a ponta a partir da sidebar, sem borda arredondada ou margem externa.
+- A estrutura utiliza as classes do Dashboard, com menu recolhível, ajuda, calendário, Início Rápido, pesquisa e usuário.
+- Ajuda e menu do usuário reutilizam os componentes existentes do ERP. O nome do usuário e da empresa vêm da sessão, sem nomes fixos nesta implementação.
+- O título das configurações, o indicador de rascunho e Voltar ao sistema ficam abaixo da barra, separados dela.
+- A logo da empresa é carregada mesmo que a sidebar termine de ser inserida depois da consulta de identidade.
+- O espaço da logo é 113 × 77 px, com `object-fit: contain`, preservando a proporção e a transparência.
+- Sem logo, ou se a imagem falhar, aparece o nome da empresa. Não é escolhida a primeira empresa de uma lista.
+
+## Arquivos
+
+Copie mantendo estes caminhos:
+
+| Arquivo | Função |
 |---|---|
-| Geral | Ativação do portal, recebimento de solicitações, push e link da loja |
-| Agendamentos | Dias, horários, capacidade, duração, antecedência, horizonte, feriados, bloqueios, serviços e profissionais |
-| Aparência | Cinco cores, presets, prévia local, salvar e restaurar |
-| Notificações | Dez sons, ouvir, volume, repetição a partir de 1 segundo e MP3 personalizado |
+| `frontend/configuracoes/portal-cliente.html` | Barra padrão e carregamento dos componentes compartilhados |
+| `frontend/components/cliente-portal-config.css` | Barra encostada nas margens, logo e adaptação responsiva |
+| `frontend/components/cliente-portal-config-shell.js` | Identidade da empresa, nome do usuário, pesquisa e Início Rápido |
+| `frontend/sidebar-component/sidebar-navigation.js` | Informa quando a sidebar termina de carregar, para aplicar a logo |
+| `tests/browser/portal-config-shell.dom.cjs` | Testes da correção |
 
-Feriados, bloqueios e MP3 ficam em áreas expansíveis. No desktop, a agenda usa duas áreas lado a lado e até três campos por linha; os sons usam três colunas. Em notebooks e tablets, os grids diminuem para duas ou uma coluna. Até 700 px, os campos ficam em uma coluna, com menu recolhível e abas que podem ser deslizadas horizontalmente.
+Os componentes de ajuda e perfil já existentes no projeto não foram modificados. O arquivo novo não carrega `dashboard.js` nem inicia consultas de indicadores do Dashboard.
 
-O contêiner usa o espaço disponível, com limite de 1600 px. A prévia do celular fica ao lado das cores em telas largas e abaixo em telas menores. Os campos continuam presentes, inclusive quando a aba está oculta.
+## Identidade e segurança
 
-## Arquivos para copiar ao projeto
+Somente leituras são feitas automaticamente:
 
-Copie os arquivos abaixo **mantendo exatamente as pastas**, sobre a versão atual que já tem PetHub Cliente, paleta e sons. Este ZIP é incremental: não substitua nem apague a pasta `frontend` inteira.
+1. `GET /api/usuarios/me` identifica a empresa da sessão autenticada.
+2. `GET /api/empresas/identidade-pdf` reutiliza o serviço existente que resolve a imagem no armazenamento permanente e retorna a logo em dados de imagem. Apesar do nome do endpoint, esta consulta não gera nem imprime documento.
+3. Quando esse serviço não está disponível, a consulta de cadastro existente `GET /api/empresas/{id-da-sessao}` é usada como compatibilidade para nomes de arquivos locais e URLs HTTPS de mídia.
 
-| Arquivo | Alteração |
-|---|---|
-| `frontend/configuracoes/portal-cliente.html` | Cabeçalho, estilos e scripts com caminhos desde a raiz; ícones iguais aos do Dashboard |
-| `frontend/components/cliente-portal-config-layout.js` | Abas acessíveis, organização dos formulários existentes, rascunhos, validação e indicador de alterações |
-| `frontend/components/cliente-portal-config.css` | Layout amplo, grids, detalhes expansíveis, prévia compacta e responsividade, restritos a esta página |
-| `frontend/components/cliente-portal-erp.js` | Salvar acesso/agenda atualiza a revisão sem reconstruir a página e apagar outras edições |
-| `frontend/components/cliente-portal-erp.css` | Restringe o estilo de cabeçalho ao cabeçalho da página, evitando atingir os cabeçalhos dos popups |
-| `frontend/components/cliente-portal-aparencia.js` | Notifica a conclusão do salvamento da paleta para atualizar o indicador de rascunho |
-| `frontend/components/cliente-portal-som-config.js` | MP3 expansível; salvamentos preservam rascunhos independentes; mantém intervalo mínimo de 1 segundo |
-| `frontend/sidebar-component/sidebar.html` | Estrutura completa do menu oficial, com ícones e submenus, caminhos desde a raiz e PetHub Cliente após Central Fiscal |
-| `frontend/sidebar-component/sidebar-navigation.js` | Inicialização de navegação sem carregar os indicadores e polling do Dashboard |
-| `frontend/sidebar-component/inject-sidebar.js` | Usa o inicializador específico nesta página; mantém o fluxo anterior nas demais páginas |
-| `tests/browser/portal-config-layout.dom.cjs` | Testes automatizados desta alteração com API e áudio simulados |
+A identidade recebida precisa corresponder à empresa da sessão. Não são usados IDs de empresa do endereço da página, da pesquisa, de armazenamento local ou de uma lista de empresas. Respostas 401/403 não são contornadas. As requisições incluem a sessão existente e não armazenam credenciais.
 
-Os arquivos `dashboard.html`, `dashboard.js`, credenciais e regras de autorização não foram alterados. O componente compartilhado de HTML agora contém a estrutura completa; outros consumidores desse componente também recebem esse HTML. O novo inicializador de navegação é aplicado somente à página com a classe `pc-settings`.
+Não há alterações de cadastro, upload automático, alterações de logo, banco, autenticação ou endpoints. O fallback de nome evita mostrar a marca de outra empresa quando a imagem não estiver disponível. Um arquivo antigo já perdido no servidor não pode ser recuperado apenas por esta correção.
 
-## Sidebar e caminhos
+## Testes realmente executados
 
-A estrutura foi extraída da sidebar existente no Dashboard, preservando sua hierarquia e identificadores. A página utiliza `dashboard.css`, `colors.css`, a logo e o mesmo Font Awesome do Dashboard. PetHub Cliente fica **dentro de Configuração, imediatamente depois de Central Fiscal**, sem novo módulo principal.
+Node.js 24.22.1 e jsdom 26, com APIs e eventos de imagem simulados:
 
-Os links reais usam `/dashboard.html`, `/clientes.html`, `/pets/...`, `/financeiro/...`, `/configuracoes/...` etc. Não dependem da subpasta atual nem de `<base>`.
+**24 testes aprovados, zero falhas na execução selecionada.** Registro em `TESTES.txt`.
 
-O arquivo `ROTAS.csv` relaciona os 76 links do menu. As opções sem destino que já existiam no Dashboard continuam como controles `#`; não foram inventadas páginas para elas. Os destinos locais reais existem nos arquivos recuperados para este trabalho.
+- 7 novos: posição e elementos da barra; identidade da sessão; sidebar tardia; logo 113 × 77; carregamento/falha da imagem; fallback de nome; nomes de arquivos legados e URLs HTTPS; rejeição de outra empresa e URLs inseguras; sessão não autorizada; pesquisa sem depender de acento; abertura/fechamento do Início Rápido; inicialização única; destinos e scripts existentes; integração com ajuda e perfil compartilhados.
+- 13 testes da reorganização anterior: abas, formulários e rascunhos, salvamentos simulados, validação, menus e auditoria HTTP local de arquivos.
+- 4 testes de continuidade de áudio entre abas.
+- `node --check` nos scripts novo e de navegação: aprovado.
 
-Foram verificadas por HTTP em um servidor estático local **68 URLs distintas**, reunindo destinos, página, logo e recursos locais diretos. Todas retornaram 200. Isso verifica o conteúdo estático; não substitui testar autenticação, permissões ou respostas do Render em produção.
-
-O novo inicializador é carregado após a inserção do HTML do menu e não depende de um `DOMContentLoaded` já encerrado. Um identificador evita listeners duplicados. Abrir/fechar menus, grupos internos, teclado e recolher a sidebar foram exercitados em DOM simulado. Se o carregamento do menu falhar, aparece uma mensagem e o link Voltar ao sistema continua disponível.
-
-O Font Awesome continua vindo do CDN já usado pelo Dashboard. A disponibilidade desse serviço externo não foi verificada neste ambiente.
-
-## Salvamentos e rascunhos
-
-Não existe botão global que misture requisições:
-
-- **Salvar acesso e agenda** usa o contrato existente `PUT /api/cliente-portal/config`. Geral e Agendamentos continuam sendo partes da mesma configuração, como já eram no backend.
-- **Salvar paleta** usa `PUT /api/cliente-portal/aparencia`.
-- **Salvar som e preferências** usa `PUT /api/cliente-portal/som`.
-- **Salvar e utilizar** envia o MP3 por multipart em `POST /api/cliente-portal/som/mp3`.
-
-Alternar abas mantém os mesmos elementos de formulário, inclusive o arquivo escolhido. Salvar acesso/agenda não remonta a página. Salvar som não descarta o arquivo MP3 escolhido. Enviar MP3 preserva alterações pendentes de volume e repetição. Falhas mantêm os dados e mostram o erro. A revisão retornada pelo backend é usada no próximo salvamento.
-
-O cabeçalho indica alterações pendentes; as abas recebem um ponto quando há rascunho. Ao sair com rascunhos, o navegador pode mostrar seu aviso padrão de saída. A validação abre a aba e a área expansível do campo inválido antes de o navegador tentar focá-lo.
-
-A prévia da paleta altera apenas o elemento de prévia, sem aplicar cores ao ERP. Os limites, validação real de MP3, armazenamento privado, permissões, autenticação e seleção de empresa continuam nos serviços existentes. Nenhum endpoint passou a aceitar empresa selecionada no frontend.
-
-## Testes executados nesta entrega
-
-Ambiente: Node.js 24.22.1 e jsdom 26, instalado em diretório externo de testes. Nenhuma dependência foi adicionada ao projeto.
-
-**Resultado final da suíte selecionada: 17 testes aprovados, zero falhas.** O registro completo está em `TESTES-APROVADOS.txt`.
-
-- 13 testes novos: quatro abas e separação de formulários; rascunhos preservados ao alternar/salvar; revisão entre salvamentos; prévia e salvamento da paleta; ouvir som por mock; mínimo de 1 segundo; arquivo selecionado preservado; upload multipart simulado; campos inválidos em abas ocultas; erros e envio duplicado; edição durante uma requisição; navegação por teclado; sidebar e grupos internos; caminhos locais e auditoria HTTP; comparação com a hierarquia do Dashboard; falha de carregamento do menu; prévia isolada entre janelas.
-- 4 testes existentes de áudio entre abas: transferência de liderança, navegação com preferência lembrada, escopo de empresa e expiração de sinal de outra aba.
-- `node --check` nos seis arquivos JavaScript novos/alterados: aprovado.
-
-Para repetir com jsdom disponível no ambiente de desenvolvimento:
+Para repetir, com jsdom disponível no ambiente de desenvolvimento:
 
 ```bash
-node --test tests/browser/portal-config-layout.dom.cjs tests/portal-audio-abas.test.js
+node --test tests/browser/portal-config-shell.dom.cjs tests/browser/portal-config-layout.dom.cjs tests/portal-audio-abas.test.js
 ```
 
-### Execuções adicionais e limitações reais
+Os dois últimos arquivos de teste já acompanham os pacotes anteriores. Nenhuma dependência foi adicionada ao package.json.
 
-Também foram executados testes antigos recuperados com os patches:
+### Limitações
 
-- `tests/portal-alertas-front.test.js`: 7 aprovados e 3 falharam. A mesma execução na cópia anterior a estas alterações reproduziu as mesmas três falhas. Esses testes antigos iniciam reprodução sem configurar a preferência de áudio do dispositivo, enquanto o módulo atual exige ativação. O módulo de áudio não foi modificado nesta entrega; os quatro testes específicos de continuidade atuais passaram.
-- `tests/browser/portal-logo-empresa.dom.cjs`: falhou na comparação textual de CSS `0` versus `0px` no jsdom 26. Reproduzido também na cópia anterior às alterações. Os arquivos de logo não foram modificados.
-- `tests/browser/portal-aparencia.dom.cjs`: imprimiu a conclusão de suas verificações de paleta/menu, mas o processo terminou com erro assíncrono ao fechar uma janela do jsdom. Não foi contabilizado como teste aprovado. As verificações novas da página passaram na suíte principal acima.
+Não foi feito login em produção, consulta ao TiDB/R2 real, reprodução física de áudio ou decodificação real da imagem do seu cadastro nesta execução. O teste de imagem dispara eventos simulados; ele confirma a lógica de exibição e fallback, não a disponibilidade do arquivo real.
 
-Não foi executada a suíte completa histórica do backend: o conjunto de fontes recuperado nesta sessão não contém todos os auxiliares do laboratório fiscal usados por ela. Não houve teste conectado a TiDB, Render, R2 ou bancos reais. Os salvamentos da nova suíte são exercitados com respostas simuladas dos endpoints; não são uma comprovação de persistência em produção nem de isolamento multiempresa no banco.
+A inspeção visual em navegador real continua pendente neste ambiente, onde o Chromium não inicia por restrição de socket. As propriedades do cabeçalho foram verificadas no DOM e as regras responsivas foram implementadas, mas a aparência deve ser conferida em desktop e celular após o deploy. Os 24 testes selecionados não representam toda a suíte histórica do projeto.
 
-O Chromium local não pôde iniciar por restrição de socket do ambiente. Portanto, **não foi feita inspeção visual real em Chrome/Firefox, nem em smartphone**, não foi ouvido som físico e não foi enviado MP3 real ao R2. As regras responsivas estão implementadas em CSS, mas precisam da conferência visual após o deploy.
+## Instalação
 
-## Publicação no Render
+1. Copie os quatro arquivos de frontend para as mesmas pastas do projeto atual.
+2. Faça commit e deploy no Render normalmente.
+3. Atualize a página com Ctrl + F5.
+4. Confira a logo na sidebar, a barra superior e o nome do usuário.
+5. Teste ajuda, calendário, Início Rápido, pesquisa e recolhimento do menu. Confirme também que abas e salvamentos continuam funcionando.
+6. Se a empresa não possuir logo acessível, a sidebar mostrará seu nome; confira o arquivo cadastrado em Configuração → Empresa.
 
-1. Faça backup/commit da versão atual.
-2. Copie os arquivos mantendo as pastas. Publique todos os dez arquivos de frontend juntos.
-3. Faça commit e deploy normalmente. Não é necessário mudar Build Command, Start Command, Pre-deploy ou variáveis de ambiente.
-4. Abra `/configuracoes/portal-cliente.html` e atualize a página para carregar os novos recursos.
-5. Confira em desktop e celular: ícones, menus, abas, ausência de scroll horizontal, botões e prévia.
-6. Salve acesso/agenda, cores e som separadamente; recarregue e confirme os valores. Faça também um teste em outra empresa com suas permissões normais.
-7. Valide uma solicitação real de teste e o áudio no navegador autorizado. Se usar MP3, valide upload, reprodução e persistência com o armazenamento já configurado.
-
-**Sem alterações no backend, sem migração do banco e sem novas variáveis de ambiente.** Não executar SQL nem apagar tabelas ou arquivos anteriores. Este pacote não substitui patches anteriores de autenticação, som, logo ou armazenamento permanente.
+**Sem migração de banco, sem mudança de variáveis do Render e sem alteração dos comandos de deploy.**

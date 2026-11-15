@@ -7,6 +7,10 @@
  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
  <link rel="stylesheet" href="/components/cliente-portal-erp.css"><link rel="stylesheet" href="/components/cliente-portal-config.css">
  <script src="/custom-colors.js"></script><script src="/api-config.js"></script>
+ <script defer src="/config/help-center-config.js"></script>
+ <script defer src="/components/global-help-center.js"></script>
+ <script defer src="/components/user-profile-dropdown.js"></script>
+ <script defer src="/components/cliente-portal-config-shell.js?v=20261115-shell1"></script>
  <script defer src="/cliente-app/tema.js"></script>
  <script defer src="/components/cliente-portal-config-layout.js"></script>
  <script defer src="/components/cliente-portal-erp.js" data-pc-erp="1"></script>
@@ -16,11 +20,28 @@
 <body class="pc-shell pc-settings">
  <script src="/inject-sidebar.js"></script>
  <div class="pc-layout">
-  <header class="pc-settings-header">
-   <button type="button" class="menu-toggle" aria-label="Abrir ou fechar menu" aria-expanded="true"><i class="fas fa-bars" aria-hidden="true"></i></button>
-   <div><h1>Configurações · PetHub Cliente</h1><p>Personalize o aplicativo e gerencie os agendamentos online.</p></div>
-   <div class="pc-header-actions"><span id="pc-dirty" role="status">Tudo salvo</span><a href="/dashboard.html">Voltar ao sistema</a></div>
+  <header class="header pc-settings-header">
+   <div class="header-left">
+    <button type="button" class="menu-toggle" aria-label="Abrir ou fechar menu" aria-expanded="true"><i class="fas fa-bars" aria-hidden="true"></i></button>
+    <h1>PetHub Cliente</h1>
+   </div>
+   <div class="header-right">
+    <div class="calendar-widget"><a class="btn-calendar" href="/painel/calendario.html" aria-label="Abrir calendário"><i class="fas fa-calendar" aria-hidden="true"></i></a></div>
+    <div class="dropdown">
+     <button type="button" class="btn-primary dropdown-toggle" id="inicioRapidoBtn" aria-expanded="false" aria-controls="inicioRapidoMenu"><i class="fas fa-plus" aria-hidden="true"></i> Início Rápido <i class="fas fa-chevron-down" aria-hidden="true"></i></button>
+     <div class="dropdown-menu" id="inicioRapidoMenu">
+      <a href="/agendamentos-novo.html" class="dropdown-item"><i class="fas fa-calendar-plus" aria-hidden="true"></i> Novo Atendimento</a>
+      <a href="/pets/cadastro-pet.html" class="dropdown-item"><i class="fas fa-dog" aria-hidden="true"></i> Novo Pet</a>
+      <a href="/novo-cliente.html" class="dropdown-item"><i class="fas fa-user-plus" aria-hidden="true"></i> Novo Cliente</a>
+      <a href="/atendimento/nova-venda.html" class="dropdown-item"><i class="fas fa-shopping-bag" aria-hidden="true"></i> Nova Venda</a>
+      <a href="/financeiro/contas-a-receber/contas-a-pagar/pagamento-fornecedor.html" class="dropdown-item"><i class="fas fa-credit-card" aria-hidden="true"></i> Nova Conta a Pagar</a>
+     </div>
+    </div>
+    <div class="search-box"><i class="fas fa-search" aria-hidden="true"></i><input type="search" id="pc-menu-search" placeholder="Pesquisar por menu" aria-label="Pesquisar por menu" aria-expanded="false" aria-controls="pc-menu-results" autocomplete="off"><div id="pc-menu-results" class="pc-menu-results" hidden></div></div>
+    <div class="user-menu" role="button" tabindex="0" aria-label="Menu do usuário"><i class="fas fa-user-circle" aria-hidden="true"></i><span data-pc-user-name>Usuário</span></div>
+   </div>
   </header>
+  <div class="pc-settings-heading"><div><h2>Configurações · PetHub Cliente</h2><p>Personalize o aplicativo e gerencie os agendamentos online.</p></div><div class="pc-header-actions"><span id="pc-dirty" role="status">Tudo salvo</span><a href="/dashboard.html">Voltar ao sistema</a></div></div>
   <p id="pc-nav-status" role="status"></p>
   <main id="pc-config" class="pc-root"><p>Carregando configurações…</p></main>
  </div>

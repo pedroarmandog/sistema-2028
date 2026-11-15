@@ -31,6 +31,6 @@
  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeAll();if(e.key===' '||e.key==='Enter'){const b=e.target.closest('[role=button]');if(b&&sidebar?.contains(b)){e.preventDefault();b.click();}}});
  fetch('/sidebar-component/sidebar.html',{credentials:'same-origin'}).then(r=>{if(!r.ok)throw Error('Menu indisponível');return r.text();}).then(html=>{
   const template=document.createElement('template');template.innerHTML=html;sidebar=template.content.querySelector('.sidebar');if(!sidebar)throw Error('Menu indisponível');
-  const old=document.querySelector('.sidebar');if(old)old.replaceWith(sidebar);else document.body.prepend(sidebar);init();
+  const old=document.querySelector('.sidebar');if(old)old.replaceWith(sidebar);else document.body.prepend(sidebar);init();document.dispatchEvent(new Event('pethub:sidebar-ready'));
  }).catch(()=>{const el=document.getElementById('pc-nav-status');if(el)el.textContent='Não foi possível carregar o menu. Use Voltar ao sistema ou atualize a página.';});
 })();
