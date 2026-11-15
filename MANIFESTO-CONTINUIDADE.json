@@ -1,0 +1,34 @@
+[
+  {
+    "arquivo": "frontend/components/cliente-portal-audio.js",
+    "sha256": "5d1951bb4d0feec43106f5f556da3cf169d900e35accd7f7c6b0608aa284f706"
+  },
+  {
+    "arquivo": "frontend/components/cliente-portal-widget.js",
+    "sha256": "ccc17ef1fed7ef6d5adad0102e8f483615284cc5a516ede0287970fce2190496"
+  },
+  {
+    "arquivo": "frontend/components/cliente-portal-popup.css",
+    "sha256": "be3f5fbf0cb648d46d1a4e2190b9405f327da29eebf47122184df3d60509d721"
+  },
+  {
+    "arquivo": "frontend/mobile/service-worker.js",
+    "sha256": "04cea5d4f27f707580a5bf4e6d5fa062e66a4e530ceedb8a904a6dbe43a2a382"
+  },
+  {
+    "arquivo": "tests/portal-audio-abas.test.js",
+    "sha256": "ae1c96665abf377c725f7249f932647a5e085d5d17baf1962871e8e5f1382fdf"
+  },
+  {
+    "arquivo": "tests/browser/portal-som-dispositivo.dom.cjs",
+    "sha256": "ec3713247a4f304b3827ea38399c961fb280d0fbad119b6c81b9f0e8643453f6"
+  },
+  {
+    "arquivo": "tests/browser/portal-aparencia.dom.cjs",
+    "sha256": "50285372a14a2641bd624cef6b8c7e31b3c1c1ba48c560ff7a1a62fbe3295bba"
+  },
+  {
+    "arquivo": "tests/browser/portal-audio-versoes.dom.cjs",
+    "sha256": "8a12ef4ebc1b11b84c31da6c47b28f139aff705f91cf1841b1fcc39f9ca1f156"
+  }
+]
