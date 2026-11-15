@@ -1,0 +1,26 @@
+✔ four accessible tabs retain all fields and keep independent forms outside each other (216.883213ms)
+✔ switching tabs and saving access/agenda preserves palette, sound and MP3 drafts (124.069411ms)
+✔ palette live preview and its save do not submit agenda or discard sound drafts (96.216586ms)
+✔ sound preview, repeat from 1 second and save preserve selected MP3 draft (107.7969ms)
+✔ MP3 upload retains unsaved volume/repeat and request remains multipart (64.222008ms)
+✔ validation reveals hidden schedule tab and collapsed block before native focus (49.915851ms)
+✔ failed saves retain values and dirty marker; duplicate submissions do not duplicate requests (52.003064ms)
+✔ keyboard tabs work and sidebar initializes once with nested menus and collapse (100.186573ms)
+✔ all local navigation targets and direct page assets exist from nested URL (23.240866ms)
+✔ general save preserves edits made during a pending request and signals them as unsaved (44.026174ms)
+✔ navigation matches Dashboard hierarchy; script failure leaves return link usable (158.628032ms)
+Static HTTP audit: 68 unique local URLs returned 200; external icon CDN not contacted.
+✔ page and navigation resources respond through a local static HTTP server (162.441066ms)
+✔ palette preview remains local and does not alter ERP styles or another settings window (173.707115ms)
+✔ aba com autoplay bloqueado libera Web Lock para outra aba autorizada (4.959813ms)
+✔ fechar líder transfere som para outra aba permitida sem nova ativação e não mistura empresa (2.290436ms)
+✔ navegação preserva preferência e retoma automaticamente se autoplay do site estiver permitido (0.988425ms)
+✔ sinal de aba encerrada sem aviso expira e informa novamente o estado real (1.058058ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1815.303137

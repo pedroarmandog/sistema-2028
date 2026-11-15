@@ -1,0 +1,55 @@
+{
+  "arquivos": [
+    {
+      "caminho": "frontend/configuracoes/portal-cliente.html",
+      "sha256": "eafe8ac176bf1942df3573baf400fd09c8f9bbb1ce4582e9d4fc82c860a5fa3b"
+    },
+    {
+      "caminho": "frontend/components/cliente-portal-config-layout.js",
+      "sha256": "f1163ff5b77910bbe93c9b6143b50d8c207f2645a98353dc4e7e08be78d135ea"
+    },
+    {
+      "caminho": "frontend/components/cliente-portal-config.css",
+      "sha256": "1872f495429bd8ecc5165b312479a96cfe3c6c412ec513019a3413617e9abb84"
+    },
+    {
+      "caminho": "frontend/components/cliente-portal-erp.js",
+      "sha256": "e47c586fd2d3fd32ee5e46fc6a4d1d307c9fa4ca1c156dff0cf9a59b032960f1"
+    },
+    {
+      "caminho": "frontend/components/cliente-portal-erp.css",
+      "sha256": "4a76c49c0272d495d3a7dd37508e35e2f210c6f7910bc2c01348be36a99e3d50"
+    },
+    {
+      "caminho": "frontend/components/cliente-portal-aparencia.js",
+      "sha256": "5e6599e267bd12d2d2bd4de68003a7e4dd5491889baaf4d4372b1f4b0d3164ee"
+    },
+    {
+      "caminho": "frontend/components/cliente-portal-som-config.js",
+      "sha256": "77b3137adb549db51d80636c61facf54a4395b3be6cd1c42f42da97decc1719c"
+    },
+    {
+      "caminho": "frontend/sidebar-component/sidebar.html",
+      "sha256": "f27023b0b5bfa9c35cc32708a82f9f13595386a30db02dbff40538e264017208"
+    },
+    {
+      "caminho": "frontend/sidebar-component/sidebar-navigation.js",
+      "sha256": "6e71eeb5f8b0d5ee35e9a78f5e2638a495290f2a46c23616c9904870849a572f"
+    },
+    {
+      "caminho": "frontend/sidebar-component/inject-sidebar.js",
+      "sha256": "6f796668c5d3919d20b7ae5b5495b44d3edf4238a228140089d7fae7b3903b7d"
+    },
+    {
+      "caminho": "tests/browser/portal-config-layout.dom.cjs",
+      "sha256": "c9e11535ef903b0708136dd02e437f1e3d3c7e97466f170c6f9999d4ea4754e9"
+    }
+  ],
+  "backend_alterado": false,
+  "migracao": false,
+  "testes_selecionados": {
+    "aprovados": 17,
+    "falhas": 0
+  },
+  "limitacoes": "Consultar LEIA-ME.md; testes antigos adicionais não passaram e inspeção visual real está pendente."
+}

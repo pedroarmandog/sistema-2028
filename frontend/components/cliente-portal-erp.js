@@ -190,8 +190,10 @@
             if (f.id === 'pc-config-form') {
                 const data = new FormData(f), get = k => Number(data.get(k)), val = k => data.get(k), cfg = configRows.config;
                 const rules = { dias: [0, 1, 2, 3, 4, 5, 6].filter(i => data.has('dia' + i)), inicio: val('inicio'), fim: val('fim'), intervalo: get('intervalo'), capacidade: get('capacidade'), duracaoPadrao: get('duracaoPadrao'), antecedencia: get('antecedencia'), horizonte: get('horizonte'), feriados: String(val('feriados') || '').split(/\s+/).filter(Boolean), bloqueios: [...f.querySelectorAll('.pc-block')].map(el => ({ data: el.querySelector('[name=data]').value, inicio: el.querySelector('[name=inicio]').value, fim: el.querySelector('[name=fim]').value, profissional: Number(el.querySelector('[name=profissional]').value) || null })), servicos: [...f.querySelectorAll('[data-servico]')].filter(el => el.querySelector('[name=publicado]').checked).map(el => ({ id: el.dataset.servico, duracao: Number(el.querySelector('[name=duracao]').value), mostrarPreco: el.querySelector('[name=mostrarPreco]').checked, profissional: Number(el.querySelector('[name=profissional]').value) || null })) };
-                await api('/config', { method: 'PUT', body: { ativo: data.has('ativo'), receber_pedidos: data.has('receber_pedidos'), notificar_gestor: data.has('notificar_gestor'), push_tutor: data.has('push_tutor'), regras: rules, revisao: cfg.revisao } });
-                await configuracao(f.closest('.pc-root'));
+                const savedConfig = await api('/config', { method: 'PUT', body: { ativo: data.has('ativo'), receber_pedidos: data.has('receber_pedidos'), notificar_gestor: data.has('notificar_gestor'), push_tutor: data.has('push_tutor'), regras: rules, revisao: cfg.revisao } });
+                configRows.config = savedConfig;
+                document.getElementById('pc-config-status').textContent = 'Acesso e agenda salvos.';
+                document.dispatchEvent(new CustomEvent('pethub:config-salva', { detail: { form: f } }));
             }
             if (f.classList.contains('pc-acao-form')) {
                 const p = pedidoRows.find(p => p.id === f.dataset.id);

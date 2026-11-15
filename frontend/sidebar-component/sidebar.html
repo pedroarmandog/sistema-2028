@@ -1,98 +1,457 @@
-﻿﻿<!-- Sidebar component (copied from dashboard sidebar) -->
-<div class="sidebar" id="injected-sidebar">
-    <div class="logo">
-        <img src="/logos/Logo PetHub (2).svg" class="logo-pet-cria" alt="Logo Pet Cria">
-    </div>
-    <nav class="sidebar-nav">
+    <div class="sidebar">
+      <div class="logo">
+        
+        
+        <img
+          src="/logos/Logo PetHub (2).svg"
+          class="logo-pet-cria"
+          alt="PetHub"
+        />
+      </div>
+
+      <nav class="sidebar-nav">
         <div class="nav-item-with-submenu">
-            <a href="#" class="nav-item" id="painelMenuItem">
-                <i class="fas fa-th"></i>
-                <span>Painel</span>
-                <i class="fas fa-chevron-down submenu-arrow"></i>
+          <a href="#" class="nav-item" id="painelMenuItem">
+            <i class="fas fa-th"></i>
+            <span>Painel</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="painelSubmenu">
+            <a href="/dashboard.html" class="submenu-item">
+              <span>Operacional</span>
             </a>
-            <div class="submenu" id="painelSubmenu">
-                <a href="./painel/rel-operacional.html" class="submenu-item">
-                    <span>Operacional</span>
-                </a>
-                <a href="./painel/rel-faturamento.html" class="submenu-item">
-                    <span>Rel. Faturamento</span>
-                </a>
-                <!--<a href="./painel/rel-demonstrativo-resultados.html" class="submenu-item">
-                    <span>Rel. Demonstrativo de resultados</span>
-                </a>-->
-                <!--<a href="./painel/rel-recebiveis-produto.html" class="submenu-item">
-                    <span>Rel. Recebíveis por produto</span>
-                </a>-->
-                <a href="./painel/posicao-caixa.html" class="submenu-item">
-                    <span>Posição de Caixa</span>
-                </a>
-                <a href="./painel/painel-financeiro.html" class="submenu-item">
-                    <span>Painel Financeiro</span>
-                </a>
-            </div>
+            <a href="/painel/rel-faturamento.html" class="submenu-item">
+              <span>Rel. Faturamento</span>
+            </a>
+            
+            
+            <a href="/painel/posicao-caixa.html" class="submenu-item">
+              <span>Posição de Caixa</span>
+            </a>
+            <a href="/painel/painel-financeiro.html" class="submenu-item">
+              <span>Painel Financeiro</span>
+            </a>
+          </div>
         </div>
 
-        <a href="dashboard.html" class="nav-item">
-            <i class="fas fa-chart-bar"></i>
-            <span>Dashboard</span>
+        <a href="/dashboard.html" class="nav-item">
+          <i class="fas fa-chart-bar"></i>
+          <span>Dashboard</span>
         </a>
 
         <div class="nav-item-with-submenu">
-            <a href="#" class="nav-item" id="itemMenuItem">
-                <i class="fas fa-cube"></i>
-                <span>Item</span>
-                <i class="fas fa-chevron-down submenu-arrow"></i>
+          <a href="#" class="nav-item" id="itemMenuItem">
+            <i class="fas fa-cube"></i>
+            <span>Item</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="itemSubmenu">
+            <a href="/item/meus-itens.html" class="submenu-item">
+              <span>Meus Itens</span>
             </a>
-            <div class="submenu" id="itemSubmenu">
-                <a href="#" class="submenu-item">
-                    <span>Meus Itens</span>
-                </a>
-                <a href="#" class="submenu-item">
-                    <span>Novo</span>
-                </a>
-                <a href="#" class="submenu-item">
-                    <span>Agrupamento</span>
-                </a>
-                <a href="#" class="submenu-item">
-                    <span>Marca</span>
-                </a>
-                <a href="#" class="submenu-item">
-                    <span>Unidade</span>
-                </a>
-                <a href="#" class="submenu-item">
-                    <span>Descontos</span>
-                </a>
-                <a href="#" class="submenu-item">
-                    <span>Comissão</span>
-                </a>
+            <div
+              class="submenu-item"
+              id="leftBtnNovo"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <span>Novo</span>
+              <span id="leftCaretNovo" style="font-weight: 700">▼</span>
             </div>
+            <div
+              id="leftSubNovo"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a href="/item/novo-produto.html" class="submenu-item"
+                ><span>Produto</span></a
+              >
+              <a href="/item/novo-produto.html" class="submenu-item"
+                ><span>Serviço</span></a
+              >
+              <a href="/item/novo-produto.html" class="submenu-item"
+                ><span>Plano</span></a
+              >
+            </div>
+            <a href="/item/agrupamento.html" class="submenu-item">
+              <span>Agrupamento</span>
+            </a>
+            <a href="/item/marca.html" class="submenu-item">
+              <span>Marca</span>
+            </a>
+            <a href="/item/unidade.html" class="submenu-item">
+              <span>Unidade</span>
+            </a>
+            <a href="/descontos/index.html" class="submenu-item">
+              <span>Descontos</span>
+            </a>
+            <a href="/item/comissao.html" class="submenu-item">
+              <span>Comissão</span>
+            </a>
+            <a href="/item/etiquetas.html" class="submenu-item">
+              <span>Etiquetas</span>
+            </a>
+            
+            <div
+              class="submenu-item"
+              id="leftBtnEstoque"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <span>Estoque</span>
+              <span id="leftCaretEstoque" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="leftSubEstoque"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a href="/item/estoque/outras-entradas.html" class="submenu-item"
+                ><span>Outras entradas</span></a
+              >
+              <a href="/item/estoque/outras-saidas.html" class="submenu-item"
+                ><span>Outras saídas</span></a
+              >
+              <a href="#" class="submenu-item"><span>Transferência</span></a>
+              <a
+                href="/item/estoque/contagem-estoque.html"
+                class="submenu-item"
+                ><span>Contagem de estoque</span></a
+              >
+            </div>
+            <div
+              class="submenu-item"
+              id="leftBtnClinica"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <span>Clínica</span>
+              <span id="leftCaretClinica" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="leftSubClinica"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a href="/item/clinica/medicamentos.html" class="submenu-item"
+                ><span>Medicamentos</span></a
+              >
+              <a href="/item/clinica/vacina.html" class="submenu-item"
+                ><span>Vacinas</span></a
+              >
+              <a href="/item/clinica/periodicidade.html" class="submenu-item"
+                ><span>Periodicidade</span></a
+              >
+            </div>
+            <a href="/item/manutecao-produtos.html" class="submenu-item">
+              <span>Manutenção geral de produtos</span>
+            </a>
+            <a href="/item/controle-validade.html" class="submenu-item">
+              <span>Controle de validade</span>
+            </a>
+          </div>
         </div>
 
-        <!-- rest of items copied similarly -->
-        <a href="#" class="nav-item">
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="clienteMenuItem">
             <i class="fas fa-users"></i>
             <span>Cliente</span>
-        </a>
-        <a href="#" class="nav-item">
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="clienteSubmenu">
+            <a href="/clientes.html" class="submenu-item">
+              <span>Meus Clientes</span>
+            </a>
+            <a href="/novo-cliente.html" class="submenu-item">
+              <span>Novo Cliente</span>
+            </a>
+            <a href="/grupos-clientes.html" class="submenu-item">
+              <span>Grupo de cliente</span>
+            </a>
+            <a href="/descontos/index.html" class="submenu-item">
+              <span>Descontos</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="petMenuItem">
             <i class="fas fa-dog"></i>
             <span>Pet</span>
-        </a>
-        <a href="#" class="nav-item">
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="petSubmenu">
+            <a href="/pets/meus-pets.html" class="submenu-item">
+              <span>Meus Pets</span>
+            </a>
+            <a href="/pets/cadastro-pet.html" class="submenu-item">
+              <span>Novo Pet</span>
+            </a>
+            <a href="/pets/especie-raca.html" class="submenu-item">
+              <span>Espécie/raça</span>
+            </a>
+            <a href="/pets/pelagem.html" class="submenu-item">
+              <span>Pelagem</span>
+            </a>
+            <a href="/pets/porte.html" class="submenu-item">
+              <span>Porte</span>
+            </a>
+            <a href="/pets/box.html" class="submenu-item">
+              <span>Box</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="atendimentoMenuItem">
             <i class="fas fa-calendar-check"></i>
             <span>Atendimento</span>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="atendimentoSubmenu">
+            <a href="/agendamentos-novo.html" class="submenu-item">
+              <span>Minha Agenda</span>
+            </a>
+
+            
+            <div
+              class="submenu-item"
+              id="attBtnVendas"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="#" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Vendas</span></a
+              >
+              <span id="attCaretVendas" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="attSubVendas"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a href="/atendimento/nova-venda.html" class="submenu-item"
+                ><span>Nova Venda</span></a
+              >
+              
+              <a href="/atendimento/consultar-vendas.html" class="submenu-item"
+                ><span>Consultar vendas</span></a
+              >
+            </div>
+
+            
+            
+
+            
+            <div
+              class="submenu-item"
+              id="attBtnCaixa"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="#" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Caixa</span></a
+              >
+              <span id="attCaretCaixa" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="attSubCaixa"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a href="/Caixa/abertura-fechamento.html" class="submenu-item"
+                ><span>Abertura/Fechamento</span></a
+              >
+              <a href="/Caixa/suprimento-sangria.html" class="submenu-item"
+                ><span>Suprimento/Sangria</span></a
+              >
+              <a href="#" class="submenu-item"
+                ><span>Rel. Demonstrativo de caixa</span></a
+              >
+            </div>
+
+            <a href="/atendimento/orcamento.html" class="submenu-item">
+              <span>Orçamento</span>
+            </a>
+
+            
+            <div
+              class="submenu-item"
+              id="attBtnRelatorios"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="#" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Relatórios</span></a
+              >
+              <span id="attCaretRel" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="attSubRelatorios"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a
+                href="/atendimento/relatorios/venda-no-periodo.html"
+                class="submenu-item"
+                ><span>Venda no período</span></a
+              >
+              
+              <a
+                href="/atendimento/relatorios/atendimento-no-periodo.html"
+                class="submenu-item"
+                ><span>Atendimento no período</span></a
+              >
+              
+              <a
+                href="/atendimento/relatorios/comissao.html"
+                class="submenu-item"
+                ><span>Comissão</span></a
+              >
+              
+              
+            </div>
+          </div>
+        </div>
+
+        <a
+          href="/marketing.html"
+          class="nav-item"
+        >
+          <i class="fas fa-heart"></i>
+          <span>Marketing</span>
         </a>
-        <a href="#" class="nav-item">
-            <i class="fas fa-heart"></i>
-            <span>Marketing</span>
-        </a>
-        <a href="#" class="nav-item">
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="comprasMenuItem">
             <i class="fas fa-shopping-cart"></i>
             <span>Compras</span>
-        </a>
-        <a href="#" class="nav-item">
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="comprasSubmenu">
+            <a href="/compras/entrada-mercadoria.html" class="submenu-item">
+              <span>Entrada de mercadoria</span>
+            </a>
+            <a href="/compras/fornecedor.html" class="submenu-item">
+              <span>Fornecedores</span>
+            </a>
+            
+            <div
+              class="submenu-item"
+              id="compBtnRelatorios"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="#" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Relatórios</span></a
+              >
+              <span id="compCaretRel" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="compSubRelatorios"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a href="#" class="submenu-item"
+                ><span>Entrada no período</span></a
+              >
+              <a href="#" class="submenu-item"
+                ><span>Entrada por produto</span></a
+              >
+              <a href="#" class="submenu-item"
+                ><span>Sugestão de compra</span></a
+              >
+            </div>
+          </div>
+        </div>
+
+        <div class="nav-item-with-submenu">
+          <a href="#" class="nav-item" id="financeiroMenuItem">
             <i class="fas fa-dollar-sign"></i>
             <span>Financeiro</span>
-        </a>
+            <i class="fas fa-chevron-down submenu-arrow"></i>
+          </a>
+          <div class="submenu" id="financeiroSubmenu">
+            
+            <div class="submenu-item" id="finBtnReceber" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+                        <a href="#" style="flex:1;text-decoration:none;color:inherit;"><span>Contas a receber</span></a>
+                        <span id="finCaretReceber" style="font-weight:700">▼</span>
+                    </div>
+                    <div id="finSubReceber" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
+                        <a href="/financeiro/contas-a-receber/recebimento-cliente.html" class="submenu-item"><span>Recebimento de cliente</span></a>
+                    </div>
+
+            
+            <div
+              class="submenu-item"
+              id="finBtnPagar"
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                cursor: pointer;
+              "
+            >
+              <a href="#" style="flex: 1; text-decoration: none; color: inherit"
+                ><span>Contas a pagar</span></a
+              >
+              <span id="finCaretPagar" style="font-weight: 700">▼</span>
+            </div>
+            <div
+              id="finSubPagar"
+              class="nested-submenu submenu"
+              style="display: none; padding-left: 12px; margin-top: 6px"
+            >
+              <a
+                href="/financeiro/contas-a-receber/contas-a-pagar/pagamento-fornecedor.html"
+                class="submenu-item"
+                ><span>Pagamento de fornecedor</span></a
+              >
+            </div>
+
+            
+            
+
+            
+
+            
+            
+
+            
+
+            
+            
+          </div>
+        </div>
+
         <div class="nav-item-with-submenu">
           <a href="#" class="nav-item" id="configuracaoMenuItem">
             <i class="fas fa-cog"></i>
@@ -100,7 +459,6 @@
             <i class="fas fa-chevron-down submenu-arrow"></i>
           </a>
           <div class="submenu" id="configuracaoSubmenu">
-            <a href="/configuracoes/portal-cliente.html" class="submenu-item pc-menu-portal"><span>PetHub Cliente</span></a>
             <a href="/configuracoes/empresa.html" class="submenu-item">
               <span>Empresa</span>
             </a>
@@ -113,9 +471,7 @@
             <a href="/configuracoes/profissional.html" class="submenu-item">
               <span>Profissional</span>
             </a>
-            <!--<a href="/configuracoes/permissoes.html" class="submenu-item">
-                        <span>Permissões</span>
-                    </a>-->
+            
             <a
               href="/configuracoes/centro-resultado.html"
               class="submenu-item"
@@ -128,24 +484,12 @@
             >
               <span>Categoria financeira</span>
             </a>
-            <!--<a href="/configuracoes/tipo-documento.html" class="submenu-item">
-                        <span>Tipo de documento</span>
-                    </a>-->
-            <!--<a href="/configuracoes/configuracoes-gerais.html" class="submenu-item">
-                        <span>Configurações Gerais</span>
-                    </a>-->
-            <!--<a href="/configuracoes/pdv.html" class="submenu-item">
-                        <span>PDV</span>
-                    </a>-->
-            <!--<a href="/configuracoes/formularios.html" class="submenu-item">
-                        <span>Formulários</span>
-                    </a>-->
-            <!--<a href="/configuracoes/feriado.html" class="submenu-item">
-                        <span>Feriado</span>
-                    </a>-->
-            <!--<a href="/configuracoes/ip.html" class="submenu-item">
-                        <span>IP</span>
-                    </a>-->
+            
+            
+            
+            
+            
+            
             <a href="/configuracoes/cores.html" class="submenu-item">
               <span>Cores</span>
             </a>
@@ -155,7 +499,9 @@
             <a href="/fiscal/central-fiscal.html" class="submenu-item">
               <span>Central Fiscal</span>
             </a>
+<a href="/configuracoes/portal-cliente.html" class="submenu-item" id="pc-menu-link"><span>PetHub Cliente</span></a>
           </div>
         </div>
-    </nav>
-</div>
+      </nav>
+    </div>
+

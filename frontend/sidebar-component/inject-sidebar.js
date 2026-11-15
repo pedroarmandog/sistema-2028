@@ -1,4 +1,11 @@
 (function () {
+  if (document.body?.classList.contains('pc-settings')) {
+    const loader = document.createElement('script');
+    loader.src = '/sidebar-component/sidebar-navigation.js';
+    document.head.append(loader);
+    return;
+  }
+
   // inject-sidebar.js - carrega o HTML do componente e injeta no documento
   const cssHref = "/dashboard.css"; // usar o CSS do dashboard para manter estilo idêntico
   const jsSrc = "dashboard.js"; // usar o JS do dashboard para manter comportamento (caminho relativo para evitar injeção duplicada)

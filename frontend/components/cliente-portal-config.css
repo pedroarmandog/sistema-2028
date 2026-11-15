@@ -1,0 +1,63 @@
+/* Scoped to the administrative settings page. The tutor app and ERP retain their styles. */
+.pc-settings .pc-layout{margin-left:120px;padding:24px;min-width:0}
+.pc-settings .pc-root{max-width:1600px;margin:18px auto;padding:0;min-width:0}
+.pc-settings .pc-settings-header{display:flex;align-items:center;gap:16px;padding:18px 22px;background:#fff;border:1px solid #dce5ef;border-radius:14px;flex-wrap:wrap}
+.pc-settings .pc-settings-header h1{font-size:21px;line-height:1.35;margin:0;color:#203449}
+.pc-settings .pc-settings-header p{font-size:13px;line-height:1.5;margin:4px 0 0;color:#64748b}
+.pc-settings .pc-header-actions{margin-left:auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:13px}
+.pc-settings #pc-dirty{color:#64748b}
+.pc-settings #pc-nav-status:empty{display:none}
+.pc-settings .pc-config-tabs{display:flex;gap:6px;padding:6px;background:#eaf0f6;border-radius:12px;margin-bottom:18px;overflow-x:auto}
+.pc-settings .pc-root .pc-config-tabs button{background:transparent;color:#44576c;white-space:nowrap;border-radius:9px;flex:1;padding:12px 18px;font-weight:600}
+.pc-settings .pc-root .pc-config-tabs button[aria-selected=true]{background:#fff;color:#163247;box-shadow:0 2px 6px #1b304412}
+.pc-settings .pc-root [hidden]{display:none!important}
+.pc-settings .pc-card{padding:22px;margin:0;border-radius:16px;min-width:0}
+.pc-settings .pc-root h2{font-size:19px;margin-bottom:10px}
+.pc-settings .pc-root h3{font-size:15px}
+.pc-settings .pc-root .pc-muted{font-size:13px;line-height:1.6;margin:8px 0 14px}
+.pc-settings .pc-root input,.pc-settings .pc-root select,.pc-settings .pc-root textarea{max-width:100%;min-width:0}
+.pc-settings .pc-root .pc-grid{gap:12px 18px}
+.pc-settings .pc-root label{font-size:13px;min-width:0}
+.pc-settings .pc-root label:has(>input[type=checkbox]){display:flex;gap:8px;align-items:center}
+.pc-settings .pc-root button:focus-visible,.pc-settings summary:focus-visible,.pc-settings [role=button]:focus-visible{outline:3px solid #ffaa33;outline-offset:3px}
+.pc-settings [data-pc-panel=geral]>.pc-card{display:grid;grid-template-columns:1fr 1fr;gap:14px 24px}
+.pc-settings [data-pc-panel=geral] h2,.pc-settings [data-pc-panel=geral] .pc-note{grid-column:1/-1}
+.pc-settings [data-pc-panel=agendamentos]{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(340px,1fr);gap:18px;align-items:start}
+.pc-settings .pc-availability .pc-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.pc-settings .pc-root details{border-top:1px solid #e1e8f0;margin-top:14px;padding-top:12px}
+.pc-settings summary{font-size:14px;font-weight:600;cursor:pointer;padding:6px 0 12px;color:#203449}
+.pc-settings .pc-root .pc-service{grid-template-columns:minmax(120px,1fr) minmax(90px,110px);gap:12px;padding:14px 0}
+.pc-settings .pc-service>label:first-child{font-weight:600}
+.pc-settings .pc-block{margin:10px 0;padding:12px;background:#f7f9fc}
+.pc-settings .pc-root .pc-config-save{position:sticky;bottom:12px;background:#fff;padding:14px 18px;border:1px solid #dce5ef;border-radius:14px;margin-top:16px;box-shadow:0 4px 20px #2034490b;z-index:20;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.pc-settings .pc-config-save .pc-note{flex:1;margin:0;font-size:12px;padding:10px}
+.pc-settings #pc-config-status:empty{display:none}
+.pc-settings .pc-root .pc-tema-layout{grid-template-columns:minmax(0,1fr) 290px;gap:32px}
+.pc-settings #pc-aparencia-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 20px}
+.pc-settings #pc-aparencia-form>.pc-row{grid-column:1/-1}
+.pc-settings .pc-tema-preview{max-width:290px;font-size:12px}
+.pc-settings .pc-tema-phone-head{padding:12px}
+.pc-settings .pc-tema-phone-body{padding:14px}
+.pc-settings .pc-tema-hero{padding:14px;margin-bottom:14px}
+.pc-settings .pc-root .pc-tema-hero h3{font-size:21px}
+.pc-settings .pc-tema-phone-card{padding:12px;margin:10px 0}
+.pc-settings .pc-tema-phone-nav{padding:12px 8px}
+.pc-settings .pc-root .pc-sound-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.pc-settings .pc-root .pc-sound-option{padding:10px 12px;min-width:0;gap:8px}
+.pc-settings .pc-root .pc-sound-option label{margin:0;display:flex;align-items:center;gap:8px}
+.pc-settings .pc-root .pc-sound-option button{padding:8px;font-size:12px;white-space:nowrap}
+.pc-settings .pc-root .pc-sound-file{margin-top:18px}
+.pc-settings .sidebar:not(.collapsed){transform:none}
+.pc-settings .sidebar .submenu:not(.nested-submenu){left:120px}
+.pc-settings .sidebar .nested-submenu{position:static;left:auto;top:auto;width:auto;height:auto;box-shadow:none;border-radius:0;background:transparent;max-height:none}
+.pc-settings .sidebar .submenu-fixed-header{margin:-8px -4px 8px;padding:12px 4px;color:var(--btn-success,#1cb75b);font-weight:600}
+.pc-settings.pc-sidebar-collapsed .pc-layout{margin-left:0}
+@media(min-width:1500px){.pc-settings .pc-root .pc-service{grid-template-columns:minmax(150px,1.4fr) 90px 100px minmax(150px,1fr)}}
+@media(max-width:1100px){.pc-settings [data-pc-panel=agendamentos]{grid-template-columns:1fr}.pc-settings .pc-root .pc-service{grid-template-columns:2fr 1fr 1fr 2fr}.pc-settings .pc-root .pc-sound-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:850px){.pc-settings .pc-layout{padding:16px}.pc-settings .pc-root .pc-tema-layout{grid-template-columns:1fr}.pc-settings .pc-root .pc-tema-preview{max-width:290px}.pc-settings .pc-availability .pc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.pc-settings .pc-layout{margin-left:0;padding:12px}.pc-settings .sidebar{box-shadow:4px 0 20px #152b4020}.pc-settings .pc-settings-header{padding:14px;gap:10px}.pc-settings .pc-settings-header h1{font-size:18px}.pc-settings .pc-header-actions{margin-left:0;width:100%;justify-content:space-between}.pc-settings .pc-root .pc-config-tabs button{padding:12px;font-size:13px;flex:none}.pc-settings .pc-card{padding:16px}.pc-settings [data-pc-panel=geral]>.pc-card,.pc-settings .pc-root .pc-grid,.pc-settings .pc-availability .pc-grid,.pc-settings #pc-aparencia-form,.pc-settings .pc-root .pc-sound-grid{grid-template-columns:1fr}.pc-settings .pc-root .pc-service{grid-template-columns:1fr 1fr}.pc-settings .pc-config-save{position:static}.pc-settings .pc-config-save button{width:100%}.pc-settings .sidebar .submenu:not(.nested-submenu){width:min(240px,calc(100vw - 120px))}}
+
+.pc-settings .pc-root .pc-sound-option{display:flex;align-items:center;justify-content:space-between;border:1px solid #dce5ef;border-radius:12px}
+.pc-settings .pc-root .pc-sound-option input[type=radio]{width:17px;height:17px;padding:0;margin:0;flex-shrink:0;accent-color:#e99b18}
+.pc-settings .pc-root .pc-sound-option button{background:#edf1f6;color:#203449}
+.pc-settings .nav-item-with-submenu[data-pc-closed=true]:hover>.submenu{display:none}
