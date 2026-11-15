@@ -43,6 +43,7 @@ function criarNotificacoes({ ERP, m, eventos, agora = () => new Date(), push = (
         if (new Date(prazo) > agora())
             continue;
         await serializar(ERP,p.empresa_id,async (transaction) => { const [n] = await m.Solic.update({ estado: 'EXPIRADA', versao: p.versao + 1 }, { where: { id: p.id, estado: p.estado, versao: p.versao }, transaction, logging: false }); if (n) {
+            if(p.estado==='PROPOSTA')await require('./alertasModelos').abrir(ERP.sequelize,p,transaction);
             const conta = await m.Conta.findByPk(p.conta_id, { transaction, logging: false });
             await eventos.tutor(conta, 'solicitacao', 'Solicitação expirada', 'O prazo terminou. Você pode solicitar uma nova data.', { solicitacaoId: p.id }, 'expirou:' + p.id, transaction);
             await eventos.gestor(p.empresa_id, p.cliente_id, 'solicitacao', 'Uma solicitação expirou.', {}, 'expirou:' + p.id, transaction);

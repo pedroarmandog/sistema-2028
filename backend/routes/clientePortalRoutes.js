@@ -86,6 +86,18 @@ function criarRotas(p, { authERP, permissao } = {}) {
     gestor.use(authERP, ajax, (req, res, next) => { if (!req.user?.empresaId)
         return res.sendStatus(403); next(); });
     const acesso = permissao('cliente.meus-clientes', 'cliente.editar'), agenda = permissao('atendimento.agenda'), configurar = permissao('configuracoes.empresa');
+    const somLeitura=permissao('atendimento.agenda','configuracoes.empresa');
+    gestor.get('/alertas',agenda,wrap(req=>p.alertas.snapshot(req.user.empresaId,req.user.id)));
+    gestor.put('/alertas/:id/silencio',agenda,wrap(req=>p.alertas.silenciar(req.user.empresaId,req.user.id,req.params.id,req.body)));
+    gestor.get('/som',somLeitura,wrap(req=>p.alertas.obterSom(req.user.empresaId)));
+    gestor.put('/som',configurar,wrap(req=>p.alertas.alterarSom(req.user.empresaId,req.user.id,req.body)));
+    gestor.get('/som/arquivo',somLeitura,wrap(async(req,res)=>binario(res,await p.alertas.arquivo(req.user.empresaId))));
+    const mp3Upload=multer({storage:multer.memoryStorage(),limits:{fileSize:2*1024*1024,files:1,fields:1,fieldSize:32}}).single('arquivo');
+    gestor.post('/som/mp3',configurar,(req,res)=>mp3Upload(req,res,async e=>{
+        if(e)return res.status(e.code==='LIMIT_FILE_SIZE'?413:400).json({erro:'Selecione somente um MP3 de até 2 MB.'});
+        try{V.chaves(req.body,['versao']);res.json(await p.alertas.upload(req.user.empresaId,req.user.id,req.file,req.body.versao));}
+        catch(err){res.status(err.status||503).json({erro:err.status?err.message:'Não foi possível salvar o MP3. Confira o armazenamento permanente.'});}
+    }));
     gestor.get('/config', configurar, wrap(async (req) => { const cfg = await p.config(req.user.empresaId); const [servicos, profissionais] = await Promise.all([ERP.Produto.findAll({ where: { empresa_id: req.user.empresaId }, attributes: ['id', 'nome', 'tipo', 'preco'], logging: false }), ERP.Profissional.findAll({ where: { empresa_id: req.user.empresaId, status: 'ativo' }, attributes: ['id', 'nome'], logging: false })]); return { config: cfg, servicos: servicos.filter(s => /^servi[cç]o$/i.test(s.tipo || '')).map(s => ({ id: s.id, nome: s.nome, preco: s.preco })), profissionais }; }));
     gestor.put('/config', configurar, wrap(req => p.salvarConfig(req.user.empresaId, req.body, req.user.id)));
     gestor.get('/clientes/:id', acesso, wrap(async (req) => { const id = V.inteiro(req.params.id), cli = await ERP.Cliente.findOne({ where: { id, empresa_id: req.user.empresaId }, logging: false }); if (!cli)
@@ -96,8 +108,10 @@ function criarRotas(p, { authERP, permissao } = {}) {
     gestor.get('/resumo', agenda, wrap(req => n.resumoGestor(req.user.empresaId)));
     gestor.get('/eventos', agenda, wrap((req, res) => { n.stream(req, res, () => n.resumoGestor(req.user.empresaId), 'g:' + req.user.empresaId); }));
     gestor.get('/avisos', agenda, wrap(req => m.Evento.findAll({ where: { empresa_id: req.user.empresaId }, attributes: ['id', 'tipo', 'texto', 'alvo', 'createdAt'], order: [['id', 'DESC']], limit: 40, logging: false })));
+    async function pedidoGestor(s, empresaId) { const [pet, cli] = await Promise.all([ERP.Pet.findByPk(s.pet_id, { attributes: ['nome'], logging: false }), ERP.Cliente.findOne({ where: { id: s.cliente_id, empresa_id: empresaId }, attributes: ['nome', 'telefone'], logging: false })]); return { ...pedidos.dto(s), pet: pet?.nome || 'Pet', cliente: cli?.nome || 'Cliente', clienteId: s.cliente_id, telefone: cli?.telefone || null, foto: '/api/cliente-portal/pets/' + s.pet_id + '/foto' }; }
+    gestor.get('/solicitacoes/:id', agenda, wrap(async req => { const s=await m.Solic.findOne({where:{id:V.uuid(req.params.id),empresa_id:req.user.empresaId},logging:false});if(!s)throw V.falha('Solicitação não encontrada.',404);return pedidoGestor(s,req.user.empresaId); }));
     gestor.get('/solicitacoes', agenda, wrap(async (req) => { const where = { empresa_id: req.user.empresaId }; if (req.query.estado === 'abertas')
-        where.estado = { [Op.in]: ['PENDENTE', 'PROPOSTA', 'PROPOSTA_RECUSADA'] }; const rows = await m.Solic.findAll({ where, order: [['createdAt', 'DESC']], limit: 200, logging: false }); return Promise.all(rows.map(async (s) => { const [pet, cli] = await Promise.all([ERP.Pet.findByPk(s.pet_id, { attributes: ['nome'], logging: false }), ERP.Cliente.findOne({ where: { id: s.cliente_id, empresa_id: req.user.empresaId }, attributes: ['nome', 'telefone'], logging: false })]); return { ...pedidos.dto(s), pet: pet?.nome || 'Pet', cliente: cli?.nome || 'Cliente', clienteId: s.cliente_id, telefone: cli?.telefone || null, foto: '/api/cliente-portal/pets/' + s.pet_id + '/foto' }; })); }));
+        where.estado = { [Op.in]: ['PENDENTE', 'PROPOSTA', 'PROPOSTA_RECUSADA'] }; const rows = await m.Solic.findAll({ where, order: [['createdAt', 'DESC']], limit: 200, logging: false }); return Promise.all(rows.map(s=>pedidoGestor(s,req.user.empresaId))); }));
     gestor.put('/agendamentos/:id/comunicado', agenda, wrap(async (req) => { const ag = await ERP.Agendamento.findOne({ where: { id: V.inteiro(req.params.id), empresa_id: req.user.empresaId }, logging: false }); if (!ag)
         throw V.falha('Atendimento não encontrado.', 404); const texto = V.texto(req.body.texto, 1000, true); await m.Comunicado.upsert({ agendamento_id: ag.id, empresa_id: req.user.empresaId, texto, autor_id: req.user.id }, { logging: false }); const pet = await ERP.Pet.findByPk(ag.petId, { logging: false }), conta = pet && await m.Conta.findOne({ where: { cliente_id: pet.cliente_id, empresa_id: req.user.empresaId, ativo: true }, logging: false }); if (conta)
         await p.eventos.tutor(conta, 'atendimento', 'Mensagem do estabelecimento', 'Há uma nova mensagem no histórico do atendimento.', { agendamentoId: ag.id }, 'comunicado:' + ag.id + ':' + V.hash(texto)); await p.eventos.auditar(req.user.empresaId, { tipo: 'gestor', id: req.user.id }, 'comunicado', ag.id, ['texto']); return { ok: true }; }));

@@ -23,9 +23,9 @@ function criarServico({db,store=criarArmazenamento(),raizes}={}){
   if(publico)return null;
   const rows=await Media.findAll({where});return rows.find(r=>{let a=r.aliases;try{if(typeof a==='string')a=JSON.parse(a);}catch{a=[];}return Array.isArray(a)&&a.includes(caminho);})||null;
  }
- async function salvar(emp,bytes,modulo,{imagem=true,publico=false,otimizar=true,alias}={}){
+ async function salvar(emp,bytes,modulo,{imagem=true,publico=false,otimizar=true,alias,audio=false}={}){
   emp=empresaValida(emp);if(!/^[a-z0-9-]{1,40}$/.test(modulo))throw falha('Módulo de arquivo inválido.',400);
-  const v=await validar(bytes,{imagem,otimizar}),digest=crypto.createHash('sha256').update(v.bytes).digest('hex');await preparar();
+  const v=audio?require('./audio').validarMP3(bytes):await validar(bytes,{imagem,otimizar}),digest=crypto.createHash('sha256').update(v.bytes).digest('hex');await preparar();
   let r=await Media.findOne({where:{empresa_id:emp,modulo,sha256:digest,publico}});
   const chave=`empresas/${emp}/${modulo}/${publico?'publico':'privado'}/${digest}.${v.ext}`;
   // Reconfirmar também em reenvios deduplicados, reparando objeto ausente.

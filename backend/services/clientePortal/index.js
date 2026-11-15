@@ -56,7 +56,9 @@ function criarPortal({ ERP, env = process.env, agora = () => new Date(), midias 
         o.transaction.afterCommit(() => { void work(); });
     else
         void work(); }); }
-    return { ERP, env, m, midias, eventos, auth, agenda, pedidos, cadastros, notificacoes, config, salvarConfig, hooks };
+    const portal={ ERP, env, m, midias, eventos, auth, agenda, pedidos, cadastros, notificacoes, config, salvarConfig, hooks };
+    portal.alertas=require('./alertas').criarAlertas(portal);
+    return portal;
 }
 let singleton;
 function instancia() { return singleton ??= criarPortal({ ERP: require('../../models') }); }

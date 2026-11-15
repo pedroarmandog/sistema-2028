@@ -1,0 +1,212 @@
+[
+  {
+    "path": "backend/routes/clientePortalRoutes.js",
+    "tipo": "alterado",
+    "bytes": 18600,
+    "sha256": "a4a28111700a081d3b844a7d5d127d813be7f39b14a30fb32e000b51f342333d"
+  },
+  {
+    "path": "backend/scripts/gerar-sons-portal.py",
+    "tipo": "novo",
+    "bytes": 1603,
+    "sha256": "32dd49cfeaaed48917e855828fe5dfbadb9f6e2cf43eba6e5867b7869265b8dc"
+  },
+  {
+    "path": "backend/services/clientePortal/alertas.js",
+    "tipo": "novo",
+    "bytes": 6311,
+    "sha256": "347bf8924d932135d256a9e760872bc312103e9c6266fe8f477b5c63b791df44"
+  },
+  {
+    "path": "backend/services/clientePortal/alertasModelos.js",
+    "tipo": "novo",
+    "bytes": 2639,
+    "sha256": "f2334d42f443476bf49ffab83c29ffe2d239bdd21f81f9f7e23ab85580f82de1"
+  },
+  {
+    "path": "backend/services/clientePortal/index.js",
+    "tipo": "alterado",
+    "bytes": 6045,
+    "sha256": "da1faceb3203499884e01629ea32386371b7a446b89718e57519c6c393f0e570"
+  },
+  {
+    "path": "backend/services/clientePortal/modelos.js",
+    "tipo": "alterado",
+    "bytes": 7912,
+    "sha256": "de42a60855fe7fcc0e15aebe977bab7b6a9984038898bfc9656d33e816484b7a"
+  },
+  {
+    "path": "backend/services/clientePortal/notificacoes.js",
+    "tipo": "alterado",
+    "bytes": 11330,
+    "sha256": "0553ebb89ae527473cabc3aef3c880cd0d7cafa9a26cd4fcd8eb0057a0085338"
+  },
+  {
+    "path": "backend/services/clientePortal/pedidos.js",
+    "tipo": "alterado",
+    "bytes": 9276,
+    "sha256": "e05ff00fdc598e1912c1202470a080e10c8e095c99bdc518a33b91f069eb0db9"
+  },
+  {
+    "path": "backend/services/midias/audio.js",
+    "tipo": "novo",
+    "bytes": 2184,
+    "sha256": "0f26ec2d83d824eaccb98d56b2423bbe957feae6a5b46bd5c73d473cd6ab3745"
+  },
+  {
+    "path": "backend/services/midias/index.js",
+    "tipo": "alterado",
+    "bytes": 5991,
+    "sha256": "e815e7671deae646b1e516b98a9b3776a0a25688c7e5809688e81f8686c2a01f"
+  },
+  {
+    "path": "frontend/assets/portal-sons/LICENCA.txt",
+    "tipo": "novo",
+    "bytes": 213,
+    "sha256": "f23b0b7f945ccd7ad4ac8898dcade6057f0881764d3d6e512d22a41f1086d0b7"
+  },
+  {
+    "path": "frontend/assets/portal-sons/alegre.wav",
+    "tipo": "novo",
+    "bytes": 52082,
+    "sha256": "964827c9f60a287c22697771ceb0df5fdaf20d1bd9a107aece699111df86f09c"
+  },
+  {
+    "path": "frontend/assets/portal-sons/campainha.wav",
+    "tipo": "novo",
+    "bytes": 73250,
+    "sha256": "e275e70293232e7ed9aea5c8ca17e5a66fe3e31dd4a3fb59b1b88c8c6252db49"
+  },
+  {
+    "path": "frontend/assets/portal-sons/catalogo.json",
+    "tipo": "novo",
+    "bytes": 1035,
+    "sha256": "ede15f63e43fe9bf5c0e1606eb20caed36a769785d4d57b6d04c733ceeffd4ab"
+  },
+  {
+    "path": "frontend/assets/portal-sons/classico.wav",
+    "tipo": "novo",
+    "bytes": 56050,
+    "sha256": "3dbc054b63a601551995406e33e5f1fc552328b78045e41742cc965a51253b88"
+  },
+  {
+    "path": "frontend/assets/portal-sons/cristal.wav",
+    "tipo": "novo",
+    "bytes": 60018,
+    "sha256": "0ea74d0ef8fb924ca6885f05c58126230458074fba68d700c503784bb5cba414"
+  },
+  {
+    "path": "frontend/assets/portal-sons/duplo.wav",
+    "tipo": "novo",
+    "bytes": 52082,
+    "sha256": "3b84b672628044335590196cc213ced753c9d55038664ee4a33c71dca02187ca"
+  },
+  {
+    "path": "frontend/assets/portal-sons/moderno.wav",
+    "tipo": "novo",
+    "bytes": 53404,
+    "sha256": "400bc3deff4e7ce69ae10ce1682121fa417a0e4ce0383aba6743d8dff39434b5"
+  },
+  {
+    "path": "frontend/assets/portal-sons/pedido.wav",
+    "tipo": "novo",
+    "bytes": 49436,
+    "sha256": "5dea516bdce198258ccb868da3bd6ab43f3cee75a393c74c9ea0a32c7acb0c7b"
+  },
+  {
+    "path": "frontend/assets/portal-sons/premium.wav",
+    "tipo": "novo",
+    "bytes": 67958,
+    "sha256": "65ee832e2349b31a146c564be47c02d7675ab739b7c9280f8db1ebd2324d74c0"
+  },
+  {
+    "path": "frontend/assets/portal-sons/sino.wav",
+    "tipo": "novo",
+    "bytes": 55610,
+    "sha256": "36e317a6d3eff1058380a8075ae16d0afeb984437d3c6a63a0862e218e2f7776"
+  },
+  {
+    "path": "frontend/assets/portal-sons/suave.wav",
+    "tipo": "novo",
+    "bytes": 61782,
+    "sha256": "072c9db9461ba0249c61cc9a49717c6495409bcd0c9d9f6a6c84624fb46bc94f"
+  },
+  {
+    "path": "frontend/components/cliente-portal-alertas-core.js",
+    "tipo": "novo",
+    "bytes": 2278,
+    "sha256": "23dc3568fce147d93b7f35da6a2d280dcb83a9459b23db09284058734fdea855"
+  },
+  {
+    "path": "frontend/components/cliente-portal-audio.js",
+    "tipo": "novo",
+    "bytes": 5405,
+    "sha256": "9ccc822a43ec7b94624e373308e3aa92d9b6f784ffee9fb4ed2ece29b8d015d2"
+  },
+  {
+    "path": "frontend/components/cliente-portal-erp.js",
+    "tipo": "alterado",
+    "bytes": 26014,
+    "sha256": "acf10376511239edc130200614527e3fbf1ed4107506e9958720877ce5b1d78f"
+  },
+  {
+    "path": "frontend/components/cliente-portal-popup.css",
+    "tipo": "novo",
+    "bytes": 6409,
+    "sha256": "1b93095cd6425a5567b80d0f7eeb09c02762a551f9e65b3d819b764b940a3e19"
+  },
+  {
+    "path": "frontend/components/cliente-portal-som-config.js",
+    "tipo": "novo",
+    "bytes": 7412,
+    "sha256": "c817b4c731ffdaa85273a0cb33a1c72676e3ca8ceec5b40c97cde2695df33437"
+  },
+  {
+    "path": "frontend/components/cliente-portal-widget.js",
+    "tipo": "alterado",
+    "bytes": 12761,
+    "sha256": "35b26b93a2645f306b6b3923f3130cd0ea01bd93fc8619d39044d6455768f64a"
+  },
+  {
+    "path": "frontend/mobile/service-worker.js",
+    "tipo": "alterado",
+    "bytes": 10249,
+    "sha256": "f21e298da001325ca3c7573609cc3825d3e7ac9cf136e5179a69ba75c11abcb6"
+  },
+  {
+    "path": "tests/browser/portal-alertas.dom.cjs",
+    "tipo": "novo",
+    "bytes": 7154,
+    "sha256": "2a4f699ce32f7932ee9c14f481e7ea9d535da0499b489940d869994d9b510c7d"
+  },
+  {
+    "path": "tests/browser/portal-alertas.ui.cjs",
+    "tipo": "novo",
+    "bytes": 4812,
+    "sha256": "f3f94b27b04582bd86c89a2acafdb1ddf49c07c4a60a050a3bda7a3b73b0ce21"
+  },
+  {
+    "path": "tests/fixtures/portal-alerta.mp3",
+    "tipo": "novo",
+    "bytes": 6312,
+    "sha256": "6fb1bd495db5bd43b4edc617ef7e1bc07218cee3abdd6bf0ef248174667d809c"
+  },
+  {
+    "path": "tests/portal-alertas-backend.test.js",
+    "tipo": "novo",
+    "bytes": 8581,
+    "sha256": "1c09271556187c10bb7bad2b26896c34dd21408630b9806dd3af7186f4f8cb33"
+  },
+  {
+    "path": "tests/portal-alertas-front.test.js",
+    "tipo": "novo",
+    "bytes": 7335,
+    "sha256": "05a93979ae718ce7431aa33e38ad35ccb3b824406b9ef31d3d4a63889bc2793b"
+  },
+  {
+    "path": "tests/portal-alertas-http.test.js",
+    "tipo": "novo",
+    "bytes": 4975,
+    "sha256": "a04dcd2f9b493acea25b97ce660a56da8521e52860e903a52f41695abd8f4859"
+  }
+]

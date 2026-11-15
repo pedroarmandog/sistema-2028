@@ -23,5 +23,5 @@ function modelos(db) {
     return db.__clientePortal = { Config, Conta, Sessao, Convite, Solic, Notificacao, Evento, Detalhe, Foto, Vacina, Push, Comunicado, Tentativa, Auditoria };
 }
 async function preparar(db) { const m = modelos(db); for (const model of Object.values(m))
-    await model.sync(); return m; }
+    await model.sync(); await require('./alertasModelos').preparar(db); return m; }
 module.exports = { modelos, preparar };

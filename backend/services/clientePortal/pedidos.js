@@ -1,5 +1,6 @@
 'use strict';
 const crypto = require('node:crypto'), V = require('./validacao'), { serializar } = require('./agenda');
+const AF=require('./alertasModelos');
 function criarPedidos({ ERP, m, agenda, eventos, agora = () => new Date() }) {
     const dto = p => ({ id: p.id, petId: p.pet_id, servico: p.servico_nome, data: p.data, hora: p.hora, observacao: p.observacao, estado: p.estado, versao: p.versao, proposta: V.json(p.proposta, null), motivo: p.motivo, agendamentoId: p.agendamento_id, criadoEm: p.createdAt, expiraEm: p.expira_em });
     async function criar(t, b) {
@@ -13,7 +14,7 @@ function criarPedidos({ ERP, m, agenda, eventos, agora = () => new Date() }) {
                 throw V.falha('Esta solicitação já foi utilizada com outros dados.', 409);
             return dto(anterior);
         } const pet = await ERP.Pet.findOne({ where: { id: values.petId, cliente_id: t.clienteId }, ...o }); if (!pet || pet.ativo === false || pet.empresa_id && Number(pet.empresa_id) !== Number(t.empresaId))
-            throw V.falha('Pet não encontrado.', 404); const s = await agenda.servico(cfg, values.servicoId, o); const p = await m.Solic.create({ id: crypto.randomUUID(), empresa_id: t.empresaId, cliente_id: t.clienteId, conta_id: t.contaId, pet_id: pet.id, servico_id: s.id, servico_nome: s.nome, data: values.data, hora: values.hora, observacao: values.observacao, estado: 'PENDENTE', expira_em: V.instante(values.data, values.hora), idempotencia: values.idempotencia, pedido_hash: digest }, o); await eventos.gestor(t.empresaId, t.clienteId, 'pedido', 'Nova solicitação de agendamento recebida.', { solicitacaoId: p.id }, 'pedido:' + p.id, transaction); await eventos.auditar(t.empresaId, { tipo: 'tutor', id: t.contaId }, 'pedido_criado', p.id, [], transaction); return dto(p); });
+            throw V.falha('Pet não encontrado.', 404); const s = await agenda.servico(cfg, values.servicoId, o); const p = await m.Solic.create({ id: crypto.randomUUID(), empresa_id: t.empresaId, cliente_id: t.clienteId, conta_id: t.contaId, pet_id: pet.id, servico_id: s.id, servico_nome: s.nome, data: values.data, hora: values.hora, observacao: values.observacao, estado: 'PENDENTE', expira_em: V.instante(values.data, values.hora), idempotencia: values.idempotencia, pedido_hash: digest }, o); await AF.abrir(ERP.sequelize,p,transaction); await eventos.gestor(t.empresaId, t.clienteId, 'pedido', 'Nova solicitação de agendamento recebida.', { solicitacaoId: p.id }, 'pedido:' + p.id, transaction); await eventos.auditar(t.empresaId, { tipo: 'tutor', id: t.contaId }, 'pedido_criado', p.id, [], transaction); return dto(p); });
     }
     async function agir({ empresaId, contaId, autorId, tutor = false }, id, b) {
         V.chaves(b, ['acao', 'versao', 'data', 'hora', 'profissionalId', 'motivo', 'propostaId']);
@@ -27,16 +28,25 @@ function criarPedidos({ ERP, m, agenda, eventos, agora = () => new Date() }) {
             if (!p)
                 throw V.falha('Solicitação não encontrada.', 404);
             if ((p.estado === 'CONFIRMADA' && ['aceitar', 'aceitar_proposta'].includes(acao)) || (p.estado === 'CANCELADA' && acao === 'cancelar') || (p.estado === 'RECUSADA' && acao === 'recusar'))
-                return dto(p);
-            if (['RECUSADA', 'CANCELADA', 'EXPIRADA', 'CONFIRMADA'].includes(p.estado))
+                return {...dto(p),respostaGestorSalva:!tutor};
+            if (!tutor && acao==='recusar' && ['CANCELADA','EXPIRADA'].includes(p.estado)) {
+                if(p.versao!==V.versao(b.versao))throw V.falha('A solicitação mudou. Atualize antes de continuar.',409);
+                await AF.decidir(ERP.sequelize,p,acao,autorId,V.texto(b.motivo,500),transaction);
+                await eventos.gestor(empresaId,p.cliente_id,'solicitacao','A equipe encerrou o alerta de uma solicitação.',{solicitacaoId:p.id},'encerrar:'+p.id+':'+p.versao,transaction);
+                await eventos.auditar(empresaId,{tipo:'gestor',id:autorId},'encerrar_alerta',p.id,[],transaction);
+                return {...dto(p),respostaGestorSalva:true};
+            }
+            if (['RECUSADA','CANCELADA','CONFIRMADA'].includes(p.estado)||(p.estado==='EXPIRADA'&&(tutor||acao!=='propor')))
                 throw V.falha('A solicitação já foi encerrada.', 409);
             if (p.versao !== V.versao(b.versao))
                 throw V.falha('A solicitação mudou. Atualize antes de continuar.', 409);
             const proposta = V.json(p.proposta, null), cfg = await m.Config.findByPk(empresaId, o);
             if (!cfg?.ativo)
                 throw V.falha('Portal desativado.', 409);
-            if (agora() >= new Date(p.estado === 'PROPOSTA' ? proposta.expiraEm : p.expira_em)) {
+            if (!tutor&&acao==='aceitar'&&agora()>=new Date(p.expira_em))throw V.falha('O horário solicitado passou. Recuse ou proponha uma nova data.',409);
+            if (tutor && agora() >= new Date(p.estado === 'PROPOSTA' ? proposta.expiraEm : p.expira_em)) {
                 await p.update({ estado: 'EXPIRADA', versao: p.versao + 1 }, o);
+                await AF.abrir(ERP.sequelize,p,transaction);
                 await eventos.tutor(await m.Conta.findByPk(p.conta_id,o),'solicitacao','Solicitação expirada','O prazo terminou. Solicite uma nova data.',{solicitacaoId:p.id},'expirou:'+p.id,transaction);
                 await eventos.gestor(empresaId,p.cliente_id,'solicitacao','Uma solicitação expirou.',{},'expirou:'+p.id,transaction);
                 return dto(p);
@@ -78,11 +88,13 @@ function criarPedidos({ ERP, m, agenda, eventos, agora = () => new Date() }) {
             if (acao === 'cancelar')
                 values = { ...values, estado: 'CANCELADA' };
             await p.update(values, o);
+            if(!tutor)await AF.decidir(ERP.sequelize,p,acao,autorId,V.texto(b.motivo,500),transaction);
+            else if(acao==='recusar_proposta')await AF.abrir(ERP.sequelize,p,transaction);
             const chave = p.id + ':' + p.versao;
             await eventos.tutor(await m.Conta.findByPk(p.conta_id, o), 'solicitacao', titulo, texto, { solicitacaoId: p.id }, chave, transaction);
             await eventos.gestor(empresaId, p.cliente_id, 'solicitacao', 'Uma solicitação de agendamento foi atualizada.', { solicitacaoId: p.id }, chave, transaction);
             await eventos.auditar(empresaId, { tipo: tutor ? 'tutor' : 'gestor', id: tutor ? contaId : autorId }, acao, p.id, ['estado', 'versao'], transaction);
-            return dto(p);
+            return {...dto(p),respostaGestorSalva:!tutor};
         });
     }
     return { criar, agir, dto };

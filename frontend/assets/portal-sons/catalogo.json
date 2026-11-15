@@ -1,0 +1,52 @@
+[
+  {
+    "id": "classico",
+    "nome": "PetHub Clássico",
+    "url": "/assets/portal-sons/classico.wav"
+  },
+  {
+    "id": "suave",
+    "nome": "PetHub Suave",
+    "url": "/assets/portal-sons/suave.wav"
+  },
+  {
+    "id": "pedido",
+    "nome": "Novo Pedido",
+    "url": "/assets/portal-sons/pedido.wav"
+  },
+  {
+    "id": "sino",
+    "nome": "Sino Digital",
+    "url": "/assets/portal-sons/sino.wav"
+  },
+  {
+    "id": "alegre",
+    "nome": "Toque Alegre",
+    "url": "/assets/portal-sons/alegre.wav"
+  },
+  {
+    "id": "moderno",
+    "nome": "Notificação Moderna",
+    "url": "/assets/portal-sons/moderno.wav"
+  },
+  {
+    "id": "duplo",
+    "nome": "Alerta Duplo",
+    "url": "/assets/portal-sons/duplo.wav"
+  },
+  {
+    "id": "cristal",
+    "nome": "Toque Cristalino",
+    "url": "/assets/portal-sons/cristal.wav"
+  },
+  {
+    "id": "campainha",
+    "nome": "Campainha",
+    "url": "/assets/portal-sons/campainha.wav"
+  },
+  {
+    "id": "premium",
+    "nome": "Alerta Premium",
+    "url": "/assets/portal-sons/premium.wav"
+  }
+]

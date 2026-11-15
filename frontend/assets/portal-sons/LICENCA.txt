@@ -1,0 +1,1 @@
+Sons originais sintetizados para o PetHub. CC0 1.0 Universal: uso, cópia, alteração e distribuição autorizados, inclusive comercial. Sem samples de terceiros. Gerador em backend/scripts/gerar-sons-portal.py.

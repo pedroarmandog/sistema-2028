@@ -7,7 +7,7 @@
      - Páginas HTML: Network First com fallback offline
    ============================================================ */
 
-const CACHE_VERSION = "pethub-mobile-v9-paleta-cliente-portal";
+const CACHE_VERSION = "pethub-mobile-v10-alertas-sonoros";
 const CACHE_STATIC = `${CACHE_VERSION}-static`;
 const CACHE_API = `${CACHE_VERSION}-api`;
 
@@ -30,6 +30,10 @@ const PRECACHE_ASSETS = [
   "/components/cliente-portal-erp.js",
   "/components/cliente-portal-erp.css",
   "/components/cliente-portal-widget.js",
+  "/components/cliente-portal-alertas-core.js",
+  "/components/cliente-portal-audio.js",
+  "/components/cliente-portal-som-config.js",
+  "/components/cliente-portal-popup.css",
   "/mobile/pages/pets.js",
   "/mobile/pages/financeiro.js",
   "/mobile/pages/configuracoes.js",

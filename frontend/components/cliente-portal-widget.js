@@ -1,84 +1,27 @@
-(function () {
-    'use strict';
-    if (window.__pcWidget || location.pathname.startsWith('/cliente-app/'))
-        return;
-    window.__pcWidget = true;
-    const origin = new URL(document.currentScript.src).origin, mobile = location.pathname.startsWith('/mobile/');
-    if (!document.querySelector('link[data-pc-style]')) {
-        const l = document.createElement('link');
-        l.rel = 'stylesheet';
-        l.href = origin + '/components/cliente-portal-erp.css';
-        l.dataset.pcStyle = '1';
-        document.head.append(l);
-    }
-    if (!window.PortalERP && !document.querySelector('script[data-pc-erp]')) {
-        const s = document.createElement('script');
-        s.src = origin + '/components/cliente-portal-erp.js';
-        s.dataset.pcErp = '1';
-        document.head.append(s);
-    }
-    let badge, revision = '', source, stopped = false, busy = false, pulseTimer;
-    function widget() { if (badge)
-        return badge; badge = document.createElement('a'); badge.id = 'pc-widget'; badge.className = mobile ? 'pc-mobile' : ''; badge.href = mobile ? '/mobile/app.html?page=solicitacoes' : '/atendimento/solicitacoes-app.html'; badge.setAttribute('aria-label', 'Solicitações do PetHub Cliente'); badge.innerHTML = '<span>Solicitações do App</span><span id="pc-widget-count">0</span>'; badge.hidden = true; badge.onclick = e => { if (mobile && window.MobileRouter) {
-        e.preventDefault();
-        window.MobileRouter.navigate('solicitacoes');
-    } }; document.body.append(badge); const agenda = document.querySelector('.btn-refresh'); if (agenda && !document.getElementById('pc-agenda-link')) {
-        const a = badge.cloneNode(true);
-        a.id = 'pc-agenda-link';
-        a.removeAttribute('hidden');
-        a.style.cssText = 'display:inline-flex;padding:10px 14px;border-radius:8px;background:#fff2d8;color:#684008;font-size:13px;text-decoration:none;margin:8px';
-        a.innerHTML = 'Solicitações do App';
-        agenda.parentElement.append(a);
-    } return badge; }
-    function apply(r) { const b = widget(); b.hidden = false; document.getElementById('pc-widget-count').textContent = String(r.pendentes || 0); if (revision && r.revisao !== revision) {
-        b.classList.remove('pc-pulse');
-        void b.offsetWidth;
-        b.classList.add('pc-pulse');
-        clearTimeout(pulseTimer);
-        pulseTimer = setTimeout(() => b.classList.remove('pc-pulse'), 4500);
-        window.dispatchEvent(new Event('pethub:portal-atualizado'));
-    } revision = r.revisao; }
-    async function check() { if (stopped || busy || document.hidden || !window.PortalERP)
-        return; if (mobile && !window.MobileAuth?.getToken()) {
-        if (badge)
-            badge.hidden = true;
-        source?.close();
-        return;
-    } busy = true; try {
-        const r = await window.PortalERP.api('/resumo');
-        apply(r);
-        if (!mobile && !source) {
-            source = new EventSource((window.API_URL || window.VPS_URL || origin) + '/api/cliente-portal/eventos', { withCredentials: true });
-            source.onmessage = e => { try {
-                apply(JSON.parse(e.data));
-            }
-            catch { } };
-        }
-    }
-    catch (e) {
-        if ([401, 403].includes(e.status)) {
-            if (badge)
-                badge.hidden = true;
-            source?.close();
-            source = null;
-            if (!mobile)
-                stopped = true;
-        }
-    }
-    finally {
-        busy = false;
-    } }
-    setTimeout(() => { const menu = document.querySelector('.sidebar-nav'); if (menu && !document.getElementById('pc-menu-link')) {
-        const a = document.createElement('a');
-        a.id = 'pc-menu-link';
-        a.href = '/configuracoes/portal-cliente.html';
-        a.className = 'nav-item';
-        a.textContent = 'PetHub Cliente';
-        a.title = 'Configurar aplicativo dos tutores';
-        menu.append(a);
-    } void check(); }, 2500);
-    const timer = setInterval(check, 15000);
-    window.addEventListener('pagehide', () => { clearInterval(timer); source?.close(); });
-    document.addEventListener('visibilitychange', () => { if (!document.hidden)
-        void check(); });
+(function(){'use strict';if(window.__pcWidget||location.pathname.startsWith('/cliente-app/'))return;window.__pcWidget=true;
+const origin=new URL(document.currentScript.src).origin,mobile=location.pathname.startsWith('/mobile/');
+function css(path){if(document.querySelector('link[href="'+path+'"]'))return;const l=document.createElement('link');l.rel='stylesheet';l.href=path;document.head.append(l);}
+function script(path,ready){if(ready())return Promise.resolve();return new Promise((resolve,reject)=>{let s=document.querySelector('script[src="'+path+'"]');if(!s){s=document.createElement('script');s.src=path;document.head.append(s);}s.addEventListener('load',resolve,{once:true});s.addEventListener('error',reject,{once:true});if(ready())resolve();});}
+css(origin+'/components/cliente-portal-erp.css');css(origin+'/components/cliente-portal-popup.css');
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const icons={calendar:'M5 5h14v16H5ZM8 3v4m8-4v4M5 10h14m5 4v5m-3-3h6',sound:'m4 10 5-4v12l-5-4H2v-4Zm9-3q5 5 0 10m3-13q8 8 0 16',mute:'m4 10 5-4v12l-5-4H2v-4Zm9-1 6 6m0-6-6 6',pet:'M8 14c-2 1-4 4-2 6s4 0 6 0 4 2 6 0 0-5-2-6c-2-3-6-3-8 0ZM5 7v2m5-5v3m4-3v3m5 0v2',clock:'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-5v5l3 2',check:'m5 12 4 4L19 6',x:'m6 6 12 12M18 6 6 18'};
+const icon=k=>'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+icons[k]+'"/></svg>';
+let controller,root,listDialog,decisionDialog,stopped=false,source,timer,state,photos=new Set(),rendered='';
+const api=(...args)=>window.PortalERP.api(...args),base=()=>window.API_URL||window.VPS_URL||origin;
+function hora(d,h){return d?.split('-').reverse().join('/')+' às '+h;}
+function recebido(dt){const n=Math.max(0,Math.floor((Date.now()-new Date(dt))/60000));return n<1?'Recebido agora':n<60?'Recebido há '+n+' min':'Recebido em '+new Date(dt).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',dateStyle:'short',timeStyle:'short'});}
+function detalhes(id){return '/atendimento/solicitacoes-app.html?solicitacao='+encodeURIComponent(id);}
+function card(p){const busy=state.busy.includes(p.id),closed=p.estado==='CANCELADA',expired=p.estado==='EXPIRADA';return '<article class="pc-popup" data-pc-alerta="'+p.id+'"><header><span class="pc-pop-icon">'+icon('calendar')+'</span><div><strong>Novo agendamento!</strong><small>'+esc(recebido(p.criadoEm))+' · PetHub Cliente</small></div><button type="button" class="pc-pop-sound" data-pop="mute" aria-pressed="'+p.silenciado+'" aria-label="'+(p.silenciado?'Reativar som desta solicitação':'Silenciar esta solicitação')+'" '+(busy?'disabled':'')+'>'+icon(p.silenciado?'mute':'sound')+'</button></header><a href="'+detalhes(p.id)+'" class="pc-pop-body" data-pop-details="'+p.id+'"><span class="pc-pop-photo">'+icon('pet')+(p.foto?'<img data-photo="'+esc(p.foto)+'" alt="Foto de '+esc(p.pet)+'" hidden>':'')+'</span><span><strong>'+esc(p.pet)+'</strong><small>Tutor: '+esc(p.cliente)+'</small><span class="pc-pop-service">'+esc(p.servico)+'</span><b>'+icon('calendar')+' '+esc(hora(p.data,p.hora))+'</b></span></a>'+(closed||expired?'<p class="pc-pop-notice">'+(closed?'Cancelada pelo tutor. Confira e encerre o alerta.':'Horário expirado. Recuse ou proponha outra data.')+'</p>':'')+'<div class="pc-pop-actions"><button data-pop="aceitar" class="accept" '+(busy||closed||expired?'disabled':'')+'>'+icon('check')+'<span>Aceitar</span></button><button data-pop="recusar" class="reject" '+(busy?'disabled':'')+'>'+icon('x')+'<span>'+(closed?'Encerrar':'Recusar')+'</span></button><button data-pop="propor" class="propose" '+(busy||closed?'disabled':'')+'>'+icon('clock')+'<span>Reagendar</span></button></div><footer><span>'+icon(p.silenciado?'mute':'clock')+' '+(p.silenciado?'Som silenciado · aguardando decisão':'Aguardando sua resposta')+'</span><a href="'+detalhes(p.id)+'" data-pop-details="'+p.id+'">Ver detalhes ›</a></footer></article>';}
+async function carregarFotos(target){for(const img of target.querySelectorAll('img[data-photo]')){try{const headers={},token=window.MobileAuth?.getToken();if(token)headers.Authorization='Bearer '+token;const r=await fetch(base()+img.dataset.photo,{credentials:'include',cache:'no-store',headers,signal:AbortSignal.timeout(15000)});if(!r.ok||!img.isConnected)continue;const blob=await r.blob();if(!img.isConnected)continue;const url=URL.createObjectURL(blob);photos.add(url);img.onload=()=>{URL.revokeObjectURL(url);photos.delete(url);img.hidden=false;};img.onerror=()=>{URL.revokeObjectURL(url);photos.delete(url);};img.src=url;}catch{}}}
+function audioStatus(){if(!root)return;const s=window.PortalAudioGlobal.status(),bar=root.querySelector('[data-audio-bar]');if(!bar)return;bar.innerHTML=state?.itens.some(p=>!p.silenciado)?'<button data-pop="audio" '+(s.preparing?'disabled':'')+'>'+icon('sound')+' '+(s.preparing?'Preparando som…':s.blocked?'Ativar som neste navegador':'Testar / ativar som')+'</button>':'';}
+function ensure(){if(root)return;document.getElementById('pc-widget')?.remove();root=document.createElement('aside');root.id='pc-popups';root.setAttribute('aria-label','Solicitações de agendamento pendentes');document.body.append(root);listDialog=document.createElement('dialog');listDialog.className='pc-popup-list';listDialog.innerHTML='<header><h2>Solicitações pendentes</h2><button data-pop="fechar-lista" aria-label="Fechar lista">×</button></header><div class="pc-expanded-content"></div>';document.body.append(listDialog);decisionDialog=document.createElement('dialog');decisionDialog.className='pc-pop-decision';document.body.append(decisionDialog);}
+function render(s){state=s;ensure();if(!s.autorizado){root.hidden=true;root.innerHTML='';rendered='';listDialog.close();listDialog.querySelector('.pc-expanded-content').innerHTML='';decisionDialog.close();decisionDialog.innerHTML='';for(const u of photos)URL.revokeObjectURL(u);photos.clear();return;}root.hidden=s.itens.length===0;const limit=Math.max(1,Math.min(5,Math.floor((innerHeight-160)/270))),signature=JSON.stringify([s.itens,s.busy,s.erro,limit]);if(signature!==rendered){rendered=signature;for(const u of photos)URL.revokeObjectURL(u);photos.clear();root.innerHTML='<div class="pc-pop-stack">'+s.itens.slice(0,limit).map(card).join('')+'</div>'+(s.itens.length>limit?'<button class="pc-pop-more" data-pop="expandir">+ '+(s.itens.length-limit)+' solicitações pendentes</button>':'')+'<div class="pc-pop-tools" data-audio-bar></div>'+(s.erro?'<div class="pc-pop-error" role="status">'+esc(s.erro)+'</div>':'');void carregarFotos(root);if(listDialog.open)expanded();if(decisionDialog.open&&!s.itens.some(p=>p.id===decisionDialog.dataset.id))decisionDialog.close();}audioStatus();}
+let expandedCount=50;function expanded(){const target=listDialog.querySelector('.pc-expanded-content');target.innerHTML=state.itens.slice(0,expandedCount).map(card).join('')+(state.itens.length>expandedCount?'<button data-pop="mais-lista" class="pc-pop-more">Carregar mais solicitações</button>':'');void carregarFotos(target);}
+async function dialogAction(p,acao){decisionDialog.dataset.id=p.id;decisionDialog.innerHTML='<form data-popup-form="'+acao+'"><header><h2>'+(acao==='propor'?'Propor novo horário':'Recusar solicitação')+'</h2><button type="button" data-pop="fechar-decisao" aria-label="Voltar sem responder">×</button></header><p><strong>'+esc(p.pet)+'</strong> · '+esc(p.cliente)+'<br>'+esc(p.servico)+' · '+esc(hora(p.data,p.hora))+'</p>'+(acao==='propor'?'<div class="pc-date-fields"><label>Nova data<input type="date" name="data" value="'+esc(p.data)+'" required></label><label>Novo horário<input type="time" name="hora" value="'+esc(p.hora)+'" required></label></div><label>Profissional<select name="profissionalId"><option value="">Profissional do serviço</option></select></label>':'')+'<label>'+(acao==='propor'?'Observação ao tutor':'Motivo (opcional)')+'<textarea name="motivo" maxlength="500"></textarea></label><div class="pc-pop-error" role="alert" hidden></div><button type="submit" class="pc-pop-confirm">'+(acao==='propor'?'Enviar contraproposta':'Confirmar decisão')+'</button><p class="pc-pop-help">O card permanece pendente até o servidor confirmar sua resposta.</p></form>';decisionDialog.showModal();if(acao==='propor')try{const r=await api('/profissionais');if(!decisionDialog.open||decisionDialog.dataset.id!==p.id)return;decisionDialog.querySelector('select').innerHTML+=(r.profissionais||[]).map(x=>'<option value="'+x.id+'">'+esc(x.nome)+'</option>').join('');}catch{} }
+async function verificar(){if(stopped||!controller)return;if(mobile&&!window.MobileAuth?.getToken()){controller.limpar();source?.close();source=null;return;}try{await controller.sync();if(!mobile&&!source){source=new EventSource(base()+'/api/cliente-portal/eventos',{withCredentials:true});let rev='';source.onmessage=e=>{try{const r=JSON.parse(e.data);if(rev!==r.revisao){rev=r.revisao;window.dispatchEvent(new Event('pethub:portal-atualizado'));}}catch{}};}}catch(e){if([401,403].includes(e.status)){source?.close();source=null;if(!mobile)stopped=true;}}}
+async function boot(){await script(origin+'/components/cliente-portal-erp.js',()=>!!window.PortalERP);await script(origin+'/components/cliente-portal-alertas-core.js',()=>!!window.PortalAlertasCore);await script(origin+'/components/cliente-portal-audio.js',()=>!!window.PortalAudioGlobal);await script(origin+'/components/cliente-portal-som-config.js',()=>!!window.PortalSomConfig);controller=window.PortalAlertasCore.criar({api,audio:window.PortalAudioGlobal,onChange:render});await verificar();timer=setInterval(verificar,15000);const menu=document.querySelector('.sidebar-nav');if(menu&&!document.getElementById('pc-menu-link')){const a=document.createElement('a');a.id='pc-menu-link';a.className='nav-item';a.href='/configuracoes/portal-cliente.html';a.textContent='PetHub Cliente';menu.append(a);}const btn=document.querySelector('.btn-refresh');if(btn&&!document.getElementById('pc-agenda-link')){const a=document.createElement('a');a.id='pc-agenda-link';a.href='/atendimento/solicitacoes-app.html';a.textContent='Solicitações do App';a.className='pc-pop-agenda-link';btn.parentElement.append(a);}}
+document.addEventListener('click',async e=>{const target=e.target.closest('[data-pop],[data-pop-details]');if(!target)return;if(target.dataset.popDetails){if(mobile&&window.MobileRouter){e.preventDefault();window.PortalPedidoFoco=target.dataset.popDetails;window.MobileRouter.navigate('solicitacoes');}return;}e.preventDefault();e.stopPropagation();const action=target.dataset.pop,id=target.closest('[data-pc-alerta]')?.dataset.pcAlerta,p=state?.itens.find(p=>p.id===id);try{if(action==='audio')await window.PortalAudioGlobal.enable();if(action==='expandir'){expandedCount=50;expanded();listDialog.showModal();}if(action==='mais-lista'){expandedCount+=50;expanded();}if(action==='fechar-lista')listDialog.close();if(action==='fechar-decisao')decisionDialog.close();if(action==='mute'&&p)await controller.silenciar(id,!p.silenciado);if(action==='aceitar'&&p){await controller.agir(id,'aceitar');window.dispatchEvent(new Event('pethub:portal-atualizado'));}if(['recusar','propor'].includes(action)&&p)await dialogAction(p,action);}catch(err){if(root){const n=root.querySelector('.pc-pop-error')||document.createElement('div');n.className='pc-pop-error';n.setAttribute('role','alert');n.textContent=err.message;root.append(n);}}});
+document.addEventListener('submit',async e=>{const form=e.target;if(!form.dataset.popupForm)return;e.preventDefault();const btn=form.querySelector('[type=submit]');if(btn.disabled)return;btn.disabled=true;try{const body=Object.fromEntries(new FormData(form));await controller.agir(decisionDialog.dataset.id,form.dataset.popupForm,body);decisionDialog.close();window.dispatchEvent(new Event('pethub:portal-atualizado'));}catch(err){const box=form.querySelector('[role=alert]');box.hidden=false;box.textContent=err.message;}finally{btn.disabled=false;}});
+window.addEventListener('pethub:audio-status',audioStatus);window.addEventListener('pethub:portal-atualizado',()=>{void verificar();});window.addEventListener('resize',()=>{if(state){rendered='';render(state);}});window.addEventListener('pageshow',e=>{if(e.persisted&&controller){stopped=false;clearInterval(timer);timer=setInterval(verificar,15000);void verificar();}});window.addEventListener('pagehide',()=>{clearInterval(timer);source?.close();source=null;controller?.limpar();for(const u of photos)URL.revokeObjectURL(u);});document.addEventListener('visibilitychange',()=>{if(!document.hidden)void verificar();});
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{void boot().catch(()=>{});});else void boot().catch(()=>{});
 })();
