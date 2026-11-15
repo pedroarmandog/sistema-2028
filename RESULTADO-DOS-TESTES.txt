@@ -1,0 +1,14 @@
+Validação PetHub Cliente
+
+Comando completo:
+node --test --test-concurrency=1 tests/*.test.js backend/scripts/lab-fiscal/teste.js
+
+Resultado: 245 aprovados, 0 falhas, 0 ignorados.
+30 testes próprios do portal, incluindo rotas HTTP, isolamento, CSRF, recuperação, convites, perfis, agenda, negociação, concorrência na aplicação e notificações.
+
+Verificação estática adicional: 29 arquivos JS/CJS analisados; 188 imports relativos do backend resolvidos; referências dos 3 novos HTML verificadas. Nenhum erro.
+
+Teste visual tentado: node tests/browser/cliente-portal.ui.cjs (Chromium /usr/bin/chromium).
+Resultado de infraestrutura: navegador abortou na inicialização com socket() failed: Operation not permitted. A interface não foi validada visualmente neste ambiente.
+
+Sem conexão com banco de produção, sem Focus/SEFAZ, sem WhatsApp real, sem Web Push real. Banco SQLite em memória e adaptadores externos simulados. MySQL/TiDB real e dispositivos físicos precisam de homologação.

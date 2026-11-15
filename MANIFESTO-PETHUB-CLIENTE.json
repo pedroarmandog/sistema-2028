@@ -1,0 +1,215 @@
+{
+  "descricao": "Pacote incremental PetHub Cliente",
+  "arquivos": [
+    {
+      "arquivo": "backend/app.js",
+      "tipo": "alterado",
+      "sha256": "5f6fbb9f52f55b708589f1c9becfcce9df5038263d333f671de1115e8398728c"
+    },
+    {
+      "arquivo": "backend/middleware/authUser.js",
+      "tipo": "alterado",
+      "sha256": "98c37895e7c2984b51978aa9799ea9bf44878a4c4723714a6147cd394337021f"
+    },
+    {
+      "arquivo": "backend/routes/agendamentoRoutes.js",
+      "tipo": "alterado",
+      "sha256": "e786cfdd219f8f71d8cde3bfde75638dbce281c9811e1aaedc010a80611d1804"
+    },
+    {
+      "arquivo": "backend/routes/clientePortalRoutes.js",
+      "tipo": "novo",
+      "sha256": "ad9c177d411d0690ae671ab4ab68e9a6a7e7e84d3f75ec3a20db4dd213413f81"
+    },
+    {
+      "arquivo": "backend/scripts/preparar-cliente-portal.js",
+      "tipo": "novo",
+      "sha256": "d64c89d8e4fa49b97275ab1fd0f2730689c36393d48c540949e61d663b0e9dc6"
+    },
+    {
+      "arquivo": "backend/scripts/preparar-clientes-inteligencia.js",
+      "tipo": "alterado",
+      "sha256": "e81cccbf870ae502a9811b2714d97a1ba4930087223c9c1377cfe7807ab7c7a5"
+    },
+    {
+      "arquivo": "backend/services/clientePortal/agenda.js",
+      "tipo": "novo",
+      "sha256": "9c83110d95ce5b067560f6bf459363de1c7d0decd920b97c18e0a42e238f974c"
+    },
+    {
+      "arquivo": "backend/services/clientePortal/auth.js",
+      "tipo": "novo",
+      "sha256": "cc5a595441a03480a5a098aebf2c14cb4dd141f04c1c5f2fc667e8b089678492"
+    },
+    {
+      "arquivo": "backend/services/clientePortal/cadastros.js",
+      "tipo": "novo",
+      "sha256": "b1509ce29ab8c99cd73b8cced7f91a4f054bd963dbb393fb1d0102ecacb64703"
+    },
+    {
+      "arquivo": "backend/services/clientePortal/eventos.js",
+      "tipo": "novo",
+      "sha256": "08ede1f7157e2e6cc25ec67ce024011772ee9939f96bde2038f1bffa26ffe260"
+    },
+    {
+      "arquivo": "backend/services/clientePortal/index.js",
+      "tipo": "novo",
+      "sha256": "b073dae099cf6c17bcbbfb1c5e4126136fecdaeb17508d632cfefb4c6f3960f3"
+    },
+    {
+      "arquivo": "backend/services/clientePortal/modelos.js",
+      "tipo": "novo",
+      "sha256": "543801a32addc95489908fc9de4cfcdb45465989a54a162d0058c2bac1e4e4d9"
+    },
+    {
+      "arquivo": "backend/services/clientePortal/notificacoes.js",
+      "tipo": "novo",
+      "sha256": "0339fdd7610ae8e4aa9909006c4a2ffc6323fe6304a0d34537dd5b995078d9f9"
+    },
+    {
+      "arquivo": "backend/services/clientePortal/pedidos.js",
+      "tipo": "novo",
+      "sha256": "63934454c9c9064fb321b59a2ff821e3b30c2ac6aae81d2a202b2328ea499d57"
+    },
+    {
+      "arquivo": "backend/services/clientePortal/validacao.js",
+      "tipo": "novo",
+      "sha256": "67aab4eee18c76ceca5f90274a9d379640887b6c3b377754eb37eb8e30771d05"
+    },
+    {
+      "arquivo": "backend/services/pushNotificationService.js",
+      "tipo": "alterado",
+      "sha256": "60bfe0ea71ad1c1aeecf731c0ba8bafe15bceb90eed983e69456e9b1126e17b5"
+    },
+    {
+      "arquivo": "frontend/agendamentos-novo.js",
+      "tipo": "alterado",
+      "sha256": "21c783fe591de2ae9c9f88511c7129160959040baf128f10e88afecb2d6df9af"
+    },
+    {
+      "arquivo": "frontend/atendimento/solicitacoes-app.html",
+      "tipo": "novo",
+      "sha256": "817d63cadb449294d487a7ef9c274669c071a0941455c17498b2bb71d1c8859b"
+    },
+    {
+      "arquivo": "frontend/client-details.html",
+      "tipo": "alterado",
+      "sha256": "200f05577a89b9ccb0118a6cc5254f7c73b98efafbfd9b5a779cb8783aa9abed"
+    },
+    {
+      "arquivo": "frontend/cliente-app/api.js",
+      "tipo": "novo",
+      "sha256": "365fac86f0c4b7dce35883548815bf95174c66273917ac82195cbaf3dda225ac"
+    },
+    {
+      "arquivo": "frontend/cliente-app/app.css",
+      "tipo": "novo",
+      "sha256": "6dbbadc33a95faa86728c925c186e4f9b318b6d022f2f848d93c543725375b26"
+    },
+    {
+      "arquivo": "frontend/cliente-app/app.html",
+      "tipo": "novo",
+      "sha256": "36def21ccce9e5cdc5a812c982a7873937118b80238cc0abb7dbfdd6256df133"
+    },
+    {
+      "arquivo": "frontend/cliente-app/app.js",
+      "tipo": "novo",
+      "sha256": "26db9653cdab5a16b4b5e99d95a3a2ab043b253a93a8f0f8f9b4989139d778cc"
+    },
+    {
+      "arquivo": "frontend/cliente-app/assets/boas-vindas.webp",
+      "tipo": "novo",
+      "sha256": "c6c8f2e21ef5f31fa2ec262c3489dd50699567f13502654a50a1fc774ab1a4dd"
+    },
+    {
+      "arquivo": "frontend/cliente-app/assets/icon-192.png",
+      "tipo": "novo",
+      "sha256": "f69ab89706661e00f73bd8f4780422c817b231d51797ec4bab6ffc100bd6a6f6"
+    },
+    {
+      "arquivo": "frontend/cliente-app/assets/icon-512.png",
+      "tipo": "novo",
+      "sha256": "5dcf6c68c923cb6314a23319b980802ceabb2ac8102a966e68be208c5524c36e"
+    },
+    {
+      "arquivo": "frontend/cliente-app/assets/icon.svg",
+      "tipo": "novo",
+      "sha256": "387d19538d4eb0e7e3fc71fd789e5e22191e349147e79500e56445f2d5f75727"
+    },
+    {
+      "arquivo": "frontend/cliente-app/manifest.webmanifest",
+      "tipo": "novo",
+      "sha256": "bde37a2c519907d302db912f4cccef05ff9d2940e7f82795de8d5fbb91958062"
+    },
+    {
+      "arquivo": "frontend/cliente-app/service-worker.js",
+      "tipo": "novo",
+      "sha256": "e7337cf502506114494ab251ce65e2b6396efc4a3c48c613330ec634531dc1ff"
+    },
+    {
+      "arquivo": "frontend/components/cliente-portal-erp.css",
+      "tipo": "novo",
+      "sha256": "9753d8d95451e1b35d58204a45962c68687cdf64d6dbf19327fd1305b6a06345"
+    },
+    {
+      "arquivo": "frontend/components/cliente-portal-erp.js",
+      "tipo": "novo",
+      "sha256": "edecfc1844bed655318adecd563ddea011016f898d446b2074b8f68d76e2f3be"
+    },
+    {
+      "arquivo": "frontend/components/cliente-portal-widget.js",
+      "tipo": "novo",
+      "sha256": "a03902d9ea2ee6140e8eb98353b0daff215c615ff2a91d6e84df284f46b0c362"
+    },
+    {
+      "arquivo": "frontend/configuracoes/portal-cliente.html",
+      "tipo": "novo",
+      "sha256": "489b9a8c9f864098733e517d2e4bff1d701bfb82294bf71e021f709a2d61f0b3"
+    },
+    {
+      "arquivo": "frontend/mobile/app.html",
+      "tipo": "alterado",
+      "sha256": "b1099ffa604c53bd4143529725fd5e2f2ecfab142bdc396f5a27d5cb2ad2bf44"
+    },
+    {
+      "arquivo": "frontend/mobile/app.js",
+      "tipo": "alterado",
+      "sha256": "ea65bc15d51890511d7598ab32381439312e58545b327c30f833ea61193db4ca"
+    },
+    {
+      "arquivo": "frontend/mobile/pages/solicitacoes.js",
+      "tipo": "novo",
+      "sha256": "52db790744e37b5ca49416a7f57b09fe2715c29e02cb0204367e26f2be7ea6e8"
+    },
+    {
+      "arquivo": "frontend/mobile/service-worker.js",
+      "tipo": "alterado",
+      "sha256": "f33ed772e41c0da183bc13e2f9af5dac81522b1252ac215cec26a3b5ae80052a"
+    },
+    {
+      "arquivo": "frontend/pets/pet-details.html",
+      "tipo": "alterado",
+      "sha256": "6124f479c35397f2aadb901fefabc08283401814f5af3fdd655c94b4bd76ab21"
+    },
+    {
+      "arquivo": "tests/browser/cliente-portal.ui.cjs",
+      "tipo": "novo",
+      "sha256": "f9e2aec8391b2b8e9c5590f7a666a704790592662ead894e580bf28e598caac1"
+    },
+    {
+      "arquivo": "tests/cliente-portal-http.test.js",
+      "tipo": "novo",
+      "sha256": "aea98465ebc19d8e67b81ca628d616825fab54d19c4d101bc5e8732829025a94"
+    },
+    {
+      "arquivo": "tests/cliente-portal.test.js",
+      "tipo": "novo",
+      "sha256": "418fb4aa9783414c83b10fde2da7e2a21ddb6279abd0b526b6a013549e0d5373"
+    },
+    {
+      "arquivo": "tests/helpers/cliente-portal-fixture.js",
+      "tipo": "novo",
+      "sha256": "0d5aa27ce94c5c6288230807ed96a6a4332503f67db3654b493317ab421bb36e"
+    }
+  ]
+}

@@ -146,7 +146,7 @@ router.get("/", async (req, res) => {
     res.json(agendamentosFormatted);
   } catch (error) {
     console.error("[AGENDAMENTOS ERROR] Erro ao buscar agendamentos:", error);
-    res.status(500).json({ error: "Erro interno do servidor" });
+    res.status(error.status||500).json({ error: error.status?error.message:"Erro interno do servidor" });
   }
 });
 
@@ -225,7 +225,7 @@ router.get("/:id", async (req, res) => {
     res.json(agendamentoFormatted);
   } catch (error) {
     console.error("[AGENDAMENTOS ERROR] Erro ao buscar agendamento:", error);
-    res.status(500).json({ error: "Erro interno do servidor" });
+    res.status(error.status||500).json({ error: error.status?error.message:"Erro interno do servidor" });
   }
 });
 
@@ -308,22 +308,10 @@ router.post("/", async (req, res) => {
 
     const petDono = await Pet.findOne({where:{id:petId},include:[{model:Cliente,as:'cliente',where:{empresa_id:req.user.empresaId},required:true}]});
     if(!petDono || (petDono.empresa_id && Number(petDono.empresa_id)!==Number(req.user.empresaId)))return res.status(404).json({error:'Pet não encontrado nesta empresa.'});
-    const novoAgendamento = await Agendamento.create({
-      dataAgendamento,
-      horario: hora,
-      petId,
-      servico,
-      servicos: Array.isArray(servicos)
-        ? servicos
-        : servico
-          ? [{ nome: servico, valor: valor || 0 }]
-          : [],
-      observacoes: observacoes || "",
-      profissional: profissional || "",
-      valor: valor || 0,
-      status: "agendado",
-      empresa_id: req.user?.empresaId || null,
-    });
+    const novoAgendamento = await require('../services/clientePortal/agenda').criarOficial(
+      require('../models'),
+      require('../services/clientePortal/agenda').payload({empresaId:req.user.empresaId,petId,data,hora,servico,servicos,observacoes:observacoes||'',profissional:profissional||'',valor:valor||0})
+    );
 
     // Buscar o agendamento criado com os dados relacionados
     const agendamentoCriado = await Agendamento.findOne({ where: {id: novoAgendamento.id, empresa_id: req.user.empresaId},
@@ -422,7 +410,7 @@ router.post("/", async (req, res) => {
     });
   } catch (error) {
     console.error("[AGENDAMENTOS ERROR] Erro ao criar agendamento:", error);
-    res.status(500).json({ error: "Erro interno do servidor" });
+    res.status(error.status||500).json({ error: error.status?error.message:"Erro interno do servidor" });
   }
 });
 
@@ -550,7 +538,7 @@ router.put("/:id", async (req, res) => {
     if (status) updateData.status = status;
     if (taxidog !== undefined) updateData.taxidog = taxidog;
 
-    await agendamento.update(updateData);
+    await require('../services/clientePortal/agenda').atualizarOficial(require('../models'),agendamento,updateData);
     await require('../services/marketingScheduler').sincronizarAgendamento(agendamento,req.user.empresaId).catch(e=>console.warn('[Marketing] Replanejamento pendente:',e.message));
 
     // Buscar o agendamento atualizado com os dados relacionados
@@ -585,8 +573,8 @@ router.put("/:id", async (req, res) => {
     console.error("❌ Erro ao atualizar agendamento:", error);
     console.error("Stack trace:", error.stack);
     console.error("Payload recebido:", req.body);
-    res.status(500).json({
-      error: "Erro interno do servidor",
+    res.status(error.status||500).json({
+      error: error.status?error.message:"Erro interno do servidor",
       message: error.message,
       details: error.stack,
     });
@@ -674,7 +662,7 @@ router.post("/:id/cancelar", async (req, res) => {
       return res.status(404).json({ error: "Agendamento não encontrado" });
     }
     
-    await agendamento.update({ status: "cancelado" });
+    await require('../services/clientePortal/agenda').atualizarOficial(require('../models'),agendamento,{status:'cancelado'});
     await require('../services/marketingScheduler').sincronizarAgendamento(agendamento,req.user.empresaId).catch(e=>console.warn('[Marketing] Replanejamento pendente:',e.message));
     console.log("[CANCELAMENTO] SUCESSO: Agendamento cancelado");
     
@@ -684,8 +672,8 @@ router.post("/:id/cancelar", async (req, res) => {
   } catch (error) {
     console.error("[CANCELAMENTO] ERRO GERAL:", error);
     console.error("[CANCELAMENTO] Stack:", error.stack);
-    res.status(500).json({
-      error: "Erro interno do servidor",
+    res.status(error.status||500).json({
+      error: error.status?error.message:"Erro interno do servidor",
       message: error.message,
     });
   }
@@ -702,13 +690,13 @@ router.delete("/:id", async (req, res) => {
     }
 
     // Em vez de deletar, vamos cancelar o agendamento
-    await agendamento.update({ status: "cancelado" });
+    await require('../services/clientePortal/agenda').atualizarOficial(require('../models'),agendamento,{status:'cancelado'});
     await require('../services/marketingScheduler').sincronizarAgendamento(agendamento,req.user.empresaId).catch(e=>console.warn('[Marketing] Replanejamento pendente:',e.message));
 
     res.json({ message: "Agendamento cancelado com sucesso" });
   } catch (error) {
     console.error("Erro ao cancelar agendamento:", error);
-    res.status(500).json({ error: "Erro interno do servidor" });
+    res.status(error.status||500).json({ error: error.status?error.message:"Erro interno do servidor" });
   }
 });
 
@@ -761,7 +749,7 @@ router.patch("/:id/status", async (req, res) => {
       updatePayload.totalPago = v;
     }
 
-    await agendamento.update(updatePayload);
+    await require('../services/clientePortal/agenda').atualizarOficial(require('../models'),agendamento,updatePayload);
     await require('../services/marketingScheduler').sincronizarAgendamento(agendamento,req.user.empresaId).catch(e=>console.warn('[Marketing] Replanejamento pendente:',e.message));
 
     res.json({
@@ -935,7 +923,7 @@ router.patch("/:id/status", async (req, res) => {
 
   } catch (error) {
     console.error("Erro ao atualizar status:", error);
-    res.status(500).json({ error: "Erro interno do servidor" });
+    res.status(error.status||500).json({ error: error.status?error.message:"Erro interno do servidor" });
   }
 });
 
@@ -974,7 +962,7 @@ router.patch("/:id/prontuario", async (req, res) => {
     });
   } catch (error) {
     console.error("Erro ao salvar prontuário:", error);
-    res.status(500).json({ error: "Erro interno do servidor" });
+    res.status(error.status||500).json({ error: error.status?error.message:"Erro interno do servidor" });
   }
 });
 

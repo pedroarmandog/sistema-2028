@@ -164,6 +164,7 @@ async function authUser(req, res, next) {
   if (token) {
     try {
       const decoded = jwt.verify(token, JWT_SECRET);
+      if (decoded.token_use === 'tutor') return res.status(401).json({mensagem:'Credencial de tutor não autoriza acesso ao ERP.'});
 
       const userId = decoded && decoded.id ? Number(decoded.id) : null;
       console.log(`[authUser] Token decodificado: userId=${userId}, empresaId=${decoded.empresaId}, grupoUsuario=${decoded.grupoUsuario}`);

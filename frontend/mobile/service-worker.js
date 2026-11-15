@@ -7,7 +7,7 @@
      - Páginas HTML: Network First com fallback offline
    ============================================================ */
 
-const CACHE_VERSION = "pethub-mobile-v9-paleta";
+const CACHE_VERSION = "pethub-mobile-v9-paleta-cliente-portal";
 const CACHE_STATIC = `${CACHE_VERSION}-static`;
 const CACHE_API = `${CACHE_VERSION}-api`;
 
@@ -26,6 +26,10 @@ const PRECACHE_ASSETS = [
   "/mobile/pages/login.js",
   "/mobile/pages/dashboard.js",
   "/mobile/pages/agenda.js",
+  "/mobile/pages/solicitacoes.js",
+  "/components/cliente-portal-erp.js",
+  "/components/cliente-portal-erp.css",
+  "/components/cliente-portal-widget.js",
   "/mobile/pages/pets.js",
   "/mobile/pages/financeiro.js",
   "/mobile/pages/configuracoes.js",
@@ -84,6 +88,8 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
+  // Portal: mídia, SSE e respostas autenticadas sempre diretamente da rede.
+  if(url.pathname.startsWith('/api/cliente-portal')||url.pathname.startsWith('/api/cliente-app')){event.respondWith(fetch(request,{cache:'no-store'}));return;}
   // Mídias privadas nunca entram no cache offline compartilhado.
   if(url.pathname.startsWith("/uploads/")){event.respondWith(fetch(event.request,{cache:"no-store"}));return;}
 

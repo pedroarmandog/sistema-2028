@@ -99,7 +99,7 @@ app.get("/favicon.ico", (req, res) => {
 // ⚠️ NÃO injetar scripts que possam quebrar o Mobile PWA (fetch-ratelimiter).
 const fs = require("fs");
 app.use((req, res, next) => {
-  if (!req.path.endsWith(".html")) return next();
+  if (!req.path.endsWith(".html") || req.path.startsWith("/cliente-app/")) return next();
   const filePath = path.join(__dirname, "../frontend", req.path);
   fs.readFile(filePath, "utf8", (err, html) => {
     if (err) return next(); // arquivo não encontrado, deixa express.static ou 404 tratar
@@ -108,6 +108,7 @@ app.use((req, res, next) => {
     // que interfere com o MobileApi e causa redirect loops.
     const isMobile = req.path.startsWith("/mobile/");
     const tagsToInject = [];
+    if (!req.path.includes('/login/') && !req.path.includes('/painel-admin/') && !req.path.includes('/base-conhecimento/')) tagsToInject.push('<script defer src="/components/cliente-portal-widget.js"></script>');
     // Paleta disponível desde o head nas telas autenticadas do ERP.
     if (!isMobile && !req.path.includes('/login/') && !req.path.includes('/painel-admin/') && !html.includes('tema-bootstrap.js')) {
       tagsToInject.push('<script src="/tema-bootstrap.js"></script>');
@@ -1013,6 +1014,11 @@ const petTagsRoutes = require("./routes/petTagsRoutes");
 const marketingRoutes = require("./routes/marketingRoutes");
 app.use("/api/marketing", authUser, marketingRoutes);
 
+const clientePortal=require('./services/clientePortal').instancia();
+const portalRotas=require('./routes/clientePortalRoutes').criarRotas(clientePortal,{authERP:authUser,permissao:require('./middleware/exigePermissao').exigePermissao});
+app.use('/api/cliente-app',portalRotas.tutor);
+app.use('/api/cliente-portal',portalRotas.gestor);
+clientePortal.hooks();
 app.use("/api/clientes", clienteRoutes);
 app.use("/api/pets", petRoutes);
 app.use("/api/pet-tags", petTagsRoutes);
@@ -1819,6 +1825,8 @@ function startServer() {
   const PORT = process.env.PORT || 3000;
   const server = app.listen(PORT, () => {
     console.log(`🚀 Servidor rodando na porta ${PORT} ✅`);
+    // Só o portal fica desativado se ainda não houver segredo/migração. O ERP continua.
+    if(process.env.JWT_CLIENTE_SECRET) clientePortal.notificacoes.iniciar();
     console.log(`🔗 URL: http://localhost:${PORT}`);
 
     // Iniciar agendador de mensagens WhatsApp (node-cron)

@@ -81,6 +81,7 @@ function formatarHorarioBrasilia(data, comSegundos = true) {
 
 // ── Payloads por evento ───────────────────────────────────
 const PAYLOADS = {
+  solicitacao_app: dados => ({title:'PetHub Cliente',body:'Uma solicitação do aplicativo aguarda a equipe.',tag:'solicitacao_app-'+dados.eventoId,data:{page:'solicitacoes'}}),
   novo_agendamento: (dados) => ({
     title: "📅 Novo Agendamento",
     body: dados.petNome

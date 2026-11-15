@@ -1,0 +1,2 @@
+window.PageSolicitacoes = (function () { let target; return { async init(container) { target = document.createElement('div'); target.className = 'pc-root'; target.style.padding = '16px'; container.append(target); await window.PortalERP.renderPedidos(target); }, refresh() { if (target?.isConnected && !target.querySelector('form'))
+        return window.PortalERP.renderPedidos(target); }, destroy() { target = null; } }; })();

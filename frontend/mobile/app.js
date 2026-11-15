@@ -24,6 +24,7 @@
     login: () => window.PageLogin,
     dashboard: () => window.PageDashboard,
     agenda: () => window.PageAgenda,
+    solicitacoes: () => window.PageSolicitacoes,
     pets: () => window.PagePets,
     financeiro: () => window.PageFinanceiro,
     configuracoes: () => window.PageConfiguracoes,

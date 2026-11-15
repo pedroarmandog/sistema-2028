@@ -48,6 +48,7 @@ class AgendamentosManager {
   init() {
     console.log("⚙️ Inicializando AgendamentosManager...");
     this.setupEventListeners();
+    window.addEventListener('pethub:portal-atualizado',()=>this.loadAgendamentos());
     this.updateDateDisplay();
     this.setupModalEvents();
     this.setupNovoAgendamentoSidebar();
