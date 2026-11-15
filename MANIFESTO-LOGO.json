@@ -1,0 +1,38 @@
+[
+  {
+    "arquivo": "backend/routes/clientePortalRoutes.js",
+    "sha256": "54881734f2fed27ba3058a4ec3f7ede00ceae08cba6ca0d68e841e3e9b7bb9d7"
+  },
+  {
+    "arquivo": "backend/services/clientePortal/logoEmpresa.js",
+    "sha256": "6f81f006fb6a95a9053fe530f68e938fa2bdcda8fb4689be770047d4f7d81713"
+  },
+  {
+    "arquivo": "frontend/cliente-app/app.html",
+    "sha256": "2ceb89cbcf6032e18b8999734e20de4d0359354c5d0ff95ba19a022767ef3ae9"
+  },
+  {
+    "arquivo": "frontend/cliente-app/app.js",
+    "sha256": "34ce0f9a08f792aa3b45485ec9466d9eabe13ea1d48fb62eb0bbf420c8e4b395"
+  },
+  {
+    "arquivo": "frontend/cliente-app/app.css",
+    "sha256": "a02f1a28b09f1d5f741bef00385ddd1297d7087a0ca326ad55c511189e028914"
+  },
+  {
+    "arquivo": "frontend/cliente-app/service-worker.js",
+    "sha256": "e9a814e0018e67efa80bd4f6e0810b65ee6f4700ec7c7bb4a7cd8d1606848528"
+  },
+  {
+    "arquivo": "tests/portal-logo-empresa.test.js",
+    "sha256": "4500606573f99b5e1ab87063b021555e685e013fcff7f0d2fd07829ebd85f02a"
+  },
+  {
+    "arquivo": "tests/browser/portal-logo-empresa.dom.cjs",
+    "sha256": "66d808762d4b176d1b8a6fa37599e9e9c526ee1a622d3a48c9c24dff638b9d5a"
+  },
+  {
+    "arquivo": "tests/cliente-portal-inicializacao.test.js",
+    "sha256": "4e9efd67994b10638fe6a5582d74fca5ad7aa5d532cd3b181a9803dc96ebfb38"
+  }
+]

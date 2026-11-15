@@ -28,24 +28,26 @@ function criarRotas(p, { authERP, permissao } = {}) {
         return resolve(res.status(400).json({ erro: 'Selecione um arquivo.' })); Promise.resolve(fn(req, res)).then(resolve).catch(err => resolve(res.status(err.status || 503).json({ erro: err.status ? err.message : 'Não foi possível salvar o arquivo. Confira o armazenamento permanente.' }))); }));
     async function binario(res, r) { res.set({ 'Content-Type': r.tipo, 'Content-Length': r.bytes.length, 'X-Content-Type-Options': 'nosniff', 'Content-Disposition': 'inline', 'Cache-Control': 'private, no-store', 'Content-Security-Policy': "sandbox; default-src 'none'" }); res.send(r.bytes); }
     tutor.use(ajax);
+    const logoEmpresa=require('../services/clientePortal/logoEmpresa'),logoApp=logoEmpresa.criarLogo(p);
+    // A rota exata deve vir antes de /loja/:slug: 'logo' não é um slug.
+    tutor.get('/loja/logo',auth.auth,wrap(async(req,res)=>{const emp=await ERP.Empresa.findByPk(req.tutor.empresaId,{logging:false});return binario(res,await logoApp.ler(emp));}));
+    tutor.get('/loja/:slug/logo',limite,wrap(async(req,res)=>{const {empresa}=await auth.estabelecimento(req.params.slug);return binario(res,await logoApp.ler(empresa));}));
     tutor.get('/loja/:slug', limite, wrap(async req => {
         const { config, empresa } = await auth.estabelecimento(req.params.slug);
-        return { nome: empresa.nome, telefone: empresa.telefone || null, slug: config.slug, aparencia: require('../services/clientePortal/aparencia').ler(config) };
+        return { nome: empresa.nome, telefone: empresa.telefone || null, slug: config.slug, ...logoEmpresa.dto(empresa,{slug:config.slug}), aparencia: require('../services/clientePortal/aparencia').ler(config) };
     }));
     tutor.post('/login', limite, wrap((req, res) => auth.login(req.body, res)));
     tutor.post('/convite', limite, wrap(req => auth.aceitarConvite(req.body)));
     tutor.post('/recuperar', limite, wrap(req => auth.recuperar(req.body)));
     tutor.post('/logout', wrap((req, res) => auth.logout(req, res)));
     tutor.use(auth.auth);
-    tutor.get('/sessao', wrap(async (req) => ({ csrf: auth.csrf(req.tutor.sessao.id), perfil: c.perfil(req.tutor), loja: await (async () => { const e = await ERP.Empresa.findByPk(req.tutor.empresaId, { logging: false }); return { nome: e.nome, aparencia: require('../services/clientePortal/aparencia').ler(req.tutor.config), telefone: e.telefone || null, logo: !!e.logo, endereco: typeof e.endereco === 'string' ? (() => { try {
+    tutor.get('/sessao', wrap(async (req) => ({ csrf: auth.csrf(req.tutor.sessao.id), perfil: c.perfil(req.tutor), loja: await (async () => { const e = await ERP.Empresa.findByPk(req.tutor.empresaId, { logging: false }); return { nome: e.nome, aparencia: require('../services/clientePortal/aparencia').ler(req.tutor.config), telefone: e.telefone || null, ...logoEmpresa.dto(e,{slug:req.tutor.config.slug}), endereco: typeof e.endereco === 'string' ? (() => { try {
                 const d = JSON.parse(e.endereco);
                 return [d.logradouro || d.rua || d.endereco, d.numero, d.bairro, d.cidade, d.uf].filter(Boolean).join(', ');
             }
             catch {
                 return e.endereco;
             } })() : [e.endereco?.logradouro || e.endereco?.rua || e.endereco?.endereco, e.endereco?.numero, e.endereco?.bairro, e.endereco?.cidade, e.endereco?.uf].filter(Boolean).join(', '), expediente: (() => { const r = V.json(req.tutor.config.regras); return r.inicio && r.fim ? 'Funcionamento: ' + r.inicio + ' às ' + r.fim + ' · ' + (r.dias || []).map(d => ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][d]).join(', ') : null; })(), slug: req.tutor.config.slug, receberPedidos: req.tutor.config.receber_pedidos, push: req.tutor.config.push_tutor }; })() })));
-    tutor.get('/loja/logo', wrap(async (req, res) => { const emp = await ERP.Empresa.findByPk(req.tutor.empresaId, { logging: false }); if (!emp?.logo)
-        throw V.falha('Logo não encontrada.', 404); return binario(res, await p.midias().ler(req.tutor.empresaId, emp.logo)); }));
     tutor.get('/pets', wrap(req => c.pets(req.tutor)));
     tutor.post('/pets', wrap(req => c.salvarPet(req.tutor, null, req.body)));
     tutor.put('/pets/:id', wrap(req => c.salvarPet(req.tutor, req.params.id, req.body)));
