@@ -1,0 +1,22 @@
+PetHub - Complemento para corrigir o deploy das cores
+
+Causa: a rota backend/routes/usuarioRoutes.js depende de backend/utils/sessionCookieDomain.js. Esse utilitário estava na base utilizada para preparar a atualização, mas ficou fora do pacote enviado. No seu deploy, o Node não encontrou o arquivo e encerrou a API. O build e o predeploy terminaram com sucesso.
+
+Aplicação:
+1. Extraia este ZIP na raiz do projeto sistema-2028, preservando backend/utils/sessionCookieDomain.js.
+2. Confirme que o arquivo está exatamente nesse caminho e com essa capitalização. Ele não deve ficar dentro de outra pasta com o nome do ZIP.
+3. Inclua o novo arquivo no commit e faça push para a branch main, ou use o GitHub Desktop. Arquivos novos também precisam ser enviados ao GitHub.
+4. Faça um novo deploy no Render.
+
+Mantenha seu Pre-Deploy Command atual:
+node backend/scripts/preparar-clientes-inteligencia.js
+
+Não há alteração de banco, migração nova, variável de ambiente nova ou dependência npm nova. O utilitário apenas centraliza a seleção do domínio dos cookies de sessão, já utilizada pelas rotas de login/logout. No domínio onrender.com os cookies permanecem exclusivos do host. Os ajustes anteriores de cores e PDFs continuam no projeto; este ZIP contém somente o complemento que faltou.
+
+Validação local executada:
+- 12 verificações do domínio dos cookies passaram.
+- 25 imports relativos das rotas/controladores/serviço de cores foram resolvidos.
+- backend/routes/usuarioRoutes.js foi importado em Node 24 sem MODULE_NOT_FOUND.
+- ZIP verificado e conteúdo conferido com o arquivo de origem.
+
+O deploy no seu Render não foi executado daqui. Esta correção resolve a dependência ausente identificada no log; o resultado da inicialização completa será confirmado pelo próximo deploy.
