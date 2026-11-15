@@ -1,183 +1,349 @@
+--- a/backend/services/whatsappService.js
++++ b/backend/services/whatsappService.js
+@@ -36,6 +36,7 @@
+ 
+ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.toDataURL,
+   agendar = setTimeout, cancelar = clearTimeout, agora = Date.now, atualizarResumo = async () => {}, registrar = () => {}, flushDiagnostico = async () => {},
++  resolverEmpresa = empresaDaSessao,
+   verificarPermissao = async () => ({permitido:true}),
+   carregarMidia = (empresa,ref) => require("./midias/whatsapp").carregar(empresa,ref),
+   pausaEnvio = () => new Promise(resolve => setTimeout(resolve, 3000 + Math.random() * 7000)) } = {}) {
+@@ -151,6 +152,7 @@
+     s.abrindo = true;
+     s.inicioAbertura = agora();
+     try {
++      s.empresaId ??= await resolverEmpresa(s.id);
+       const lib = await carregar();
+       if (!atual(s)) return;
+       if (!s.auth && repositorio) {
+@@ -296,7 +298,7 @@
+   async function inicializarCliente(id, manual = true) {
+     if (parando) throw new Error('Servidor reiniciando. Aguarde.');
+     const chave = String(id);
+-    if (!/^[1-9]\d*$/.test(chave)) throw new Error('Empresa inválida');
++    if (!/^(?:disp_)?[1-9]\d*$/.test(chave)) throw new Error('Empresa inválida');
+     if (desligando.has(chave)) await desligando.get(chave);
+     const existente = sessoes.get(chave);
+     if (existente) {
+@@ -447,7 +449,7 @@
+       await pausaEnvio();
+       if (!isConectado(id) || sessoes.get(String(id))?.socket !== socket) return indisponivel();
+       let permissao;
+-      try { permissao = await verificarPermissao(id, telefone); }
++      try { permissao = await verificarPermissao(s.empresaId, telefone); }
+       catch { return {sucesso:false,temporario:true,erro:'Não foi possível verificar as preferências de comunicação. Envio preservado.'}; }
+       if (!permissao.permitido) return {sucesso:false,bloqueado:true,ignorado:true,erro:permissao.erro};
+       const numeros = await socket.onWhatsApp(...candidatos);
+@@ -457,7 +459,7 @@
+       let conteudo = { text: texto || '' };
+       if (arquivo) {
+         let midia;
+-        try { midia = await carregarMidia(id,arquivo); }
++        try { midia = await carregarMidia(s.empresaId,arquivo); }
+         catch { return {sucesso:false,temporario:true,erro:'Anexo indisponível. A mensagem foi preservada para nova tentativa.'}; }
+         const bytes = midia.bytes;
+         const mime = midia.tipo?.startsWith('image/') ? midia.tipo : null;
+@@ -465,7 +467,7 @@
+           : { document: bytes, fileName: path.basename(arquivo), mimetype: midia.tipo || 'application/octet-stream', caption: texto || '' };
+       }
+       if (!isConectado(id) || sessoes.get(String(id))?.socket !== socket) return indisponivel();
+-      try { permissao = await verificarPermissao(id, telefone); }
++      try { permissao = await verificarPermissao(s.empresaId, telefone); }
+       catch { return {sucesso:false,temporario:true,erro:'Não foi possível verificar as preferências de comunicação. Envio preservado.'}; }
+       if (!permissao.permitido) return {sucesso:false,bloqueado:true,ignorado:true,erro:permissao.erro};
+       if (!isConectado(id) || sessoes.get(String(id))?.socket !== socket) return indisponivel();
+@@ -480,7 +482,7 @@
+     }
+   }
+   return { iniciarMonitor, restaurar, suspender, inicializarCliente, obterStatus, isConectado, adicionarListenerSSE, enviarMensagem,
+-    empresasConectadas: () => [...sessoes.keys()].filter(isConectado), desconectar, limparSessao: desconectar };
++    empresasConectadas: () => [...sessoes.keys()].filter(id => /^[1-9]\d*$/.test(id) && isConectado(id)), desconectar, limparSessao: desconectar };
+ }
+ 
+ function variantes(telefone) {
+@@ -536,13 +538,26 @@
+   banco ??= require('./whatsappAuthStore').criarRepositorio(require('../models/Cliente').sequelize);
+   return banco;
+ }
++async function empresaDaSessao(id) {
++  const chave=String(id);
++  if (/^[1-9]\d*$/.test(chave)) return Number(chave);
++  if (!/^disp_[1-9]\d*$/.test(chave)) throw new Error('Sessão inválida');
++  const sess=await require('../models').WhatsappSession.findByPk(chave.slice(5));
++  const nome=String(sess?.nome||'').trim().toLowerCase();
++  if(!sess||!nome||nome==='config_disparador')throw new Error('Instância não encontrada');
++  const empresaId=Number(sess.empresaId);
++  if(!Number.isSafeInteger(empresaId)||empresaId<=0)throw new Error('Empresa inválida');
++  return empresaId;
++}
+ async function atualizarResumo(id, status, numero) {
+-  const empresaId = Number(id);
+-  if (!Number.isSafeInteger(empresaId) || empresaId <= 0) return;
++  const chave=String(id), dispatcher=/^disp_([1-9]\d*)$/.exec(chave);
+   const { WhatsappSession } = require('../models');
+-  // Nunca upsert sem chave única: isso criava novas linhas a cada reconexão.
+-  await WhatsappSession.update({ status, numero: numero || null,
+-    ...(status === 'conectado' ? { ultimaConexao: new Date() } : {}) }, { where: { empresaId } });
++  const { Op } = require('sequelize');
++  const scope=dispatcher?{id:Number(dispatcher[1])}
++    : {empresaId:Number(chave),[Op.or]:[{nome:null},{nome:''}]};
++  if(!dispatcher&&(!Number.isSafeInteger(scope.empresaId)||scope.empresaId<=0))return;
++  await WhatsappSession.update({status,numero:numero||null,
++    ...(status==='conectado'?{ultimaConexao:new Date()}: {})},{where:scope});
+ }
+ const diagnostico=require('./whatsappDiagnostico');
+ module.exports = { ...criarServico({ repositorio, atualizarResumo, verificarPermissao:require('./clienteComunicacao').verificar, registrar:diagnostico.registrar, flushDiagnostico:diagnostico.flush }), criarServico, substituirVariaveis, obterDiagnostico:diagnostico.historico };
+--- a/backend/controllers/instanciaController.js
++++ b/backend/controllers/instanciaController.js
+@@ -73,12 +73,11 @@
+       status: "aguardando_qr",
+     });
+ 
+-    // Manter a API do serviço WhatsApp existente (Baileys ou adaptador atual).
+     try {
+-      Promise.resolve(whatsappService.inicializarCliente(DISP_PREFIX + sess.id))
+-        .catch(() => console.warn("[Instancia] conexão inicial indisponível; reconecte pela lista."));
+-    } catch (e) {
+-      console.warn("[Instancia] falha ao inicializar cliente", e && e.message);
++      await whatsappService.inicializarCliente(DISP_PREFIX + sess.id);
++    } catch (_) {
++      await WhatsappSession.update({ status: "erro" }, { where: { id: sess.id, empresaId: Number(empresaId) } });
++      return res.status(503).json({error:"Instância cadastrada, mas não foi possível iniciar o WhatsApp. Use Conectar na lista; não crie outra instância.",instancia:{...dtoInstancia(sess),status:"erro"}});
+     }
+ 
+     return res.json({ success: true, instancia: dtoInstancia(sess) });
+@@ -105,9 +104,8 @@
+       // Uma falha de status de uma sessão não pode esconder toda a lista.
+       let real;
+       try { real = whatsappService.obterStatus(DISP_PREFIX + s.id); } catch (_) {}
+-      if (json.status === "conectado") {
+-        json.status = typeof real?.status === "string" ? real.status : "desconectado";
+-      }
++      if (typeof real?.status === "string") json.status = real.status;
++      else if (json.status === "conectado") json.status = "desconectado";
+       return json;
+     });
+ 
+@@ -136,7 +134,7 @@
+       { status: "aguardando_qr" },
+       { where: { id } },
+     );
+-    whatsappService.inicializarCliente(DISP_PREFIX + id);
++    await whatsappService.inicializarCliente(DISP_PREFIX + id);
+     return res.json({ success: true });
+   } catch (err) {
+     console.error("conectarInstancia error", err && err.message);
+@@ -209,19 +207,15 @@
+       return res.status(404).json({ error: "Instância do disparador não encontrada" });
+ 
+     const chave = DISP_PREFIX + id;
+-    // Destruir cliente existente
+-    try {
+-      await whatsappService.desconectar(chave);
+-    } catch (_) {}
+-    // Limpar sessão corrompida do disco
+-    whatsappService.limparSessaoDoDisco(chave);
++    // Baileys mantém autenticação no repositório; não há diretório Puppeteer.
++    await whatsappService.desconectar(chave);
+     // Atualizar banco
+     await WhatsappSession.update(
+       { status: "aguardando_qr" },
+       { where: { id } },
+     );
+     // Reconectar (gera QR novo)
+-    whatsappService.inicializarCliente(chave);
++    await whatsappService.inicializarCliente(chave);
+     return res.json({ success: true });
+   } catch (err) {
+     console.error("resetarInstancia error", err && err.message);
+@@ -229,7 +223,29 @@
+   }
+ }
+ 
++async function eventosInstancia(req,res) {
++  const empresaId=Number(req.user?.empresaId),id=String(req.params.id);
++  if(!empresaId)return res.status(403).json({error:"Empresa não identificada"});
++  try {
++    const sess=await WhatsappSession.findByPk(id);
++    if(!sess||!registroDeInstancia(sess))return res.status(404).json({error:"Instância não encontrada"});
++    if(Number(sess.empresaId)!==empresaId)return res.status(403).json({error:"Instância não pertence à sua empresa"});
++    const chave=DISP_PREFIX+id;
++    res.setHeader("Content-Type","text/event-stream");res.setHeader("Cache-Control","no-cache, no-transform");
++    res.setHeader("Connection","keep-alive");res.flushHeaders();
++    whatsappService.adicionarListenerSSE(chave,res);
++    res.write('data: '+JSON.stringify({evento:'status_inicial',...whatsappService.obterStatus(chave)})+'\n\n');
++    const timer=setInterval(()=>{try{res.write(': ping\n\n');}catch{}},25000);
++    res.once('close',()=>clearInterval(timer));
++  } catch (_) {
++    if(!res.headersSent)return res.status(503).json({error:"Não foi possível acompanhar a conexão WhatsApp."});
++    res.end();
++  }
++}
++
+ module.exports = {
++  filtroInstancias,
++  eventosInstancia,
+   criarInstancia,
+   listarInstancias,
+   conectarInstancia,
+--- a/backend/controllers/disparadorController.js
++++ b/backend/controllers/disparadorController.js
+@@ -281,7 +281,7 @@
+       }
+     } else {
+       instanciaValida = await WhatsappSession.findOne({
+-        where: { empresaId: empresaAuth },
++        where: require("./instanciaController").filtroInstancias(empresaAuth),
+       });
+       if (!instanciaValida) {
+         return res.status(400).json({
+@@ -292,7 +292,7 @@
+     }
+ 
+     // Verificar/reconectar o cliente WhatsApp (chave validada)
+-    const conectado = whatsappService.isConectado(empresaAuth);
++    const conectado = whatsappService.isConectado("disp_" + instanciaValida.id);
+     if (!conectado) {
+       return res.status(400).json({
+         error:
+@@ -328,6 +328,7 @@
+     return;
+   }
+   const empresaId = String(campanha.empresaId);
++  const chaveWhatsapp = "disp_" + instanciaId;
+ 
+   if (activeWorkers.has(campId)) return;
+ 
+@@ -402,7 +403,7 @@
+         }
+ 
+         // Verificar se o WhatsApp está conectado
+-        if (!whatsappService.isConectado(empresaId)) {
++        if (!whatsappService.isConectado(chaveWhatsapp)) {
+           desconectadoRetries++;
+           if (desconectadoRetries >= MAX_DESCONECTADO_RETRIES) {
+             console.warn(
+@@ -497,7 +498,7 @@
+ 
+         // Enviar via whatsappService
+         const resultado = await whatsappService.enviarMensagem(
+-          empresaId,
++          chaveWhatsapp,
+           envio.telefoneDestino,
+           textoEnvio,
+           envio.imagemPath || null,
+@@ -718,7 +719,7 @@
+       }
+     } else {
+       instanciaValida = await WhatsappSession.findOne({
+-        where: { empresaId: empresaAuth },
++        where: require("./instanciaController").filtroInstancias(empresaAuth),
+       });
+       if (!instanciaValida) {
+         return res.status(400).json({
+@@ -729,7 +730,7 @@
+     }
+ 
+     // Verificar/reconectar o cliente WhatsApp (chave validada)
+-    const conectado = whatsappService.isConectado(empresaAuth);
++    const conectado = whatsappService.isConectado("disp_" + instanciaValida.id);
+     if (!conectado) {
+       return res.status(400).json({
+         error:
+--- a/backend/routes/instanciaRoutes.js
++++ b/backend/routes/instanciaRoutes.js
+@@ -4,6 +4,7 @@
+ 
+ router.post("/", controller.criarInstancia);
+ router.get("/", controller.listarInstancias);
++router.get("/:id/eventos", controller.eventosInstancia);
+ router.post("/:id/connect", controller.conectarInstancia);
+ router.post("/:id/disconnect", controller.desconectarInstancia);
+ router.post("/:id/reset", controller.resetarInstancia);
+--- a/backend/routes/marketingRoutes.js
++++ b/backend/routes/marketingRoutes.js
+@@ -20,7 +20,13 @@
+ router.post("/whatsapp/conectar", marketingController.conectarWhatsapp);
+ router.post("/whatsapp/desconectar", marketingController.desconectarWhatsapp);
+ router.post("/whatsapp/resetar", marketingController.resetarWhatsapp);
+-router.get("/whatsapp/eventos", marketingController.eventoSSE); // SSE
++router.get("/whatsapp/eventos", (req,res,next)=>{
++  if(!String(req.query.empresaId||'').startsWith('disp_'))return next();
++  const match=/^disp_([1-9]\d*)$/.exec(String(req.query.empresaId));
++  if(!match)return res.status(400).json({erro:'Instância inválida'});
++  req.params.id=match[1];
++  return require('../controllers/instanciaController').eventosInstancia(req,res);
++}, marketingController.eventoSSE); // SSE
+ 
+ router.post("/whatsapp/enviar", async (req, res) => {
+   const id = req.user?.empresaId;
 --- a/frontend/marketing-disparador.js
 +++ b/frontend/marketing-disparador.js
-@@ -6,13 +6,26 @@
- (function () {
-   "use strict";
- 
--  // URL do backend na VPS — lê de api-config.js ou usa o valor padrão
--  // ISOLAMENTO MULTI-TENANT: respeitar window.VPS_URL mesmo quando vazio (same-origin).
--  // "" (string vazia) é intencional — nunca cair no fallback de produção.
--  var VPS_URL =
--    window.VPS_URL !== undefined && window.VPS_URL !== null
--      ? window.VPS_URL
--      : "https://api.pethubflow.com.br";
-+  // Resolve na hora da requisição: api-config pode terminar de carregar depois.
-+  // Sem configuração explícita, a API fica na mesma origem da página.
-+  function apiBase() {
-+    var base = typeof window.API_URL === "string" ? window.API_URL
-+      : typeof window.VPS_URL === "string" ? window.VPS_URL : "";
-+    return base.replace(/\/+$/, "");
-+  }
-+  function fetchComTimeout(url, options) {
-+    var controller = new AbortController(), timer;
-+    var timeout = new Promise(function (_, reject) {
-+      timer = setTimeout(function () {
-+        controller.abort();
-+        reject(Object.assign(new Error("Tempo de conexão esgotado. Verifique a conexão e atualize a lista antes de tentar criar novamente."), { code: "CONNECTION_TIMEOUT" }));
-+      }, 15000);
-+    });
-+    return Promise.race([
-+      Promise.resolve().then(function () { return fetch(url, Object.assign({}, options, { signal: controller.signal })); }),
-+      timeout,
-+    ]).finally(function () { clearTimeout(timer); });
-+  }
- 
-   // ── Helpers ──
-   function $(sel) {
-@@ -58,7 +71,7 @@
- 
-   async function carregarConfigDoBanco() {
-     try {
--      var res = await fetch(VPS_URL + "/api/disparador/config", {
-+      var res = await fetchComTimeout(apiBase() + "/api/disparador/config", {
-         credentials: "include",
-       });
-       if (res.ok) {
-@@ -80,7 +93,7 @@
-       limite: Number((cfgLimite && cfgLimite.value) || 0),
-       delayRand: Number((cfgDelayRand && cfgDelayRand.value) || 0),
-     };
--    fetch(VPS_URL + "/api/disparador/config", {
-+    fetchComTimeout(apiBase() + "/api/disparador/config", {
-       method: "POST",
-       headers: { "Content-Type": "application/json" },
-       credentials: "include",
-@@ -175,7 +188,7 @@
-       appendLog("Enviando lista para o servidor...");
- 
-       try {
--        var res = await fetch(VPS_URL + "/api/disparador/campanhas", {
-+        var res = await fetch(apiBase() + "/api/disparador/campanhas", {
-           method: "POST",
-           credentials: "include",
-           body: form,
-@@ -326,7 +339,7 @@
- 
-       btnCriarInstancia.disabled = true;
-       try {
--        var res = await fetch(VPS_URL + "/api/instancias", {
-+        var res = await fetchComTimeout(apiBase() + "/api/instancias", {
-           method: "POST",
-           headers: { "Content-Type": "application/json" },
-           credentials: "include",
-@@ -364,6 +377,7 @@
-       } catch (err) {
-         console.error(err);
-         showSubmodalError("Erro: " + (err.message || err));
-+        if (err.code === "CONNECTION_TIMEOUT") void fetchInstancias();
-       } finally {
-         btnCriarInstancia.disabled = false;
-       }
-@@ -404,7 +418,7 @@
-     var request = ++instanciasRequest;
-     statusInstancias("Carregando instâncias…", false);
-     try {
--      var res = await fetch(VPS_URL + "/api/instancias", {
-+      var res = await fetchComTimeout(apiBase() + "/api/instancias", {
-         credentials: "include", cache: "no-store",
-       });
-       if (!res.ok) throw new Error("Não foi possível carregar as instâncias (HTTP " + res.status + ").");
-@@ -472,8 +486,8 @@
-           // Usar /reset ao conectar para limpar sessão corrompida
-           var endpoint = act === "connect" ? "reset" : act;
+@@ -357,6 +357,7 @@
+           var msg =
+             (data && (data.error || data.message)) || text || res.statusText;
+           showSubmodalError("Erro: " + msg);
++          if (data && data.instancia) await fetchInstancias();
+           if ((data && data.code === "INSTANCIA_LIMIT") || /limite.*inst[aâ]ncias/i.test(msg)) await fetchInstancias();
+           return;
+         }
+@@ -483,8 +484,10 @@
+         btnConn.addEventListener("click", async function () {
+           var id = this.dataset.instId;
+           var act = this.dataset.action;
+-          // Usar /reset ao conectar para limpar sessão corrompida
+-          var endpoint = act === "connect" ? "reset" : act;
++          // Conexão normal preserva as credenciais; reset é uma ação separada.
++          var endpoint = act === "connect" ? "connect" : act;
++          if (this.disabled) return;
++          this.disabled = true;
            try {
--            var r = await fetch(
--              VPS_URL + "/api/instancias/" + id + "/" + endpoint,
-+            var r = await fetchComTimeout(
-+              apiBase() + "/api/instancias/" + id + "/" + endpoint,
-               {
-                 method: "POST",
-                 credentials: "include",
-@@ -509,8 +523,8 @@
-           )
-             return;
-           try {
--            var r = await fetch(
--              VPS_URL + "/api/instancias/" + this.dataset.instId,
-+            var r = await fetchComTimeout(
-+              apiBase() + "/api/instancias/" + this.dataset.instId,
-               {
-                 method: "DELETE",
-                 credentials: "include",
-@@ -547,7 +561,7 @@
+             var r = await fetchComTimeout(
+               apiBase() + "/api/instancias/" + id + "/" + endpoint,
+@@ -494,7 +497,8 @@
+               },
+             );
+             if (!r.ok) {
+-              appendLog("Erro ao " + act);
++              var details = await r.json().catch(function () { return {}; });
++              appendLog("Erro ao " + act + ": " + (details.error || details.erro || "Conexão indisponível (HTTP " + r.status + ")."));
+               return;
+             }
+             if (act === "connect") {
+@@ -505,8 +509,8 @@
+             }
+             fetchInstancias();
+           } catch (e) {
+-            console.error(e);
+-          }
++            appendLog("Falha ao conectar: " + (e.message || "Conexão indisponível."));
++          } finally { this.disabled = false; }
+         });
+         actions.appendChild(btnConn);
+ 
+@@ -561,7 +565,7 @@
      // Prefixo "disp_" para isolar do sistema principal de marketing
      var chaveWpp = "disp_" + instanciaId;
      qrEventSource = new EventSource(
--      VPS_URL + "/api/marketing/whatsapp/eventos?empresaId=" + chaveWpp,
-+      apiBase() + "/api/marketing/whatsapp/eventos?empresaId=" + chaveWpp,
+-      apiBase() + "/api/marketing/whatsapp/eventos?empresaId=" + chaveWpp,
++      apiBase() + "/api/instancias/" + encodeURIComponent(instanciaId) + "/eventos",
        { withCredentials: true },
      );
  
-@@ -688,7 +702,7 @@
-             form.append("imagem", fileAnexo.files[0]);
-           }
+@@ -569,11 +573,12 @@
+       try {
+         var data = JSON.parse(event.data);
  
--          var resCreate = await fetch(VPS_URL + "/api/disparador/campanhas", {
-+          var resCreate = await fetch(apiBase() + "/api/disparador/campanhas", {
-             method: "POST",
-             credentials: "include",
-             body: form,
-@@ -723,7 +737,7 @@
- 
-       try {
-         var res = await fetch(
--          VPS_URL + "/api/disparador/start/" + lastCampanhaId,
-+          apiBase() + "/api/disparador/start/" + lastCampanhaId,
-           {
-             method: "POST",
-             headers: { "Content-Type": "application/json" },
-@@ -752,7 +766,7 @@
-       appendLog("Pausando campanha...");
-       try {
-         var res = await fetch(
--          VPS_URL + "/api/disparador/pause/" + lastCampanhaId,
-+          apiBase() + "/api/disparador/pause/" + lastCampanhaId,
-           {
-             method: "POST",
-             credentials: "include",
-@@ -775,7 +789,7 @@
-       appendLog("Continuando campanha...");
-       try {
-         var res = await fetch(
--          VPS_URL + "/api/disparador/continue/" + lastCampanhaId,
-+          apiBase() + "/api/disparador/continue/" + lastCampanhaId,
-           {
-             method: "POST",
-             headers: { "Content-Type": "application/json" },
-@@ -797,7 +811,7 @@
-   // ── Escolher instância (popup simples) ──
-   async function escolherInstancia() {
-     try {
--      var res = await fetch(VPS_URL + "/api/instancias", {
-+      var res = await fetch(apiBase() + "/api/instancias", {
-         credentials: "include",
-       });
-       if (!res.ok) return null;
-@@ -854,7 +868,7 @@
-   async function refreshContatos() {
-     if (!lastCampanhaId || !tblBody) return;
-     try {
--      var res = await fetch(VPS_URL + "/api/disparador/contacts/" + lastCampanhaId, {
-+      var res = await fetch(apiBase() + "/api/disparador/contacts/" + lastCampanhaId, {
-         credentials: "include",
-       });
-       var list = await res.json();
-@@ -893,7 +907,7 @@
-     if (!campId) return;
-     try {
-       campaignEventSource = new EventSource(
--        VPS_URL + "/api/disparador/eventos/" + campId,
-+        apiBase() + "/api/disparador/eventos/" + campId,
-         { withCredentials: true },
-       );
-       campaignEventSource.onmessage = function (e) {
+-        if (data.evento === "qr" && data.qrBase64) {
++        if (["qr", "status_inicial", "status"].includes(data.evento) && data.qrBase64) {
+           showQRModal(data.qrBase64, instanciaId);
+-        }
+-
+-        if (data.evento === "conectado") {
++          void fetchInstancias();
++        }
++
++        if (data.evento === "conectado" || (data.evento === "status_inicial" && data.status === "conectado")) {
+           appendLog(
+             "✅ Instância #" +
+               instanciaId +

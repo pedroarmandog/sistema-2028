@@ -73,12 +73,11 @@ async function criarInstancia(req, res) {
       status: "aguardando_qr",
     });
 
-    // Manter a API do serviço WhatsApp existente (Baileys ou adaptador atual).
     try {
-      Promise.resolve(whatsappService.inicializarCliente(DISP_PREFIX + sess.id))
-        .catch(() => console.warn("[Instancia] conexão inicial indisponível; reconecte pela lista."));
-    } catch (e) {
-      console.warn("[Instancia] falha ao inicializar cliente", e && e.message);
+      await whatsappService.inicializarCliente(DISP_PREFIX + sess.id);
+    } catch (_) {
+      await WhatsappSession.update({ status: "erro" }, { where: { id: sess.id, empresaId: Number(empresaId) } });
+      return res.status(503).json({error:"Instância cadastrada, mas não foi possível iniciar o WhatsApp. Use Conectar na lista; não crie outra instância.",instancia:{...dtoInstancia(sess),status:"erro"}});
     }
 
     return res.json({ success: true, instancia: dtoInstancia(sess) });
@@ -105,9 +104,8 @@ async function listarInstancias(req, res) {
       // Uma falha de status de uma sessão não pode esconder toda a lista.
       let real;
       try { real = whatsappService.obterStatus(DISP_PREFIX + s.id); } catch (_) {}
-      if (json.status === "conectado") {
-        json.status = typeof real?.status === "string" ? real.status : "desconectado";
-      }
+      if (typeof real?.status === "string") json.status = real.status;
+      else if (json.status === "conectado") json.status = "desconectado";
       return json;
     });
 
@@ -136,7 +134,7 @@ async function conectarInstancia(req, res) {
       { status: "aguardando_qr" },
       { where: { id } },
     );
-    whatsappService.inicializarCliente(DISP_PREFIX + id);
+    await whatsappService.inicializarCliente(DISP_PREFIX + id);
     return res.json({ success: true });
   } catch (err) {
     console.error("conectarInstancia error", err && err.message);
@@ -209,19 +207,15 @@ async function resetarInstancia(req, res) {
       return res.status(404).json({ error: "Instância do disparador não encontrada" });
 
     const chave = DISP_PREFIX + id;
-    // Destruir cliente existente
-    try {
-      await whatsappService.desconectar(chave);
-    } catch (_) {}
-    // Limpar sessão corrompida do disco
-    whatsappService.limparSessaoDoDisco(chave);
+    // Baileys mantém autenticação no repositório; não há diretório Puppeteer.
+    await whatsappService.desconectar(chave);
     // Atualizar banco
     await WhatsappSession.update(
       { status: "aguardando_qr" },
       { where: { id } },
     );
     // Reconectar (gera QR novo)
-    whatsappService.inicializarCliente(chave);
+    await whatsappService.inicializarCliente(chave);
     return res.json({ success: true });
   } catch (err) {
     console.error("resetarInstancia error", err && err.message);
@@ -229,7 +223,29 @@ async function resetarInstancia(req, res) {
   }
 }
 
+async function eventosInstancia(req,res) {
+  const empresaId=Number(req.user?.empresaId),id=String(req.params.id);
+  if(!empresaId)return res.status(403).json({error:"Empresa não identificada"});
+  try {
+    const sess=await WhatsappSession.findByPk(id);
+    if(!sess||!registroDeInstancia(sess))return res.status(404).json({error:"Instância não encontrada"});
+    if(Number(sess.empresaId)!==empresaId)return res.status(403).json({error:"Instância não pertence à sua empresa"});
+    const chave=DISP_PREFIX+id;
+    res.setHeader("Content-Type","text/event-stream");res.setHeader("Cache-Control","no-cache, no-transform");
+    res.setHeader("Connection","keep-alive");res.flushHeaders();
+    whatsappService.adicionarListenerSSE(chave,res);
+    res.write('data: '+JSON.stringify({evento:'status_inicial',...whatsappService.obterStatus(chave)})+'\n\n');
+    const timer=setInterval(()=>{try{res.write(': ping\n\n');}catch{}},25000);
+    res.once('close',()=>clearInterval(timer));
+  } catch (_) {
+    if(!res.headersSent)return res.status(503).json({error:"Não foi possível acompanhar a conexão WhatsApp."});
+    res.end();
+  }
+}
+
 module.exports = {
+  filtroInstancias,
+  eventosInstancia,
   criarInstancia,
   listarInstancias,
   conectarInstancia,

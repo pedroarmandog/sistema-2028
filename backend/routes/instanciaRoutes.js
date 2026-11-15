@@ -4,6 +4,7 @@ const controller = require("../controllers/instanciaController");
 
 router.post("/", controller.criarInstancia);
 router.get("/", controller.listarInstancias);
+router.get("/:id/eventos", controller.eventosInstancia);
 router.post("/:id/connect", controller.conectarInstancia);
 router.post("/:id/disconnect", controller.desconectarInstancia);
 router.post("/:id/reset", controller.resetarInstancia);

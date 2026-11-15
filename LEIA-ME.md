@@ -1,70 +1,116 @@
-# PetHub — corrigir endereço antigo da API no disparador
+# PetHub — conectar instâncias do disparador com Baileys
 
-## Causa desta falha
+## Falhas identificadas nesta etapa
 
-O log mostra requisições a `https://api.pethubflow.com.br/api/instancias` e `/api/disparador/config`, enquanto a página está sendo servida pelo Render.
+O endereço da API e a listagem já estavam funcionando. O erro atual ocorria ao conectar a instância.
 
-O arquivo anterior ainda possuía esse domínio antigo como fallback e guardava o endereço ao iniciar o script. Quando a configuração global não estava disponível naquele momento, o disparador continuava usando o domínio antigo.
+Foram encontradas quatro incompatibilidades no caminho entre a interface e o WhatsApp:
 
-## Correção
+1. O botão Conectar chamava `/reset` automaticamente. O controller de reset ainda chamava `limparSessaoDoDisco`, função do serviço antigo que não existe no serviço Baileys.
+2. O serviço Baileys aceitava somente chaves numéricas de empresa. As instâncias do disparador usam chaves como `disp_120002`, que eram rejeitadas antes de gerar QR.
+3. O frontend não mostrava o QR recebido no evento inicial do SSE. Assim, um QR gerado antes da assinatura do stream podia não aparecer.
+4. O worker verificava e usava a sessão principal da empresa, mesmo quando uma instância do disparador era selecionada.
 
-O disparador agora resolve o endereço **na hora de cada requisição**:
+As correções anteriores focaram contagem e endereço da API. Os testes anteriores usavam um mock do serviço WhatsApp e não cobriam essas incompatibilidades. Nesta entrega, os testes também carregam o serviço real de aplicação com o transporte WhatsApp simulado.
 
-1. Usa `window.API_URL`, se configurado como string.
-2. Na ausência dele, usa `window.VPS_URL`, se configurado como string.
-3. Sem ambos, usa a mesma origem da página. Ao abrir pelo endereço do Render, as chamadas ficam no próprio Render.
+## O que mudou
 
-Uma string vazia continua significando mesma origem. Barras finais são removidas. O domínio antigo não existe mais como fallback neste arquivo. A configuração API_URL prevalece sobre VPS_URL, inclusive se este último estiver desatualizado.
+### Conexão e reset
 
-Todas as URLs do módulo usam essa resolução: instâncias, preferências, campanhas, ações do disparador e SSE/QR. Os cookies e as opções de credenciais existentes são preservados.
+- Conectar usa `POST /api/instancias/:id/connect`, preservando as credenciais existentes.
+- O reset explícito continua disponível em `POST /api/instancias/:id/reset`, mas usa a API do serviço Baileys, sem a função antiga de disco.
+- Criação e conexão aguardam a inicialização do serviço e tratam a falha. Se o registro foi criado e a conexão falhar, a resposta informa que a instância já existe e orienta usar Conectar, em vez de criar outra.
+- O frontend mostra a mensagem de erro retornada pela API, em vez de apenas “Erro ao connect”.
 
-Listagem, preferências e ações de instâncias passam a ter timeout de 15 segundos. A listagem sai do estado “Carregando” e mostra erro com nova tentativa. O botão Criar é liberado se houver falha ou timeout.
+### Sessões e empresa
 
-O POST de criação não é repetido automaticamente. Em timeout, o resultado pode ser incerto: a tela avisa para conferir a lista e realiza somente uma atualização por GET, evitando criar outra instância automaticamente.
+- O serviço aceita a chave principal numérica e a chave `disp_<id>` da instância.
+- A autenticação do disparador é persistida separadamente, usando o repositório cifrado e o lease existentes. Não são criadas tabelas novas.
+- A empresa da instância é resolvida pelo registro do banco. Verificações de comunicação e carregamento de mídia recebem o ID real dessa empresa, não a chave `disp_...`.
+- As atualizações de status da sessão principal deixam de atingir instâncias nomeadas e registros de configuração. O status de cada instância atualiza seu próprio registro.
+- A lista de empresas conectadas usada pelas automações principais não inclui chaves de instâncias do disparador.
 
-A correção anterior da contagem das instâncias permanece no backend. Ela não é substituída por este pacote.
+### QR e SSE
 
-## Arquivo para instalar
+- A interface usa `GET /api/instancias/:id/eventos`.
+- O endpoint valida que a instância pertence à empresa autenticada antes de abrir o stream.
+- O estado inicial inclui o QR já disponível; o frontend também reconhece esse evento inicial.
+- A rota antiga de eventos do Marketing, quando recebe uma chave de instância, delega à mesma validação de propriedade. O stream principal continua funcionando para a empresa autenticada.
 
-Substitua somente:
+### Envio da campanha
 
-`frontend/marketing-disparador.js`
+- Iniciar e Continuar verificam a instância selecionada.
+- O worker envia pela chave `disp_<id-da-instância>` validada.
+- As consultas da fila continuam usando o ID da empresa da campanha. Esse ID não é substituído pela chave do WhatsApp.
+- A sessão principal conectada não serve de substituta para uma instância selecionada que esteja desconectada.
 
-Depois faça commit e deploy no Render, e atualize o Marketing com **Ctrl + F5**.
+Foram preservados os controles anteriores de limite, isolamento de empresa, preferências de comunicação, carregamento de mídia R2, persistência, reconexão e resposta de confirmação de envio. Nenhuma sessão existente é apagada automaticamente durante a instalação. O reset explícito limpa somente a autenticação da instância indicada; Conectar normalmente não faz reset.
 
-Não substitua a pasta inteira do projeto. Não é necessário alterar banco, variáveis do Render, api-config.js, serviço WhatsApp ou comandos de deploy.
+## Instalação — publicar todos os seis arquivos de produção juntos
 
-O ZIP inclui `ALTERACOES.patch` para revisão das diferenças e arquivos de teste. Se houver personalizações posteriores no seu arquivo, revise o patch antes de sobrescrever.
+Copie mantendo exatamente as pastas:
 
-Se o frontend for hospedado separadamente da API, mantenha a configuração global apontando ao backend correto. A ausência de configuração usa a origem da página; não procura automaticamente outro servidor.
+| Arquivo | Alteração |
+|---|---|
+| `backend/services/whatsappService.js` | Suporte a instâncias Baileys separadas, contexto real da empresa e atualização isolada de status |
+| `backend/controllers/instanciaController.js` | Conectar/reset compatíveis, falha de inicialização visível e SSE autenticado |
+| `backend/controllers/disparadorController.js` | Iniciar/Continuar e worker usando a instância selecionada |
+| `backend/routes/instanciaRoutes.js` | Rota de eventos da instância |
+| `backend/routes/marketingRoutes.js` | Validação de propriedade no SSE legado do disparador |
+| `frontend/marketing-disparador.js` | Conexão sem reset automático, QR inicial, stream validado e erros explicativos |
 
-## Verificação após o deploy
+Este pacote se baseia no serviço de recuperação contínua e no armazenamento R2 já entregues nesta conversa. Os arquivos do serviço e do worker foram recuperados dessas versões para preservar as integrações existentes. Não foi usado o serviço antigo Puppeteer como substituto.
 
-1. Abra Marketing → Disparador de Mensagens.
-2. No painel de rede do navegador, confira `/api/instancias` e `/api/disparador/config`: sem configuração externa, devem usar a origem atual do Render.
-3. A lista deve carregar ou mostrar uma mensagem de erro em até cerca de 15 segundos se não houver resposta.
-4. Crie uma instância, confira a lista e continue pelo QR. O QR usa o mesmo endereço de API das requisições.
-5. Se uma criação expirar, confira a lista antes de tentar criar outra instância.
+O repositório `whatsappAuthStore.js`, os módulos de mídia e de preferências de comunicação já existentes continuam sendo usados. Não é necessário substituir esses módulos por versões novas deste pacote.
 
-## Testes realizados
+O ZIP inclui `ALTERACOES.patch` e os testes para revisão. Caso você tenha feito alterações próprias posteriores nesses seis arquivos, revise o patch antes de sobrescrevê-las.
 
-**20 testes aprovados, zero falhas na execução selecionada.** Registro em `TESTES.txt`.
+1. Faça backup/commit da versão atual.
+2. Copie os seis arquivos. Não apague nem substitua pastas inteiras do projeto.
+3. Faça commit e deploy normalmente no Render.
+4. Atualize o Marketing com Ctrl + F5.
+5. Use **a instância já cadastrada**. Clique Conectar ou Ver QR; não é necessário criar outra.
+6. Leia o QR em WhatsApp → Dispositivos conectados e aguarde a confirmação.
+7. Confira a instância como conectada e faça um envio controlado para um contato de teste seu.
 
-- 6 novos testes: origem do Render sem configuração; API_URL prevalecendo sobre um VPS_URL antigo; configuração carregada depois do script; mudança de endereço entre requisições; suporte à origem vazia e a barras finais; endereço consistente no POST e no SSE/QR; timeout de listagem mesmo com fetch simulado que ignora abort; timeout de criação liberando o botão e sem repetir o POST.
-- 6 testes de interface anteriores: lista vazia, cadastro/QR simulado, erros com nova tentativa, preservação da lista, limite de dez, cliques duplicados, respostas antigas e texto escapado.
-- 8 testes anteriores do backend: contagem/listagem consistentes, preservação dos registros internos, isolamento de empresa, limite real de dez, ações permitidas e respostas sem sessionData.
-- `node --check frontend/marketing-disparador.js`: aprovado.
+**Sem migração nova, sem apagar tabelas e sem novas dependências de produção.** Não altere a chave de autenticação, tokens ou configurações existentes do armazenamento para aplicar esta correção. Não é necessário mudar comandos de build/start/pre-deploy.
 
-Ambiente: Node 24.22.1, jsdom 26, Sequelize 6.37.7 e banco SQLite isolado para os testes do backend. Os testes de timeout aceleram o relógio do DOM; o código entregue usa 15 segundos.
+## Testes executados
 
-Para repetir com as dependências de teste disponíveis e a correção anterior de instâncias instalada:
+**32 testes aprovados; zero falhas na suíte selecionada.** Registro em `TESTES.txt`.
+
+Foram exercitados:
+
+- Serviço real da aplicação aceitando `disp_120002` e mantendo QR e socket separados da sessão principal.
+- Controller de reset executando com esse serviço, que não possui `limparSessaoDoDisco`.
+- Inicialização idempotente e desconexão isolada.
+- Repositório de autenticação real com banco SQLite em memória: chaves cifradas separadas, reabertura e remoção só da instância escolhida.
+- Resumo de status da sessão principal excluindo registros nomeados/configuração.
+- Mídia e preferências de comunicação recebendo a empresa correta.
+- SSE com QR em cache; empresa diferente rejeitada antes dos cabeçalhos do stream; validação também na rota legada.
+- Iniciar e Continuar executando o worker com transporte simulado: envio pela instância escolhida, mantendo a fila na empresa correta.
+- Sessão principal conectada não substituindo instância desconectada.
+- Frontend chamando `/connect`, exibindo QR do evento inicial e usando o endpoint autenticado.
+- Regressões anteriores de contagem, limite, preservação dos registros, endereço da API, timeout, clique duplicado, erros e lista.
+
+Os testes do serviço carregam o código de aplicação; a biblioteca/transporte WhatsApp, QR de imagem e sockets são simulados. O teste de persistência usa Sequelize com SQLite integrado ao Node 24, sem TiDB real. Nenhuma mensagem real foi enviada.
+
+Também foi executado `node --check` nos seis arquivos de produção: aprovado.
+
+Para repetir com as dependências de teste disponíveis:
 
 ```bash
-node --test tests/browser/disparador-endpoint.dom.cjs tests/browser/instancias-disparador.dom.cjs tests/instancias-disparador.test.js
+node --test tests/instancias-baileys.test.js tests/instancias-disparador.test.js tests/browser/disparador-endpoint.dom.cjs tests/browser/instancias-disparador.dom.cjs
 ```
 
-Não houve conexão real ao WhatsApp, envio de mensagens, acesso ao banco de produção ou verificação visual em navegador real. Os endpoints, o fetch e o SSE foram simulados; a execução não comprova a disponibilidade do Render ou o pareamento físico do telefone em produção. A suíte completa de todo o PetHub não foi executada.
+Os testes usam Node.js 24.22.1, Sequelize 6.37.7 e jsdom 26. As dependências de teste foram instaladas fora do projeto; o package.json não foi alterado.
 
-## Imagem 404
+### Limites da validação
 
-A URL `/uploads/marketing/...webp` ausente é um problema independente. Este pacote não recupera o arquivo antigo nem altera o armazenamento. Se essa imagem não existir mais, será necessário reenviá-la pelo cadastro da mensagem usando o armazenamento permanente já configurado.
+Não houve acesso ao Render/TiDB/R2 de produção, pareamento com telefone, transmissão real WhatsApp ou inspeção visual em Chrome nesta execução. Os testes comprovam o fluxo do código com transporte simulado, não o funcionamento de uma sessão física no seu aparelho. A suíte completa histórica de todo o ERP não foi executada.
+
+Se ainda ocorrer uma falha após publicar os seis arquivos, a tela agora mostra o erro de conexão retornado pelo backend. Confira também os logs do Render no mesmo horário. Não compartilhe QR, credenciais ou chaves de autenticação.
+
+## Imagem ausente
+
+O HTTP 404 de `/uploads/marketing/...webp` continua independente. O código mantém o carregamento pelo armazenamento permanente, mas não recupera um arquivo antigo já ausente. Se essa imagem não existir mais, reenvie-a pelo cadastro da mensagem. Para o primeiro teste do disparador, use texto sem esse anexo ausente.

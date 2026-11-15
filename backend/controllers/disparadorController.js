@@ -281,7 +281,7 @@ async function iniciarCampanha(req, res) {
       }
     } else {
       instanciaValida = await WhatsappSession.findOne({
-        where: { empresaId: empresaAuth },
+        where: require("./instanciaController").filtroInstancias(empresaAuth),
       });
       if (!instanciaValida) {
         return res.status(400).json({
@@ -292,7 +292,7 @@ async function iniciarCampanha(req, res) {
     }
 
     // Verificar/reconectar o cliente WhatsApp (chave validada)
-    const conectado = whatsappService.isConectado(empresaAuth);
+    const conectado = whatsappService.isConectado("disp_" + instanciaValida.id);
     if (!conectado) {
       return res.status(400).json({
         error:
@@ -328,6 +328,7 @@ function startWorker(campanha, instanciaId) {
     return;
   }
   const empresaId = String(campanha.empresaId);
+  const chaveWhatsapp = "disp_" + instanciaId;
 
   if (activeWorkers.has(campId)) return;
 
@@ -402,7 +403,7 @@ function startWorker(campanha, instanciaId) {
         }
 
         // Verificar se o WhatsApp está conectado
-        if (!whatsappService.isConectado(empresaId)) {
+        if (!whatsappService.isConectado(chaveWhatsapp)) {
           desconectadoRetries++;
           if (desconectadoRetries >= MAX_DESCONECTADO_RETRIES) {
             console.warn(
@@ -497,7 +498,7 @@ function startWorker(campanha, instanciaId) {
 
         // Enviar via whatsappService
         const resultado = await whatsappService.enviarMensagem(
-          empresaId,
+          chaveWhatsapp,
           envio.telefoneDestino,
           textoEnvio,
           envio.imagemPath || null,
@@ -718,7 +719,7 @@ async function continuarCampanha(req, res) {
       }
     } else {
       instanciaValida = await WhatsappSession.findOne({
-        where: { empresaId: empresaAuth },
+        where: require("./instanciaController").filtroInstancias(empresaAuth),
       });
       if (!instanciaValida) {
         return res.status(400).json({
@@ -729,7 +730,7 @@ async function continuarCampanha(req, res) {
     }
 
     // Verificar/reconectar o cliente WhatsApp (chave validada)
-    const conectado = whatsappService.isConectado(empresaAuth);
+    const conectado = whatsappService.isConectado("disp_" + instanciaValida.id);
     if (!conectado) {
       return res.status(400).json({
         error:

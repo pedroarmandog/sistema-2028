@@ -357,6 +357,7 @@
           var msg =
             (data && (data.error || data.message)) || text || res.statusText;
           showSubmodalError("Erro: " + msg);
+          if (data && data.instancia) await fetchInstancias();
           if ((data && data.code === "INSTANCIA_LIMIT") || /limite.*inst[aâ]ncias/i.test(msg)) await fetchInstancias();
           return;
         }
@@ -483,8 +484,10 @@
         btnConn.addEventListener("click", async function () {
           var id = this.dataset.instId;
           var act = this.dataset.action;
-          // Usar /reset ao conectar para limpar sessão corrompida
-          var endpoint = act === "connect" ? "reset" : act;
+          // Conexão normal preserva as credenciais; reset é uma ação separada.
+          var endpoint = act === "connect" ? "connect" : act;
+          if (this.disabled) return;
+          this.disabled = true;
           try {
             var r = await fetchComTimeout(
               apiBase() + "/api/instancias/" + id + "/" + endpoint,
@@ -494,7 +497,8 @@
               },
             );
             if (!r.ok) {
-              appendLog("Erro ao " + act);
+              var details = await r.json().catch(function () { return {}; });
+              appendLog("Erro ao " + act + ": " + (details.error || details.erro || "Conexão indisponível (HTTP " + r.status + ")."));
               return;
             }
             if (act === "connect") {
@@ -505,8 +509,8 @@
             }
             fetchInstancias();
           } catch (e) {
-            console.error(e);
-          }
+            appendLog("Falha ao conectar: " + (e.message || "Conexão indisponível."));
+          } finally { this.disabled = false; }
         });
         actions.appendChild(btnConn);
 
@@ -561,7 +565,7 @@
     // Prefixo "disp_" para isolar do sistema principal de marketing
     var chaveWpp = "disp_" + instanciaId;
     qrEventSource = new EventSource(
-      apiBase() + "/api/marketing/whatsapp/eventos?empresaId=" + chaveWpp,
+      apiBase() + "/api/instancias/" + encodeURIComponent(instanciaId) + "/eventos",
       { withCredentials: true },
     );
 
@@ -569,11 +573,12 @@
       try {
         var data = JSON.parse(event.data);
 
-        if (data.evento === "qr" && data.qrBase64) {
+        if (["qr", "status_inicial", "status"].includes(data.evento) && data.qrBase64) {
           showQRModal(data.qrBase64, instanciaId);
+          void fetchInstancias();
         }
 
-        if (data.evento === "conectado") {
+        if (data.evento === "conectado" || (data.evento === "status_inicial" && data.status === "conectado")) {
           appendLog(
             "✅ Instância #" +
               instanciaId +

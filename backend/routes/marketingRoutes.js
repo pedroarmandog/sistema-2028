@@ -20,7 +20,13 @@ router.get("/whatsapp/qr-status", marketingController.obterQRStatus); // polling
 router.post("/whatsapp/conectar", marketingController.conectarWhatsapp);
 router.post("/whatsapp/desconectar", marketingController.desconectarWhatsapp);
 router.post("/whatsapp/resetar", marketingController.resetarWhatsapp);
-router.get("/whatsapp/eventos", marketingController.eventoSSE); // SSE
+router.get("/whatsapp/eventos", (req,res,next)=>{
+  if(!String(req.query.empresaId||'').startsWith('disp_'))return next();
+  const match=/^disp_([1-9]\d*)$/.exec(String(req.query.empresaId));
+  if(!match)return res.status(400).json({erro:'Instância inválida'});
+  req.params.id=match[1];
+  return require('../controllers/instanciaController').eventosInstancia(req,res);
+}, marketingController.eventoSSE); // SSE
 
 router.post("/whatsapp/enviar", async (req, res) => {
   const id = req.user?.empresaId;

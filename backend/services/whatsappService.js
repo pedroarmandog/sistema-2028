@@ -36,6 +36,7 @@ const importBaileys = () => import('@whiskeysockets/baileys');
 
 function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.toDataURL,
   agendar = setTimeout, cancelar = clearTimeout, agora = Date.now, atualizarResumo = async () => {}, registrar = () => {}, flushDiagnostico = async () => {},
+  resolverEmpresa = empresaDaSessao,
   verificarPermissao = async () => ({permitido:true}),
   carregarMidia = (empresa,ref) => require("./midias/whatsapp").carregar(empresa,ref),
   pausaEnvio = () => new Promise(resolve => setTimeout(resolve, 3000 + Math.random() * 7000)) } = {}) {
@@ -151,6 +152,7 @@ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.
     s.abrindo = true;
     s.inicioAbertura = agora();
     try {
+      s.empresaId ??= await resolverEmpresa(s.id);
       const lib = await carregar();
       if (!atual(s)) return;
       if (!s.auth && repositorio) {
@@ -296,7 +298,7 @@ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.
   async function inicializarCliente(id, manual = true) {
     if (parando) throw new Error('Servidor reiniciando. Aguarde.');
     const chave = String(id);
-    if (!/^[1-9]\d*$/.test(chave)) throw new Error('Empresa inválida');
+    if (!/^(?:disp_)?[1-9]\d*$/.test(chave)) throw new Error('Empresa inválida');
     if (desligando.has(chave)) await desligando.get(chave);
     const existente = sessoes.get(chave);
     if (existente) {
@@ -447,7 +449,7 @@ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.
       await pausaEnvio();
       if (!isConectado(id) || sessoes.get(String(id))?.socket !== socket) return indisponivel();
       let permissao;
-      try { permissao = await verificarPermissao(id, telefone); }
+      try { permissao = await verificarPermissao(s.empresaId, telefone); }
       catch { return {sucesso:false,temporario:true,erro:'Não foi possível verificar as preferências de comunicação. Envio preservado.'}; }
       if (!permissao.permitido) return {sucesso:false,bloqueado:true,ignorado:true,erro:permissao.erro};
       const numeros = await socket.onWhatsApp(...candidatos);
@@ -457,7 +459,7 @@ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.
       let conteudo = { text: texto || '' };
       if (arquivo) {
         let midia;
-        try { midia = await carregarMidia(id,arquivo); }
+        try { midia = await carregarMidia(s.empresaId,arquivo); }
         catch { return {sucesso:false,temporario:true,erro:'Anexo indisponível. A mensagem foi preservada para nova tentativa.'}; }
         const bytes = midia.bytes;
         const mime = midia.tipo?.startsWith('image/') ? midia.tipo : null;
@@ -465,7 +467,7 @@ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.
           : { document: bytes, fileName: path.basename(arquivo), mimetype: midia.tipo || 'application/octet-stream', caption: texto || '' };
       }
       if (!isConectado(id) || sessoes.get(String(id))?.socket !== socket) return indisponivel();
-      try { permissao = await verificarPermissao(id, telefone); }
+      try { permissao = await verificarPermissao(s.empresaId, telefone); }
       catch { return {sucesso:false,temporario:true,erro:'Não foi possível verificar as preferências de comunicação. Envio preservado.'}; }
       if (!permissao.permitido) return {sucesso:false,bloqueado:true,ignorado:true,erro:permissao.erro};
       if (!isConectado(id) || sessoes.get(String(id))?.socket !== socket) return indisponivel();
@@ -480,7 +482,7 @@ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.
     }
   }
   return { iniciarMonitor, restaurar, suspender, inicializarCliente, obterStatus, isConectado, adicionarListenerSSE, enviarMensagem,
-    empresasConectadas: () => [...sessoes.keys()].filter(isConectado), desconectar, limparSessao: desconectar };
+    empresasConectadas: () => [...sessoes.keys()].filter(id => /^[1-9]\d*$/.test(id) && isConectado(id)), desconectar, limparSessao: desconectar };
 }
 
 function variantes(telefone) {
@@ -536,13 +538,26 @@ function repositorio() {
   banco ??= require('./whatsappAuthStore').criarRepositorio(require('../models/Cliente').sequelize);
   return banco;
 }
+async function empresaDaSessao(id) {
+  const chave=String(id);
+  if (/^[1-9]\d*$/.test(chave)) return Number(chave);
+  if (!/^disp_[1-9]\d*$/.test(chave)) throw new Error('Sessão inválida');
+  const sess=await require('../models').WhatsappSession.findByPk(chave.slice(5));
+  const nome=String(sess?.nome||'').trim().toLowerCase();
+  if(!sess||!nome||nome==='config_disparador')throw new Error('Instância não encontrada');
+  const empresaId=Number(sess.empresaId);
+  if(!Number.isSafeInteger(empresaId)||empresaId<=0)throw new Error('Empresa inválida');
+  return empresaId;
+}
 async function atualizarResumo(id, status, numero) {
-  const empresaId = Number(id);
-  if (!Number.isSafeInteger(empresaId) || empresaId <= 0) return;
+  const chave=String(id), dispatcher=/^disp_([1-9]\d*)$/.exec(chave);
   const { WhatsappSession } = require('../models');
-  // Nunca upsert sem chave única: isso criava novas linhas a cada reconexão.
-  await WhatsappSession.update({ status, numero: numero || null,
-    ...(status === 'conectado' ? { ultimaConexao: new Date() } : {}) }, { where: { empresaId } });
+  const { Op } = require('sequelize');
+  const scope=dispatcher?{id:Number(dispatcher[1])}
+    : {empresaId:Number(chave),[Op.or]:[{nome:null},{nome:''}]};
+  if(!dispatcher&&(!Number.isSafeInteger(scope.empresaId)||scope.empresaId<=0))return;
+  await WhatsappSession.update({status,numero:numero||null,
+    ...(status==='conectado'?{ultimaConexao:new Date()}: {})},{where:scope});
 }
 const diagnostico=require('./whatsappDiagnostico');
 module.exports = { ...criarServico({ repositorio, atualizarResumo, verificarPermissao:require('./clienteComunicacao').verificar, registrar:diagnostico.registrar, flushDiagnostico:diagnostico.flush }), criarServico, substituirVariaveis, obterDiagnostico:diagnostico.historico };

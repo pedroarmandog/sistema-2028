@@ -1,29 +1,54 @@
 {
   "arquivos": [
     {
+      "caminho": "backend/services/whatsappService.js",
+      "sha256": "bed1a8948c89f5e3350f5e47f4d23bb79ef9c8aa7b41e2b0669fd9cff5a58912"
+    },
+    {
+      "caminho": "backend/controllers/instanciaController.js",
+      "sha256": "27900d0bbb504640a34f45a69bfd9dc1d53b58cece0237a3e89ea9b29f1022c9"
+    },
+    {
+      "caminho": "backend/controllers/disparadorController.js",
+      "sha256": "e74a0ef881809bbd52d28bf3810f2ac3252ce051a35133e75d911d1c5d92cd49"
+    },
+    {
+      "caminho": "backend/routes/instanciaRoutes.js",
+      "sha256": "8649cba8638629f0b4727fc290b87cf020d7f9aeeef43cc08ef188c40823c5d6"
+    },
+    {
+      "caminho": "backend/routes/marketingRoutes.js",
+      "sha256": "d38ab325f5613a2f7a48e1a73d6eadd21bfdc374cb4722044314c92f0c8eb9f9"
+    },
+    {
       "caminho": "frontend/marketing-disparador.js",
-      "sha256": "ed9662798c7bcc3f0e0f9d892c7399c82b1150b77d0ff621f4e27a501d06f09d"
+      "sha256": "b667c50d8637122c418da99eb0ffed40c731b500c3eaf02223d48ec727091e4c"
     },
     {
-      "caminho": "tests/browser/disparador-endpoint.dom.cjs",
-      "sha256": "64035a68fef7bbf3eccfd5cc8b403f48a3059627c7508fdb6176768ff127775a"
-    },
-    {
-      "caminho": "tests/browser/instancias-disparador.dom.cjs",
-      "sha256": "a11b6bea4fbb0bcece8bd2c199e46fae001778436de194da1f07a3a7cae091e8"
+      "caminho": "tests/instancias-baileys.test.js",
+      "sha256": "1f5eff2737bac887d886c32a59ea31cfbb6ceac43bcdc1c7408f155320968701"
     },
     {
       "caminho": "tests/instancias-disparador.test.js",
-      "sha256": "7b4e490d08257eb631532e6ee054a0691302ab5ca1906810fb98995ecabaee71"
+      "sha256": "c960dc4c8e56c1077f57600bcaed2e7eeefb2f0b77588dae9f0baac5644c111d"
+    },
+    {
+      "caminho": "tests/browser/disparador-endpoint.dom.cjs",
+      "sha256": "dc12cf2f4e1a2af3ebcdda85f0255c5930a4bcab14e61f271448f9fb98b5d023"
+    },
+    {
+      "caminho": "tests/browser/instancias-disparador.dom.cjs",
+      "sha256": "2e6c6f56c96945511af6e4fa21979e3b0c7871b186f6016d5e5dbe57b2990815"
+    },
+    {
+      "caminho": "tests/helpers/whatsappSqlite.js",
+      "sha256": "9593150307e399a9b6587c45bd282b6ca5f4315a674b97a928ce74bb0040516f"
     }
   ],
-  "arquivos_producao": [
-    "frontend/marketing-disparador.js"
-  ],
-  "backend_alterado": false,
-  "migracao": false,
+  "migracao_nova": false,
   "testes": {
-    "aprovados": 20,
+    "aprovados": 32,
     "falhas": 0
-  }
+  },
+  "transporte_whatsapp_real_testado": false
 }
