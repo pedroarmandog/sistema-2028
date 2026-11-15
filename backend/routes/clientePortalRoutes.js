@@ -28,9 +28,10 @@ function criarRotas(p, { authERP, permissao } = {}) {
         return resolve(res.status(400).json({ erro: 'Selecione um arquivo.' })); Promise.resolve(fn(req, res)).then(resolve).catch(err => resolve(res.status(err.status || 503).json({ erro: err.status ? err.message : 'Não foi possível salvar o arquivo. Confira o armazenamento permanente.' }))); }));
     async function binario(res, r) { res.set({ 'Content-Type': r.tipo, 'Content-Length': r.bytes.length, 'X-Content-Type-Options': 'nosniff', 'Content-Disposition': 'inline', 'Cache-Control': 'private, no-store', 'Content-Security-Policy': "sandbox; default-src 'none'" }); res.send(r.bytes); }
     tutor.use(ajax);
-    tutor.get('/loja/:slug', limite, wrap(async (req) => { const cfg = await m.Config.findOne({ where: { slug: V.uuid(req.params.slug), ativo: true }, logging: false }); if (!cfg)
-        throw V.falha('Estabelecimento indisponível.', 404); const emp = await ERP.Empresa.findByPk(cfg.empresa_id, { logging: false }); if (!emp || emp.ativo === false || emp.ativa === false)
-        throw V.falha('Estabelecimento indisponível.', 404); return { nome: emp.nome, telefone: emp.telefone || null, slug: cfg.slug }; }));
+    tutor.get('/loja/:slug', limite, wrap(async req => {
+        const { config, empresa } = await auth.estabelecimento(req.params.slug);
+        return { nome: empresa.nome, telefone: empresa.telefone || null, slug: config.slug };
+    }));
     tutor.post('/login', limite, wrap((req, res) => auth.login(req.body, res)));
     tutor.post('/convite', limite, wrap(req => auth.aceitarConvite(req.body)));
     tutor.post('/recuperar', limite, wrap(req => auth.recuperar(req.body)));

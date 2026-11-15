@@ -8,6 +8,22 @@ function criarAutenticacao({ db, ERP, env = process.env, agora = () => new Date(
     const csrf = id => crypto.createHmac('sha256', V.segredo(env)).update('csrf:' + id).digest('hex');
     const cookie = (res, token) => res.cookie(COOKIE, token, { httpOnly: true, secure: env.NODE_ENV === 'production', sameSite: 'lax', path: PATH, maxAge: 30 * 86400000 });
     const limpar = res => res.clearCookie(COOKIE, { httpOnly: true, secure: env.NODE_ENV === 'production', sameSite: 'lax', path: PATH });
+    async function verificarPortal(config, o = {}, { gestor = false } = {}) {
+        if (!config) throw V.falha('Estabelecimento não encontrado. Abra o link mais recente enviado pelo pet shop.', 404);
+        if (!config.ativo) throw V.falha(gestor
+            ? 'Ative o PetHub Cliente em Configurações > PetHub Cliente antes de gerar o convite.'
+            : 'O PetHub Cliente deste estabelecimento está desativado. Solicite a ativação à equipe do pet shop.', gestor ? 409 : 403);
+        const empresa = await ERP.Empresa.findByPk(config.empresa_id, { ...o, logging: false });
+        if (!empresa || empresa.ativo === false || empresa.ativa === false)
+            throw V.falha('O estabelecimento está indisponível. Entre em contato com a equipe do pet shop.', 403);
+        return empresa;
+    }
+    async function estabelecimento(slug, o = {}) {
+        slug = V.uuid(V.texto(slug, 36, true)).toLowerCase();
+        const config = await m.Config.findOne({ where: { slug }, ...o, logging: false });
+        const empresa = await verificarPortal(config, o);
+        return { config, empresa };
+    }
     async function contexto(token) {
         let d;
         try {
@@ -65,12 +81,12 @@ function criarAutenticacao({ db, ERP, env = process.env, agora = () => new Date(
         catch {
             mail = V.texto(String(email || ''), 254).toLowerCase();
         }
-        loja = V.texto(loja, 36);
+        loja = V.uuid(V.texto(loja, 36, true)).toLowerCase();
         if (typeof senha !== 'string' || Buffer.byteLength(senha) > 72)
             senha = '';
         const key = await consumir(loja, mail);
-        const config = await m.Config.findOne({ where: { slug: loja }, logging: false });
-        const c = config?.ativo ? await m.Conta.findOne({ where: { empresa_id: config.empresa_id, email: mail }, logging: false }) : null;
+        const { config } = await estabelecimento(loja);
+        const c = await m.Conta.findOne({ where: { empresa_id: config.empresa_id, email: mail }, logging: false });
         const ok = await bcrypt.compare(senha, c?.senha_hash || dummy);
         if (!ok || !c?.ativo || !c.senha_hash)
             throw V.falha('E-mail, senha ou estabelecimento inválidos.', 401);
@@ -99,6 +115,7 @@ function criarAutenticacao({ db, ERP, env = process.env, agora = () => new Date(
             let cfg = await m.Config.findByPk(empresaId, o);
             if (!cfg)
                 cfg = await m.Config.create({ empresa_id: empresaId, slug: crypto.randomUUID() }, o);
+            await verificarPortal(cfg, o, { gestor: true });
             let conta = await m.Conta.findOne({ where: { empresa_id: empresaId, cliente_id: clienteId }, ...o, lock: transaction.LOCK.UPDATE });
             const outro = await m.Conta.findOne({ where: { empresa_id: empresaId, email }, ...o });
             if (outro && outro.id !== conta?.id)
@@ -127,11 +144,27 @@ function criarAutenticacao({ db, ERP, env = process.env, agora = () => new Date(
             throw V.falha('Convite inválido ou expirado.', 400);
         const alvo=await m.Conta.findByPk(preliminar.conta_id,{logging:false});
         if(!alvo)throw V.falha('Convite inválido ou expirado.',400);
+        await verificarPortal(await m.Config.findByPk(alvo.empresa_id, { logging: false }));
         const senha_hash = await bcrypt.hash(senha, custoHash);
-        return serializar(ERP,alvo.empresa_id,async (transaction) => { const o = { transaction, logging: false }; const conta = await m.Conta.findByPk(preliminar.conta_id, { ...o, lock: transaction.LOCK.UPDATE }); const c = await m.Convite.findByPk(preliminar.id, { ...o, lock: transaction.LOCK.UPDATE }); if (c.usado_em || new Date(c.expira_em) <= agora())
-            throw V.falha('Convite inválido ou expirado.', 400); if (!conta?.ativo)
-            throw V.falha('Convite inválido ou expirado.', 400); await conta.update({ senha_hash, versao: conta.versao + 1 }, o); await c.update({ usado_em: agora() }, o); await m.Sessao.update({ revogada_em: agora() }, { where: { conta_id: conta.id, revogada_em: null }, ...o }); const cfg = await m.Config.findByPk(conta.empresa_id, o); await eventos.auditar(conta.empresa_id, { tipo: 'tutor', id: conta.id }, 'senha_definida', conta.id, ['senha_hash'], transaction); return { ok: true, loja: cfg.slug, email: conta.email }; });
+        return serializar(ERP, alvo.empresa_id, async transaction => {
+            const o = { transaction, logging: false };
+            const conta = await m.Conta.findByPk(preliminar.conta_id, { ...o, lock: transaction.LOCK.UPDATE });
+            const c = await m.Convite.findByPk(preliminar.id, { ...o, lock: transaction.LOCK.UPDATE });
+            if (!c || c.usado_em || new Date(c.expira_em) <= agora() || !conta?.ativo)
+                throw V.falha('Convite inválido ou expirado.', 400);
+            const cfg = await m.Config.findByPk(conta.empresa_id, o);
+            await verificarPortal(cfg, o);
+            const cliente = await ERP.Cliente.findOne({ where: { id: conta.cliente_id, empresa_id: conta.empresa_id }, ...o });
+            if (!cliente || cliente.ativo === false) throw V.falha('Acesso indisponível. Fale com o estabelecimento.', 403);
+            await conta.update({ senha_hash, versao: conta.versao + 1 }, o);
+            await c.update({ usado_em: agora() }, o);
+            await m.Tentativa.destroy({ where: { id: V.hash(cfg.slug + ':' + conta.email) }, ...o });
+            await m.Sessao.update({ revogada_em: agora() }, { where: { conta_id: conta.id, revogada_em: null }, ...o });
+            await eventos.auditar(conta.empresa_id, { tipo: 'tutor', id: conta.id }, 'senha_definida', conta.id, ['senha_hash'], transaction);
+            return { ok: true, loja: cfg.slug, email: conta.email };
+        });
     }
+
     async function bloquear(emp, clienteId, autor) { return serializar(ERP,emp,async (transaction) => { const o = { transaction, logging: false }, c = await m.Conta.findOne({ where: { empresa_id: emp, cliente_id: clienteId }, ...o, lock: transaction.LOCK.UPDATE }); if (!c)
         throw V.falha('Acesso não encontrado.', 404); await c.update({ ativo: false, versao: c.versao + 1 }, o); await m.Sessao.update({ revogada_em: agora() }, { where: { conta_id: c.id, revogada_em: null }, ...o }); await m.Push.update({ ativo: false }, { where: { conta_id: c.id }, ...o }); await m.Convite.update({ usado_em: agora() }, { where: { conta_id: c.id, usado_em: null }, ...o }); await eventos.auditar(emp, { tipo: 'gestor', id: autor }, 'acesso_revogado', c.id, [], transaction); return { ok: true }; }); }
     async function recuperar({ loja, email }) { let mail; try {
@@ -153,6 +186,6 @@ function criarAutenticacao({ db, ERP, env = process.env, agora = () => new Date(
             }
         }
         catch { } limpar(res); return { ok: true }; }
-    return { auth, contexto, login, convite, aceitarConvite, bloquear, recuperar, logout, csrf, m };
+    return { auth, contexto, estabelecimento, login, convite, aceitarConvite, bloquear, recuperar, logout, csrf, m };
 }
 module.exports = { criarAutenticacao, COOKIE, PATH };
