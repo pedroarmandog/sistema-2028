@@ -1,3 +1,4 @@
+const sessionCookieDomain = require("../utils/sessionCookieDomain");
 const express = require("express");
 const router = express.Router();
 const crypto = require("crypto");
@@ -159,7 +160,7 @@ router.post("/logout", async (req, res) => {
     }
   }
 
-  const _logoutCookieDomain = process.env.COOKIE_DOMAIN || null;
+  const _logoutCookieDomain = sessionCookieDomain(req);
   const _logoutCookieSecure = process.env.COOKIE_SECURE === "1";
   const _clearOpts = {
     path: "/",
@@ -176,32 +177,10 @@ router.post("/logout", async (req, res) => {
 router.post("/validar-senha", usuarioController.validarSenha);
 
 // Rotas de preferências do usuário autenticado
-router.get("/preferencias", authUser, async (req, res) => {
-  try {
-    const { Usuario } = require("../models");
-    const usuario = await Usuario.findByPk(req.user.id, {
-      attributes: ["preferencias"],
-    });
-    return res.json(usuario?.preferencias || {});
-  } catch (err) {
-    console.error("[preferencias] Erro ao buscar:", err);
-    return res.status(500).json({ error: "Erro interno do servidor" });
-  }
-});
-
-router.put("/preferencias", authUser, async (req, res) => {
-  try {
-    const { Usuario } = require("../models");
-    await Usuario.update(
-      { preferencias: req.body },
-      { where: { id: req.user.id } },
-    );
-    return res.json({ ok: true });
-  } catch (err) {
-    console.error("[preferencias] Erro ao salvar:", err);
-    return res.status(500).json({ error: "Erro interno do servidor" });
-  }
-});
+const paleta = require("../controllers/paletaController");
+router.get("/preferencias", authUser, paleta.ler);
+router.put("/preferencias", authUser, paleta.autorizar, paleta.salvar);
+router.get("/preferencias/eventos", authUser, paleta.eventos);
 
 // GET /api/usuarios/me — retorna dados do usuário autenticado (usado pelo PWA mobile)
 router.get("/me", authUser, async (req, res) => {

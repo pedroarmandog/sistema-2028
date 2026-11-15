@@ -108,6 +108,10 @@ app.use((req, res, next) => {
     // que interfere com o MobileApi e causa redirect loops.
     const isMobile = req.path.startsWith("/mobile/");
     const tagsToInject = [];
+    // Paleta disponível desde o head nas telas autenticadas do ERP.
+    if (!isMobile && !req.path.includes('/login/') && !req.path.includes('/painel-admin/') && !html.includes('tema-bootstrap.js')) {
+      tagsToInject.push('<script src="/tema-bootstrap.js"></script>');
+    }
     if (!html.includes("system-modal.js")) {
       tagsToInject.push(
         '<script src="/components/system-modal.js" data-system-modal="1"></script>',

@@ -57,6 +57,8 @@ module.exports = (sequelize) => {
         type: DataTypes.JSON,
         allowNull: true,
       },
+      paleta_cores: {type:DataTypes.JSON,allowNull:true},
+      paleta_cores_versao: {type:DataTypes.INTEGER,allowNull:false,defaultValue:0},
       logo: {
         type: DataTypes.STRING,
         allowNull: true,

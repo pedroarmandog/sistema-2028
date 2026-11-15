@@ -1,3 +1,5 @@
+// Garante a paleta também nas telas que carregam somente o gerenciador da logo.
+(function(){if(window.PetHubTema||document.querySelector('script[data-tema-bootstrap]'))return;const s=document.createElement('script');s.src='/tema-bootstrap.js';s.dataset.temaBootstrap='1';document.head.appendChild(s);})();
 // logo-manager.js
 // Carrega logo da empresa do banco (via API /api/empresas) ao invés de localStorage
 // Permite clicar na logo para Alterar/Excluir; salva no servidor via PUT /api/empresas/:id

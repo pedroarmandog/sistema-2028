@@ -7,7 +7,7 @@
      - Páginas HTML: Network First com fallback offline
    ============================================================ */
 
-const CACHE_VERSION = "pethub-mobile-v8-midias";
+const CACHE_VERSION = "pethub-mobile-v9-paleta";
 const CACHE_STATIC = `${CACHE_VERSION}-static`;
 const CACHE_API = `${CACHE_VERSION}-api`;
 
@@ -93,6 +93,12 @@ self.addEventListener("fetch", (event) => {
   // Ignorar extensões do browser e URLs de desenvolvimento
   if (url.protocol === "chrome-extension:" || url.protocol === "moz-extension:")
     return;
+
+  // Paleta autenticada e SSE: nunca recuperar preferências de outro login do cache.
+  if (url.pathname === '/api/usuarios/preferencias' || url.pathname === '/api/usuarios/preferencias/eventos') {
+    event.respondWith(fetch(request));
+    return;
+  }
 
   // ── Chamadas de API → Network First (sem cache persistente)
   if (url.pathname.startsWith("/api/")) {

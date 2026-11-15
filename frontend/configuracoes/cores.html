@@ -1151,15 +1151,17 @@
     <!-- Fim do bloco a ser copiado -->
     <div class="container">
         <div class="page-header">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
                 <div>
                     <h1>
                         <i class="fas fa-palette"></i>
                         Editor de Paleta de Cores
                     </h1>
-                    <p>Personalize as cores do sistema e veja as mudanças em tempo real</p>
+                    <p>Personalize as cores da empresa e sincronize todos os dispositivos</p>
+                    <p id="temaStatus" role="status" aria-live="polite">Carregando cores da empresa…</p>
+                    <button type="button" id="recuperarCores" hidden>Recuperar paleta anterior deste navegador</button>
                 </div>
-                <button onclick="restaurarCoresPadrao()" class="restore-btn">
+                <button id="restoreColorsButton" disabled onclick="restaurarCoresPadrao()" class="restore-btn">
                     <i class="fas fa-undo"></i>
                     Restaurar Cores Padrão
                 </button>
@@ -1218,6 +1220,7 @@
         </div>
     </div>
 
+    <script src="/tema-bootstrap.js"></script>
     <script>
         // Cores padrão do sistema (mapeadas para as variáveis CSS reais)
         const DEFAULT_COLORS = {
@@ -1261,68 +1264,31 @@
 
         let currentColors = JSON.parse(JSON.stringify(DEFAULT_COLORS));
 
-        // Carregar cores salvas do servidor (prioridade) ou localStorage (fallback)
+        let temaCliente, salvando = false;
         async function loadSavedColors() {
-            // Tentar servidor primeiro com timeout de 300ms
             try {
-                const controller = new AbortController();
-                const timer = setTimeout(() => controller.abort(), 300);
-                const response = await fetch('/api/usuarios/preferencias', {
-                    credentials: 'include',
-                    signal: controller.signal
+                temaCliente = await window.PetHubTema.ready;
+                if (!temaCliente.estado) await temaCliente.atualizar();
+                const recuperar=document.getElementById('recuperarCores');
+                try { recuperar.hidden=!localStorage.getItem('systemColors') || !temaCliente.estado.tema.podeEditar; } catch(_) {}
+                recuperar.onclick=()=>{if(!confirm('A paleta antiga não identificava a empresa. Confira se pertence à empresa '+temaCliente.estado.tema.empresaId+'. Publicar estas cores para todos os usuários desta empresa?'))return;executarGravacao(()=>temaCliente.importar(JSON.parse(localStorage.getItem('systemColors'))),'Paleta anterior publicada para a empresa.');};
+                temaCliente.assinar(d => {
+                    currentColors = d.systemColors;
+                    renderColors();
+                    document.querySelectorAll('.color-picker,.color-input,#restoreColorsButton').forEach(el => el.disabled = salvando || !d.tema.podeEditar);
+                    document.getElementById('temaStatus').textContent = 'Paleta da empresa ' + d.tema.empresaId + ' · versão ' + d.tema.versao + ' · sincronização automática';
                 });
-                clearTimeout(timer);
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data && data.systemColors) {
-                        currentColors = JSON.parse(JSON.stringify(data.systemColors));
-                        localStorage.setItem('systemColors', JSON.stringify(currentColors));
-                        applyColorsToSystem();
-                        renderColors();
-                        return; // servidor venceu
-                    }
-                }
-            } catch (_) {
-                // timeout ou erro de rede — continuar para fallback
-            }
-
-            // Fallback: localStorage (offline, timeout, erro)
-            const saved = localStorage.getItem('systemColors');
-            if (saved) {
-                try {
-                    currentColors = JSON.parse(saved);
-                    applyColorsToSystem();
-                } catch (e) {
-                    console.error('Erro ao carregar cores do localStorage:', e);
-                }
-            }
+            } catch(e) { document.getElementById('temaStatus').textContent = 'Não foi possível carregar as cores. Recarregue a página para tentar novamente.'; }
         }
-
-        // Aplicar cores ao sistema (CSS Variables)
-        function applyColorsToSystem() {
-            const root = document.documentElement;
-            Object.values(currentColors).forEach(category => {
-                category.forEach(color => {
-                    if (color.var) {
-                        root.style.setProperty(color.var, color.hex);
-                    }
-                });
-            });
+        async function executarGravacao(acao, mensagem) {
+            if (salvando || !temaCliente?.estado?.tema.podeEditar) return;
+            salvando = true;
+            document.querySelectorAll('.color-picker,.color-input,#restoreColorsButton').forEach(el => el.disabled = true);
+            document.getElementById('temaStatus').textContent = 'Salvando cores da empresa…';
+            try { await acao(); showNotification(mensagem, 'success'); }
+            catch(e) { showNotification(e.message || 'Não foi possível salvar. Tente novamente.', 'error'); }
+            finally { salvando = false; if(temaCliente.estado) { currentColors=temaCliente.estado.systemColors; renderColors(); document.querySelectorAll('.color-picker,.color-input,#restoreColorsButton').forEach(el => el.disabled=!temaCliente.estado.tema.podeEditar); } document.getElementById('temaStatus').textContent='Paleta confirmada no servidor. Alterações não confirmadas não são aplicadas.'; }
         }
-
-        // Salvar cores no localStorage e no servidor (quando autenticado)
-        function saveColors() {
-            localStorage.setItem('systemColors', JSON.stringify(currentColors));
-            applyColorsToSystem();
-            // Persistir no servidor em background
-            fetch('/api/usuarios/preferencias', {
-                method: 'PUT',
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ systemColors: currentColors })
-            }).catch(() => {});
-        }
-
         // Restaurar cores padrão
         function restaurarCoresPadrao() {
             showConfirmModal();
@@ -1340,36 +1306,12 @@
 
         // Confirmar restauração
         async function confirmarRestauracao() {
-            currentColors = JSON.parse(JSON.stringify(DEFAULT_COLORS));
-            localStorage.removeItem('systemColors');
-            applyColorsToSystem();
-            renderColors();
             closeConfirmModal();
-            showNotification('Cores padrão restauradas com sucesso!', 'success');
-            // Persistir restauração no servidor para refletir em outros dispositivos
-            try {
-                await fetch('/api/usuarios/preferencias', {
-                    method: 'PUT',
-                    credentials: 'include',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ systemColors: DEFAULT_COLORS })
-                });
-            } catch (_) {}
+            await executarGravacao(() => temaCliente.restaurar(), 'Cores padrão restauradas para esta empresa.');
         }
-
-        // Atualizar cor
-        function updateColor(categoryKey, colorId, newHex) {
-            const category = currentColors[categoryKey];
-            const color = category.find(c => c.id === colorId);
-            if (color) {
-                color.hex = newHex;
-                color.rgb = hexToRgb(newHex);
-                saveColors();
-                renderColors();
-                showNotification('Cor atualizada! As mudanças já estão aplicadas.', 'success');
-            }
+        async function updateColor(categoryKey, colorId, newHex) {
+            await executarGravacao(() => temaCliente.editar({[colorId]: newHex}), 'Cor salva para todos os dispositivos da empresa.');
         }
-
         // Validar e processar input de cor colado/digitado
         function handleColorInput(input, categoryKey, colorId) {
             let value = input.value.trim().toUpperCase();
@@ -1436,17 +1378,17 @@
                         <div class="color-picker-wrapper">
                             <input 
                                 type="color" 
-                                class="color-picker" 
+                                class="color-picker" disabled 
                                 value="${color.hex}" 
                                 onchange="updateColor('${categoryKey}', '${color.id}', this.value)"
                                 title="Clique para alterar esta cor"
                             />
                             <input 
                                 type="text" 
-                                class="color-input" 
+                                class="color-input" disabled 
                                 value="${color.hex}" 
                                 placeholder="Cole o código aqui (ex: #FF5733)"
-                                oninput="handleColorInput(this, '${categoryKey}', '${color.id}')"
+                                onchange="handleColorInput(this, '${categoryKey}', '${color.id}')"
                                 title="Cole ou digite o código da cor"
                             />
                         </div>

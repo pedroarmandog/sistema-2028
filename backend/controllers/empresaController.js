@@ -235,7 +235,8 @@ exports.whoami = async (req, res) => {
 // Criar empresa
 exports.criarEmpresa = async (req, res) => {
   try {
-    const dados = req.body;
+    const dados = {...req.body};
+    delete dados.paleta_cores; delete dados.paleta_cores_versao;
 
     const logo = dados.logo; delete dados.logo; delete dados.id;
     const empresa = await Empresa.sequelize.transaction(async transaction=>{
@@ -259,7 +260,8 @@ exports.atualizarEmpresa = async (req, res) => {
       return res.status(404).json({ erro: "Empresa não encontrada" });
     }
 
-    const dados = req.body;
+    const dados = {...req.body};
+    delete dados.paleta_cores; delete dados.paleta_cores_versao;
 
     delete dados.id; delete dados.empresa_id;
     if(dados.logo !== undefined) dados.logo=await require("../services/midias").instancia().referencia(empresa.id,dados.logo,"logos",{anterior:empresa.logo,formato:"nome",publico:true});
