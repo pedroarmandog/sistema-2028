@@ -979,7 +979,7 @@ async function generateAndOpenReciboPdf({ fornecedorNome, valor, referente }){
 
     // obter dados da empresa (usar primeira empresa cadastrada)
     let empresa = null;
-    try { const empresas = await ApiClient.getEmpresas(); empresa = Array.isArray(empresas) ? empresas[0] : empresas; } catch(e){ console.warn('Não foi possível obter dados da empresa', e); }
+    try { empresa = await ApiClient.getIdentidadePDF(); } catch(e){ console.warn('Não foi possível obter dados da empresa', e); }
 
     const doc = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'landscape' });
     const pageW = doc.internal.pageSize.getWidth();
@@ -1006,51 +1006,8 @@ async function generateAndOpenReciboPdf({ fornecedorNome, valor, referente }){
     const rightGutter = 12; // distância do conteúdo até a borda direita da caixa
     doc.setFontSize(10); doc.text('Data: ' + nowStr, margin + boxW - rightGutter, 54, { align: 'right' });
 
-    // preparar logo (aceita dataURL, caminho relativo ou objeto com base64)
-    async function blobToDataURL(blob) {
-        return await new Promise((resolve, reject) => {
-            try {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-            } catch (e) { reject(e); }
-        });
-    }
-
-    let logoDataUrl = null;
-    if (empresa && empresa.logo) {
-        try {
-            if (typeof empresa.logo === 'string') {
-                if (empresa.logo.indexOf('data:') === 0) {
-                    logoDataUrl = empresa.logo;
-                } else if (/^[A-Za-z0-9+/=\s]+$/.test(empresa.logo)) {
-                    // base64 puro
-                    logoDataUrl = 'data:image/png;base64,' + empresa.logo.replace(/\s+/g, '');
-                } else {
-                    // tentar buscar como caminho relativo/absoluto ou URL completa
-                    try {
-                        let pathCandidate = empresa.logo;
-                        // se for apenas nome de arquivo, presumir diretório /uploads/
-                        if (!pathCandidate.startsWith('http') && !pathCandidate.startsWith('/') && pathCandidate.indexOf('/') === -1) {
-                            pathCandidate = '/uploads/' + pathCandidate;
-                        }
-                        const fullUrl = pathCandidate.startsWith('http') ? pathCandidate : new URL(pathCandidate, window.location.origin).href;
-                        const resp = await fetch(fullUrl);
-                        if (resp.ok) {
-                            const blob = await resp.blob();
-                            logoDataUrl = await blobToDataURL(blob);
-                        }
-                    } catch(e) { /* falha ao buscar remoto */ }
-                }
-            } else if (typeof empresa.logo === 'object') {
-                // tentativas anteriores podem ter convertido alguns campos
-                if (empresa.logo.dataUrl) logoDataUrl = empresa.logo.dataUrl;
-                else if (empresa.logo.src) logoDataUrl = empresa.logo.src;
-                else if (empresa.logo.base64) logoDataUrl = 'data:image/png;base64,' + String(empresa.logo.base64).replace(/\s+/g, '');
-            }
-        } catch(e) { console.warn('Erro ao resolver logo da empresa:', e); }
-    }
+    // PNG normalizado e incorporado, consultado no cadastro atual pelo backend.
+    const logoDataUrl = empresa?.logoDataUrl || null;
 
     // logo à esquerda (se disponível) - desenhar preservando proporção
     let logoDrawHeight = 70;

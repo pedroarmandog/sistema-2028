@@ -90,7 +90,7 @@ export async function danfe(req: Request, res: Response) {
     const nota = await service.getNotaById(id);
     if (!nota) return res.status(404).json({ success: false, error: 'Nota não encontrada' });
 
-    const buffer = await generateDanfeBuffer(nota);
+    const buffer = await generateDanfeBuffer(nota, req);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename=danfe-${id}.pdf`);
     res.send(buffer);

@@ -1,6 +1,8 @@
 import PDFDocument from 'pdfkit';
 
-export async function generateDanfeBuffer(notaData: any): Promise<Buffer> {
+export async function generateDanfeBuffer(notaData: any, req: any): Promise<Buffer> {
+  const {carregarIdentidade,desenharLogo} = require('../../../services/identidadeEmpresaPDF');
+  const identidade = await carregarIdentidade(req);
   return new Promise<Buffer>((resolve, reject) => {
     try {
       // Gera um DANFE simplificado em PDF usando PDFKit
@@ -10,6 +12,10 @@ export async function generateDanfeBuffer(notaData: any): Promise<Buffer> {
       doc.on('end', () => resolve(Buffer.concat(buffers)));
       doc.on('error', (err) => reject(err));
 
+      const logo = desenharLogo(doc, identidade.logoBuffer, {y:25,width:100,maxHeight:65});
+      doc.fontSize(11).font('Helvetica-Bold').text(identidade.nomeEmpresa,40,logo.desenhada?logo.fimY+10:40,{width:doc.page.width-80,align:'center'});
+      doc.moveDown(0.6);
+      doc.font('Helvetica');
       doc.fontSize(16).text('DANFE (Simplificado)', { align: 'center' });
       doc.moveDown();
       doc.fontSize(12);

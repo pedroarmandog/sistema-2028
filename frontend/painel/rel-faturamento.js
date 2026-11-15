@@ -1790,29 +1790,7 @@ async function gerarPDFFaturamento(filtros) {
         companyRazao =
           empresa.razaoSocial || empresa.nomeFantasia || companyRazao;
 
-        // Buscar logo da empresa se existir
-        if (empresa.logo) {
-          // Logo é um caminho de arquivo no servidor, precisamos buscar como base64
-          try {
-            const logoUrl = `/uploads/${empresa.logo}`;
-            const response = await fetch(logoUrl);
-            if (response.ok) {
-              const blob = await response.blob();
-              const reader = new FileReader();
-              await new Promise((resolve) => {
-                reader.onloadend = () => {
-                  companyLogo = reader.result;
-                  resolve();
-                };
-                reader.readAsDataURL(blob);
-              });
-              console.log("🖼️ Logo carregada do servidor");
-            }
-          } catch (logoErr) {
-            console.warn("⚠️ Erro ao carregar logo:", logoErr);
-          }
-        }
-
+        // A logo é incorporada no backend a partir do cadastro autenticado atual.
         console.log("🏢 Razão Social:", companyRazao);
         console.log("🖼️ Logo:", companyLogo ? "Carregada" : "Não disponível");
       } else {

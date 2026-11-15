@@ -1,8 +1,9 @@
-const {carregarImagem}=require("../services/midias/imagem");
+const {carregarIdentidade,desenharLogo,cabecalhoFaturamento}=require("../services/identidadeEmpresaPDF");
 const express = require("express");
 const router = express.Router();
 const { authUser } = require("../middleware/authUser");
 router.use(authUser);
+router.use((req,res,next)=>{if(req.path.endsWith("/pdf")||req.path.endsWith("/comprovante"))res.set("Cache-Control","private, no-store");next();});
 const path = require("path");
 const fs = require("fs");
 const { Empresa } = require("../models");
@@ -12,6 +13,15 @@ const { Op } = require("sequelize");
 const { Agendamento } = require("../models/Agendamento");
 const Pet = require("../models/Pet");
 const { Cliente } = require("../models/Cliente");
+
+// Somente os três recursos públicos necessários ao visualizador legado.
+// O servidor não expõe node_modules inteiro nem caminhos recebidos do usuário.
+router.get('/recursos/stimulsoft/:arquivo', (req,res) => {
+  const arquivos = {'reports.js':'Scripts/stimulsoft.reports.js','viewer.js':'Scripts/stimulsoft.viewer.js','viewer.css':'Css/stimulsoft.viewer.office2013.whiteblue.css'};
+  if (!Object.hasOwn(arquivos,req.params.arquivo)) return res.sendStatus(404);
+  res.set('Cache-Control','private, no-store');
+  res.sendFile(path.join(path.dirname(require.resolve('stimulsoft-reports-js/package.json')), arquivos[req.params.arquivo]));
+});
 
 // Empresa e logo dos relatórios pertencem ao usuário autenticado.
 async function obterEmpresaDoRequest(req) {
@@ -27,13 +37,7 @@ async function obterEmpresaDoRequest(req) {
 }
 
 // Helper: retorna logo path absoluto e nome da empresa
-async function obterDadosEmpresaPDF(req) {
-  const emp = await obterEmpresaDoRequest(req);
-  if (!emp) return { empresa: null, logoPath: null, nomeEmpresa: "" };
-  const nomeEmpresa = emp.nome || emp.razaoSocial || "";
-  const logoPath = await carregarImagem(emp.id,emp.logo);
-  return { empresa: emp, logoPath, nomeEmpresa };
-}
+async function obterDadosEmpresaPDF(req) { return carregarIdentidade(req); }
 
 // Helper: agrega vendas por produto e retorna array de linhas com custos e lucros
 async function gerarDadosFaturamento(filters = {}, req) {
@@ -308,97 +312,16 @@ router.get("/venda-no-periodo/pdf", async (req, res) => {
     const rowHeight = 18;
     const cellPadding = 4;
 
-    // --- Logo: preferir payload (companyLogo) -> logo da empresa -> logo padrão ---
-    let logoBuffer = null;
-    try {
-      if (req.query && req.query.companyLogo) {
-        const companyLogo = req.query.companyLogo;
-        if (
-          typeof companyLogo === "string" &&
-          companyLogo.startsWith("data:")
-        ) {
-          const base64 = companyLogo.split(",")[1];
-          if (base64) logoBuffer = Buffer.from(base64, "base64");
-        } else if (typeof companyLogo === "string") {
-          try {
-            logoBuffer = Buffer.from(companyLogo, "base64");
-          } catch (e) {
-            /* ignore */
-          }
-        }
-      }
-      // Também aceitar nome de arquivo do logo via query (logoFilename)
-      if (!logoBuffer && req.query && req.query.logoFilename) {
-        const lf = String(req.query.logoFilename || "");
-        try {
-          logoBuffer=await carregarImagem(req.user.empresaId,lf);
-        } catch (e) {
-          /* ignore */
-        }
-      }
-    } catch (e) {
-      console.warn("Erro ao parsear companyLogo payload:", e && e.message);
-    }
-
-    // Buscar empresa para logo e razão social
-    // Buscar empresa do usuário logado (cookie JWT)
-    let nomeEmpresa =
-      req.query && req.query.companyName ? String(req.query.companyName) : "";
-    try {
-      const empresa = await obterEmpresaDoRequest(req);
-      if (empresa) {
-        if (!nomeEmpresa)
-          nomeEmpresa = empresa.razaoSocial || empresa.nome || "";
-        if (!logoBuffer && empresa.logo) {
-          logoBuffer = await carregarImagem(empresa.id,empresa.logo);
-        }
-      }
-    } catch (e) {
-      console.warn(
-        "Erro ao buscar empresa para venda-no-periodo:",
-        e && e.message,
-      );
-    }
-
-    // Fallback logo padrão
-    if (!logoBuffer) {
-      const defaultPaths = [
-        path.join(__dirname, "../../frontend/fivecon/Design sem nome (17).png"),
-        path.join(__dirname, "../../frontend/logos/Logo PetHub (2).svg"),
-      ];
-      for (const p of defaultPaths) {
-        if (fs.existsSync(p)) {
-          try {
-            logoBuffer = fs.readFileSync(p);
-            break;
-          } catch (e) {
-            /* ignore */
-          }
-        }
-      }
-    }
-
-    // Desenhar logo
+    const identidade = await obterDadosEmpresaPDF(req);
+    const {logoBuffer, nomeEmpresa} = identidade;
     const pageWidth = doc.page.width;
-    const logoWidth = 90;
-    const logoX = (pageWidth - logoWidth) / 2;
     const logoY = 25;
-    if (logoBuffer) {
-      try {
-        doc.image(logoBuffer, logoX, logoY, {
-          width: logoWidth,
-          align: "center",
-        });
-      } catch (e) {
-        console.warn("Erro ao desenhar logo no PDF:", e && e.message);
-      }
-    }
-
+    const logo = desenharLogo(doc, logoBuffer, {y: logoY, width: 90, maxHeight: 75});
     // Título e razão social
     const leftTable = left;
     const usableWidth = pageUsableWidth;
     const prodW = usableWidth - 60 - (headers.length - 2) * 70;
-    const headerStartY = logoBuffer ? Math.max(110, logoY + 85) : doc.y + 6;
+    const headerStartY = logo.desenhada ? Math.max(110, logo.fimY + 10) : 36;
 
     doc.font("Helvetica-Bold").fontSize(14).fillColor("#000");
     doc.text("RELATÓRIO DE VENDA NO PERÍODO", leftTable, headerStartY, {
@@ -627,84 +550,8 @@ router.post("/faturamento/pdf", async (req, res) => {
     const rowHeight = 18;
     const cellPadding = 4;
 
-    // --- Logo: preferir payload (companyLogo) -> logo da empresa -> logo padrão ---
-    let logoBuffer = null;
-    try {
-      if (req.body && req.body.companyLogo) {
-        const companyLogo = req.body.companyLogo;
-        if (
-          typeof companyLogo === "string" &&
-          companyLogo.startsWith("data:")
-        ) {
-          const base64 = companyLogo.split(",")[1];
-          if (base64) logoBuffer = Buffer.from(base64, "base64");
-        } else if (typeof companyLogo === "string") {
-          // tentar decodificar base64 bruto (caso frontend envie assim)
-          try {
-            logoBuffer = Buffer.from(companyLogo, "base64");
-          } catch (e) {
-            /* ignore */
-          }
-        } else if (companyLogo && companyLogo.data) {
-          logoBuffer = Buffer.from(companyLogo.data);
-        }
-      }
-    } catch (e) {
-      console.warn("Erro ao parsear companyLogo payload:", e && e.message);
-    }
-
-    // Se não veio pelo payload, tentar buscar da tabela Empresa
-    if (!logoBuffer) {
-      try {
-        const empresa = await obterEmpresaDoRequest(req);
-        if (empresa && empresa.logo) {
-          logoBuffer = await carregarImagem(empresa.id,empresa.logo);
-        }
-      } catch (e) {
-        console.warn("Erro ao buscar logo da empresa:", e && e.message);
-      }
-    }
-
-    // Fallback para logo padrão do sistema (frontend assets)
-    if (!logoBuffer) {
-      const defaultPaths = [
-        path.join(__dirname, "../../frontend/fivecon/Design sem nome (17).png"),
-        path.join(__dirname, "../../frontend/logos/Logo PetHub (2).svg"),
-      ];
-      for (const p of defaultPaths) {
-        if (fs.existsSync(p)) {
-          try {
-            logoBuffer = fs.readFileSync(p);
-            break;
-          } catch (e) {
-            /* ignore */
-          }
-        }
-      }
-    }
-
-    // Desenhar logo no topo (header), sem reduzir a largura disponível da tabela
-    const pageWidth = doc.page.width;
-    // permitir ajuste via payload (companyLogoWidth), senão usar 90pt
-    const logoWidth =
-      typeof req.body.companyLogoWidth === "number" &&
-      req.body.companyLogoWidth > 0
-        ? req.body.companyLogoWidth
-        : req.body && Number(req.body.companyLogoWidth)
-          ? Number(req.body.companyLogoWidth)
-          : 90;
-    const logoX = (pageWidth - logoWidth) / 2;
-    const logoY = 25;
-    if (logoBuffer) {
-      try {
-        doc.image(logoBuffer, logoX, logoY, {
-          width: logoWidth,
-          align: "center",
-        });
-      } catch (e) {
-        console.warn("Erro ao desenhar logo no PDF:", e && e.message);
-      }
-    }
+    const identidade = await obterDadosEmpresaPDF(req);
+    const headerStartY = cabecalhoFaturamento(doc, identidade);
     // tabela usa a largura total disponível na página
     const leftTable = left;
     let usableWidth = pageUsableWidth;
@@ -756,9 +603,6 @@ router.post("/faturamento/pdf", async (req, res) => {
         out = out.slice(0, -1);
       return out.length ? out + ell : ell;
     }
-
-    // Cabeçalho: título e período abaixo da logo, depois os headers da tabela
-    const headerStartY = logoBuffer ? Math.max(110, logoY + 85) : doc.y + 6;
 
     // Título principal (h3/h4 equivalente)
     doc.font("Helvetica-Bold").fontSize(14).fillColor("#000");
@@ -1862,7 +1706,7 @@ router.post("/comissao/pdf", async (req, res) => {
     // ---- cabeçalho da primeira página ----
     const desenharCabecalho = () => {
       if (logoPath) {
-        doc.image(logoPath, pageW / 2 - 40, 20, { width: 80 });
+        desenharLogo(doc, logoPath, {y:20, width:80, maxHeight:75});
       }
       doc.y = logoPath ? 110 : 40;
       doc
@@ -2432,9 +2276,7 @@ router.post("/atendimento-periodo/pdf", async (req, res) => {
     const drawHeader = () => {
       if (empData.logoPath) {
         try {
-          doc.image(empData.logoPath, doc.page.width / 2 - 30, 30, {
-            width: 60,
-          });
+          desenharLogo(doc, empData.logoPath, {y:30, width:60, maxHeight:60});
           doc.moveDown(4);
         } catch (_) {
           doc.moveDown(1);
@@ -2679,25 +2521,8 @@ router.get("/produtos/pdf", async (req, res) => {
     // pipe direto para response
     doc.pipe(res);
 
-    // Cabeçalho com logo da empresa
-    let logoPath = path.join(
-      __dirname,
-      "../../frontend/fivecon/Design sem nome (17).png",
-    ); // logo padrão
-
-    // Se empresa tem logo, usar a logo da empresa
-    if (empresa && empresa.logo && empresa.logo !== "") {
-      const empresaLogoPath = await carregarImagem(empresa.id,empresa.logo);
-      if (empresaLogoPath) {
-        logoPath = empresaLogoPath;
-        console.log("✅ Usando logo da empresa:", empresa.logo);
-      }
-    }
-
-    if (Buffer.isBuffer(logoPath) || fs.existsSync(logoPath)) {
-      doc.image(logoPath, 595 / 2 - 55, 30, { width: 110, align: "center" }); // centralizar logo
-    }
-
+    const identidade = await obterDadosEmpresaPDF(req);
+    desenharLogo(doc, identidade.logoBuffer, {y: 30, width: 110, maxHeight: 100});
     // Título
     doc.fontSize(14).font("Helvetica-Bold");
     doc.text("RELATÓRIO DE PRODUTO", 0, 150, { align: "center" });
@@ -2918,73 +2743,10 @@ router.post("/entradas/pdf", async (req, res) => {
       console.warn("⚠️ Erro ao buscar empresa para entradas:", e && e.message);
     }
 
-    // pegar logo do payload (base64) se foi enviada, senão usar logo da empresa, senão fallback local
-    const companyLogo = req.body.companyLogo || null;
-    const companyRazao =
-      (empresa ? empresa.razaoSocial || empresa.nome : null) ||
-      req.body.companyRazao ||
-      "";
-
-    let logoRendered = false;
-    // permitir ajuste de largura da logo via payload (em pontos). Default menor para visual menos dominante.
-    const logoWidth =
-      typeof req.body.companyLogoWidth === "number" &&
-      req.body.companyLogoWidth > 0
-        ? req.body.companyLogoWidth
-        : req.body && Number(req.body.companyLogoWidth)
-          ? Number(req.body.companyLogoWidth)
-          : 90;
-    const pageWidth = 595;
-    const logoX = (pageWidth - logoWidth) / 2;
-    const logoY = 25;
-
-    if (
-      companyLogo &&
-      typeof companyLogo === "string" &&
-      companyLogo.startsWith("data:image/")
-    ) {
-      try {
-        const base64Data = companyLogo.split(",")[1];
-        const imgBuffer = Buffer.from(base64Data, "base64");
-        doc.image(imgBuffer, logoX, logoY, {
-          width: logoWidth,
-          align: "center",
-        });
-        logoRendered = true;
-      } catch (e) {
-        logoRendered = false;
-      }
-    }
-
-    if (!logoRendered && empresa && empresa.logo && empresa.logo !== "") {
-      try {
-        const empresaLogoPath = await carregarImagem(empresa.id,empresa.logo);
-        if (empresaLogoPath) {
-          doc.image(empresaLogoPath, logoX, logoY, {
-            width: logoWidth,
-            align: "center",
-          });
-          logoRendered = true;
-        }
-      } catch (e) {
-        /* noop */
-      }
-    }
-
-    if (!logoRendered) {
-      try {
-        const logoPath = path.join(
-          __dirname,
-          "../../frontend/fivecon/Design sem nome (17).png",
-        );
-        if (fs.existsSync(logoPath))
-          doc.image(logoPath, logoX, logoY, {
-            width: logoWidth,
-            align: "center",
-          });
-      } catch (e) {}
-    }
-
+    const identidade = await obterDadosEmpresaPDF(req);
+    const companyRazao = identidade.nomeEmpresa;
+    const pageWidth = 595, logoY = 25;
+    desenharLogo(doc, identidade.logoBuffer, {y: logoY, width: 90, maxHeight: 75});
     // Título específico para Entradas (mantendo o estilo visual)
     const tituloY = Math.max(110, logoY + 85);
     doc.fontSize(14).font("Helvetica-Bold");
@@ -3263,105 +3025,10 @@ router.post("/produtos/pdf", async (req, res) => {
       empresa = null;
     }
 
-    // Definir razão social (payload > empresa > fallback)
-    const payloadCompanyRazao =
-      req.body &&
-      (req.body.companyRazao || req.body.razaoSocial || req.body.companyName);
-    const companyRazao =
-      payloadCompanyRazao ||
-      (empresa &&
-        (empresa.razaoSocial || empresa.nome || empresa.nomeFantasia)) ||
-      "";
-
-    // Lidar com o logo: aceitar data-URI (base64) ou nome/URL de arquivo que exista em uploads
-    const payloadLogo = req.body && req.body.companyLogo;
-    let logoRendered = false;
-    const logoWidth =
-      typeof req.body.companyLogoWidth === "number" &&
-      req.body.companyLogoWidth > 0
-        ? req.body.companyLogoWidth
-        : req.body && Number(req.body.companyLogoWidth)
-          ? Number(req.body.companyLogoWidth)
-          : 90;
-    const pageWidth = 595; // largura A4
-    const logoX = (pageWidth - logoWidth) / 2; // centralizar horizontalmente
-    const logoY = 25; // posição Y fixa no topo
-
-    if (payloadLogo && typeof payloadLogo === "string") {
-      try {
-        if (payloadLogo.startsWith("data:image/")) {
-          const base64Data = payloadLogo.split(",")[1];
-          if (!base64Data) throw new Error("Base64 data inválida");
-          const estimatedSize = (base64Data.length * 3) / 4;
-          if (estimatedSize > 5 * 1024 * 1024)
-            throw new Error("Logo excede 5MB");
-          const imgBuffer = Buffer.from(base64Data, "base64");
-          doc.image(imgBuffer, logoX, logoY, {
-            width: logoWidth,
-            align: "center",
-          });
-          logoRendered = true;
-        } else {
-          const candidate = await carregarImagem(req.user.empresaId,payloadLogo);
-          if (candidate) {
-            doc.image(candidate, logoX, logoY, {
-              width: logoWidth,
-              align: "center",
-            });
-            logoRendered = true;
-          }
-        }
-      } catch (logoErr) {
-        console.warn(
-          "⚠️ Erro ao incluir logo do payload:",
-          logoErr && logoErr.message,
-        );
-        logoRendered = false;
-      }
-    }
-
-    // tentar logo da empresa se não renderizou a do payload
-    if (!logoRendered && empresa && empresa.logo) {
-      try {
-        const empresaLogoPath = await carregarImagem(empresa.id,empresa.logo);
-        if (empresaLogoPath) {
-          doc.image(empresaLogoPath, logoX, logoY, {
-            width: logoWidth,
-            align: "center",
-          });
-          logoRendered = true;
-          console.log("✅ Usando logo da empresa:", empresa.logo);
-        }
-      } catch (logoErr) {
-        console.warn(
-          "⚠️ Erro ao incluir logo da empresa:",
-          logoErr && logoErr.message,
-        );
-        logoRendered = false;
-      }
-    }
-
-    // fallback: tentar logo local padrão se ainda não renderizou
-    if (!logoRendered) {
-      try {
-        const logoPath = path.join(
-          __dirname,
-          "../../frontend/fivecon/Design sem nome (17).png",
-        );
-        if (Buffer.isBuffer(logoPath) || fs.existsSync(logoPath)) {
-          doc.image(logoPath, logoX, logoY, {
-            width: logoWidth,
-            align: "center",
-          });
-        }
-      } catch (localLogoErr) {
-        console.warn(
-          "⚠️ Erro ao incluir logo local:",
-          localLogoErr && localLogoErr.message,
-        );
-      }
-    }
-
+    const identidade = await obterDadosEmpresaPDF(req);
+    const companyRazao = identidade.nomeEmpresa;
+    const pageWidth = 595, logoY = 25;
+    desenharLogo(doc, identidade.logoBuffer, {y: logoY, width: 90, maxHeight: 75});
     // Título centralizado com espaço seguro abaixo da logo (mínimo 110px do topo)
     const tituloY = Math.max(110, logoY + 85); // garante espaço mínimo maior entre logo e título
     doc.fontSize(14).font("Helvetica-Bold");
@@ -3730,36 +3397,8 @@ router.post("/fornecedores/pdf", async (req, res) => {
     const logoX = 50; // deixar margem esquerda para a logo
     const logoY = 25;
 
-    // tentar usar logo da empresa (upload), senão fallback para frontend/logo
-    let renderedLogo = false;
-    try {
-      if (empresa && empresa.logo) {
-        const empresaLogoPath = await carregarImagem(empresa.id,empresa.logo);
-        if (empresaLogoPath) {
-          doc.image(empresaLogoPath, logoX, logoY, { width: logoWidth });
-          renderedLogo = true;
-        }
-      }
-    } catch (errLogo) {
-      console.warn(
-        "⚠️ Falha ao tentar renderizar logo da empresa:",
-        errLogo && errLogo.message,
-      );
-    }
-
-    if (!renderedLogo) {
-      try {
-        const defaultLogo = path.join(
-          __dirname,
-          "../../frontend/fivecon/Design sem nome (17).png",
-        );
-        if (fs.existsSync(defaultLogo))
-          doc.image(defaultLogo, logoX, logoY, { width: logoWidth });
-      } catch (e) {
-        /* ignore */
-      }
-    }
-
+    const identidade = await obterDadosEmpresaPDF(req);
+    desenharLogo(doc, identidade.logoBuffer, {x: logoX, y: logoY, width: logoWidth, maxHeight: 65});
     // Título centralizado
     const tituloY = 40;
     doc.fontSize(14).font("Helvetica-Bold");
@@ -4001,52 +3640,10 @@ router.post("/demonstrativo-resultados/pdf", async (req, res) => {
     );
     doc.pipe(res);
 
-    // LOGO DA EMPRESA (mesmo estilo do relatório de produtos)
-    const companyRazaoFinal = companyRazao || "SUA EMPRESA";
-    let logoRendered = false;
-    const logoWidth = 120;
-    const pageWidth = 595;
-    const logoX = (pageWidth - logoWidth) / 2;
-    const logoY = 25;
-
-    if (
-      companyLogo &&
-      typeof companyLogo === "string" &&
-      companyLogo.startsWith("data:image/")
-    ) {
-      try {
-        const base64Data = companyLogo.split(",")[1];
-        if (!base64Data) throw new Error("Base64 data inválida");
-        const estimatedSize = (base64Data.length * 3) / 4;
-        if (estimatedSize > 5 * 1024 * 1024) throw new Error("Logo excede 5MB");
-        const imgBuffer = Buffer.from(base64Data, "base64");
-        doc.image(imgBuffer, logoX, logoY, {
-          width: logoWidth,
-          align: "center",
-        });
-        logoRendered = true;
-      } catch (logoErr) {
-        console.warn("⚠️ Erro ao incluir logo:", logoErr.message);
-      }
-    }
-
-    if (!logoRendered) {
-      try {
-        const logoPath = path.join(
-          __dirname,
-          "../../frontend/fivecon/Design sem nome (17).png",
-        );
-        if (Buffer.isBuffer(logoPath) || fs.existsSync(logoPath)) {
-          doc.image(logoPath, logoX, logoY, {
-            width: logoWidth,
-            align: "center",
-          });
-        }
-      } catch (err) {
-        /* ignore */
-      }
-    }
-
+    const identidade = await obterDadosEmpresaPDF(req);
+    const companyRazaoFinal = identidade.nomeEmpresa;
+    const pageWidth = 595, logoY = 25;
+    desenharLogo(doc, identidade.logoBuffer, {y: logoY, width: 120, maxHeight: 75});
     // CABEÇALHO (posicionar abaixo da logo)
     const tituloY = Math.max(110, logoY + 85);
     doc.fontSize(18).font("Helvetica-Bold").fillColor("#000");

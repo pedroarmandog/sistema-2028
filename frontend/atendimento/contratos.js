@@ -956,7 +956,7 @@ function gerarHTMLRelatorio(dados) {
 </head>
 <body>
     <div class="export-controls">
-        <a href="#" onclick="window.print()" class="btn btn-success">PDF</a>
+        <button id="relatorio-imprimir" disabled onclick="window.print()" class="btn btn-success">PDF</button>
         <a href="#" onclick="exportarParaExcel()" class="btn btn-primary">XLS</a>
     </div>
 
@@ -969,22 +969,24 @@ function gerarHTMLRelatorio(dados) {
     <script>
     (async function(){
       try{
-        const resp = await fetch('/api/empresas', { credentials: 'include' });
+        const resp = await fetch('/api/empresas/identidade-pdf', { credentials: 'include', cache: 'no-store' });
         if(resp.ok){
           const data = await resp.json();
           const emp = Array.isArray(data) ? data[0] : data;
           if(emp){
             const nome = emp.razaoSocial || emp.nome || '';
             document.getElementById('relatorio-empresa-nome').textContent = nome;
-            if(emp.logo){
+            if(emp.logoDataUrl){
               const img = document.createElement('img');
-              img.src = '/uploads/' + emp.logo;
+              img.src = emp.logoDataUrl;
               img.alt = nome;
               document.getElementById('relatorio-logo-container').appendChild(img);
+              try { await img.decode(); } catch(_) { img.remove(); }
             }
+            document.getElementById('relatorio-imprimir').disabled = false;
           }
         }
-      }catch(e){}
+      }catch(e){ document.getElementById('relatorio-empresa-nome').textContent='Não foi possível carregar a empresa. Reabra o relatório.'; }
     })();
     </script>
 

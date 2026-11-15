@@ -1477,17 +1477,12 @@ document
         filtroProfissional,
       };
 
-      // Buscar logo e razão social da empresa da API
+      // Identidade oficial da empresa autenticada, sem cache local nem logo fixa.
       try {
-        const empresasData = await ApiClient.getEmpresas();
-        if (empresasData.length > 0 && empresasData[0].logoDataUrl) {
-          payload.companyLogo = empresasData[0].logoDataUrl;
-          payload.companyRazao = empresasData[0].razaoSocial || "";
-          console.log("✅ Logo e razão social carregados");
-        }
-      } catch (e) {
-        console.warn("⚠️ Erro ao carregar logo da empresa:", e);
-      }
+        const identidade = await ApiClient.getIdentidadePDF();
+        payload.companyLogo = identidade.logoDataUrl;
+        payload.companyRazao = identidade.nomeEmpresa;
+      } catch (e) { throw new Error('Não foi possível obter a identidade da empresa para o PDF.'); }
 
       console.log("🚀 Payload preparado (API futura):", payload);
 
@@ -1566,7 +1561,7 @@ async function gerarPdfMockRecebiveis(payload) {
   // Título
   doc.setFontSize(16);
   doc.setFont(undefined, "bold");
-  doc.text(payload.companyRazao || "PET CRIA LTDA", 105, yPos, {
+  doc.text(payload.companyRazao || "", 105, yPos, {
     align: "center",
   });
   yPos += 8;

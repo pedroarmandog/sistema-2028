@@ -5,6 +5,7 @@ const { authUser } = require("../middleware/authUser");
 
 // Rotas de empresas (protegidas - cada usuário vê apenas sua empresa)
 router.get("/", authUser, empresaController.listarEmpresas);
+router.get("/identidade-pdf", authUser, require("../services/identidadeEmpresaPDF").endpoint);
 // Debug route: retorna info do token e do registro de usuário (temporário)
 router.get("/whoami", authUser, empresaController.whoami);
 

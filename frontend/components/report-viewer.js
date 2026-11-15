@@ -237,7 +237,7 @@ class ReportViewer {
       filters: JSON.stringify(filters),
     });
 
-    const viewerUrl = `/frontend/components/report-viewer.html?${params.toString()}`;
+    const viewerUrl = `/components/report-viewer.html?${params.toString()}`;
 
     // Definir src do iframe
     this.iframe.src = viewerUrl;

@@ -441,6 +441,10 @@ class ApiClient {
 
   // EMPRESAS
 
+  static async getIdentidadePDF() {
+    return await this.request("/empresas/identidade-pdf", {cache:"no-store"});
+  }
+
   static async getEmpresas() {
     return await this.request("/empresas");
   }

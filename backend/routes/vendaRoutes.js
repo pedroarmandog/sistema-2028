@@ -1,4 +1,4 @@
-const {carregarImagem}=require("../services/midias/imagem");
+const {carregarIdentidade}=require("../services/identidadeEmpresaPDF");
 const express = require("express");
 const router = express.Router();
 const vendaController = require("../controllers/vendaController");
@@ -9,6 +9,7 @@ const { authUser } = require("../middleware/authUser");
 
 // Aplicar auth em todas as rotas de venda
 router.use(authUser);
+router.use((req,res,next)=>{if(req.path.endsWith("/pdf")||req.path.endsWith("/comprovante"))res.set("Cache-Control","private, no-store");next();});
 
 // Comprovante PDF (cupom fiscal) - DEVE vir antes de /:id
 router.get("/:id/comprovante", async (req, res) => {
@@ -16,14 +17,14 @@ router.get("/:id/comprovante", async (req, res) => {
     const { id } = req.params;
     const PDFDocument = require("pdfkit");
 
-    const venda = await Venda.findByPk(id);
+    const venda = await Venda.findOne({where:{id,empresa_id:req.user.empresaId}});
     if (!venda) return res.status(404).json({ erro: "Venda não encontrada" });
 
     // Buscar cliente para exibir nome e endereço no comprovante
     let clienteObj = null;
     if (venda.clienteId) {
       try {
-        clienteObj = await Cliente.findByPk(venda.clienteId, {
+        clienteObj = await Cliente.findOne({ where:{id:venda.clienteId,empresa_id:req.user.empresaId},
           attributes: [
             "id",
             "nome",
@@ -72,48 +73,10 @@ router.get("/:id/comprovante", async (req, res) => {
     let logoRendered = false;
     let empresa = null;
     try {
-      // Preferir empresa vinculada à venda, depois a do cookie JWT, depois a do req.user, senão qualquer empresa ativa
-      if (venda.empresa_id) empresa = await Empresa.findByPk(venda.empresa_id);
-      if (!empresa) {
-        // Tentar cookie JWT
-        try {
-          const jwt = require("jsonwebtoken");
-          const JWT_SECRET =
-            process.env.JWT_USER_SECRET || "pethub_user_secret_2026_!@#$%";
-          const cookieHeader = req.headers.cookie || "";
-          const match = cookieHeader.match(/pethub_token=([^;]+)/);
-          if (match) {
-            const decoded = jwt.verify(match[1], JWT_SECRET);
-            if (decoded.empresaId)
-              empresa = await Empresa.findByPk(decoded.empresaId);
-          }
-        } catch (_) {}
-      }
-      if (!empresa && req.user && req.user.empresaId)
-        empresa = await Empresa.findByPk(req.user.empresaId);
-
-
-      let logoPath = null;
-      let logoBuffer = null;
-
-      logoBuffer=empresa?await carregarImagem(empresa.id,empresa.logo):null;
-
-      // Se nada obtido da empresa, tentar logos padrões do frontend
-      if (!logoBuffer && !logoPath) {
-        const defaultPaths = [
-          path.join(
-            __dirname,
-            "../../frontend/fivecon/Design sem nome (17).png",
-          ),
-          path.join(__dirname, "../../frontend/logos/Logo PetHub (2).svg"),
-        ];
-        for (const p of defaultPaths) {
-          if (fs.existsSync(p)) {
-            logoPath = p;
-            break;
-          }
-        }
-      }
+      const identidade = await carregarIdentidade(req);
+      empresa = identidade.empresa;
+      const logoBuffer = identidade.logoBuffer;
+      const logoPath = null;
 
       // Renderizar logo (buffer ou arquivo)
       if (logoBuffer) {

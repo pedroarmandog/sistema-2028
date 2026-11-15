@@ -8,7 +8,7 @@
     <!-- Stimulsoft Reports CSS -->
     <link
       rel="stylesheet"
-      href="../../node_modules/stimulsoft-reports-js/css/stimulsoft.viewer.office2013.whiteblue.css"
+      href="/api/relatorios/recursos/stimulsoft/viewer.css"
     />
 
     <style>
@@ -85,8 +85,8 @@
     <div id="viewerContent"></div>
 
     <!-- Stimulsoft Reports JS -->
-    <script src="../../node_modules/stimulsoft-reports-js/scripts/stimulsoft.reports.js"></script>
-    <script src="../../node_modules/stimulsoft-reports-js/scripts/stimulsoft.viewer.js"></script>
+    <script src="/api/relatorios/recursos/stimulsoft/reports.js"></script>
+    <script src="/api/relatorios/recursos/stimulsoft/viewer.js"></script>
 
     <script>
       // Configuração do Stimulsoft
@@ -142,6 +142,17 @@
           const data = await response.json();
           console.log("✅ Dados recebidos:", data);
 
+          const identidadeResponse = await fetch('/api/empresas/identidade-pdf?formato=jpeg', {credentials:'include', cache:'no-store'});
+          if (!identidadeResponse.ok) throw new Error('Não foi possível carregar a empresa do relatório.');
+          const identidade = await identidadeResponse.json();
+          data.nomeEmpresa = identidade.nomeEmpresa;
+          if (reportType === 'faturamento' && Array.isArray(data.produtos)) {
+            data.produtos = data.produtos.map(p => ({...p,
+              produto: typeof p.produto === 'object' ? p.produto?.nome || p.produto?.produto || '' : p.produto,
+              custo: p.custo ?? p.custo_unit ?? 0
+            }));
+          }
+
           // Criar relatório
           const report = new Stimulsoft.Report.StiReport();
 
@@ -159,7 +170,18 @@
           }
 
           // Carregar template
-          await report.loadFile(templateUrl);
+          await report.loadFile(templateUrl + '?v=identidade-empresa-1');
+          if (reportType === 'faturamento') {
+            const imagem = report.getComponentByName('HeaderLogo');
+            if (imagem) {
+              imagem.enabled = !!identidade.logoDataUrl;
+              if (identidade.logoDataUrl) imagem.image = Stimulsoft.System.Drawing.Image.fromBase64(identidade.logoDataUrl.split(',')[1]);
+            }
+            const nome = report.getComponentByName('HeaderCompany');
+            if (nome) nome.text = String(identidade.nomeEmpresa || '').replace(/[{}]/g, '');
+            const periodo = report.getComponentByName('HeaderPeriod');
+            if (periodo) periodo.text = String(data.periodo || '').replace(/[{}]/g, '');
+          }
 
           // Registrar dados no relatório
           const dataSet = new Stimulsoft.System.Data.DataSet("Data");
@@ -186,7 +208,7 @@
 
       // Escutar mensagens do parent (quando abrir em modal)
       window.addEventListener("message", function (event) {
-        if (event.data.action === "loadReport") {
+        if (event.origin === window.location.origin && event.data?.action === "loadReport") {
           loadReport(event.data.reportType, event.data.filters);
         }
       });

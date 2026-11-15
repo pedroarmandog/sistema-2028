@@ -1,4 +1,4 @@
-const {carregarImagem}=require("../services/midias/imagem");
+const {carregarIdentidade}=require("../services/identidadeEmpresaPDF");
 const express = require("express");
 const router = express.Router();
 const { Agendamento, Pet, Cliente, Empresa, Usuario } = require("../models");
@@ -11,6 +11,7 @@ console.log("DEBUG CANCELAMENTO: Entrou no endpoint de cancelamento");
 
 // Aplicar auth em toda a rota
 router.use(authUser);
+router.use((req,res,next)=>{if(req.path.endsWith("/pdf")||req.path.endsWith("/comprovante"))res.set("Cache-Control","private, no-store");next();});
 router.use((req,res,next)=>req.user?.empresaId?next():res.status(403).json({error:'Empresa não identificada'}));
 
 // GET /api/agendamentos - Listar agendamentos
@@ -1086,7 +1087,7 @@ router.get("/:id/comprovante", async (req, res) => {
       let logoPath = null;
       let logoBuffer = null;
 
-      logoBuffer=empresa?await carregarImagem(empresa.id,empresa.logo):null;
+      logoBuffer=(await carregarIdentidade(req)).logoBuffer;
 
       const imagemLogo =
         logoBuffer || (logoPath && (Buffer.isBuffer(logoPath) || fs.existsSync(logoPath)) ? logoPath : null);
@@ -1532,35 +1533,8 @@ router.get("/:id/prontuario/pdf", async (req, res) => {
     if (!agendamento)
       return res.status(404).json({ error: "Agendamento não encontrado" });
 
-    // Buscar empresa do usuário via cookie JWT
-    let empresa = null;
-    try {
-      const jwt = require("jsonwebtoken");
-      const JWT_SECRET =
-        process.env.JWT_USER_SECRET || "pethub_user_secret_2026_!@#$%";
-      let empresaId = null;
-      try {
-        const cookieHeader = req.headers.cookie || "";
-        const match = cookieHeader.match(/pethub_token=([^;]+)/);
-        if (match) {
-          const decoded = jwt.verify(match[1], JWT_SECRET);
-          if (decoded.empresaId) empresaId = decoded.empresaId;
-        }
-      } catch (_) {}
-      if (
-        !empresaId &&
-        req.query &&
-        (req.query.empresaId || req.query.empresa_id)
-      ) {
-        empresaId = req.query.empresaId || req.query.empresa_id;
-      }
-      if (empresaId) empresa = await Empresa.findByPk(empresaId);
-      if (!empresa)
-        empresa = await Empresa.findOne({
-          where: { ativa: true },
-          order: [["id", "ASC"]],
-        });
-    } catch (e) {}
+    const identidade = await carregarIdentidade(req);
+    const empresa = identidade.empresa;
 
     // Helper: strip HTML tags
     const stripHtml = (str) =>
@@ -1605,15 +1579,7 @@ router.get("/:id/prontuario/pdf", async (req, res) => {
     // ── CABEÇALHO: logo ──────────────────────────────────────────────
     let logoRendered = false;
     try {
-      let logoPath = null;
-      if (empresa && empresa.logo) logoPath=await carregarImagem(empresa.id,empresa.logo);
-      if (!logoPath) {
-        const fallback = path.join(
-          __dirname,
-          "../../frontend/fivecon/Design sem nome (17).png",
-        );
-        if (fs.existsSync(fallback)) logoPath = fallback;
-      }
+      const logoPath = identidade.logoBuffer;
       if (logoPath && (Buffer.isBuffer(logoPath) || fs.existsSync(logoPath))) {
         const maxH = Math.round(mmToPt(18));
         const maxW = Math.round(mmToPt(28));

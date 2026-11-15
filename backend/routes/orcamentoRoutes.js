@@ -1,4 +1,4 @@
-const {carregarImagem}=require("../services/midias/imagem");
+const {carregarIdentidade}=require("../services/identidadeEmpresaPDF");
 const express = require("express");
 const router = express.Router();
 const orcamentoController = require("../controllers/orcamentoController");
@@ -7,8 +7,9 @@ const path = require("path");
 const fs = require("fs");
 
 // Comprovante PDF - DEVE vir antes de /:id
-router.get("/:id/comprovante", async (req, res) => {
+router.get("/:id/comprovante", require("../middleware/authUser").authUser, async (req, res) => {
   try {
+    res.set("Cache-Control","private, no-store");
     const { id } = req.params;
     const PDFDocument = require("pdfkit");
     const { Empresa } = require("../models");
@@ -16,6 +17,12 @@ router.get("/:id/comprovante", async (req, res) => {
     const orcamento = await Orcamento.findByPk(id);
     if (!orcamento)
       return res.status(404).json({ erro: "Orçamento não encontrado" });
+
+    // O modelo legado de orçamento não possui empresa_id. Autorizar somente
+    // quando o cliente vinculado comprova a empresa; nunca inferir pela primeira empresa.
+    const {Cliente} = require('../models');
+    const vinculo = orcamento.clienteId && await Cliente.findOne({where:{id:orcamento.clienteId,empresa_id:req.user.empresaId}});
+    if (!vinculo) return res.status(409).json({erro:'Não foi possível comprovar a empresa deste orçamento legado. Vincule um cliente da sua empresa antes de imprimir.'});
 
     const mmToPt = (mm) => (mm * 72) / 25.4;
     const RECEIPT_MM = 72;
@@ -50,13 +57,9 @@ router.get("/:id/comprovante", async (req, res) => {
     let logoRendered = false;
     let empresa = null;
     try {
-      // Buscar empresa do usuário logado via cookie JWT
-      const jwt = require("jsonwebtoken");
-      const JWT_SECRET = process.env.JWT_USER_SECRET;
-      empresa = await Empresa.findByPk(req.user.empresaId);
-
-      let logoPath = null;
-      if (empresa && empresa.logo) logoPath=await carregarImagem(empresa.id,empresa.logo);
+      const identidade = await carregarIdentidade(req);
+      empresa = identidade.empresa;
+      const logoPath = identidade.logoBuffer;
       if (logoPath) {
         const maxLogoWidth = Math.round(pageWidth * 0.6);
         const logoWidth = Math.min(maxLogoWidth, Math.round(mmToPt(30)));
