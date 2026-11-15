@@ -1,79 +1,90 @@
-# PetHub — logo da empresa e cabeçalho padrão nas configurações do Cliente
+# PetHub — correção das instâncias do disparador WhatsApp
 
-Esta correção é incremental sobre o pacote de abas já instalado. Não substitua nem apague a pasta frontend inteira.
+## Problema encontrado
+
+O cadastro contava **todos** os registros da tabela `whatsapp_sessions` para aplicar o limite de dez. A mesma tabela também guarda a sessão principal do Marketing e registros de configuração, como `config_disparador`.
+
+A listagem usava outro critério e ocultava esses registros internos. Assim, era possível receber “limite de dez instâncias” e não enxergar nenhuma instância do disparador. Além disso, falhas HTTP na listagem eram ignoradas pelo frontend, e uma falha ao obter o status de uma sessão podia interromper a lista inteira.
+
+A inconsistência foi confirmada no código e reproduzida em testes isolados. Não foi consultado o banco real para afirmar quais registros específicos existem na sua empresa.
 
 ## Correção
 
-A tela `/configuracoes/portal-cliente.html` usava um cabeçalho próprio em formato de card, afastado das margens. Além disso, a sidebar era inserida depois da inicialização dos scripts tradicionais da logo e permanecia com a imagem padrão.
+- Cadastro, contagem, numeração e listagem passam a usar o mesmo filtro por empresa e por instância real do disparador.
+- Sessões principais de nome nulo/vazio, espaços e configurações `config_disparador` não consomem vagas. A comparação do nome reservado considera espaços e maiúsculas/minúsculas.
+- O limite continua sendo dez **instâncias reais cadastradas**, inclusive desconectadas. Se houver dez, elas aparecem na lista e podem ser usadas ou excluídas individualmente pelo usuário.
+- A listagem não fica indisponível só porque o status em memória de uma sessão falhou. Uma conexão que não puder ser confirmada não é apresentada como conectada.
+- `sessionData` não é enviado nas respostas de cadastro e listagem.
+- As ações de instância não podem excluir, resetar ou desconectar os registros internos da sessão principal ou da configuração.
+- O botão Criar fica desabilitado durante a requisição para evitar cliques duplicados.
+- A lista mostra carregamento, quantidade, estado vazio real e erro com Tentar novamente. Uma falha de atualização preserva a lista anterior.
+- Uma resposta antiga da listagem não sobrescreve uma resposta mais recente.
+- Quando o backend informa o limite, a lista é atualizada para mostrar as instâncias existentes.
+- O espaço de listagem aumenta para até 240 px com rolagem, mantendo os botões Conectar/Ver QR/Excluir.
 
-Agora:
+Nenhum registro existente é apagado automaticamente. Não há limpeza em massa, alteração do limite ou reconexão automática de sessões antigas ao abrir a lista. A exclusão continua dependendo de uma ação explícita com confirmação.
 
-- A barra superior é fixa no topo, de ponta a ponta a partir da sidebar, sem borda arredondada ou margem externa.
-- A estrutura utiliza as classes do Dashboard, com menu recolhível, ajuda, calendário, Início Rápido, pesquisa e usuário.
-- Ajuda e menu do usuário reutilizam os componentes existentes do ERP. O nome do usuário e da empresa vêm da sessão, sem nomes fixos nesta implementação.
-- O título das configurações, o indicador de rascunho e Voltar ao sistema ficam abaixo da barra, separados dela.
-- A logo da empresa é carregada mesmo que a sidebar termine de ser inserida depois da consulta de identidade.
-- O espaço da logo é 113 × 77 px, com `object-fit: contain`, preservando a proporção e a transparência.
-- Sem logo, ou se a imagem falhar, aparece o nome da empresa. Não é escolhida a primeira empresa de uma lista.
+O serviço WhatsApp existente e o fluxo de campanhas não foram substituídos. O prefixo `disp_` e as rotas existentes são preservados.
 
-## Arquivos
+## Arquivos para instalar
 
-Copie mantendo estes caminhos:
+Copie estes dois arquivos sobre os arquivos correspondentes do projeto, mantendo as pastas:
 
-| Arquivo | Função |
-|---|---|
-| `frontend/configuracoes/portal-cliente.html` | Barra padrão e carregamento dos componentes compartilhados |
-| `frontend/components/cliente-portal-config.css` | Barra encostada nas margens, logo e adaptação responsiva |
-| `frontend/components/cliente-portal-config-shell.js` | Identidade da empresa, nome do usuário, pesquisa e Início Rápido |
-| `frontend/sidebar-component/sidebar-navigation.js` | Informa quando a sidebar termina de carregar, para aplicar a logo |
-| `tests/browser/portal-config-shell.dom.cjs` | Testes da correção |
+1. `backend/controllers/instanciaController.js`
+2. `frontend/marketing-disparador.js`
 
-Os componentes de ajuda e perfil já existentes no projeto não foram modificados. O arquivo novo não carrega `dashboard.js` nem inicia consultas de indicadores do Dashboard.
+O ZIP também inclui os testes, este guia, o registro de execução e `ALTERACOES.patch`, com as diferenças em relação aos arquivos analisados. Se você personalizou esses dois arquivos depois desta versão, prefira revisar/aplicar o patch em vez de sobrescrever suas alterações.
 
-## Identidade e segurança
+**Sem migração de banco, sem apagar tabelas, sem novas dependências de produção e sem novas variáveis de ambiente.** O model, as rotas e o serviço WhatsApp permanecem os existentes.
 
-Somente leituras são feitas automaticamente:
+## Testes executados
 
-1. `GET /api/usuarios/me` identifica a empresa da sessão autenticada.
-2. `GET /api/empresas/identidade-pdf` reutiliza o serviço existente que resolve a imagem no armazenamento permanente e retorna a logo em dados de imagem. Apesar do nome do endpoint, esta consulta não gera nem imprime documento.
-3. Quando esse serviço não está disponível, a consulta de cadastro existente `GET /api/empresas/{id-da-sessao}` é usada como compatibilidade para nomes de arquivos locais e URLs HTTPS de mídia.
+Resultado: **14 testes aprovados, zero falhas na suíte desta correção.** Registro completo em `TESTES.txt`.
 
-A identidade recebida precisa corresponder à empresa da sessão. Não são usados IDs de empresa do endereço da página, da pesquisa, de armazenamento local ou de uma lista de empresas. Respostas 401/403 não são contornadas. As requisições incluem a sessão existente e não armazenam credenciais.
+Backend — 8 testes:
 
-Não há alterações de cadastro, upload automático, alterações de logo, banco, autenticação ou endpoints. O fallback de nome evita mostrar a marca de outra empresa quando a imagem não estiver disponível. Um arquivo antigo já perdido no servidor não pode ser recuperado apenas por esta correção.
+- Dez registros internos não consomem vagas; criar instância não apaga nenhum deles.
+- Dez instâncias reais continuam bloqueando a décima primeira, e todas aparecem na listagem.
+- Contagem e listagem usam o mesmo predicado SQL.
+- Outra empresa não consome vagas nem aparece na lista.
+- Exclusão explícita de uma instância libera uma vaga sem apagar a configuração.
+- Ações não alteram sessões internas nem de outra empresa.
+- Falha de status não oculta a lista; respostas não expõem sessionData.
+- Nomes inválidos/reservados e ausência de empresa são rejeitados; rejeição assíncrona da conexão mantém o registro visível sem erro de Promise não tratado.
 
-## Testes realmente executados
+Frontend — 6 testes:
 
-Node.js 24.22.1 e jsdom 26, com APIs e eventos de imagem simulados:
+- Lista vazia real é explicada; nova instância aparece e inicia o fluxo de QR simulado.
+- Erro HTTP aparece com botão de nova tentativa.
+- Atualização com erro mantém as instâncias anteriores.
+- Limite atingido atualiza a lista com as dez instâncias existentes.
+- Clique duplicado faz somente um POST durante a criação pendente.
+- Resposta antiga é descartada; nome e número retornados são renderizados como texto.
 
-**24 testes aprovados, zero falhas na execução selecionada.** Registro em `TESTES.txt`.
+Também foi executado `node --check` nos dois arquivos alterados: aprovado.
 
-- 7 novos: posição e elementos da barra; identidade da sessão; sidebar tardia; logo 113 × 77; carregamento/falha da imagem; fallback de nome; nomes de arquivos legados e URLs HTTPS; rejeição de outra empresa e URLs inseguras; sessão não autorizada; pesquisa sem depender de acento; abertura/fechamento do Início Rápido; inicialização única; destinos e scripts existentes; integração com ajuda e perfil compartilhados.
-- 13 testes da reorganização anterior: abas, formulários e rascunhos, salvamentos simulados, validação, menus e auditoria HTTP local de arquivos.
-- 4 testes de continuidade de áudio entre abas.
-- `node --check` nos scripts novo e de navegação: aprovado.
+Ambiente: Node.js 24.22.1, Sequelize 6.37.7 e jsdom 26. O backend foi testado com o gerador real de condições SQL do dialect MySQL do Sequelize e banco SQLite isolado em memória; o serviço WhatsApp foi simulado. O frontend foi exercitado em DOM simulado com respostas de API e SSE simuladas.
 
-Para repetir, com jsdom disponível no ambiente de desenvolvimento:
+Não houve conexão real ao WhatsApp, transmissão de mensagens, consulta ao TiDB/Render em produção ou inspeção visual em navegador real nesta execução. Os testes não comprovam pareamento físico do telefone nem disponibilidade da mídia em produção. A suíte completa de todo o PetHub não foi executada nesta correção.
+
+Para repetir com as dependências de teste disponíveis:
 
 ```bash
-node --test tests/browser/portal-config-shell.dom.cjs tests/browser/portal-config-layout.dom.cjs tests/portal-audio-abas.test.js
+node --test tests/instancias-disparador.test.js tests/browser/instancias-disparador.dom.cjs
 ```
 
-Os dois últimos arquivos de teste já acompanham os pacotes anteriores. Nenhuma dependência foi adicionada ao package.json.
+O teste do backend usa `node:sqlite`, disponível no Node 24 utilizado nesta execução. jsdom é necessário apenas para o teste de frontend; nenhuma alteração no package.json foi feita.
 
-### Limitações
+## Deploy no Render
 
-Não foi feito login em produção, consulta ao TiDB/R2 real, reprodução física de áudio ou decodificação real da imagem do seu cadastro nesta execução. O teste de imagem dispara eventos simulados; ele confirma a lógica de exibição e fallback, não a disponibilidade do arquivo real.
+1. Faça backup/commit da versão atual.
+2. Copie os dois arquivos mantendo suas pastas. Não substitua o projeto inteiro pelo ZIP.
+3. Faça commit e deploy normalmente. Não mude Build Command, Start Command ou Pre-deploy por causa deste pacote.
+4. Depois do deploy, atualize o Marketing com Ctrl + F5.
+5. Abra Disparador de Mensagens. A lista deve informar as instâncias existentes ou o estado vazio real.
+6. Se houver vagas, crie a instância e use Conectar/Ver QR. Se houver dez reais, utilize uma delas ou exclua somente uma que não usa.
+7. Se houver falha de carregamento, a tela mostrará o erro HTTP e Tentar novamente; isso permite distinguir um problema de API de uma lista vazia.
 
-A inspeção visual em navegador real continua pendente neste ambiente, onde o Chromium não inicia por restrição de socket. As propriedades do cabeçalho foram verificadas no DOM e as regras responsivas foram implementadas, mas a aparência deve ser conferida em desktop e celular após o deploy. Os 24 testes selecionados não representam toda a suíte histórica do projeto.
+## Sobre a imagem com HTTP 404
 
-## Instalação
-
-1. Copie os quatro arquivos de frontend para as mesmas pastas do projeto atual.
-2. Faça commit e deploy no Render normalmente.
-3. Atualize a página com Ctrl + F5.
-4. Confira a logo na sidebar, a barra superior e o nome do usuário.
-5. Teste ajuda, calendário, Início Rápido, pesquisa e recolhimento do menu. Confirme também que abas e salvamentos continuam funcionando.
-6. Se a empresa não possuir logo acessível, a sidebar mostrará seu nome; confira o arquivo cadastrado em Configuração → Empresa.
-
-**Sem migração de banco, sem mudança de variáveis do Render e sem alteração dos comandos de deploy.**
+O erro `uploads/marketing/...webp` é independente do limite das instâncias. Este pacote não recupera uma imagem antiga ausente nem muda o armazenamento permanente. Se o arquivo original não existir mais, será necessário reenviá-lo pelo cadastro da mensagem usando o armazenamento já configurado. A correção de instâncias não altera os arquivos de mídia.

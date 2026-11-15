@@ -1,9 +1,28 @@
 const { WhatsappSession } = require("../models");
 const whatsappService = require("../services/whatsappService");
-const { Op } = require("sequelize");
+const { Op, fn, col, where } = require("sequelize");
 
 // Prefixo para isolar instâncias do disparador do sistema principal de marketing
-
+const DISP_PREFIX = "disp_";
+const LIMITE_INSTANCIAS = 10;
+// A tabela também guarda a sessão principal (nome NULL/vazio) e preferências.
+// Contagem, numeração e listagem devem selecionar o MESMO conjunto.
+function filtroInstancias(empresaId) {
+  return { empresaId: Number(empresaId), [Op.and]: [
+    where(fn("LOWER", fn("TRIM", col("nome"))), { [Op.notIn]: ["", "config_disparador"] }),
+  ] };
+}
+function registroDeInstancia(sess) {
+  const nome = String(sess.nome || "").trim().toLowerCase();
+  return !!nome && nome !== "config_disparador";
+}
+function dtoInstancia(sess) {
+  const s = typeof sess.toJSON === "function" ? sess.toJSON() : sess;
+  // Não devolver sessionData: pode conter material de autenticação.
+  return { id:s.id, empresaId:s.empresaId, nome:s.nome, numeroOrdem:s.numeroOrdem,
+    numero:s.numero, status:s.status, ultimaConexao:s.ultimaConexao,
+    createdAt:s.createdAt, updatedAt:s.updatedAt };
+}
 
 /**
  * Retorna o próximo numeroOrdem disponível para uma empresa.
@@ -11,7 +30,7 @@ const { Op } = require("sequelize");
  */
 async function proximoNumeroOrdem(empresaId) {
   const maxRow = await WhatsappSession.findOne({
-    where: { empresaId: Number(empresaId) },
+    where: filtroInstancias(empresaId),
     attributes: [
       [require("sequelize").fn("MAX", require("sequelize").col("numeroOrdem")), "maxOrdem"],
     ],
@@ -30,14 +49,17 @@ async function criarInstancia(req, res) {
     if (!nome)
       return res.status(400).json({ error: "Nome da instância é obrigatório" });
 
-    // Verificar limite de 10 instâncias por empresa
+    if (nome.length > 200 || nome.toLowerCase() === "config_disparador")
+      return res.status(400).json({ error: "Informe um nome de instância válido, com até 200 caracteres." });
+
+    // Apenas instâncias reais do disparador participam do limite.
     const total = await WhatsappSession.count({
-      where: { empresaId: Number(empresaId) },
+      where: filtroInstancias(empresaId),
     });
-    if (total >= 10) {
+    if (total >= LIMITE_INSTANCIAS) {
       return res
         .status(400)
-        .json({ error: "Limite de 10 instâncias por empresa atingido" });
+        .json({ error: "Limite de 10 instâncias do disparador atingido. Use uma instância cadastrada ou exclua uma que não utiliza.", code: "INSTANCIA_LIMIT", limite: LIMITE_INSTANCIAS, total });
     }
 
     // Calcular próximo número sequencial da empresa
@@ -51,14 +73,15 @@ async function criarInstancia(req, res) {
       status: "aguardando_qr",
     });
 
-    // Reutilizar a conexão da empresa
+    // Manter a API do serviço WhatsApp existente (Baileys ou adaptador atual).
     try {
-      await whatsappService.inicializarCliente(empresaId);
+      Promise.resolve(whatsappService.inicializarCliente(DISP_PREFIX + sess.id))
+        .catch(() => console.warn("[Instancia] conexão inicial indisponível; reconecte pela lista."));
     } catch (e) {
       console.warn("[Instancia] falha ao inicializar cliente", e && e.message);
     }
 
-    return res.json({ success: true, instancia: sess });
+    return res.json({ success: true, instancia: dtoInstancia(sess) });
   } catch (err) {
     console.error("criarInstancia error", err && err.message);
     return res.status(500).json({ error: err.message || "Erro interno" });
@@ -72,22 +95,19 @@ async function listarInstancias(req, res) {
 
     // Listar apenas instâncias do disparador (que possuem nome, exceto config)
     const list = await WhatsappSession.findAll({
-      where: {
-        empresaId: Number(empresaId),
-        nome: {
-          [Op.and]: [{ [Op.ne]: null }, { [Op.ne]: "config_disparador" }],
-        },
-      },
-      order: [["numeroOrdem", "ASC"]],
+      where: filtroInstancias(empresaId),
+      order: [["numeroOrdem", "ASC"], ["id", "ASC"]],
     });
 
     // Retornar o status real do clientsMap (memória) para evitar informação desatualizada
     const result = list.map((s) => {
-      const real = whatsappService.obterStatus(empresaId);
-      const json = s.toJSON();
-      delete json.sessionData;
-      json.status = real.status;
-      json.numero = real.numero;
+      const json = dtoInstancia(s);
+      // Uma falha de status de uma sessão não pode esconder toda a lista.
+      let real;
+      try { real = whatsappService.obterStatus(DISP_PREFIX + s.id); } catch (_) {}
+      if (json.status === "conectado") {
+        json.status = typeof real?.status === "string" ? real.status : "desconectado";
+      }
       return json;
     });
 
@@ -109,12 +129,14 @@ async function conectarInstancia(req, res) {
       return res.status(404).json({ error: "Instância não encontrada" });
     if (sess.empresaId !== Number(empresaId))
       return res.status(403).json({ error: "Instância não pertence à sua empresa" });
+    if (!registroDeInstancia(sess))
+      return res.status(404).json({ error: "Instância do disparador não encontrada" });
 
     await WhatsappSession.update(
       { status: "aguardando_qr" },
       { where: { id } },
     );
-    await whatsappService.inicializarCliente(empresaId);
+    whatsappService.inicializarCliente(DISP_PREFIX + id);
     return res.json({ success: true });
   } catch (err) {
     console.error("conectarInstancia error", err && err.message);
@@ -133,9 +155,11 @@ async function desconectarInstancia(req, res) {
       return res.status(404).json({ error: "Instância não encontrada" });
     if (sess.empresaId !== Number(empresaId))
       return res.status(403).json({ error: "Instância não pertence à sua empresa" });
+    if (!registroDeInstancia(sess))
+      return res.status(404).json({ error: "Instância do disparador não encontrada" });
 
     try {
-      await whatsappService.desconectar(empresaId);
+      await whatsappService.desconectar(DISP_PREFIX + id);
     } catch (e) {}
     await WhatsappSession.update({ status: "desconectado" }, { where: { id } });
     return res.json({ success: true });
@@ -156,7 +180,12 @@ async function excluirInstancia(req, res) {
       return res.status(404).json({ error: "Instância não encontrada" });
     if (sess.empresaId !== Number(empresaId))
       return res.status(403).json({ error: "Instância não pertence à sua empresa" });
+    if (!registroDeInstancia(sess))
+      return res.status(404).json({ error: "Instância do disparador não encontrada" });
 
+    try {
+      await whatsappService.desconectar(DISP_PREFIX + id);
+    } catch (e) {}
     await sess.destroy();
     return res.json({ success: true });
   } catch (err) {
@@ -176,19 +205,23 @@ async function resetarInstancia(req, res) {
       return res.status(404).json({ error: "Instância não encontrada" });
     if (sess.empresaId !== Number(empresaId))
       return res.status(403).json({ error: "Instância não pertence à sua empresa" });
+    if (!registroDeInstancia(sess))
+      return res.status(404).json({ error: "Instância do disparador não encontrada" });
 
-    const chave = empresaId;
+    const chave = DISP_PREFIX + id;
     // Destruir cliente existente
     try {
       await whatsappService.desconectar(chave);
     } catch (_) {}
+    // Limpar sessão corrompida do disco
+    whatsappService.limparSessaoDoDisco(chave);
     // Atualizar banco
     await WhatsappSession.update(
       { status: "aguardando_qr" },
       { where: { id } },
     );
     // Reconectar (gera QR novo)
-    await whatsappService.inicializarCliente(chave);
+    whatsappService.inicializarCliente(chave);
     return res.json({ success: true });
   } catch (err) {
     console.error("resetarInstancia error", err && err.message);
@@ -203,4 +236,5 @@ module.exports = {
   desconectarInstancia,
   excluirInstancia,
   resetarInstancia,
+  DISP_PREFIX,
 };

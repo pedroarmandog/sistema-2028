@@ -1,33 +1,22 @@
-✔ four accessible tabs retain all fields and keep independent forms outside each other (205.827549ms)
-✔ switching tabs and saving access/agenda preserves palette, sound and MP3 drafts (141.098197ms)
-✔ palette live preview and its save do not submit agenda or discard sound drafts (98.638509ms)
-✔ sound preview, repeat from 1 second and save preserve selected MP3 draft (66.343685ms)
-✔ MP3 upload retains unsaved volume/repeat and request remains multipart (68.23801ms)
-✔ validation reveals hidden schedule tab and collapsed block before native focus (59.878717ms)
-✔ failed saves retain values and dirty marker; duplicate submissions do not duplicate requests (96.050796ms)
-✔ keyboard tabs work and sidebar initializes once with nested menus and collapse (59.355273ms)
-✔ all local navigation targets and direct page assets exist from nested URL (36.898481ms)
-✔ general save preserves edits made during a pending request and signals them as unsaved (58.544001ms)
-✔ navigation matches Dashboard hierarchy; script failure leaves return link usable (114.483773ms)
-Static HTTP audit: 73 unique local URLs returned 200; external icon CDN not contacted.
-✔ page and navigation resources respond through a local static HTTP server (148.047241ms)
-✔ palette preview remains local and does not alter ERP styles or another settings window (90.806401ms)
-✔ standard ERP header sits at viewport edges and contains functional standard controls (207.3995ms)
-✔ company logo and user come from authenticated scope; logo loads after late sidebar insertion (54.175208ms)
-✔ legacy filename fallback and permanent HTTPS URL are normalized without duplicated uploads prefix (140.40662ms)
-✔ foreign identity is rejected; no logo image error replaces company with another brand (44.752597ms)
-✔ unauthorized session stops company reads; no-logo and unsafe URLs retain shop-name fallback (197.981715ms)
-✔ quick menu and normalized search work once; every direct header link and script exists (48.241816ms)
-✔ shared ERP help and profile components initialize alongside the shell with real session name (37.009024ms)
-✔ aba com autoplay bloqueado libera Web Lock para outra aba autorizada (5.264419ms)
-✔ fechar líder transfere som para outra aba permitida sem nova ativação e não mistura empresa (2.707801ms)
-✔ navegação preserva preferência e retoma automaticamente se autoplay do site estiver permitido (1.400759ms)
-✔ sinal de aba encerrada sem aviso expira e informa novamente o estado real (1.421881ms)
-ℹ tests 24
+✔ an actual empty list is explained and creation immediately renders the stored instance and QR stream (283.676537ms)
+✔ HTTP failure is displayed with retry instead of silently pretending there are no instances (144.88318ms)
+✔ a failed refresh retains previously visible instances (156.46969ms)
+✔ ten real instances appear after a quota rejection and the create button becomes available again (156.609186ms)
+✔ a pending creation blocks double clicks and sends a single POST (57.018042ms)
+✔ an older listing response cannot replace a newer listing and returned names/phone remain text (64.915161ms)
+✔ ten internal sessions do not consume the dispatcher quota; no records are deleted (41.390752ms)
+✔ the same normalized SQL filter lists/counts instances and preserves the real quota of ten (5.311411ms)
+✔ another company neither consumes the quota nor appears in the list (4.903527ms)
+✔ authorized explicit deletion frees one real slot without deleting internal sessions (5.463847ms)
+✔ internal and foreign sessions cannot be reset, connected, disconnected or deleted through instance actions (8.180919ms)
+✔ one failed runtime status does not hide stored instances or leak sessionData (3.464027ms)
+✔ invalid/reserved names and missing company are rejected without creating records (2.818ms)
+✔ a rejected asynchronous connection retains the visible instance without an unhandled rejection (11.42525ms)
+ℹ tests 14
 ℹ suites 0
-ℹ pass 24
+ℹ pass 14
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 1661.804822
+ℹ duration_ms 1347.838082

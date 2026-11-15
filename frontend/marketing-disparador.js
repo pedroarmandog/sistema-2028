@@ -12,7 +12,7 @@
   var VPS_URL =
     window.VPS_URL !== undefined && window.VPS_URL !== null
       ? window.VPS_URL
-      : "";
+      : "https://api.pethubflow.com.br";
 
   // ── Helpers ──
   function $(sel) {
@@ -314,6 +314,7 @@
   // Criar instância
   if (btnCriarInstancia) {
     btnCriarInstancia.addEventListener("click", async function () {
+      if (btnCriarInstancia.disabled) return;
       var nome = (
         (inputNomeInstancia && inputNomeInstancia.value) ||
         ""
@@ -323,6 +324,7 @@
         return;
       }
 
+      btnCriarInstancia.disabled = true;
       try {
         var res = await fetch(VPS_URL + "/api/instancias", {
           method: "POST",
@@ -342,6 +344,7 @@
           var msg =
             (data && (data.error || data.message)) || text || res.statusText;
           showSubmodalError("Erro: " + msg);
+          if ((data && data.code === "INSTANCIA_LIMIT") || /limite.*inst[aâ]ncias/i.test(msg)) await fetchInstancias();
           return;
         }
 
@@ -353,14 +356,16 @@
 
         // Iniciar escuta de QR via SSE para esta instância
         var instId = data && data.instancia && data.instancia.id;
+        await fetchInstancias();
         if (instId) {
-          startQRStream(instId);
+          try { startQRStream(instId); }
+          catch (_) { appendLog("Instância criada. Use Conectar ou Ver QR na lista para continuar."); }
         }
-
-        fetchInstancias();
       } catch (err) {
         console.error(err);
         showSubmodalError("Erro: " + (err.message || err));
+      } finally {
+        btnCriarInstancia.disabled = false;
       }
     });
   }
@@ -373,14 +378,40 @@
   }
 
   // ── Listar instâncias ──
+  var instanciasRequest = 0;
+  var instanciasStatus;
+  function statusInstancias(message, erro) {
+    if (!instanciasList) return;
+    if (!instanciasStatus) {
+      instanciasStatus = document.createElement("div");
+      instanciasStatus.id = "disparadorInstanciasStatus";
+      instanciasStatus.style.cssText = "font-size:12px;padding:6px 0;";
+      instanciasList.insertAdjacentElement("beforebegin", instanciasStatus);
+      instanciasList.style.maxHeight = "240px";
+    }
+    instanciasStatus.setAttribute("role", erro ? "alert" : "status");
+    instanciasStatus.style.color = erro ? "#b42318" : "#64748b";
+    instanciasStatus.textContent = message;
+    if (erro) {
+      var retry = createBtn("Tentar novamente", "btn-ghost");
+      retry.type = "button";
+      retry.addEventListener("click", fetchInstancias);
+      instanciasStatus.appendChild(retry);
+    }
+  }
   async function fetchInstancias() {
     if (!instanciasList) return;
+    var request = ++instanciasRequest;
+    statusInstancias("Carregando instâncias…", false);
     try {
       var res = await fetch(VPS_URL + "/api/instancias", {
-        credentials: "include",
+        credentials: "include", cache: "no-store",
       });
-      if (!res.ok) return;
+      if (!res.ok) throw new Error("Não foi possível carregar as instâncias (HTTP " + res.status + ").");
       var list = await res.json();
+      if (!Array.isArray(list)) throw new Error("Resposta de instâncias inválida.");
+      if (request !== instanciasRequest) return;
+      statusInstancias(list.length ? list.length + " de 10 instâncias do disparador. Use Conectar ou exclua uma que não utiliza." : "Nenhuma instância do disparador cadastrada. Clique em Nova Instância.", false);
       instanciasList.innerHTML = "";
 
       for (var i = 0; i < list.length; i++) {
@@ -411,7 +442,7 @@
           (it.numeroOrdem || it.id) +
           " • " +
           escapeHtml(it.status || "desconectado") +
-          (it.numero ? " • " + it.numero : "") +
+          (it.numero ? " • " + escapeHtml(it.numero) : "") +
           "</small></div>";
 
         var actions = document.createElement("div");
@@ -501,7 +532,9 @@
         instanciasList.appendChild(div);
       }
     } catch (err) {
-      console.error("fetchInstancias error", err);
+      if (request !== instanciasRequest) return;
+      statusInstancias(err.message || "Não foi possível carregar as instâncias. Tente novamente.", true);
+      appendLog("Falha ao listar instâncias. A lista anterior foi preservada.");
     }
   }
 
@@ -522,11 +555,11 @@
       try {
         var data = JSON.parse(event.data);
 
-        if ((data.evento === "qr" || data.evento === "status_inicial") && data.qrBase64) {
+        if (data.evento === "qr" && data.qrBase64) {
           showQRModal(data.qrBase64, instanciaId);
         }
 
-        if (data.evento === "conectado" || (data.evento === "status_inicial" && data.status === "conectado")) {
+        if (data.evento === "conectado") {
           appendLog(
             "✅ Instância #" +
               instanciaId +
@@ -536,11 +569,6 @@
           hideQRModal();
           closeQRStream();
           fetchInstancias();
-        }
-
-        if (data.evento === "status" && data.status === "inicializando") {
-          hideQRModal();
-          appendLog("Conectando ao WhatsApp…");
         }
 
         if (data.evento === "erro") {
@@ -850,7 +878,7 @@
           '</td><td style="padding:8px"><span style="color:' +
           statusColor +
           ';font-weight:600">' +
-          escapeHtml(c.meta?.ignoradoPorBloqueio ? "ignorado por bloqueio" : c.status || "pendente") +
+          escapeHtml(c.status || "pendente") +
           "</span></td>";
         tblBody.appendChild(tr);
       }

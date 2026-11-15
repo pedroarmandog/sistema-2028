@@ -1,30 +1,26 @@
 {
   "arquivos": [
     {
-      "caminho": "frontend/configuracoes/portal-cliente.html",
-      "sha256": "761c862e4f0dc9080a551ee7c31b82ffe7fccc864ad85ce22a8156cae31aae4e"
+      "caminho": "backend/controllers/instanciaController.js",
+      "sha256": "0bba97fd67ec585ca4429e92e580c80f147836357ae3206cf8d22c7b946b7454"
     },
     {
-      "caminho": "frontend/components/cliente-portal-config.css",
-      "sha256": "8b86524a3ad566db9b230b32c829767ffcc1f3e90e4d268b4236ecd957bec99f"
+      "caminho": "frontend/marketing-disparador.js",
+      "sha256": "f6496a3ff5677f693ab7e96acd8f0fd6f0c50baeb5607b210260cd1d99eda4ad"
     },
     {
-      "caminho": "frontend/components/cliente-portal-config-shell.js",
-      "sha256": "c029f95dc190317df9f08f35318a20883c122da18d6d1e65d818f8de9ba26632"
+      "caminho": "tests/instancias-disparador.test.js",
+      "sha256": "7b4e490d08257eb631532e6ee054a0691302ab5ca1906810fb98995ecabaee71"
     },
     {
-      "caminho": "frontend/sidebar-component/sidebar-navigation.js",
-      "sha256": "1db1240cdaef276d7434fb4f22bdd8af2ce9a48b60e968eb01529ddcec8c9afa"
-    },
-    {
-      "caminho": "tests/browser/portal-config-shell.dom.cjs",
-      "sha256": "d511f82b35e8c6f20e5516e1ecf5e76435689f8947456310d241548b7f6c35ce"
+      "caminho": "tests/browser/instancias-disparador.dom.cjs",
+      "sha256": "7b617294f6be5aae78b20794457dfb82092bf9a02449c01b31350a371308edfd"
     }
   ],
-  "backend_alterado": false,
   "migracao": false,
-  "testes_selecionados": {
-    "aprovados": 24,
+  "exclusao_automatica_de_registros": false,
+  "testes": {
+    "aprovados": 14,
     "falhas": 0
   }
 }
