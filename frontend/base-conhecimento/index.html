@@ -19,11 +19,13 @@
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="/colors.css">
     <link rel="stylesheet" href="/base-conhecimento/base-conhecimento.css">
+    <link rel="stylesheet" href="/base-conhecimento/central-premium.css">
     
     <!-- Favicon -->
     <link rel="icon" href="/fivecon/Design sem nome (17).png" type="image/png">
 </head>
 <body>
+    <a class="kb-skip-link" href="#kbContent">Ir para o conteúdo</a>
     <!-- Sidebar será injetada automaticamente pelo inject-sidebar.js -->
     
     <div class="kb-wrapper">
@@ -36,12 +38,12 @@
                         <span class="kb-navbar-brand-text">Central de Ajuda</span>
                     </a>
                 </div>
-                <div class="kb-navbar-center">
+                <div class="kb-navbar-center" id="kbMainNavigation">
                     <a href="#" class="kb-nav-link active" data-section="home">Base de Conhecimento</a>
                     <a href="#" class="kb-nav-link" data-section="videos">Tutoriais em Vídeo</a>
                     <a href="#" class="kb-nav-link" data-section="novidades">Novidades</a>
                     <a href="#" class="kb-nav-link" data-section="status">
-                        <span class="kb-status-dot"></span>
+                        <span class="kb-status-dot" aria-hidden="true"></span>
                         Status do Sistema
                     </a>
                 </div>
@@ -51,7 +53,7 @@
                         Voltar ao Sistema
                     </a>
                 </div>
-                <button class="kb-navbar-toggle" id="kbNavToggle" aria-label="Menu">
+                <button class="kb-navbar-toggle" id="kbNavToggle" aria-label="Menu" aria-controls="kbMainNavigation" aria-expanded="false">
                     <span></span><span></span><span></span>
                 </button>
             </div>
@@ -83,6 +85,7 @@
     <!-- Scripts -->
     <script src="/config/help-center-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="/base-conhecimento/mascotes.js"></script>
     <script src="/base-conhecimento/base-conhecimento.js"></script>
 </body>
 </html>
