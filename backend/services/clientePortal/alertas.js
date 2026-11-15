@@ -7,7 +7,7 @@ function criarAlertas(p){
  function somDTO(c){const padrao=PADROES.find(s=>s.id===c.padrao)||PADROES[0],custom=c.tipo==='personalizado'&&!!c.referencia;return {tipo:custom?'personalizado':'padrao',padrao:padrao.id,nome:custom?c.nome:padrao.nome,url:custom?'/api/cliente-portal/som/arquivo?v='+c.versao:padrao.url,personalizado:c.referencia?{nome:c.nome,url:'/api/cliente-portal/som/arquivo?v='+c.versao}:null,volume:c.volume,intervalo:c.intervalo,versao:c.versao,opcoes:PADROES};}
  async function obterSom(emp){return somDTO(await som(emp));}
  async function alterarSom(emp,autor,b){V.chaves(b,['versao','tipo','padrao','volume','intervalo','removerPersonalizado']);return serializar(ERP,emp,async transaction=>{const o={transaction,logging:false},c=await som(emp,o);if(c.versao!==V.inteiro(b.versao,0))throw V.falha('O som foi alterado em outro computador. Atualize antes de salvar.',409);
-  const values={versao:c.versao+1};if(b.volume!==undefined)values.volume=V.inteiro(b.volume,0,100);if(b.intervalo!==undefined)values.intervalo=V.inteiro(b.intervalo,15,120);
+  const values={versao:c.versao+1};if(b.volume!==undefined)values.volume=V.inteiro(b.volume,0,100);if(b.intervalo!==undefined)values.intervalo=V.inteiro(b.intervalo,1,120);
   if(b.removerPersonalizado===true){values.referencia=null;values.nome=null;if(c.tipo==='personalizado')values.tipo='padrao';}
   if(b.tipo!==undefined){if(!['padrao','personalizado'].includes(b.tipo))throw V.falha('Tipo de som inválido.');if(b.tipo==='personalizado'&&(!c.referencia||b.removerPersonalizado))throw V.falha('Envie um MP3 antes de selecioná-lo.');values.tipo=b.tipo;}
   if(b.padrao!==undefined){if(!PADROES.some(s=>s.id===b.padrao))throw V.falha('Selecione um dos dez sons padrão.');values.padrao=b.padrao;}
