@@ -19,7 +19,7 @@ function criarPortal({ ERP, env = process.env, agora = () => new Date(), midias 
         V.segredo(env); const regras = b.regras ? validarRegras(b.regras) : null; if (b.receber_pedidos && !regras?.servicos.length)
         throw V.falha('Configure a agenda e publique pelo menos um serviço.'); return serializar(ERP, emp, async (transaction) => { const c = await config(emp, { transaction }); if (c.revisao !== Number(b.revisao))
         throw V.falha('As configurações mudaram. Atualize a página.', 409); for (const s of regras?.servicos || [])
-        await agenda.servico({ empresa_id: emp, regras }, s.id, { transaction }); await c.update({ ativo: b.ativo, receber_pedidos: b.receber_pedidos, notificar_gestor: b.notificar_gestor, push_tutor: b.push_tutor, regras, revisao: c.revisao + 1 }, { transaction, logging: false }); await eventos.auditar(emp, { tipo: 'gestor', id: autor }, 'configuracao', emp, ['ativo', 'regras'], transaction); await eventos.gestor(emp, null, 'configuracao', 'Configuração do aplicativo atualizada.', {}, 'config:' + c.revisao, transaction); return c; }); }
+        await agenda.servico({ empresa_id: emp, regras }, s.id, { transaction }); await c.update({ ativo: b.ativo, receber_pedidos: b.receber_pedidos, notificar_gestor: b.notificar_gestor, push_tutor: b.push_tutor, regras: require('./aparencia').preservar(regras,c.regras), revisao: c.revisao + 1 }, { transaction, logging: false }); await eventos.auditar(emp, { tipo: 'gestor', id: autor }, 'configuracao', emp, ['ativo', 'regras'], transaction); await eventos.gestor(emp, null, 'configuracao', 'Configuração do aplicativo atualizada.', {}, 'config:' + c.revisao, transaction); return c; }); }
     // Registra somente dados públicos ao tutor, após o commit da alteração oficial.
     let avisou = false;
     async function publicarAgendamento(a) { try {
@@ -58,6 +58,7 @@ function criarPortal({ ERP, env = process.env, agora = () => new Date(), midias 
         void work(); }); }
     const portal={ ERP, env, m, midias, eventos, auth, agenda, pedidos, cadastros, notificacoes, config, salvarConfig, hooks };
     portal.alertas=require('./alertas').criarAlertas(portal);
+    portal.aparencia=require('./aparencia').criarAparencia(portal);
     return portal;
 }
 let singleton;

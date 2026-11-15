@@ -30,14 +30,14 @@ function criarRotas(p, { authERP, permissao } = {}) {
     tutor.use(ajax);
     tutor.get('/loja/:slug', limite, wrap(async req => {
         const { config, empresa } = await auth.estabelecimento(req.params.slug);
-        return { nome: empresa.nome, telefone: empresa.telefone || null, slug: config.slug };
+        return { nome: empresa.nome, telefone: empresa.telefone || null, slug: config.slug, aparencia: require('../services/clientePortal/aparencia').ler(config) };
     }));
     tutor.post('/login', limite, wrap((req, res) => auth.login(req.body, res)));
     tutor.post('/convite', limite, wrap(req => auth.aceitarConvite(req.body)));
     tutor.post('/recuperar', limite, wrap(req => auth.recuperar(req.body)));
     tutor.post('/logout', wrap((req, res) => auth.logout(req, res)));
     tutor.use(auth.auth);
-    tutor.get('/sessao', wrap(async (req) => ({ csrf: auth.csrf(req.tutor.sessao.id), perfil: c.perfil(req.tutor), loja: await (async () => { const e = await ERP.Empresa.findByPk(req.tutor.empresaId, { logging: false }); return { nome: e.nome, telefone: e.telefone || null, logo: !!e.logo, endereco: typeof e.endereco === 'string' ? (() => { try {
+    tutor.get('/sessao', wrap(async (req) => ({ csrf: auth.csrf(req.tutor.sessao.id), perfil: c.perfil(req.tutor), loja: await (async () => { const e = await ERP.Empresa.findByPk(req.tutor.empresaId, { logging: false }); return { nome: e.nome, aparencia: require('../services/clientePortal/aparencia').ler(req.tutor.config), telefone: e.telefone || null, logo: !!e.logo, endereco: typeof e.endereco === 'string' ? (() => { try {
                 const d = JSON.parse(e.endereco);
                 return [d.logradouro || d.rua || d.endereco, d.numero, d.bairro, d.cidade, d.uf].filter(Boolean).join(', ');
             }
@@ -98,6 +98,8 @@ function criarRotas(p, { authERP, permissao } = {}) {
         try{V.chaves(req.body,['versao']);res.json(await p.alertas.upload(req.user.empresaId,req.user.id,req.file,req.body.versao));}
         catch(err){res.status(err.status||503).json({erro:err.status?err.message:'Não foi possível salvar o MP3. Confira o armazenamento permanente.'});}
     }));
+    gestor.get('/aparencia',configurar,wrap(req=>p.aparencia.obter(req.user.empresaId)));
+    gestor.put('/aparencia',configurar,wrap(req=>p.aparencia.salvar(req.user.empresaId,req.user.id,req.body)));
     gestor.get('/config', configurar, wrap(async (req) => { const cfg = await p.config(req.user.empresaId); const [servicos, profissionais] = await Promise.all([ERP.Produto.findAll({ where: { empresa_id: req.user.empresaId }, attributes: ['id', 'nome', 'tipo', 'preco'], logging: false }), ERP.Profissional.findAll({ where: { empresa_id: req.user.empresaId, status: 'ativo' }, attributes: ['id', 'nome'], logging: false })]); return { config: cfg, servicos: servicos.filter(s => /^servi[cç]o$/i.test(s.tipo || '')).map(s => ({ id: s.id, nome: s.nome, preco: s.preco })), profissionais }; }));
     gestor.put('/config', configurar, wrap(req => p.salvarConfig(req.user.empresaId, req.body, req.user.id)));
     gestor.get('/clientes/:id', acesso, wrap(async (req) => { const id = V.inteiro(req.params.id), cli = await ERP.Cliente.findOne({ where: { id, empresa_id: req.user.empresaId }, logging: false }); if (!cli)

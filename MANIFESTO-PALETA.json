@@ -1,0 +1,77 @@
+[
+  {
+    "arquivo": "backend/routes/clientePortalRoutes.js",
+    "tipo": "alterado",
+    "sha256": "0fa9c764de379b9195744cd773f04e9707d37038842a9379532a04ba65051100"
+  },
+  {
+    "arquivo": "backend/services/clientePortal/aparencia.js",
+    "tipo": "novo",
+    "sha256": "793a4d5db9a51c77463a11f8263fb024bf0590eba8fccdc4a2c5afdd9958f025"
+  },
+  {
+    "arquivo": "backend/services/clientePortal/index.js",
+    "tipo": "alterado",
+    "sha256": "1b38e24dd55c7c22d16aceadb7905434f345192ba0bab9f9d4244eda9b1af551"
+  },
+  {
+    "arquivo": "frontend/cliente-app/app.css",
+    "tipo": "alterado",
+    "sha256": "044b03b8719a36685a64e5740098034618ef12dffa6d8e4faebb6a644be2a041"
+  },
+  {
+    "arquivo": "frontend/cliente-app/app.html",
+    "tipo": "alterado",
+    "sha256": "4ce09649c5f9989e5a370ca620554ffb3d25b9e5bfac14a524d9a199e0663eca"
+  },
+  {
+    "arquivo": "frontend/cliente-app/app.js",
+    "tipo": "alterado",
+    "sha256": "8b3f4279446934c10c81688bafe9789a2a7c59e077fbf829dcb4579e88a8c276"
+  },
+  {
+    "arquivo": "frontend/cliente-app/service-worker.js",
+    "tipo": "alterado",
+    "sha256": "06465ec81ce2c95224c2c959db77e58fa30a45e694f714d65e20d2b1b9b5ccd5"
+  },
+  {
+    "arquivo": "frontend/cliente-app/tema.js",
+    "tipo": "novo",
+    "sha256": "3c93c9cab1c995456303846de639790a3bf033298f4bd0a414d0279b585fea47"
+  },
+  {
+    "arquivo": "frontend/components/cliente-portal-aparencia.js",
+    "tipo": "novo",
+    "sha256": "abc0da8309354aeae81ebb557be8320d7ff1ea85d283033331685afabdb2d09d"
+  },
+  {
+    "arquivo": "frontend/components/cliente-portal-erp.css",
+    "tipo": "alterado",
+    "sha256": "14d241fbec1f53d7c13b53ac29d03fb45876ac4519d825b9ae88c3832b71c55e"
+  },
+  {
+    "arquivo": "frontend/components/cliente-portal-widget.js",
+    "tipo": "alterado",
+    "sha256": "34ab5748d5e59c96fb51b5c537f4dbda502b77ef236a65c40076fcdc05dee59b"
+  },
+  {
+    "arquivo": "frontend/configuracoes/portal-cliente.html",
+    "tipo": "alterado",
+    "sha256": "1429c41f4676174429f6bdc5810ee2257801fea0edac0fd10f45c1b16b2395bf"
+  },
+  {
+    "arquivo": "frontend/sidebar-component/sidebar.html",
+    "tipo": "alterado",
+    "sha256": "555ed96b45b483cab6facc558325f78e4c464f77b4161870cff3790d46f7b090"
+  },
+  {
+    "arquivo": "tests/browser/portal-aparencia.dom.cjs",
+    "tipo": "novo",
+    "sha256": "9cb25a7a0c92aef5a5906df01256a0da7905ebe167b45d27be3fa4f168ec064f"
+  },
+  {
+    "arquivo": "tests/portal-aparencia.test.js",
+    "tipo": "novo",
+    "sha256": "f580b628430a02165c0b2e4c911c11c0a2ec53f424926a879b8fdd67b717283e"
+  }
+]

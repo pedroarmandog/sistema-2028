@@ -19,6 +19,7 @@
     catch { }
     let emailLogin = '';
     function atualizarLoja(slug) {
+        if(loja!==slug)window.PortalTema?.aplicar(document,null);
         loja = slug;
         window.history.replaceState(null, '', location.pathname + '?loja=' + encodeURIComponent(slug));
         try { localStorage.setItem('pethub-cliente-loja', slug); } catch {}
@@ -97,6 +98,7 @@
         return; refreshing = true; try {
         const [p, a, r, s, n, sess] = await Promise.all([api('/pets'), api('/agendamentos'), api('/solicitacoes'), api('/servicos'), api('/notificacoes'), api('/sessao')]);
         session = sess;
+        window.PortalTema?.aplicar(document,session.loja.aparencia);
         pets = p;
         appointments = a;
         requests = r;
@@ -126,6 +128,7 @@
     async function startSession() { try {
         session = await api('/sessao');
         atualizarLoja(session.loja.slug);
+        window.PortalTema?.aplicar(document,session.loja.aparencia);
         await refresh({ redraw: false });
         render();
         live();
@@ -135,9 +138,9 @@
     } }
     function loggedOut() { emailLogin = ''; session = null; pets = []; appointments = []; requests = []; notifications = { itens: [], naoLidas: 0 }; window.ClienteAPI.limpar(); eventsource?.close(); clearInterval(poll); modal.close(); showAuth(); }
     async function showAuth(mode = invite ? 'invite' : 'login') { if (authBusy)
-        return; $('#navegacao').hidden = true; $('#sino').hidden = true; let erroLoja = null; let nome = 'Seu pet shop, mais perto de você'; if (loja && /^[a-f0-9-]{36}$/i.test(loja))
+        return; window.PortalTema?.aplicar(document,null); $('#navegacao').hidden = true; $('#sino').hidden = true; let erroLoja = null; let nome = 'Seu pet shop, mais perto de você'; if (loja && /^[a-f0-9-]{36}$/i.test(loja))
         try {
-            nome = (await api('/loja/' + loja)).nome;
+            const estabelecimento=await api('/loja/'+loja);nome=estabelecimento.nome;window.PortalTema?.aplicar(document,estabelecimento.aparencia);
         }
         catch (e) { erroLoja = e; } const isInvite = mode === 'invite', isRecovery = mode === 'recovery'; const bloqueado = !isInvite && [403,404].includes(erroLoja?.status); main.innerHTML = '<section class="auth"><div class="hero"><div class="hero-copy"><span class="eyebrow">PetHub Cliente</span><h1>Cuidado que conecta.</h1><small>' + esc(nome) + '</small></div><img src="/cliente-app/assets/boas-vindas.webp" alt="Mascote PetHub"></div><div class="card"><h2>' + (isInvite ? 'Bem-vindo ao seu espaço' : isRecovery ? 'Recuperar meu acesso' : 'Bom ter você por aqui') + '</h2><p class="muted">' + (isInvite ? 'Defina sua senha pessoal para começar.' : isRecovery ? 'A recuperação é feita com a equipe do seu pet shop.' : 'Acesse os cuidados de quem é parte da sua família.') + '</p>' + (erroLoja ? '<div class="note warning" role="alert">' + esc(isInvite ? 'Não foi possível consultar o estabelecimento. O convite será validado pelo servidor.' : erroLoja.message) + '</div>' : '') + '<form id="auth-form" data-mode="' + mode + '" class="form">' + (isInvite ? '' : (!loja ? field('Código do estabelecimento (no convite)', 'loja', '', 'text', 'required maxlength="36"') : '') + field('E-mail de acesso', 'email', emailLogin, 'email', 'required maxlength="254" autocomplete="username"')) + (isRecovery ? '' : field(isInvite ? 'Crie uma senha com letras e números' : 'Sua senha', 'senha', '', 'password', 'required ' + (isInvite ? 'minlength="10" autocomplete="new-password"' : 'autocomplete="current-password"'))) + (isInvite ? field('Repita sua senha', 'confirmar', '', 'password', 'required minlength="10" autocomplete="new-password"') + '<small>Mínimo de 10 caracteres com letras e números. Máximo de 72 bytes.</small>' : '') + '<button class="btn wide" type="submit" ' + (bloqueado ? 'disabled' : '') + '>' + (isInvite ? 'Ativar meu acesso' : isRecovery ? 'Solicitar recuperação' : 'Entrar no meu espaço') + '</button></form>' + (bloqueado ? '<button class="link-btn" data-auth="login">Verificar estabelecimento novamente</button>' : '') + '<button class="link-btn" data-auth="' + (isRecovery ? 'login' : 'recovery') + '">' + (isRecovery ? 'Voltar ao acesso' : 'Esqueci minha senha') + '</button></div><p class="hint">Ainda não tem acesso? Peça ao estabelecimento um convite para o PetHub Cliente.</p><button class="link-btn" data-install>Como instalar no meu celular</button></section>'; }
     function petForm(p = {}) { const opts = (arr) => [{ value: '', label: 'Não informado' }, ...arr.map(v => ({ value: v, label: v }))]; return '<form id="pet-form" data-id="' + (p.id || '') + '" data-etag="' + esc(p.etag || '') + '" class="form">' + field('Nome', 'nome', p.nome, 'text', 'required maxlength="100"') + '<div class="form-grid">' + field('Espécie', 'especie', p.especie, 'text', 'required maxlength="120" placeholder="Ex.: Cão"') + field('Raça', 'raca', p.raca, 'text', 'maxlength="120"') + select('Sexo', 'genero', opts(['Macho', 'Fêmea']), p.genero) + field('Nascimento', 'data_nascimento', p.data_nascimento, 'date', 'max="' + today() + '"') + field('Peso (kg)', 'peso', p.peso, 'number', 'min="0.01" max="1500" step="0.01"') + select('Porte', 'porte', opts(['Pequeno', 'Médio', 'Grande', 'Gigante']), p.porte) + field('Cor', 'cor', p.cor, 'text', 'maxlength="120"') + field('Pelagem', 'pelagem', p.pelagem, 'text', 'maxlength="120"') + '</div>' + select('Castrado', 'castrado', [{ value: '', label: 'Não informado' }, { value: 'sim', label: 'Sim' }, { value: 'nao', label: 'Não' }], p.castrado === true ? 'sim' : p.castrado === false ? 'nao' : '') + '<div class="note">As informações abaixo são identificadas como fornecidas por você. Não alteram observações profissionais do estabelecimento.</div>' + textArea('Alergias informadas', 'alergiasInformadas', p.alergiasInformadas) + textArea('Restrições', 'restricoes', p.restricoes) + textArea('Informações de saúde', 'saude', p.saude) + textArea('Preferências de atendimento', 'preferencias', p.preferencias) + textArea('Observações do tutor', 'observacoesTutor', p.observacoesTutor) + '<button class="btn" type="submit">Salvar perfil do pet</button></form>'; }
