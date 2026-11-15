@@ -1,26 +1,29 @@
 {
   "arquivos": [
     {
-      "caminho": "backend/controllers/instanciaController.js",
-      "sha256": "0bba97fd67ec585ca4429e92e580c80f147836357ae3206cf8d22c7b946b7454"
+      "caminho": "frontend/marketing-disparador.js",
+      "sha256": "ed9662798c7bcc3f0e0f9d892c7399c82b1150b77d0ff621f4e27a501d06f09d"
     },
     {
-      "caminho": "frontend/marketing-disparador.js",
-      "sha256": "f6496a3ff5677f693ab7e96acd8f0fd6f0c50baeb5607b210260cd1d99eda4ad"
+      "caminho": "tests/browser/disparador-endpoint.dom.cjs",
+      "sha256": "64035a68fef7bbf3eccfd5cc8b403f48a3059627c7508fdb6176768ff127775a"
+    },
+    {
+      "caminho": "tests/browser/instancias-disparador.dom.cjs",
+      "sha256": "a11b6bea4fbb0bcece8bd2c199e46fae001778436de194da1f07a3a7cae091e8"
     },
     {
       "caminho": "tests/instancias-disparador.test.js",
       "sha256": "7b4e490d08257eb631532e6ee054a0691302ab5ca1906810fb98995ecabaee71"
-    },
-    {
-      "caminho": "tests/browser/instancias-disparador.dom.cjs",
-      "sha256": "7b617294f6be5aae78b20794457dfb82092bf9a02449c01b31350a371308edfd"
     }
   ],
+  "arquivos_producao": [
+    "frontend/marketing-disparador.js"
+  ],
+  "backend_alterado": false,
   "migracao": false,
-  "exclusao_automatica_de_registros": false,
   "testes": {
-    "aprovados": 14,
+    "aprovados": 20,
     "falhas": 0
   }
 }

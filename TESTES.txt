@@ -1,22 +1,28 @@
-✔ an actual empty list is explained and creation immediately renders the stored instance and QR stream (283.676537ms)
-✔ HTTP failure is displayed with retry instead of silently pretending there are no instances (144.88318ms)
-✔ a failed refresh retains previously visible instances (156.46969ms)
-✔ ten real instances appear after a quota rejection and the create button becomes available again (156.609186ms)
-✔ a pending creation blocks double clicks and sends a single POST (57.018042ms)
-✔ an older listing response cannot replace a newer listing and returned names/phone remain text (64.915161ms)
-✔ ten internal sessions do not consume the dispatcher quota; no records are deleted (41.390752ms)
-✔ the same normalized SQL filter lists/counts instances and preserves the real quota of ten (5.311411ms)
-✔ another company neither consumes the quota nor appears in the list (4.903527ms)
-✔ authorized explicit deletion frees one real slot without deleting internal sessions (5.463847ms)
-✔ internal and foreign sessions cannot be reset, connected, disconnected or deleted through instance actions (8.180919ms)
-✔ one failed runtime status does not hide stored instances or leak sessionData (3.464027ms)
-✔ invalid/reserved names and missing company are rejected without creating records (2.818ms)
-✔ a rejected asynchronous connection retains the visible instance without an unhandled rejection (11.42525ms)
-ℹ tests 14
+✔ without globals, instance and settings requests use the Render page origin and never the old host (333.613378ms)
+✔ API_URL overrides stale VPS_URL; creation and QR use the same configured API (116.707307ms)
+✔ configuration arriving after script evaluation is read at request time (126.194598ms)
+✔ explicit empty origin and the VPS compatibility setting remain supported (209.177353ms)
+✔ stalled listing leaves loading state after timeout even when fetch ignores abort (90.289278ms)
+✔ stalled creation releases button, warns about uncertain outcome and never retries POST (66.774869ms)
+✔ an actual empty list is explained and creation immediately renders the stored instance and QR stream (345.342454ms)
+✔ HTTP failure is displayed with retry instead of silently pretending there are no instances (124.76155ms)
+✔ a failed refresh retains previously visible instances (100.188972ms)
+✔ ten real instances appear after a quota rejection and the create button becomes available again (174.116266ms)
+✔ a pending creation blocks double clicks and sends a single POST (75.828102ms)
+✔ an older listing response cannot replace a newer listing and returned names/phone remain text (76.264973ms)
+✔ ten internal sessions do not consume the dispatcher quota; no records are deleted (41.847451ms)
+✔ the same normalized SQL filter lists/counts instances and preserves the real quota of ten (4.045869ms)
+✔ another company neither consumes the quota nor appears in the list (4.12724ms)
+✔ authorized explicit deletion frees one real slot without deleting internal sessions (4.669751ms)
+✔ internal and foreign sessions cannot be reset, connected, disconnected or deleted through instance actions (4.87913ms)
+✔ one failed runtime status does not hide stored instances or leak sessionData (6.773219ms)
+✔ invalid/reserved names and missing company are rejected without creating records (2.89594ms)
+✔ a rejected asynchronous connection retains the visible instance without an unhandled rejection (10.599995ms)
+ℹ tests 20
 ℹ suites 0
-ℹ pass 14
+ℹ pass 20
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 1347.838082
+ℹ duration_ms 1523.497191

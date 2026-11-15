@@ -6,13 +6,26 @@
 (function () {
   "use strict";
 
-  // URL do backend na VPS — lê de api-config.js ou usa o valor padrão
-  // ISOLAMENTO MULTI-TENANT: respeitar window.VPS_URL mesmo quando vazio (same-origin).
-  // "" (string vazia) é intencional — nunca cair no fallback de produção.
-  var VPS_URL =
-    window.VPS_URL !== undefined && window.VPS_URL !== null
-      ? window.VPS_URL
-      : "https://api.pethubflow.com.br";
+  // Resolve na hora da requisição: api-config pode terminar de carregar depois.
+  // Sem configuração explícita, a API fica na mesma origem da página.
+  function apiBase() {
+    var base = typeof window.API_URL === "string" ? window.API_URL
+      : typeof window.VPS_URL === "string" ? window.VPS_URL : "";
+    return base.replace(/\/+$/, "");
+  }
+  function fetchComTimeout(url, options) {
+    var controller = new AbortController(), timer;
+    var timeout = new Promise(function (_, reject) {
+      timer = setTimeout(function () {
+        controller.abort();
+        reject(Object.assign(new Error("Tempo de conexão esgotado. Verifique a conexão e atualize a lista antes de tentar criar novamente."), { code: "CONNECTION_TIMEOUT" }));
+      }, 15000);
+    });
+    return Promise.race([
+      Promise.resolve().then(function () { return fetch(url, Object.assign({}, options, { signal: controller.signal })); }),
+      timeout,
+    ]).finally(function () { clearTimeout(timer); });
+  }
 
   // ── Helpers ──
   function $(sel) {
@@ -58,7 +71,7 @@
 
   async function carregarConfigDoBanco() {
     try {
-      var res = await fetch(VPS_URL + "/api/disparador/config", {
+      var res = await fetchComTimeout(apiBase() + "/api/disparador/config", {
         credentials: "include",
       });
       if (res.ok) {
@@ -80,7 +93,7 @@
       limite: Number((cfgLimite && cfgLimite.value) || 0),
       delayRand: Number((cfgDelayRand && cfgDelayRand.value) || 0),
     };
-    fetch(VPS_URL + "/api/disparador/config", {
+    fetchComTimeout(apiBase() + "/api/disparador/config", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
@@ -175,7 +188,7 @@
       appendLog("Enviando lista para o servidor...");
 
       try {
-        var res = await fetch(VPS_URL + "/api/disparador/campanhas", {
+        var res = await fetch(apiBase() + "/api/disparador/campanhas", {
           method: "POST",
           credentials: "include",
           body: form,
@@ -326,7 +339,7 @@
 
       btnCriarInstancia.disabled = true;
       try {
-        var res = await fetch(VPS_URL + "/api/instancias", {
+        var res = await fetchComTimeout(apiBase() + "/api/instancias", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -364,6 +377,7 @@
       } catch (err) {
         console.error(err);
         showSubmodalError("Erro: " + (err.message || err));
+        if (err.code === "CONNECTION_TIMEOUT") void fetchInstancias();
       } finally {
         btnCriarInstancia.disabled = false;
       }
@@ -404,7 +418,7 @@
     var request = ++instanciasRequest;
     statusInstancias("Carregando instâncias…", false);
     try {
-      var res = await fetch(VPS_URL + "/api/instancias", {
+      var res = await fetchComTimeout(apiBase() + "/api/instancias", {
         credentials: "include", cache: "no-store",
       });
       if (!res.ok) throw new Error("Não foi possível carregar as instâncias (HTTP " + res.status + ").");
@@ -472,8 +486,8 @@
           // Usar /reset ao conectar para limpar sessão corrompida
           var endpoint = act === "connect" ? "reset" : act;
           try {
-            var r = await fetch(
-              VPS_URL + "/api/instancias/" + id + "/" + endpoint,
+            var r = await fetchComTimeout(
+              apiBase() + "/api/instancias/" + id + "/" + endpoint,
               {
                 method: "POST",
                 credentials: "include",
@@ -509,8 +523,8 @@
           )
             return;
           try {
-            var r = await fetch(
-              VPS_URL + "/api/instancias/" + this.dataset.instId,
+            var r = await fetchComTimeout(
+              apiBase() + "/api/instancias/" + this.dataset.instId,
               {
                 method: "DELETE",
                 credentials: "include",
@@ -547,7 +561,7 @@
     // Prefixo "disp_" para isolar do sistema principal de marketing
     var chaveWpp = "disp_" + instanciaId;
     qrEventSource = new EventSource(
-      VPS_URL + "/api/marketing/whatsapp/eventos?empresaId=" + chaveWpp,
+      apiBase() + "/api/marketing/whatsapp/eventos?empresaId=" + chaveWpp,
       { withCredentials: true },
     );
 
@@ -688,7 +702,7 @@
             form.append("imagem", fileAnexo.files[0]);
           }
 
-          var resCreate = await fetch(VPS_URL + "/api/disparador/campanhas", {
+          var resCreate = await fetch(apiBase() + "/api/disparador/campanhas", {
             method: "POST",
             credentials: "include",
             body: form,
@@ -723,7 +737,7 @@
 
       try {
         var res = await fetch(
-          VPS_URL + "/api/disparador/start/" + lastCampanhaId,
+          apiBase() + "/api/disparador/start/" + lastCampanhaId,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -752,7 +766,7 @@
       appendLog("Pausando campanha...");
       try {
         var res = await fetch(
-          VPS_URL + "/api/disparador/pause/" + lastCampanhaId,
+          apiBase() + "/api/disparador/pause/" + lastCampanhaId,
           {
             method: "POST",
             credentials: "include",
@@ -775,7 +789,7 @@
       appendLog("Continuando campanha...");
       try {
         var res = await fetch(
-          VPS_URL + "/api/disparador/continue/" + lastCampanhaId,
+          apiBase() + "/api/disparador/continue/" + lastCampanhaId,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -797,7 +811,7 @@
   // ── Escolher instância (popup simples) ──
   async function escolherInstancia() {
     try {
-      var res = await fetch(VPS_URL + "/api/instancias", {
+      var res = await fetch(apiBase() + "/api/instancias", {
         credentials: "include",
       });
       if (!res.ok) return null;
@@ -854,7 +868,7 @@
   async function refreshContatos() {
     if (!lastCampanhaId || !tblBody) return;
     try {
-      var res = await fetch(VPS_URL + "/api/disparador/contacts/" + lastCampanhaId, {
+      var res = await fetch(apiBase() + "/api/disparador/contacts/" + lastCampanhaId, {
         credentials: "include",
       });
       var list = await res.json();
@@ -893,7 +907,7 @@
     if (!campId) return;
     try {
       campaignEventSource = new EventSource(
-        VPS_URL + "/api/disparador/eventos/" + campId,
+        apiBase() + "/api/disparador/eventos/" + campId,
         { withCredentials: true },
       );
       campaignEventSource.onmessage = function (e) {
