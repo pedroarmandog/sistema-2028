@@ -35,12 +35,18 @@ function routes(s, { env = process.env, adminAuth } = {}) {
   );
   const guard = (req, res, next) => {
     const origin = req.get("Origin");
-    if (
-      origin &&
-      !origins.has(origin) &&
-      origin !== req.protocol + "://" + req.get("host")
-    )
-      return res.status(403).json({ erro: "Origem não autorizada." });
+    // Render terminates TLS before Express: req.protocol may be http even
+    // when this same site's browser origin is https. Match the real Host,
+    // without trusting arbitrary X-Forwarded-Host/Proto headers or suffixes.
+    const host = req.get("host");
+    const sameOrigin =
+      origin === "https://" + host ||
+      (!prod && origin === req.protocol + "://" + host);
+    if (origin && !origins.has(origin) && !sameOrigin)
+      return res.status(403).json({
+        erro: "Origem não autorizada. Confira COMMUNITY_ORIGINS na API.",
+        codigo: "COMMUNITY_ORIGIN_NOT_ALLOWED",
+      });
     if (origin) {
       res.set("Access-Control-Allow-Origin", origin);
       res.set("Access-Control-Allow-Credentials", "true");
@@ -55,9 +61,10 @@ function routes(s, { env = process.env, adminAuth } = {}) {
     res.set("X-Content-Type-Options", "nosniff");
     if (req.method === "OPTIONS") return res.sendStatus(204);
     if (env.COMMUNITY_ENABLED !== "true")
-      return res
-        .status(503)
-        .json({ erro: "A Comunidade ainda não está habilitada." });
+      return res.status(503).json({
+        erro: "A Comunidade ainda não está habilitada. Configure COMMUNITY_ENABLED=true na API.",
+        codigo: "COMMUNITY_DISABLED",
+      });
     next();
   };
   for (const router of [r, a]) {
@@ -654,6 +661,12 @@ function routes(s, { env = process.env, adminAuth } = {}) {
     if (e.name === "SequelizeUniqueConstraintError")
       return res.status(409).json({
         erro: "Esse identificador já está em uso. Atualize e tente novamente.",
+      });
+    const dbCode = e.original?.code || e.parent?.code;
+    if (dbCode === "ER_NO_SUCH_TABLE" || e.original?.errno === 1146)
+      return res.status(503).json({
+        erro: "A estrutura do aplicativo ainda não foi preparada. Execute a migração da Comunidade e confirme a instalação do PetHub Cliente.",
+        codigo: "COMMUNITY_MIGRATION_REQUIRED",
       });
     res.status(e.status || 503).json({
       erro: e.status

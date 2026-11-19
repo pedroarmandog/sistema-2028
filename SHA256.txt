@@ -1,0 +1,3 @@
+31146f3fa95c482d8046096906b43e13cd6b3000a5cc37069d62293c57fd87f0  backend/comunidade/routes.js
+25096ea6acb712460ceadf8e45bb20b30f786aa9d2cc121a8c748ea47c609bad  tests/comunidade/http.test.js
+ce1d67875cad70d2c17bc8d0c352d54383059277901bcb05397683a8c00715c4  INSTALACAO.txt

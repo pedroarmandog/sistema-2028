@@ -1,0 +1,57 @@
+PETHUB COMUNIDADE — CORREÇÃO DO LOGIN E ORIGEM HTTPS
+
+CAUSA CORRIGIDA
+O navegador abre o Render por HTTPS, mas o Express pode enxergar HTTP atrás do proxy. A validação anterior comparava esses protocolos e rejeitava a origem do próprio aplicativo antes de conferir as credenciais.
+
+A correção aceita HTTPS do mesmo Host da API, mantém a lista de origens externas explícitas e continua recusando outros sites. Não depende de confiar em X-Forwarded-Host/Proto enviados pelo visitante. Não altera a configuração global de proxy/CORS do ERP.
+
+COMO APLICAR
+1. Já deve estar instalado o pacote PetHub Comunidade v0.1.
+2. Extraia este ZIP na raiz do sistema-2028 e substitua somente backend/comunidade/routes.js. O ZIP também inclui o teste HTTP atualizado, opcional para produção.
+3. Envie a alteração pelo GitHub Desktop e faça um novo deploy no Render. Não é preciso executar novamente o instalador da rota se a página já abre.
+
+VARIÁVEIS DO RENDER
+Adicione/confira em Environment, cada variável em seu próprio campo:
+
+COMMUNITY_ENABLED
+true
+
+COMMUNITY_ORIGINS
+https://pethub-api-wdna.onrender.com,https://comunidade.pethubflow.com.br
+
+Os valores acima não têm barra final. A correção também aceita o HTTPS do próprio Host sem cadastrá-lo nessa lista; a lista explícita mantém clara a configuração dos domínios externos permitidos.
+
+503 E MIGRAÇÃO
+O console sozinho não mostra por que houve 503. A correção distingue:
+- COMMUNITY_DISABLED: flag COMMUNITY_ENABLED diferente de true.
+- COMMUNITY_MIGRATION_REQUIRED: tabela necessária ainda não criada.
+Outras indisponibilidades continuam podendo produzir 503 genérico.
+
+No pre-deploy do Render, mantenha seu preparador existente e acrescente a migração da Comunidade. Para o comando usado anteriormente neste projeto:
+node backend/scripts/preparar-clientes-inteligencia.js && node backend/comunidade/migrate.js
+
+Não remova outros comandos que você já tenha adicionado. A migração é aditiva e idempotente; não use reset, alter ou force.
+
+CREDENCIAIS DO TUTOR
+São as mesmas do PetHub Cliente: código loja do estabelecimento, e-mail e senha definida pelo tutor.
+O erro de origem corrigido não era erro de senha.
+
+LIBERAÇÃO PARA A COMUNIDADE
+Conforme o controle de acesso implementado, ter conta no PetHub Cliente não libera automaticamente a rede social. O administrador da plataforma deve liberar a empresa e a conta de tutor em:
+https://pethub-api-wdna.onrender.com/comunidade/admin.html
+
+É necessário que o ID do administrador esteja em COMMUNITY_PLATFORM_ADMIN_IDS e que JWT_SECRET já esteja definido na API. Nunca coloque segredos no frontend. A correção não abre todas as contas nem remove essas verificações.
+
+TESTES EXECUTADOS
+36 testes automatizados passaram no módulo completo, incluindo 6 novos cenários HTTP:
+- Sessão HTTPS do mesmo Host com Express recebendo HTTP.
+- Login por senha real do portal nesse cenário.
+- Rejeição de domínios por sufixo, origem null, downgrade HTTP em produção e cabeçalhos encaminhados falsos.
+- Preflight OPTIONS com os cabeçalhos sociais.
+- Separação de erro de origem, flag desativada e conta sem liberação.
+- Tabela ausente com orientação de migração sem expor SQL.
+
+No laboratório, a simulação do proxy utiliza cliente HTTP nativo para preservar Host, pois o fetch do Node reescreve esse cabeçalho. A autenticação do portal e o banco de testes são reais; não houve validação do seu servidor Render ou TiDB de produção.
+
+Com dependências do projeto instaladas, execute:
+npm test --prefix comunidade
