@@ -1,0 +1,13 @@
+PETHUB COMUNIDADE — v0.1.0
+
+Extraia as pastas deste pacote na raiz do sistema-2028.
+
+Comece por docs/comunidade/INSTALACAO.md.
+
+O pacote adiciona um módulo e frontend independentes. Não substitui seu app.js antigo por outro arquivo. O instalador acrescenta a montagem ao app.js atual com backup.
+
+É a primeira entrega funcional por fases: fundação + rede social principal, Momentos de foto e eventos básicos. Grupos, vídeo, chat e push social ainda não estão implementados.
+
+30 testes passaram e o build de produção passou. TiDB/R2 de produção e aparência em navegador/celular real ainda exigem homologação. A pré-verificação aponta dependências compartilhadas ausentes na cópia local.
+
+Não copie credenciais para o frontend. Mantenha COMMUNITY_ENABLED=false até concluir a instalação e a homologação.

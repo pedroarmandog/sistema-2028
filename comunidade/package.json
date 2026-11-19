@@ -1,0 +1,23 @@
+{
+  "name": "pethub-comunidade",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "node scripts/test.cjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/manrope": "^5.2.0"
+  },
+  "devDependencies": {
+    "vite": "^7.2.2",
+    "jsdom": "26.1.0",
+    "esbuild": "0.28.2"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  }
+}
