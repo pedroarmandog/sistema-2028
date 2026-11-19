@@ -17,6 +17,9 @@ const path = require("path");
 
 // Carregar modelos e associações ANTES de qualquer outra coisa
 const models = require("./models");
+// Módulo isolado: rotas próprias e frontend sem scripts do ERP.
+require('./comunidade').mount(app,{ERP:models});
+
 console.log("✅ Modelos e associações carregados");
 
 app.use(
