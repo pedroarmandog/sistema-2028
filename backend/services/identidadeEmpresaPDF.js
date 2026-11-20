@@ -1,63 +1,138 @@
-'use strict';
-
-// Sempre consultar o cadastro atual: sem cache global, arquivo temporário ou logo do payload.
-async function carregarIdentidade(req, dependencias = {}) {
-  const empresaId = Number(req.user?.empresaId);
-  if (!Number.isSafeInteger(empresaId) || empresaId < 1) {
-    throw Object.assign(new Error('Empresa não identificada.'), { status: 403 });
+"use strict";
+const fs = require("node:fs/promises");
+const path = require("node:path");
+const raiz = path.resolve(__dirname, "../..");
+const falha = (mensagem, status) =>
+  Object.assign(new Error(mensagem), { status });
+function criarServico({
+  Empresa,
+  lerMidia,
+  diretorio = raiz,
+  normalizar,
+  log = console,
+} = {}) {
+  async function png(bytes) {
+    if (!Buffer.isBuffer(bytes) || bytes.length > 8 * 1024 * 1024)
+      throw Error("Logo inválida ou acima de 8 MB.");
+    if (normalizar) return normalizar(bytes);
+    // PNG compatível com PDFKit e jsPDF. Proporção preservada dentro de uma caixa fixa.
+    return require("sharp")(bytes, { limitInputPixels: 24 * 1024 * 1024 })
+      .rotate()
+      .resize(640, 400, { fit: "contain", background: "#ffffff00" })
+      .png()
+      .toBuffer();
   }
-  const Empresa = dependencias.Empresa || require('../models').Empresa;
-  const empresa = await Empresa.findByPk(empresaId);
-  if (!empresa) throw Object.assign(new Error('Empresa não encontrada.'), { status: 404 });
-  const lerImagem = dependencias.lerImagem || require('./midias/imagem').carregarImagem;
-  const logoBuffer = empresa.logo ? await lerImagem(empresaId, empresa.logo) : null;
-  return {
-    empresa,
-    nomeEmpresa: String(empresa.razaoSocial || empresa.nome || empresa.nomeFantasia || ''),
-    logoBuffer,
-    // Compatibilidade com os geradores existentes: este campo contém bytes, não um caminho.
-    logoPath: logoBuffer,
-  };
-}
-
-function desenharLogo(doc, buffer, { x, y = 25, width = 90, maxHeight = 75 } = {}) {
-  if (!buffer) return { desenhada: false, fimY: y, width: 0, height: 0 };
-  try {
-    const imagem = doc.openImage(buffer);
-    const escala = Math.min(width / imagem.width, maxHeight / imagem.height);
-    const w = imagem.width * escala, h = imagem.height * escala;
-    const centroX = x == null ? doc.page.width / 2 : x + width / 2;
-    doc.image(buffer, centroX - w / 2, y, { width: w, height: h });
-    return { desenhada: true, fimY: y + h, width: w, height: h };
-  } catch {
-    return { desenhada: false, fimY: y, width: 0, height: 0 };
+  async function lerLogo(empresa) {
+    let ref = empresa.logo;
+    if (ref && typeof ref === "object")
+      ref = ref.url || ref.src || ref.dataUrl || ref.base64;
+    if (typeof ref !== "string" || !ref.trim()) return null;
+    ref = ref.trim();
+    if (ref.startsWith("data:image/")) {
+      if (ref.length > 12 * 1024 * 1024 || !ref.includes(";base64,"))
+        throw Error("Data URL inválida.");
+      return png(Buffer.from(ref.slice(ref.indexOf(",") + 1), "base64"));
+    }
+    if (ref.length > 200 && /^[A-Za-z0-9+/=\r\n]+$/.test(ref))
+      return png(Buffer.from(ref, "base64"));
+    // URLs de uploads são referências do armazenamento da própria empresa, não downloads arbitrários.
+    if (/^https?:\/\//i.test(ref)) {
+      const u = new URL(ref);
+      if (!u.pathname.startsWith("/uploads/"))
+        throw Error("URL de logo não gerenciada.");
+      ref = u.pathname;
+    }
+    if (lerMidia) {
+      try {
+        const r = await lerMidia(empresa.id, ref);
+        if (r?.bytes) return png(r.bytes);
+      } catch (e) {
+        if ([401, 403].includes(e.status)) throw e;
+      }
+    }
+    // Compatibilidade com logos antigas no disco. Nunca usa basename para outra referência.
+    let relativa = ref.replace(/^\/uploads\//, "").replace(/^uploads\//, "");
+    if (
+      relativa.includes("\\") ||
+      relativa.startsWith("/") ||
+      relativa.split("/").some((p) => p === ".." || p === ".")
+    )
+      throw Error("Caminho de logo inválido.");
+    const base = path.join(diretorio, "uploads");
+    for (const arquivo of [
+      path.join(base, relativa),
+      path.join(base, "logos-empresas", relativa),
+    ]) {
+      try {
+        return await png(await fs.readFile(arquivo));
+      } catch (e) {
+        if (e.code !== "ENOENT") throw e;
+      }
+    }
+    throw Error("Arquivo da logo cadastrada não foi encontrado.");
   }
-}
-
-function cabecalhoFaturamento(doc, identidade) {
-  const left = doc.page.margins.left;
-  const width = doc.page.width - left - doc.page.margins.right;
-  const logo = desenharLogo(doc, identidade.logoBuffer, { y: 25, width: 110, maxHeight: 70 });
-  let y = logo.desenhada ? logo.fimY + 12 : 36;
-  if (identidade.nomeEmpresa) {
-    doc.font('Helvetica-Bold').fontSize(11).fillColor('#333');
-    doc.text(identidade.nomeEmpresa, left, y, { width, align: 'center' });
-    y = doc.y + 10;
+  async function padrao() {
+    for (const rel of [
+      "frontend/fivecon/Design sem nome (17).png",
+      "frontend/logos/Logo PetHub (2).svg",
+    ]) {
+      try {
+        return await png(await fs.readFile(path.join(diretorio, rel)));
+      } catch (_) {}
+    }
+    return null;
   }
-  return y;
-}
-
-async function endpoint(req, res) {
-  try {
-    const d = await carregarIdentidade(req);
-    const jpeg = req.query?.formato === 'jpeg';
-    const bytes = d.logoBuffer && jpeg ? await require('sharp')(d.logoBuffer).flatten({background:'#ffffff'}).jpeg({quality:95}).toBuffer() : d.logoBuffer;
-    res.set('Cache-Control', 'private, no-store');
-    res.json({ id: Number(d.empresa.id), nome: d.empresa.nome || '', razaoSocial: d.empresa.razaoSocial || '',
-      endereco: d.empresa.endereco, numero: d.empresa.numero, cidade: d.empresa.cidade, estado: d.empresa.estado, cep: d.empresa.cep, telefone: d.empresa.telefone, email: d.empresa.email, cnpj: d.empresa.cnpj,
-      nomeEmpresa: d.nomeEmpresa, logoDataUrl: bytes ? 'data:image/' + (jpeg?'jpeg':'png') + ';base64,' + bytes.toString('base64') : null });
-  } catch (e) {
-    res.status(e.status || 503).json({ erro: e.status ? e.message : 'Não foi possível carregar a identidade da empresa.' });
+  async function carregarIdentidade(req, { empresaId } = {}) {
+    const id = Number(req.user?.empresaId);
+    if (!Number.isSafeInteger(id) || id <= 0)
+      throw falha("Empresa autenticada não identificada.", 401);
+    if (empresaId != null && Number(empresaId) !== id)
+      throw falha("Documento de outra empresa.", 403);
+    const empresa = await Empresa.findByPk(id);
+    if (!empresa) throw falha("Empresa não encontrada.", 404);
+    let logoBuffer = null,
+      origem = "padrao";
+    if (empresa.logo) {
+      try {
+        logoBuffer = await lerLogo(empresa);
+        if (logoBuffer) origem = "empresa";
+      } catch (e) {
+        log.warn(
+          "[PDF] Não foi possível ler a logo cadastrada da empresa " +
+            id +
+            ": " +
+            e.message,
+        );
+      }
+    }
+    if (!logoBuffer) logoBuffer = await padrao();
+    return {
+      empresa,
+      logoBuffer,
+      logoPath: logoBuffer,
+      nomeEmpresa:
+        empresa.nomeFantasia || empresa.razaoSocial || empresa.nome || "",
+      origem,
+    };
   }
+  return { carregarIdentidade, lerLogo };
 }
-module.exports = { carregarIdentidade, desenharLogo, cabecalhoFaturamento, endpoint };
+let servico;
+async function carregarIdentidade(req, opcoes) {
+  servico ||= criarServico({
+    Empresa: require("../models").Empresa,
+    lerMidia: (empresa, ref) =>
+      require("./midias").instancia().ler(empresa, ref),
+  });
+  return servico.carregarIdentidade(req, opcoes);
+}
+function desenharLogo(doc, bytes, { x, y, largura = 90, altura = 65 }) {
+  if (!bytes) return false;
+  doc.image(bytes, x, y, {
+    fit: [largura, altura],
+    align: "center",
+    valign: "center",
+  });
+  return true;
+}
+module.exports = { criarServico, carregarIdentidade, desenharLogo };

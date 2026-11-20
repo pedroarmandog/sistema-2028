@@ -1,4 +1,4 @@
-const {carregarIdentidade}=require("../services/identidadeEmpresaPDF");
+const { carregarIdentidade, desenharLogo } = require('../services/identidadeEmpresaPDF');
 const express = require("express");
 const router = express.Router();
 const orcamentoController = require("../controllers/orcamentoController");
@@ -9,21 +9,15 @@ const fs = require("fs");
 // Comprovante PDF - DEVE vir antes de /:id
 router.get("/:id/comprovante", require("../middleware/authUser").authUser, async (req, res) => {
   try {
-    res.set("Cache-Control","private, no-store");
     const { id } = req.params;
     const PDFDocument = require("pdfkit");
     const { Empresa } = require("../models");
 
-    const orcamento = await Orcamento.findByPk(id);
+    const orcamento = await Orcamento.findOne({ where: { id, empresa_id: req.user.empresaId } });
     if (!orcamento)
       return res.status(404).json({ erro: "Orçamento não encontrado" });
 
-    // O modelo legado de orçamento não possui empresa_id. Autorizar somente
-    // quando o cliente vinculado comprova a empresa; nunca inferir pela primeira empresa.
-    const {Cliente} = require('../models');
-    const vinculo = orcamento.clienteId && await Cliente.findOne({where:{id:orcamento.clienteId,empresa_id:req.user.empresaId}});
-    if (!vinculo) return res.status(409).json({erro:'Não foi possível comprovar a empresa deste orçamento legado. Vincule um cliente da sua empresa antes de imprimir.'});
-
+    const identidadePDF = await carregarIdentidade(req, { empresaId: orcamento.empresa_id });
     const mmToPt = (mm) => (mm * 72) / 25.4;
     const RECEIPT_MM = 72;
     const receiptWidth = Math.round(mmToPt(RECEIPT_MM));
@@ -53,33 +47,13 @@ router.get("/:id/comprovante", require("../middleware/authUser").authUser, async
     const contentWidth = right - left;
     const lineHeight = 12;
 
-    // --- Logo e dados da empresa ---
-    let logoRendered = false;
-    let empresa = null;
-    try {
-      const identidade = await carregarIdentidade(req);
-      empresa = identidade.empresa;
-      const logoPath = identidade.logoBuffer;
-      if (logoPath) {
-        const maxLogoWidth = Math.round(pageWidth * 0.6);
-        const logoWidth = Math.min(maxLogoWidth, Math.round(mmToPt(30)));
-        const logoX = (pageWidth - logoWidth) / 2;
-        const logoY = smallMargin + 4;
-        try {
-          doc.image(logoPath, logoX, logoY, {
-            width: logoWidth,
-            align: "center",
-          });
-          logoRendered = true;
-        } catch (e) {
-          logoRendered = false;
-        }
-        const logoEstimatedHeight = Math.round(logoWidth * 0.9);
-        var y = logoY + logoEstimatedHeight + 2;
-      }
-    } catch (e) {
-      /* fallback */
-    }
+    // Identidade atual do cadastro, incluindo objetos persistidos fora do disco local.
+    const empresa = identidadePDF.empresa;
+    const logoTop = smallMargin + 4;
+    const logoAltura = 64;
+    const logoLargura = Math.min(contentWidth * 0.7, 100);
+    const logoRendered = desenharLogo(doc, identidadePDF.logoBuffer, { x: (pageWidth - logoLargura) / 2, y: logoTop, largura: logoLargura, altura: logoAltura });
+    var y = logoTop + (logoRendered ? logoAltura + 6 : 0);
 
     if (!logoRendered) {
       const headerText =

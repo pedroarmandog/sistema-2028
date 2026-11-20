@@ -979,7 +979,7 @@ async function generateAndOpenReciboPdf({ fornecedorNome, valor, referente }){
 
     // obter dados da empresa (usar primeira empresa cadastrada)
     let empresa = null;
-    try { empresa = await ApiClient.getIdentidadePDF(); } catch(e){ console.warn('Não foi possível obter dados da empresa', e); }
+    try { const empresas = await ApiClient.getEmpresas(); empresa = Array.isArray(empresas) ? empresas[0] : empresas; } catch(e){ console.warn('Não foi possível obter dados da empresa', e); }
 
     const doc = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'landscape' });
     const pageW = doc.internal.pageSize.getWidth();
@@ -1006,8 +1006,23 @@ async function generateAndOpenReciboPdf({ fornecedorNome, valor, referente }){
     const rightGutter = 12; // distância do conteúdo até a borda direita da caixa
     doc.setFontSize(10); doc.text('Data: ' + nowStr, margin + boxW - rightGutter, 54, { align: 'right' });
 
-    // PNG normalizado e incorporado, consultado no cadastro atual pelo backend.
-    const logoDataUrl = empresa?.logoDataUrl || null;
+    // preparar logo (aceita dataURL, caminho relativo ou objeto com base64)
+    async function blobToDataURL(blob) {
+        return await new Promise((resolve, reject) => {
+            try {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            } catch (e) { reject(e); }
+        });
+    }
+
+    let logoDataUrl = null;
+    try {
+      const respostaLogo = await fetch('/api/empresas/logo-pdf', { credentials: 'include', cache: 'no-store' });
+      if (respostaLogo.ok) logoDataUrl = await blobToDataURL(await respostaLogo.blob());
+    } catch (e) { console.warn('Erro ao carregar logo atual para o PDF:', e); }
 
     // logo à esquerda (se disponível) - desenhar preservando proporção
     let logoDrawHeight = 70;

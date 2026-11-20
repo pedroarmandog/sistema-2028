@@ -1,229 +1,1530 @@
---- a/frontend/atendimento/nova-venda.html
-+++ b/frontend/atendimento/nova-venda.html
-@@ -1,9 +1,21 @@
- ﻿<!doctype html>
--<html lang="pt-BR">
-+<html lang="pt-BR" class="qr-booting">
-   <head>
-     <meta charset="utf-8" />
-     <meta name="viewport" content="width=device-width,initial-scale=1" />
-     <title>PetHub</title>
-+    <!-- Visibilidade inicial definida antes dos scripts: evita flash do layout Clássico. -->
-+    <style id="qr-boot-critical">
-+      html.qr-booting #qr-sale-content { display: none !important; }
-+      #qr-boot-loader { display: none; }
-+      html.qr-booting #qr-boot-loader { display: grid; place-items: center; align-content: center; gap: 16px; min-height: calc(100vh - 100px); }
-+      .qr-boot-spinner { width: 42px; height: 42px; border: 4px solid #dce4ed; border-top-color: #f7941d; border-radius: 50%; animation: qr-boot-spin .8s linear infinite; }
-+      #qr-boot-error { text-align: center; color: #20384e; padding: 20px; }
-+      #qr-boot-error[hidden], .qr-boot-spinner[hidden] { display: none !important; }
-+      #qr-boot-retry { margin-top: 14px; border: 0; border-radius: 8px; padding: 12px 20px; background: #14283e; color: white; cursor: pointer; }
-+      @keyframes qr-boot-spin { to { transform: rotate(360deg); } }
-+      @media (prefers-reduced-motion: reduce) { .qr-boot-spinner { animation: none; border-style: dotted; } }
-+    </style>
-     <script src="../custom-colors.js"></script>
-     <link
-       rel="icon"
-@@ -19,7 +31,7 @@
-     <link rel="stylesheet" href="./nova-venda.css" />
-     <link rel="stylesheet" href="../colors.css" />
-     <link rel="stylesheet" href="../dashboard.css" />
--    <link rel="stylesheet" href="./caixa-rapido.css?v=20261120-teclado2">
-+    <link rel="stylesheet" href="./caixa-rapido.css?v=20261120-loading3">
-   </head>
-   <body>
-     <!-- Sidebar -->
-@@ -1069,7 +1081,11 @@
-       </header>
- 
-       <!-- Conteúdo da Nova Venda -->
--      <div class="container">
-+      <div id="qr-boot-loader" role="status" aria-label="Carregando caixa" aria-live="polite">
-+        <span class="qr-boot-spinner" aria-hidden="true"></span>
-+        <div id="qr-boot-error" hidden><p>Não foi possível carregar o visual do caixa.</p><button id="qr-boot-retry" type="button">Tentar novamente</button></div>
-+      </div>
-+      <div class="container" id="qr-sale-content" aria-busy="true" inert>
-         <div class="nova-venda-layout">
-           <!-- Área dos Itens (lado esquerdo) -->
-           <div class="itens-section">
-@@ -1347,7 +1363,7 @@
-     <script src="../api/api-client.js"></script>
-     <!-- Script do menu (copiar para sua página) -->
-     <script src="./nova-venda.js?v=20261120-pdv1"></script>
--    <script src="./caixa-rapido.js?v=20261120-teclado2"></script>
-+    <script src="./caixa-rapido.js?v=20261120-loading3"></script>
-     <!-- Script global do calendário (copia do dashboard) -->
-     <script src="../novo-atendimento-global.js"></script>
-   </body>
---- a/frontend/atendimento/caixa-rapido.js
-+++ b/frontend/atendimento/caixa-rapido.js
-@@ -777,7 +777,12 @@
-     });
-     window.addEventListener("focus", () => {
-       // Sincroniza outros operadores quando não há pagamento/modal em andamento.
--      if (!busy && !$("#modalPagamento") && !$("dialog[open]"))
-+      if (
-+        !document.documentElement.classList.contains("qr-booting") &&
-+        !busy &&
-+        !$("#modalPagamento") &&
-+        !$("dialog[open]")
-+      )
-         endpoint()
-           .then((r) => apply(r.layout))
-           .catch(() => {});
-@@ -786,9 +791,49 @@
-     window.addEventListener("pagehide", () => clearInterval(timer), {
-       once: true,
-     });
--    endpoint()
--      .then((r) => apply(r.layout))
--      .catch((e) => notify(`Caixa Clássico mantido. ${e.message}`, "warning"));
-+    let loadingPreference = false;
-+    async function loadInitialLayout() {
-+      if (loadingPreference) return;
-+      loadingPreference = true;
-+      layoutButton.disabled = true;
-+      const loader = $("#qr-boot-loader"),
-+        error = $("#qr-boot-error"),
-+        spinner = $(".qr-boot-spinner");
-+      if (error) error.hidden = true;
-+      if (spinner) spinner.hidden = false;
-+      loader?.setAttribute("aria-label", "Carregando caixa");
-+      const controller = new AbortController();
-+      const timeout = setTimeout(() => controller.abort(), 20000);
+--- /dev/null
++++ b/backend/services/identidadeEmpresaPDF.js
+@@ -0,0 +1,138 @@
++"use strict";
++const fs = require("node:fs/promises");
++const path = require("node:path");
++const raiz = path.resolve(__dirname, "../..");
++const falha = (mensagem, status) =>
++  Object.assign(new Error(mensagem), { status });
++function criarServico({
++  Empresa,
++  lerMidia,
++  diretorio = raiz,
++  normalizar,
++  log = console,
++} = {}) {
++  async function png(bytes) {
++    if (!Buffer.isBuffer(bytes) || bytes.length > 8 * 1024 * 1024)
++      throw Error("Logo inválida ou acima de 8 MB.");
++    if (normalizar) return normalizar(bytes);
++    // PNG compatível com PDFKit e jsPDF. Proporção preservada dentro de uma caixa fixa.
++    return require("sharp")(bytes, { limitInputPixels: 24 * 1024 * 1024 })
++      .rotate()
++      .resize(640, 400, { fit: "contain", background: "#ffffff00" })
++      .png()
++      .toBuffer();
++  }
++  async function lerLogo(empresa) {
++    let ref = empresa.logo;
++    if (ref && typeof ref === "object")
++      ref = ref.url || ref.src || ref.dataUrl || ref.base64;
++    if (typeof ref !== "string" || !ref.trim()) return null;
++    ref = ref.trim();
++    if (ref.startsWith("data:image/")) {
++      if (ref.length > 12 * 1024 * 1024 || !ref.includes(";base64,"))
++        throw Error("Data URL inválida.");
++      return png(Buffer.from(ref.slice(ref.indexOf(",") + 1), "base64"));
++    }
++    if (ref.length > 200 && /^[A-Za-z0-9+/=\r\n]+$/.test(ref))
++      return png(Buffer.from(ref, "base64"));
++    // URLs de uploads são referências do armazenamento da própria empresa, não downloads arbitrários.
++    if (/^https?:\/\//i.test(ref)) {
++      const u = new URL(ref);
++      if (!u.pathname.startsWith("/uploads/"))
++        throw Error("URL de logo não gerenciada.");
++      ref = u.pathname;
++    }
++    if (lerMidia) {
 +      try {
-+        const preference = await ApiClient.request(
-+          "/vendas/preferencias/layout-caixa",
-+          { signal: controller.signal },
-+        );
-+        if (!["classico", "rapido"].includes(preference?.layout))
-+          throw Error("Visual inválido.");
-+        apply(preference.layout);
-+        // Revela somente depois de mover os controles para a interface correta.
-+        const content = $("#qr-sale-content");
-+        content?.removeAttribute("inert");
-+        content?.setAttribute("aria-busy", "false");
-+        document.documentElement.classList.remove("qr-booting");
-+        layoutButton.disabled = false;
-+        if (layout === "rapido") returnToSearch();
++        const r = await lerMidia(empresa.id, ref);
++        if (r?.bytes) return png(r.bytes);
 +      } catch (e) {
-+        // Sem preferência conhecida, não exibe outro caixa por engano.
-+        if (spinner) spinner.hidden = true;
-+        if (error) error.hidden = false;
-+        loader?.setAttribute(
-+          "aria-label",
-+          "Falha ao carregar caixa. Tente novamente.",
-+        );
-+      } finally {
-+        clearTimeout(timeout);
-+        loadingPreference = false;
++        if ([401, 403].includes(e.status)) throw e;
 +      }
 +    }
-+    $("#qr-boot-retry")?.addEventListener("click", loadInitialLayout);
-+    loadInitialLayout();
-     window.PetHubCaixa = {
-       get layout() {
-         return layout;
---- a/frontend/atendimento/caixa-rapido.css
-+++ b/frontend/atendimento/caixa-rapido.css
-@@ -475,6 +475,12 @@
-   outline-offset: 2px;
++    // Compatibilidade com logos antigas no disco. Nunca usa basename para outra referência.
++    let relativa = ref.replace(/^\/uploads\//, "").replace(/^uploads\//, "");
++    if (
++      relativa.includes("\\") ||
++      relativa.startsWith("/") ||
++      relativa.split("/").some((p) => p === ".." || p === ".")
++    )
++      throw Error("Caminho de logo inválido.");
++    const base = path.join(diretorio, "uploads");
++    for (const arquivo of [
++      path.join(base, relativa),
++      path.join(base, "logos-empresas", relativa),
++    ]) {
++      try {
++        return await png(await fs.readFile(arquivo));
++      } catch (e) {
++        if (e.code !== "ENOENT") throw e;
++      }
++    }
++    throw Error("Arquivo da logo cadastrada não foi encontrado.");
++  }
++  async function padrao() {
++    for (const rel of [
++      "frontend/fivecon/Design sem nome (17).png",
++      "frontend/logos/Logo PetHub (2).svg",
++    ]) {
++      try {
++        return await png(await fs.readFile(path.join(diretorio, rel)));
++      } catch (_) {}
++    }
++    return null;
++  }
++  async function carregarIdentidade(req, { empresaId } = {}) {
++    const id = Number(req.user?.empresaId);
++    if (!Number.isSafeInteger(id) || id <= 0)
++      throw falha("Empresa autenticada não identificada.", 401);
++    if (empresaId != null && Number(empresaId) !== id)
++      throw falha("Documento de outra empresa.", 403);
++    const empresa = await Empresa.findByPk(id);
++    if (!empresa) throw falha("Empresa não encontrada.", 404);
++    let logoBuffer = null,
++      origem = "padrao";
++    if (empresa.logo) {
++      try {
++        logoBuffer = await lerLogo(empresa);
++        if (logoBuffer) origem = "empresa";
++      } catch (e) {
++        log.warn(
++          "[PDF] Não foi possível ler a logo cadastrada da empresa " +
++            id +
++            ": " +
++            e.message,
++        );
++      }
++    }
++    if (!logoBuffer) logoBuffer = await padrao();
++    return {
++      empresa,
++      logoBuffer,
++      logoPath: logoBuffer,
++      nomeEmpresa:
++        empresa.nomeFantasia || empresa.razaoSocial || empresa.nome || "",
++      origem,
++    };
++  }
++  return { carregarIdentidade, lerLogo };
++}
++let servico;
++async function carregarIdentidade(req, opcoes) {
++  servico ||= criarServico({
++    Empresa: require("../models").Empresa,
++    lerMidia: (empresa, ref) =>
++      require("./midias").instancia().ler(empresa, ref),
++  });
++  return servico.carregarIdentidade(req, opcoes);
++}
++function desenharLogo(doc, bytes, { x, y, largura = 90, altura = 65 }) {
++  if (!bytes) return false;
++  doc.image(bytes, x, y, {
++    fit: [largura, altura],
++    align: "center",
++    valign: "center",
++  });
++  return true;
++}
++module.exports = { criarServico, carregarIdentidade, desenharLogo };
+--- a/backend/routes/vendaRoutes.js
++++ b/backend/routes/vendaRoutes.js
+@@ -1,3 +1,4 @@
++const { carregarIdentidade, desenharLogo } = require('../services/identidadeEmpresaPDF');
+ const express = require("express");
+ const router = express.Router();
+ const vendaController = require("../controllers/vendaController");
+@@ -19,7 +20,7 @@
+     const { id } = req.params;
+     const PDFDocument = require("pdfkit");
+ 
+-    const venda = await Venda.findByPk(id);
++    const venda = await Venda.findOne({ where: { id, empresa_id: req.user.empresaId } });
+     if (!venda) return res.status(404).json({ erro: "Venda não encontrada" });
+ 
+     // Buscar cliente para exibir nome e endereço no comprovante
+@@ -42,6 +43,7 @@
+       } catch (_) {}
+     }
+ 
++    const identidadePDF = await carregarIdentidade(req, { empresaId: venda.empresa_id });
+     const mmToPt = (mm) => (mm * 72) / 25.4;
+     const RECEIPT_MM = 72;
+     const receiptWidth = Math.round(mmToPt(RECEIPT_MM));
+@@ -71,136 +73,13 @@
+     const contentWidth = right - left;
+     const lineHeight = 12;
+ 
+-    // --- Logo e dados da empresa ---
+-    let logoRendered = false;
+-    let empresa = null;
+-    try {
+-      // Preferir empresa vinculada à venda, depois a do cookie JWT, depois a do req.user, senão qualquer empresa ativa
+-      if (venda.empresa_id) empresa = await Empresa.findByPk(venda.empresa_id);
+-      if (!empresa) {
+-        // Tentar cookie JWT
+-        try {
+-          const jwt = require("jsonwebtoken");
+-          const JWT_SECRET =
+-            process.env.JWT_USER_SECRET || "pethub_user_secret_2026_!@#$%";
+-          const cookieHeader = req.headers.cookie || "";
+-          const match = cookieHeader.match(/pethub_token=([^;]+)/);
+-          if (match) {
+-            const decoded = jwt.verify(match[1], JWT_SECRET);
+-            if (decoded.empresaId)
+-              empresa = await Empresa.findByPk(decoded.empresaId);
+-          }
+-        } catch (_) {}
+-      }
+-      if (!empresa && req.user && req.user.empresaId)
+-        empresa = await Empresa.findByPk(req.user.empresaId);
+-      if (!empresa)
+-        empresa = await Empresa.findOne({
+-          where: { ativa: true },
+-          order: [["id", "ASC"]],
+-        });
+-
+-      let logoPath = null;
+-      let logoBuffer = null;
+-
+-      // Se empresa tem logo, tentar diferentes formatos (dataURI / base64 / arquivo)
+-      if (empresa && empresa.logo) {
+-        try {
+-          const logoVal = String(empresa.logo || "").trim();
+-          if (logoVal.startsWith("data:")) {
+-            const parts = logoVal.split(",");
+-            if (parts[1]) logoBuffer = Buffer.from(parts[1], "base64");
+-          } else if (
+-            /^[A-Za-z0-9+/=\r\n]+$/.test(logoVal) &&
+-            logoVal.length > 200
+-          ) {
+-            // provável base64 cru
+-            try {
+-              logoBuffer = Buffer.from(logoVal, "base64");
+-            } catch (e) {
+-              logoBuffer = null;
+-            }
+-          } else {
+-            const candidates = [
+-              path.join(__dirname, "../../uploads", empresa.logo),
+-              path.join(
+-                __dirname,
+-                "../../uploads",
+-                "logos-empresas",
+-                empresa.logo,
+-              ),
+-              path.join(
+-                __dirname,
+-                "../../uploads",
+-                path.basename(empresa.logo),
+-              ),
+-            ];
+-            for (const p of candidates) {
+-              if (fs.existsSync(p)) {
+-                logoPath = p;
+-                break;
+-              }
+-            }
+-          }
+-        } catch (e) {
+-          /* ignore */
+-        }
+-      }
+-
+-      // Se nada obtido da empresa, tentar logos padrões do frontend
+-      if (!logoBuffer && !logoPath) {
+-        const defaultPaths = [
+-          path.join(
+-            __dirname,
+-            "../../frontend/fivecon/Design sem nome (17).png",
+-          ),
+-          path.join(__dirname, "../../frontend/logos/Logo PetHub (2).svg"),
+-        ];
+-        for (const p of defaultPaths) {
+-          if (fs.existsSync(p)) {
+-            logoPath = p;
+-            break;
+-          }
+-        }
+-      }
+-
+-      // Renderizar logo (buffer ou arquivo)
+-      if (logoBuffer) {
+-        try {
+-          const maxLogoWidth = Math.round(pageWidth * 0.6);
+-          const logoWidth = Math.min(maxLogoWidth, Math.round(mmToPt(30)));
+-          const logoX = (pageWidth - logoWidth) / 2;
+-          const logoY = smallMargin + 4;
+-          doc.image(logoBuffer, logoX, logoY, {
+-            width: logoWidth,
+-            align: "center",
+-          });
+-          logoRendered = true;
+-          const logoEstimatedHeight = Math.round(logoWidth * 0.9);
+-          var y = logoY + logoEstimatedHeight + 2;
+-        } catch (e) {
+-          logoRendered = false;
+-        }
+-      } else if (logoPath && fs.existsSync(logoPath)) {
+-        try {
+-          const maxLogoWidth = Math.round(pageWidth * 0.6);
+-          const logoWidth = Math.min(maxLogoWidth, Math.round(mmToPt(30)));
+-          const logoX = (pageWidth - logoWidth) / 2;
+-          const logoY = smallMargin + 4;
+-          doc.image(logoPath, logoX, logoY, {
+-            width: logoWidth,
+-            align: "center",
+-          });
+-          logoRendered = true;
+-          const logoEstimatedHeight = Math.round(logoWidth * 0.9);
+-          var y = logoY + logoEstimatedHeight + 2;
+-        } catch (e) {
+-          logoRendered = false;
+-        }
+-      }
+-    } catch (e) {
+-      /* fallback */
+-    }
++    // Identidade atual do cadastro, incluindo objetos persistidos fora do disco local.
++    const empresa = identidadePDF.empresa;
++    const logoTop = smallMargin + 4;
++    const logoAltura = 64;
++    const logoLargura = Math.min(contentWidth * 0.7, 100);
++    const logoRendered = desenharLogo(doc, identidadePDF.logoBuffer, { x: (pageWidth - logoLargura) / 2, y: logoTop, largura: logoLargura, altura: logoAltura });
++    var y = logoTop + (logoRendered ? logoAltura + 6 : 0);
+ 
+     if (!logoRendered) {
+       // tentar ainda exibir a logo padrão como texto se imagem não encontrada
+--- a/backend/routes/orcamentoRoutes.js
++++ b/backend/routes/orcamentoRoutes.js
+@@ -1,3 +1,4 @@
++const { carregarIdentidade, desenharLogo } = require('../services/identidadeEmpresaPDF');
+ const express = require("express");
+ const router = express.Router();
+ const orcamentoController = require("../controllers/orcamentoController");
+@@ -6,16 +7,17 @@
+ const fs = require("fs");
+ 
+ // Comprovante PDF - DEVE vir antes de /:id
+-router.get("/:id/comprovante", async (req, res) => {
++router.get("/:id/comprovante", require("../middleware/authUser").authUser, async (req, res) => {
+   try {
+     const { id } = req.params;
+     const PDFDocument = require("pdfkit");
+     const { Empresa } = require("../models");
+ 
+-    const orcamento = await Orcamento.findByPk(id);
++    const orcamento = await Orcamento.findOne({ where: { id, empresa_id: req.user.empresaId } });
+     if (!orcamento)
+       return res.status(404).json({ erro: "Orçamento não encontrado" });
+ 
++    const identidadePDF = await carregarIdentidade(req, { empresaId: orcamento.empresa_id });
+     const mmToPt = (mm) => (mm * 72) / 25.4;
+     const RECEIPT_MM = 72;
+     const receiptWidth = Math.round(mmToPt(RECEIPT_MM));
+@@ -45,77 +47,13 @@
+     const contentWidth = right - left;
+     const lineHeight = 12;
+ 
+-    // --- Logo e dados da empresa ---
+-    let logoRendered = false;
+-    let empresa = null;
+-    try {
+-      // Buscar empresa do usuário logado via cookie JWT
+-      const jwt = require("jsonwebtoken");
+-      const JWT_SECRET = process.env.JWT_USER_SECRET;
+-      let empresaId = null;
+-      try {
+-        const cookieHeader = req.headers.cookie || "";
+-        const match = cookieHeader.match(/pethub_token=([^;]+)/);
+-        if (match) {
+-          const decoded = jwt.verify(match[1], JWT_SECRET);
+-          if (decoded.empresaId) empresaId = decoded.empresaId;
+-        }
+-      } catch (_) {}
+-      // Tentar query param como fallback
+-      if (
+-        !empresaId &&
+-        req.query &&
+-        (req.query.empresaId || req.query.empresa_id)
+-      ) {
+-        empresaId = req.query.empresaId || req.query.empresa_id;
+-      }
+-      if (empresaId) {
+-        empresa = await Empresa.findByPk(empresaId);
+-      }
+-      if (!empresa) {
+-        empresa = await Empresa.findOne({
+-          where: { ativa: true },
+-          order: [["id", "ASC"]],
+-        });
+-      }
+-
+-      let logoPath = null;
+-      if (empresa && empresa.logo) {
+-        const candidates = [
+-          path.join(__dirname, "../../uploads", String(empresa.logo)),
+-          path.join(
+-            __dirname,
+-            "../../uploads/logos-empresas",
+-            String(empresa.logo),
+-          ),
+-        ];
+-        for (const c of candidates) {
+-          if (fs.existsSync(c)) {
+-            logoPath = c;
+-            break;
+-          }
+-        }
+-      }
+-      if (logoPath) {
+-        const maxLogoWidth = Math.round(pageWidth * 0.6);
+-        const logoWidth = Math.min(maxLogoWidth, Math.round(mmToPt(30)));
+-        const logoX = (pageWidth - logoWidth) / 2;
+-        const logoY = smallMargin + 4;
+-        try {
+-          doc.image(logoPath, logoX, logoY, {
+-            width: logoWidth,
+-            align: "center",
+-          });
+-          logoRendered = true;
+-        } catch (e) {
+-          logoRendered = false;
+-        }
+-        const logoEstimatedHeight = Math.round(logoWidth * 0.9);
+-        var y = logoY + logoEstimatedHeight + 2;
+-      }
+-    } catch (e) {
+-      /* fallback */
+-    }
++    // Identidade atual do cadastro, incluindo objetos persistidos fora do disco local.
++    const empresa = identidadePDF.empresa;
++    const logoTop = smallMargin + 4;
++    const logoAltura = 64;
++    const logoLargura = Math.min(contentWidth * 0.7, 100);
++    const logoRendered = desenharLogo(doc, identidadePDF.logoBuffer, { x: (pageWidth - logoLargura) / 2, y: logoTop, largura: logoLargura, altura: logoAltura });
++    var y = logoTop + (logoRendered ? logoAltura + 6 : 0);
+ 
+     if (!logoRendered) {
+       const headerText =
+--- a/backend/routes/agendamentoRoutes.js
++++ b/backend/routes/agendamentoRoutes.js
+@@ -1,4 +1,4 @@
+-const {carregarIdentidade}=require("../services/identidadeEmpresaPDF");
++const {carregarIdentidade, desenharLogo}=require("../services/identidadeEmpresaPDF");
+ const express = require("express");
+ const router = express.Router();
+ const { Agendamento, Pet, Cliente, Empresa, Usuario } = require("../models");
+@@ -1068,38 +1068,10 @@
+     const pageWidth = doc.page.width;
+     const lineHeight = 12;
+ 
+-    // Cabeçalho: usar a logo cadastrada da empresa correta (campo `logo` da tabela empresas)
+-    let logoRendered = false;
+-    var y = 0;
+-    try {
+-      let logoPath = null;
+-      let logoBuffer = null;
+-
+-      logoBuffer=(await carregarIdentidade(req)).logoBuffer;
+-
+-      const imagemLogo =
+-        logoBuffer || (logoPath && (Buffer.isBuffer(logoPath) || fs.existsSync(logoPath)) ? logoPath : null);
+-      if (imagemLogo) {
+-        const maxLogoWidth = Math.round(pageWidth * 0.6);
+-        const logoWidth = Math.min(maxLogoWidth, Math.round(mmToPt(30)));
+-        const logoX = (pageWidth - logoWidth) / 2;
+-        const logoY = smallMargin + 4;
+-        try {
+-          doc.image(imagemLogo, logoX, logoY, {
+-            width: logoWidth,
+-            align: "center",
+-          });
+-          logoRendered = true;
+-        } catch (e) {
+-          logoRendered = false;
+-        }
+-        const logoEstimatedHeight = Math.round(logoWidth * 0.9);
+-        y = logoY + logoEstimatedHeight + 2;
+-      }
+-    } catch (e) {
+-      console.warn("Erro ao buscar logo da empresa:", e && e.message);
+-    }
+-
++    const identidadePDF = await carregarIdentidade(req, { empresaId: agendamento.empresa_id });
++    const logoW = Math.min(pageWidth * 0.65, 100), logoH = 64;
++    const logoRendered = desenharLogo(doc, identidadePDF.logoBuffer, { x: (pageWidth - logoW) / 2, y: smallMargin + 4, largura: logoW, altura: logoH });
++    var y = smallMargin + 4 + (logoRendered ? logoH + 6 : 0);
+     if (!logoRendered) {
+       const nomeEmp = empresa ? empresa.nome || empresa.razaoSocial || "" : "";
+       if (nomeEmp) {
+--- a/backend/routes/relatoriosRoutes.js
++++ b/backend/routes/relatoriosRoutes.js
+@@ -1,3 +1,4 @@
++const { carregarIdentidade, desenharLogo } = require('../services/identidadeEmpresaPDF');
+ const express = require("express");
+ const router = express.Router();
+ const { authUser } = require("../middleware/authUser");
+@@ -15,68 +16,11 @@
+ // Helper centralizado: busca a empresa do usuário logado a partir do cookie JWT
+ // Ordem: req.user.empresaId → cookie JWT → body/query → primeira ativa (último recurso)
+ async function obterEmpresaDoRequest(req) {
+-  const jwt = require("jsonwebtoken");
+-  const JWT_SECRET =
+-    process.env.JWT_USER_SECRET || "pethub_user_secret_2026_!@#$%";
+-
+-  // 1) req.user (se authUser middleware já preencheu)
+-  if (req.user && req.user.empresaId) {
+-    const emp = await Empresa.findByPk(req.user.empresaId);
+-    if (emp) return emp;
+-  }
+-
+-  // 2) Cookie JWT — mais confiável que body/query
+-  try {
+-    const cookieHeader = req.headers.cookie || "";
+-    const match = cookieHeader.match(/pethub_token=([^;]+)/);
+-    if (match) {
+-      const decoded = jwt.verify(match[1], JWT_SECRET);
+-      if (decoded.empresaId) {
+-        const emp = await Empresa.findByPk(decoded.empresaId);
+-        if (emp) return emp;
+-      }
+-    }
+-  } catch (_) {}
+-
+-  // 3) Body ou query param
+-  const idFromReq =
+-    (req.body && (req.body.empresaId || req.body.empresa_id)) ||
+-    (req.query && (req.query.empresaId || req.query.empresa_id));
+-  if (idFromReq) {
+-    const emp = await Empresa.findByPk(idFromReq);
+-    if (emp) return emp;
+-  }
+-
+-  // 4) Último recurso: NÃO retornar empresa aleatória — forçar null
+-  console.warn(
+-    "[obterEmpresaDoRequest] Nenhuma empresa identificada no request (user/cookie/body/query)",
+-  );
+-  return null;
++  const id = Number(req.user?.empresaId);
++  if (!Number.isSafeInteger(id) || id <= 0) throw Object.assign(Error('Empresa autenticada não identificada.'), { status: 401 });
++  return Empresa.findByPk(id);
  }
- .qr-dialog {
-+  position: fixed;
-+  inset: 50% auto auto 50%;
-+  transform: translate(-50%, -50%);
-+  margin: 0 !important;
-+  max-height: calc(100dvh - 32px);
-+  overflow-y: auto;
-   max-width: 760px;
-   width: 90%;
-   border: 1px solid #d6dde6;
---- a/tests/caixa-rapido.test.js
-+++ b/tests/caixa-rapido.test.js
-@@ -6,7 +6,64 @@
-   { JSDOM, VirtualConsole } = require("jsdom");
- const base = path.join(__dirname, "../frontend/atendimento/");
- const wait = (ms = 30) => new Promise((r) => setTimeout(r, ms));
--async function app(t, preferred = "rapido") {
-+test("carregamento esconde conteúdo desde o HTML e só revela o layout confirmado", async (t) => {
-+  let resolve;
-+  const deferred = new Promise((r) => (resolve = r));
-+  const a = await app(t, "rapido", {
-+    readPreference: () => deferred,
-+    beforeScripts(w, d) {
-+      assert(d.documentElement.classList.contains("qr-booting"));
-+      assert(d.querySelector("#qr-sale-content").hasAttribute("inert"));
-+      assert.match(
-+        d.querySelector("#qr-boot-critical").textContent,
-+        /html\.qr-booting #qr-sale-content\s*\{\s*display: none !important/,
-+      );
-+    },
-+  });
-+  assert(a.d.documentElement.classList.contains("qr-booting"));
-+  assert.equal(
-+    a.d.querySelector("#qr-sale-content").getAttribute("aria-busy"),
-+    "true",
+-
+-// Helper: retorna logo path absoluto e nome da empresa
+-async function obterDadosEmpresaPDF(req) {
+-  const emp = await obterEmpresaDoRequest(req);
+-  if (!emp) return { empresa: null, logoPath: null, nomeEmpresa: "" };
+-  const nomeEmpresa = emp.nome || emp.razaoSocial || "";
+-  let logoPath = null;
+-  if (emp.logo) {
+-    const logoStr = String(emp.logo);
+-    // logo pode estar como path relativo ou só o filename
+-    const candidates = [
+-      path.join(__dirname, "../../uploads", logoStr),
+-      path.join(__dirname, "../../", logoStr),
+-      path.join(__dirname, "../../uploads/logos-empresas", logoStr),
+-    ];
+-    for (const c of candidates) {
+-      if (fs.existsSync(c)) {
+-        logoPath = c;
+-        break;
+-      }
+-    }
+-  }
+-  return { empresa: emp, logoPath, nomeEmpresa };
+-}
++async function obterDadosEmpresaPDF(req) { return carregarIdentidade(req); }
+ 
+ // Helper: agrega vendas por produto e retorna array de linhas com custos e lucros
+ async function gerarDadosFaturamento(filters = {}, req) {
+@@ -351,114 +295,11 @@
+     const rowHeight = 18;
+     const cellPadding = 4;
+ 
+-    // --- Logo: preferir payload (companyLogo) -> logo da empresa -> logo padrão ---
+-    let logoBuffer = null;
+-    try {
+-      if (req.query && req.query.companyLogo) {
+-        const companyLogo = req.query.companyLogo;
+-        if (
+-          typeof companyLogo === "string" &&
+-          companyLogo.startsWith("data:")
+-        ) {
+-          const base64 = companyLogo.split(",")[1];
+-          if (base64) logoBuffer = Buffer.from(base64, "base64");
+-        } else if (typeof companyLogo === "string") {
+-          try {
+-            logoBuffer = Buffer.from(companyLogo, "base64");
+-          } catch (e) {
+-            /* ignore */
+-          }
+-        }
+-      }
+-      // Também aceitar nome de arquivo do logo via query (logoFilename)
+-      if (!logoBuffer && req.query && req.query.logoFilename) {
+-        const lf = String(req.query.logoFilename || "");
+-        try {
+-          const p = path.join(__dirname, "../../uploads", lf);
+-          if (fs.existsSync(p)) {
+-            logoBuffer = fs.readFileSync(p);
+-          }
+-        } catch (e) {
+-          /* ignore */
+-        }
+-      }
+-    } catch (e) {
+-      console.warn("Erro ao parsear companyLogo payload:", e && e.message);
+-    }
+-
+-    // Buscar empresa para logo e razão social
+-    // Buscar empresa do usuário logado (cookie JWT)
+-    let nomeEmpresa =
+-      req.query && req.query.companyName ? String(req.query.companyName) : "";
+-    try {
+-      const empresa = await obterEmpresaDoRequest(req);
+-      if (empresa) {
+-        if (!nomeEmpresa)
+-          nomeEmpresa = empresa.razaoSocial || empresa.nome || "";
+-        if (!logoBuffer && empresa.logo) {
+-          const candidates = [
+-            path.join(__dirname, "../../uploads", empresa.logo),
+-            path.join(
+-              __dirname,
+-              "../../uploads",
+-              "logos-empresas",
+-              empresa.logo,
+-            ),
+-            path.join(__dirname, "../../uploads", path.basename(empresa.logo)),
+-          ];
+-          for (const p of candidates) {
+-            if (fs.existsSync(p)) {
+-              try {
+-                logoBuffer = fs.readFileSync(p);
+-                break;
+-              } catch (e) {
+-                /* continue */
+-              }
+-            }
+-          }
+-        }
+-      }
+-    } catch (e) {
+-      console.warn(
+-        "Erro ao buscar empresa para venda-no-periodo:",
+-        e && e.message,
+-      );
+-    }
+-
+-    // Fallback logo padrão
+-    if (!logoBuffer) {
+-      const defaultPaths = [
+-        path.join(__dirname, "../../frontend/fivecon/Design sem nome (17).png"),
+-        path.join(__dirname, "../../frontend/logos/Logo PetHub (2).svg"),
+-      ];
+-      for (const p of defaultPaths) {
+-        if (fs.existsSync(p)) {
+-          try {
+-            logoBuffer = fs.readFileSync(p);
+-            break;
+-          } catch (e) {
+-            /* ignore */
+-          }
+-        }
+-      }
+-    }
+-
+-    // Desenhar logo
+-    const pageWidth = doc.page.width;
+-    const logoWidth = 90;
+-    const logoX = (pageWidth - logoWidth) / 2;
+-    const logoY = 25;
+-    if (logoBuffer) {
+-      try {
+-        doc.image(logoBuffer, logoX, logoY, {
+-          width: logoWidth,
+-          align: "center",
+-        });
+-      } catch (e) {
+-        console.warn("Erro ao desenhar logo no PDF:", e && e.message);
+-      }
+-    }
+-
++    const identidadePDF = await carregarIdentidade(req);
++    const logoBuffer = identidadePDF.logoBuffer;
++    const nomeEmpresa = identidadePDF.nomeEmpresa;
++    const pageWidth = doc.page.width, logoWidth = 90, logoX = (pageWidth - logoWidth) / 2, logoY = 25;
++    desenharLogo(doc, logoBuffer, { x: logoX, y: logoY, largura: logoWidth, altura: 65 });
+     // Título e razão social
+     const leftTable = left;
+     const usableWidth = pageUsableWidth;
+@@ -692,103 +533,11 @@
+     const rowHeight = 18;
+     const cellPadding = 4;
+ 
+-    // --- Logo: preferir payload (companyLogo) -> logo da empresa -> logo padrão ---
+-    let logoBuffer = null;
+-    try {
+-      if (req.body && req.body.companyLogo) {
+-        const companyLogo = req.body.companyLogo;
+-        if (
+-          typeof companyLogo === "string" &&
+-          companyLogo.startsWith("data:")
+-        ) {
+-          const base64 = companyLogo.split(",")[1];
+-          if (base64) logoBuffer = Buffer.from(base64, "base64");
+-        } else if (typeof companyLogo === "string") {
+-          // tentar decodificar base64 bruto (caso frontend envie assim)
+-          try {
+-            logoBuffer = Buffer.from(companyLogo, "base64");
+-          } catch (e) {
+-            /* ignore */
+-          }
+-        } else if (companyLogo && companyLogo.data) {
+-          logoBuffer = Buffer.from(companyLogo.data);
+-        }
+-      }
+-    } catch (e) {
+-      console.warn("Erro ao parsear companyLogo payload:", e && e.message);
+-    }
+-
+-    // Se não veio pelo payload, tentar buscar da tabela Empresa
+-    if (!logoBuffer) {
+-      try {
+-        const empresa = await obterEmpresaDoRequest(req);
+-        if (empresa && empresa.logo) {
+-          const candidates = [
+-            path.join(__dirname, "../../uploads", empresa.logo),
+-            path.join(
+-              __dirname,
+-              "../../uploads",
+-              "logos-empresas",
+-              empresa.logo,
+-            ),
+-            path.join(__dirname, "../../uploads", path.basename(empresa.logo)),
+-          ];
+-          for (const p of candidates) {
+-            if (fs.existsSync(p)) {
+-              try {
+-                logoBuffer = fs.readFileSync(p);
+-                break;
+-              } catch (e) {
+-                /* continue */
+-              }
+-            }
+-          }
+-        }
+-      } catch (e) {
+-        console.warn("Erro ao buscar logo da empresa:", e && e.message);
+-      }
+-    }
+-
+-    // Fallback para logo padrão do sistema (frontend assets)
+-    if (!logoBuffer) {
+-      const defaultPaths = [
+-        path.join(__dirname, "../../frontend/fivecon/Design sem nome (17).png"),
+-        path.join(__dirname, "../../frontend/logos/Logo PetHub (2).svg"),
+-      ];
+-      for (const p of defaultPaths) {
+-        if (fs.existsSync(p)) {
+-          try {
+-            logoBuffer = fs.readFileSync(p);
+-            break;
+-          } catch (e) {
+-            /* ignore */
+-          }
+-        }
+-      }
+-    }
+-
+-    // Desenhar logo no topo (header), sem reduzir a largura disponível da tabela
+-    const pageWidth = doc.page.width;
+-    // permitir ajuste via payload (companyLogoWidth), senão usar 90pt
+-    const logoWidth =
+-      typeof req.body.companyLogoWidth === "number" &&
+-      req.body.companyLogoWidth > 0
+-        ? req.body.companyLogoWidth
+-        : req.body && Number(req.body.companyLogoWidth)
+-          ? Number(req.body.companyLogoWidth)
+-          : 90;
+-    const logoX = (pageWidth - logoWidth) / 2;
+-    const logoY = 25;
+-    if (logoBuffer) {
+-      try {
+-        doc.image(logoBuffer, logoX, logoY, {
+-          width: logoWidth,
+-          align: "center",
+-        });
+-      } catch (e) {
+-        console.warn("Erro ao desenhar logo no PDF:", e && e.message);
+-      }
+-    }
++    const identidadePDF = await carregarIdentidade(req);
++    const logoBuffer = identidadePDF.logoBuffer;
++    const nomeEmpresa = identidadePDF.nomeEmpresa;
++    const pageWidth = doc.page.width, logoWidth = 90, logoX = (pageWidth - logoWidth) / 2, logoY = 25;
++    desenharLogo(doc, logoBuffer, { x: logoX, y: logoY, largura: logoWidth, altura: 65 });
+     // tabela usa a largura total disponível na página
+     const leftTable = left;
+     let usableWidth = pageUsableWidth;
+@@ -1946,7 +1695,7 @@
+     // ---- cabeçalho da primeira página ----
+     const desenharCabecalho = () => {
+       if (logoPath) {
+-        doc.image(logoPath, pageW / 2 - 40, 20, { width: 80 });
++        desenharLogo(doc, logoPath, { x: pageW / 2 - 40, y: 20, largura: 80, altura: 65 });
+       }
+       doc.y = logoPath ? 110 : 40;
+       doc
+@@ -2516,9 +2265,7 @@
+     const drawHeader = () => {
+       if (empData.logoPath) {
+         try {
+-          doc.image(empData.logoPath, doc.page.width / 2 - 30, 30, {
+-            width: 60,
+-          });
++          desenharLogo(doc, empData.logoPath, { x: doc.page.width / 2 - 30, y: 30, largura: 60, altura: 50 });
+           doc.moveDown(4);
+         } catch (_) {
+           doc.moveDown(1);
+@@ -2763,29 +2510,8 @@
+     // pipe direto para response
+     doc.pipe(res);
+ 
+-    // Cabeçalho com logo da empresa
+-    let logoPath = path.join(
+-      __dirname,
+-      "../../frontend/fivecon/Design sem nome (17).png",
+-    ); // logo padrão
+-
+-    // Se empresa tem logo, usar a logo da empresa
+-    if (empresa && empresa.logo && empresa.logo !== "") {
+-      const empresaLogoPath = path.join(
+-        __dirname,
+-        "../../uploads",
+-        empresa.logo,
+-      );
+-      if (fs.existsSync(empresaLogoPath)) {
+-        logoPath = empresaLogoPath;
+-        console.log("✅ Usando logo da empresa:", empresa.logo);
+-      }
+-    }
+-
+-    if (fs.existsSync(logoPath)) {
+-      doc.image(logoPath, 595 / 2 - 55, 30, { width: 110, align: "center" }); // centralizar logo
+-    }
+-
++    const identidadePDF = await carregarIdentidade(req);
++    desenharLogo(doc, identidadePDF.logoBuffer, { x: 595 / 2 - 55, y: 30, largura: 110, altura: 75 });
+     // Título
+     doc.fontSize(14).font("Helvetica-Bold");
+     doc.text("RELATÓRIO DE PRODUTO", 0, 150, { align: "center" });
+@@ -3006,77 +2732,10 @@
+       console.warn("⚠️ Erro ao buscar empresa para entradas:", e && e.message);
+     }
+ 
+-    // pegar logo do payload (base64) se foi enviada, senão usar logo da empresa, senão fallback local
+-    const companyLogo = req.body.companyLogo || null;
+-    const companyRazao =
+-      (empresa ? empresa.razaoSocial || empresa.nome : null) ||
+-      req.body.companyRazao ||
+-      "";
+-
+-    let logoRendered = false;
+-    // permitir ajuste de largura da logo via payload (em pontos). Default menor para visual menos dominante.
+-    const logoWidth =
+-      typeof req.body.companyLogoWidth === "number" &&
+-      req.body.companyLogoWidth > 0
+-        ? req.body.companyLogoWidth
+-        : req.body && Number(req.body.companyLogoWidth)
+-          ? Number(req.body.companyLogoWidth)
+-          : 90;
+-    const pageWidth = 595;
+-    const logoX = (pageWidth - logoWidth) / 2;
+-    const logoY = 25;
+-
+-    if (
+-      companyLogo &&
+-      typeof companyLogo === "string" &&
+-      companyLogo.startsWith("data:image/")
+-    ) {
+-      try {
+-        const base64Data = companyLogo.split(",")[1];
+-        const imgBuffer = Buffer.from(base64Data, "base64");
+-        doc.image(imgBuffer, logoX, logoY, {
+-          width: logoWidth,
+-          align: "center",
+-        });
+-        logoRendered = true;
+-      } catch (e) {
+-        logoRendered = false;
+-      }
+-    }
+-
+-    if (!logoRendered && empresa && empresa.logo && empresa.logo !== "") {
+-      try {
+-        const empresaLogoPath = path.join(
+-          __dirname,
+-          "../../uploads",
+-          empresa.logo,
+-        );
+-        if (fs.existsSync(empresaLogoPath)) {
+-          doc.image(empresaLogoPath, logoX, logoY, {
+-            width: logoWidth,
+-            align: "center",
+-          });
+-          logoRendered = true;
+-        }
+-      } catch (e) {
+-        /* noop */
+-      }
+-    }
+-
+-    if (!logoRendered) {
+-      try {
+-        const logoPath = path.join(
+-          __dirname,
+-          "../../frontend/fivecon/Design sem nome (17).png",
+-        );
+-        if (fs.existsSync(logoPath))
+-          doc.image(logoPath, logoX, logoY, {
+-            width: logoWidth,
+-            align: "center",
+-          });
+-      } catch (e) {}
+-    }
+-
++    const companyRazao = empresa ? empresa.razaoSocial || empresa.nome : '';
++    const identidadePDF = await carregarIdentidade(req);
++    const pageWidth = doc.page.width, logoWidth = 90, logoX = (pageWidth - logoWidth) / 2, logoY = 25;
++    const logoRendered = desenharLogo(doc, identidadePDF.logoBuffer, { x: logoX, y: logoY, largura: logoWidth, altura: 65 });
+     // Título específico para Entradas (mantendo o estilo visual)
+     const tituloY = Math.max(110, logoY + 85);
+     doc.fontSize(14).font("Helvetica-Bold");
+@@ -3365,104 +3024,9 @@
+         (empresa.razaoSocial || empresa.nome || empresa.nomeFantasia)) ||
+       "";
+ 
+-    // Lidar com o logo: aceitar data-URI (base64) ou nome/URL de arquivo que exista em uploads
+-    const payloadLogo = req.body && req.body.companyLogo;
+-    let logoRendered = false;
+-    const logoWidth =
+-      typeof req.body.companyLogoWidth === "number" &&
+-      req.body.companyLogoWidth > 0
+-        ? req.body.companyLogoWidth
+-        : req.body && Number(req.body.companyLogoWidth)
+-          ? Number(req.body.companyLogoWidth)
+-          : 90;
+-    const pageWidth = 595; // largura A4
+-    const logoX = (pageWidth - logoWidth) / 2; // centralizar horizontalmente
+-    const logoY = 25; // posição Y fixa no topo
+-
+-    if (payloadLogo && typeof payloadLogo === "string") {
+-      try {
+-        if (payloadLogo.startsWith("data:image/")) {
+-          const base64Data = payloadLogo.split(",")[1];
+-          if (!base64Data) throw new Error("Base64 data inválida");
+-          const estimatedSize = (base64Data.length * 3) / 4;
+-          if (estimatedSize > 5 * 1024 * 1024)
+-            throw new Error("Logo excede 5MB");
+-          const imgBuffer = Buffer.from(base64Data, "base64");
+-          doc.image(imgBuffer, logoX, logoY, {
+-            width: logoWidth,
+-            align: "center",
+-          });
+-          logoRendered = true;
+-        } else {
+-          // tentar localizar arquivo no diretório uploads (aceita nome de arquivo ou URL que contenha o nome)
+-          const candidate = path.join(
+-            __dirname,
+-            "../../uploads",
+-            path.basename(payloadLogo),
+-          );
+-          if (fs.existsSync(candidate)) {
+-            doc.image(candidate, logoX, logoY, {
+-              width: logoWidth,
+-              align: "center",
+-            });
+-            logoRendered = true;
+-          }
+-        }
+-      } catch (logoErr) {
+-        console.warn(
+-          "⚠️ Erro ao incluir logo do payload:",
+-          logoErr && logoErr.message,
+-        );
+-        logoRendered = false;
+-      }
+-    }
+-
+-    // tentar logo da empresa se não renderizou a do payload
+-    if (!logoRendered && empresa && empresa.logo) {
+-      try {
+-        const empresaLogoPath = path.join(
+-          __dirname,
+-          "../../uploads",
+-          String(empresa.logo),
+-        );
+-        if (fs.existsSync(empresaLogoPath)) {
+-          doc.image(empresaLogoPath, logoX, logoY, {
+-            width: logoWidth,
+-            align: "center",
+-          });
+-          logoRendered = true;
+-          console.log("✅ Usando logo da empresa:", empresa.logo);
+-        }
+-      } catch (logoErr) {
+-        console.warn(
+-          "⚠️ Erro ao incluir logo da empresa:",
+-          logoErr && logoErr.message,
+-        );
+-        logoRendered = false;
+-      }
+-    }
+-
+-    // fallback: tentar logo local padrão se ainda não renderizou
+-    if (!logoRendered) {
+-      try {
+-        const logoPath = path.join(
+-          __dirname,
+-          "../../frontend/fivecon/Design sem nome (17).png",
+-        );
+-        if (fs.existsSync(logoPath)) {
+-          doc.image(logoPath, logoX, logoY, {
+-            width: logoWidth,
+-            align: "center",
+-          });
+-        }
+-      } catch (localLogoErr) {
+-        console.warn(
+-          "⚠️ Erro ao incluir logo local:",
+-          localLogoErr && localLogoErr.message,
+-        );
+-      }
+-    }
+-
++    const identidadePDF = await carregarIdentidade(req);
++    const pageWidth = doc.page.width, logoWidth = 90, logoX = (pageWidth - logoWidth) / 2, logoY = 25;
++    const logoRendered = desenharLogo(doc, identidadePDF.logoBuffer, { x: logoX, y: logoY, largura: logoWidth, altura: 65 });
+     // Título centralizado com espaço seguro abaixo da logo (mínimo 110px do topo)
+     const tituloY = Math.max(110, logoY + 85); // garante espaço mínimo maior entre logo e título
+     doc.fontSize(14).font("Helvetica-Bold");
+@@ -3831,40 +3395,8 @@
+     const logoX = 50; // deixar margem esquerda para a logo
+     const logoY = 25;
+ 
+-    // tentar usar logo da empresa (upload), senão fallback para frontend/logo
+-    let renderedLogo = false;
+-    try {
+-      if (empresa && empresa.logo) {
+-        const empresaLogoPath = path.join(
+-          __dirname,
+-          "../../uploads",
+-          empresa.logo,
+-        );
+-        if (fs.existsSync(empresaLogoPath)) {
+-          doc.image(empresaLogoPath, logoX, logoY, { width: logoWidth });
+-          renderedLogo = true;
+-        }
+-      }
+-    } catch (errLogo) {
+-      console.warn(
+-        "⚠️ Falha ao tentar renderizar logo da empresa:",
+-        errLogo && errLogo.message,
+-      );
+-    }
+-
+-    if (!renderedLogo) {
+-      try {
+-        const defaultLogo = path.join(
+-          __dirname,
+-          "../../frontend/fivecon/Design sem nome (17).png",
+-        );
+-        if (fs.existsSync(defaultLogo))
+-          doc.image(defaultLogo, logoX, logoY, { width: logoWidth });
+-      } catch (e) {
+-        /* ignore */
+-      }
+-    }
+-
++    const identidadePDF = await carregarIdentidade(req);
++    desenharLogo(doc, identidadePDF.logoBuffer, { x: logoX, y: logoY, largura: logoWidth, altura: 60 });
+     // Título centralizado
+     const tituloY = 40;
+     doc.fontSize(14).font("Helvetica-Bold");
+@@ -4106,52 +3638,10 @@
+     );
+     doc.pipe(res);
+ 
+-    // LOGO DA EMPRESA (mesmo estilo do relatório de produtos)
+-    const companyRazaoFinal = companyRazao || "SUA EMPRESA";
+-    let logoRendered = false;
+-    const logoWidth = 120;
+-    const pageWidth = 595;
+-    const logoX = (pageWidth - logoWidth) / 2;
+-    const logoY = 25;
+-
+-    if (
+-      companyLogo &&
+-      typeof companyLogo === "string" &&
+-      companyLogo.startsWith("data:image/")
+-    ) {
+-      try {
+-        const base64Data = companyLogo.split(",")[1];
+-        if (!base64Data) throw new Error("Base64 data inválida");
+-        const estimatedSize = (base64Data.length * 3) / 4;
+-        if (estimatedSize > 5 * 1024 * 1024) throw new Error("Logo excede 5MB");
+-        const imgBuffer = Buffer.from(base64Data, "base64");
+-        doc.image(imgBuffer, logoX, logoY, {
+-          width: logoWidth,
+-          align: "center",
+-        });
+-        logoRendered = true;
+-      } catch (logoErr) {
+-        console.warn("⚠️ Erro ao incluir logo:", logoErr.message);
+-      }
+-    }
+-
+-    if (!logoRendered) {
+-      try {
+-        const logoPath = path.join(
+-          __dirname,
+-          "../../frontend/fivecon/Design sem nome (17).png",
+-        );
+-        if (fs.existsSync(logoPath)) {
+-          doc.image(logoPath, logoX, logoY, {
+-            width: logoWidth,
+-            align: "center",
+-          });
+-        }
+-      } catch (err) {
+-        /* ignore */
+-      }
+-    }
+-
++    const identidadePDF = await carregarIdentidade(req);
++    const companyRazaoFinal = identidadePDF.nomeEmpresa;
++    const pageWidth = doc.page.width, logoWidth = 110, logoX = (pageWidth - logoWidth) / 2, logoY = 25;
++    const logoRendered = desenharLogo(doc, identidadePDF.logoBuffer, { x: logoX, y: logoY, largura: logoWidth, altura: 75 });
+     // CABEÇALHO (posicionar abaixo da logo)
+     const tituloY = Math.max(110, logoY + 85);
+     doc.fontSize(18).font("Helvetica-Bold").fillColor("#000");
+--- a/backend/routes/empresaRoutes.js
++++ b/backend/routes/empresaRoutes.js
+@@ -12,6 +12,16 @@
+ router.get("/pix/ultima", authUser, empresaController.getUltimaChavePix);
+ router.post("/pix/ultima", authUser, empresaController.setUltimaChavePix);
+ 
++// Imagem atual para PDFs gerados no navegador; sem cache para respeitar remoção/troca.
++router.get('/logo-pdf', authUser, async (req, res) => {
++  try {
++    const identidade = await require('../services/identidadeEmpresaPDF').carregarIdentidade(req);
++    if (!identidade.logoBuffer) return res.status(404).json({ erro: 'Logo indisponível.' });
++    res.set({ 'Content-Type': 'image/png', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' });
++    res.send(identidade.logoBuffer);
++  } catch (e) { res.status(e.status || 500).json({ erro: e.status ? e.message : 'Não foi possível carregar a logo.' }); }
++});
++
+ // Rotas com parâmetro devem vir por último para não sobrescrever rotas estáticas
+ router.get("/:id", authUser, empresaController.buscarEmpresa);
+ router.post("/", authUser, empresaController.criarEmpresa);
+--- a/backend/services/notaFiscalService.js
++++ b/backend/services/notaFiscalService.js
+@@ -762,6 +762,8 @@
+     ? `R$ ${Number(nota.valor_total).toFixed(2).replace(".", ",")}`
+     : "—";
+ 
++  const identidadePDF = await require('./identidadeEmpresaPDF').carregarIdentidade({ user: { empresaId } }, { empresaId: nota.empresa_id });
++
+   return new Promise((resolve, reject) => {
+     const doc = new PDFDocument({ size: "A4", margin: 40 });
+     const chunks = [];
+@@ -769,6 +771,8 @@
+     doc.on("end", () => resolve(Buffer.concat(chunks)));
+     doc.on("error", reject);
+ 
++    require('./identidadeEmpresaPDF').desenharLogo(doc, identidadePDF.logoBuffer, { x: (doc.page.width - 100) / 2, y: 30, largura: 100, altura: 65 });
++    doc.y = 110;
+     doc.font("Helvetica-Bold").fontSize(20).text("DANFE");
+     doc
+       .font("Helvetica")
+--- /dev/null
++++ b/backend/scripts/verificar-logos-pdf.js
+@@ -0,0 +1,6 @@
++'use strict';
++// Verificação local, sem conectar ao banco nem modificar arquivos.
++for (const pacote of ['pdfkit', 'sharp']) {
++  try { require(pacote); console.log(pacote + ': disponível'); }
++  catch (_) { console.error(pacote + ': ausente. Instale como dependência de produção.'); process.exitCode = 1; }
++}
+--- a/frontend/compras/fornecedor-perfil.js
++++ b/frontend/compras/fornecedor-perfil.js
+@@ -1019,38 +1019,10 @@
+     }
+ 
+     let logoDataUrl = null;
+-    if (empresa && empresa.logo) {
+-        try {
+-            if (typeof empresa.logo === 'string') {
+-                if (empresa.logo.indexOf('data:') === 0) {
+-                    logoDataUrl = empresa.logo;
+-                } else if (/^[A-Za-z0-9+/=\s]+$/.test(empresa.logo)) {
+-                    // base64 puro
+-                    logoDataUrl = 'data:image/png;base64,' + empresa.logo.replace(/\s+/g, '');
+-                } else {
+-                    // tentar buscar como caminho relativo/absoluto ou URL completa
+-                    try {
+-                        let pathCandidate = empresa.logo;
+-                        // se for apenas nome de arquivo, presumir diretório /uploads/
+-                        if (!pathCandidate.startsWith('http') && !pathCandidate.startsWith('/') && pathCandidate.indexOf('/') === -1) {
+-                            pathCandidate = '/uploads/' + pathCandidate;
+-                        }
+-                        const fullUrl = pathCandidate.startsWith('http') ? pathCandidate : new URL(pathCandidate, window.location.origin).href;
+-                        const resp = await fetch(fullUrl);
+-                        if (resp.ok) {
+-                            const blob = await resp.blob();
+-                            logoDataUrl = await blobToDataURL(blob);
+-                        }
+-                    } catch(e) { /* falha ao buscar remoto */ }
+-                }
+-            } else if (typeof empresa.logo === 'object') {
+-                // tentativas anteriores podem ter convertido alguns campos
+-                if (empresa.logo.dataUrl) logoDataUrl = empresa.logo.dataUrl;
+-                else if (empresa.logo.src) logoDataUrl = empresa.logo.src;
+-                else if (empresa.logo.base64) logoDataUrl = 'data:image/png;base64,' + String(empresa.logo.base64).replace(/\s+/g, '');
+-            }
+-        } catch(e) { console.warn('Erro ao resolver logo da empresa:', e); }
+-    }
++    try {
++      const respostaLogo = await fetch('/api/empresas/logo-pdf', { credentials: 'include', cache: 'no-store' });
++      if (respostaLogo.ok) logoDataUrl = await blobToDataURL(await respostaLogo.blob());
++    } catch (e) { console.warn('Erro ao carregar logo atual para o PDF:', e); }
+ 
+     // logo à esquerda (se disponível) - desenhar preservando proporção
+     let logoDrawHeight = 70;
+--- a/frontend/painel/rel-recebiveis-produto.js
++++ b/frontend/painel/rel-recebiveis-produto.js
+@@ -1477,17 +1477,20 @@
+         filtroProfissional,
+       };
+ 
+-      // Buscar logo e razão social da empresa da API
++      // Mesma identidade autenticada dos PDFs do servidor; respeita troca e remoção da logo.
+       try {
+-        const empresasData = await ApiClient.getEmpresas();
+-        if (empresasData.length > 0 && empresasData[0].logoDataUrl) {
+-          payload.companyLogo = empresasData[0].logoDataUrl;
+-          payload.companyRazao = empresasData[0].razaoSocial || "";
+-          console.log("✅ Logo e razão social carregados");
++        const resposta = await fetch('/api/empresas/logo-pdf', { credentials: 'include', cache: 'no-store' });
++        if (resposta.ok) {
++          const blobLogo = await resposta.blob();
++          payload.companyLogo = await new Promise((resolve, reject) => {
++            const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject;
++            reader.readAsDataURL(blobLogo);
++          });
+         }
+-      } catch (e) {
+-        console.warn("⚠️ Erro ao carregar logo da empresa:", e);
+-      }
++        const empresas = await ApiClient.getEmpresas();
++        const empresa = Array.isArray(empresas) ? empresas[0] : empresas;
++        payload.companyRazao = empresa?.razaoSocial || empresa?.nome || '';
++      } catch (e) { console.warn('Erro ao carregar identidade para o PDF:', e); }
+ 
+       console.log("🚀 Payload preparado (API futura):", payload);
+ 
+--- /dev/null
++++ b/tests/pdf-logo-empresa.test.js
+@@ -0,0 +1,279 @@
++"use strict";
++const { test } = require("node:test"),
++  assert = require("node:assert/strict");
++const fs = require("node:fs/promises"),
++  path = require("node:path"),
++  os = require("node:os");
++const sharp = require("sharp"),
++  PDFDocument = require("pdfkit");
++const {
++  criarServico,
++  desenharLogo,
++} = require("../backend/services/identidadeEmpresaPDF");
++async function fixture(t) {
++  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "pethub-pdf-logo-"));
++  t.after(() => fs.rm(dir, { recursive: true, force: true }));
++  await fs.mkdir(path.join(dir, "frontend/fivecon"), { recursive: true });
++  const image = (color, w = 300, h = 120) =>
++    sharp({ create: { width: w, height: h, channels: 4, background: color } })
++      .png()
++      .toBuffer();
++  const red = await image("#ff0000"),
++    blue = await image("#0000ff"),
++    fallback = await image("#ffaa33");
++  await fs.writeFile(
++    path.join(dir, "frontend/fivecon/Design sem nome (17).png"),
++    fallback,
 +  );
-+  assert(a.d.querySelector("#qr-layout-toggle").disabled);
-+  resolve({ layout: "rapido" });
-+  await wait(70);
-+  assert(!a.d.documentElement.classList.contains("qr-booting"));
-+  assert(!a.d.querySelector("#qr-sale-content").hasAttribute("inert"));
-+  assert(a.d.querySelector(".nova-venda-layout").hidden);
-+  assert(!a.d.querySelector("#qr-shell").hidden);
-+  assert.equal(a.d.activeElement.id, "pesquisarProduto");
-+  assert.equal(a.errors.length, 0);
-+});
-+test("erro de preferência não revela o clássico; nova tentativa aplica escolha da empresa", async (t) => {
-+  let attempts = 0;
-+  const a = await app(t, "rapido", {
-+    readPreference: async () => {
-+      attempts++;
-+      if (attempts === 1) throw Error("offline");
-+      return { layout: "rapido" };
++  const companies = new Map([
++      [1, { id: 1, nome: "Empresa A", logo: "/uploads/empresas/a.webp" }],
++      [2, { id: 2, nome: "Empresa B", logo: "/uploads/empresas/b.webp" }],
++    ]),
++    calls = [];
++  const service = criarServico({
++    diretorio: dir,
++    Empresa: { findByPk: async (id) => companies.get(id) },
++    lerMidia: async (emp, ref) => {
++      calls.push({ emp, ref });
++      if (emp === 1 && ref.endsWith("a.webp")) return { bytes: red };
++      if (emp === 2 && ref.endsWith("b.webp")) return { bytes: blue };
++      throw Object.assign(Error("Arquivo não autorizado"), { status: 403 });
 +    },
++    log: { warn() {} },
 +  });
-+  assert(a.d.documentElement.classList.contains("qr-booting"));
-+  assert(!a.d.querySelector("#qr-boot-error").hidden);
-+  a.click("#qr-boot-retry");
-+  await wait(70);
-+  assert.equal(attempts, 2);
-+  assert(!a.d.documentElement.classList.contains("qr-booting"));
-+  assert.equal(a.w.PetHubCaixa.layout, "rapido");
-+  assert.equal(a.errors.length, 0);
-+});
-+test("preferência clássico libera somente o clássico e remove estado de carregamento", async (t) => {
-+  const a = await app(t, "classico");
-+  assert(!a.d.documentElement.classList.contains("qr-booting"));
-+  assert(!a.d.querySelector(".nova-venda-layout").hidden);
-+  assert(a.d.querySelector("#qr-shell").hidden);
-+  assert.equal(
-+    a.d.querySelector("#qr-sale-content").getAttribute("aria-busy"),
-+    "false",
++  return { dir, service, companies, calls, red, blue, fallback, image };
++}
++async function rgb(bytes) {
++  const { data } = await sharp(bytes)
++    .extract({ left: 320, top: 200, width: 1, height: 1 })
++    .removeAlpha()
++    .raw()
++    .toBuffer({ resolveWithObject: true });
++  return [...data];
++}
++test("logo persistente é lida com empresa autenticada e payload antigo não substitui cadastro", async (t) => {
++  const f = await fixture(t);
++  const a = await f.service.carregarIdentidade({
++    user: { empresaId: 1 },
++    body: { companyLogo: f.blue.toString("base64"), empresaId: 2 },
++    query: { empresaId: 2 },
++  });
++  assert.equal(a.origem, "empresa");
++  assert.deepEqual(await rgb(a.logoBuffer), [255, 0, 0]);
++  assert.deepEqual(f.calls, [{ emp: 1, ref: "/uploads/empresas/a.webp" }]);
++  const b = await f.service.carregarIdentidade({ user: { empresaId: 2 } });
++  assert.deepEqual(await rgb(b.logoBuffer), [0, 0, 255]);
++  await assert.rejects(
++    () =>
++      f.service.carregarIdentidade(
++        { user: { empresaId: 1 } },
++        { empresaId: 2 },
++      ),
++    { status: 403 },
++  );
++  await assert.rejects(
++    () => f.service.carregarIdentidade({ query: { empresaId: 1 } }),
++    { status: 401 },
 +  );
 +});
-+async function app(t, preferred = "rapido", options = {}) {
-   const errors = [],
-     calls = [],
-     vc = new VirtualConsole();
-@@ -54,6 +111,12 @@
-     request: async (p, o = {}) => {
-       calls.push({ p, ...o });
-       if (p === "/caixas/aberto") return { aberto: true };
-+      if (
-+        p === "/vendas/preferencias/layout-caixa" &&
-+        !o.method &&
-+        options.readPreference
-+      )
-+        return options.readPreference();
-       if (o.method === "PUT") {
-         preferred = JSON.parse(o.body).layout;
-         return { layout: preferred };
-@@ -72,6 +135,7 @@
-     },
-     atualizarEstoque: async (...args) => calls.push({ kind: "stock", args }),
-   };
-+  options.beforeScripts?.(w, d);
-   w.eval(fs.readFileSync(base + "nova-venda.js", "utf8"));
-   w.eval(fs.readFileSync(base + "caixa-rapido.js", "utf8"));
-   await wait(350);
++test("remover logo usa PetHub imediatamente, sem cache nem imagem antiga de outra empresa", async (t) => {
++  const f = await fixture(t);
++  await f.service.carregarIdentidade({ user: { empresaId: 1 } });
++  f.companies.get(1).logo = null;
++  const a = await f.service.carregarIdentidade({
++    user: { empresaId: 1 },
++    body: { companyLogo: f.red.toString("base64") },
++  });
++  assert.equal(a.origem, "padrao");
++  assert.deepEqual(await rgb(a.logoBuffer), [255, 170, 51]);
++  f.companies.get(1).logo = "/uploads/empresas/b.webp";
++  const invalid = await f.service.carregarIdentidade({
++    user: { empresaId: 1 },
++  });
++  assert.notDeepEqual(await rgb(invalid.logoBuffer), [0, 0, 255]);
++});
++test("nomes antigos, data URLs, JPEG, WebP e SVG são normalizados sem distorção", async (t) => {
++  const f = await fixture(t);
++  await fs.mkdir(path.join(f.dir, "uploads"), { recursive: true });
++  await fs.writeFile(path.join(f.dir, "uploads", "logo.png"), f.red);
++  const local = criarServico({
++    Empresa: { findByPk: async () => f.companies.get(1) },
++    diretorio: f.dir,
++    log: { warn() {} },
++  });
++  for (const ref of [
++    "logo.png",
++    "/uploads/logo.png",
++    "data:image/png;base64," + f.red.toString("base64"),
++  ]) {
++    f.companies.get(1).logo = ref;
++    const a = await local.carregarIdentidade({ user: { empresaId: 1 } });
++    assert.deepEqual(await rgb(a.logoBuffer), [255, 0, 0]);
++  }
++  for (const format of ["webp", "jpeg"]) {
++    const img = await sharp(f.red).toFormat(format).toBuffer();
++    f.companies.get(1).logo =
++      "data:image/" + format + ";base64," + img.toString("base64");
++    const a = await local.carregarIdentidade({ user: { empresaId: 1 } });
++    assert.equal((await sharp(a.logoBuffer).metadata()).format, "png");
++  }
++  const svg = Buffer.from(
++    '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="200"><rect width="100" height="200" fill="red"/></svg>',
++  );
++  f.companies.get(1).logo =
++    "data:image/svg+xml;base64," + svg.toString("base64");
++  const a = await local.carregarIdentidade({ user: { empresaId: 1 } });
++  const { info } = await sharp(a.logoBuffer)
++    .trim()
++    .toBuffer({ resolveWithObject: true });
++  assert(Math.abs(info.width / info.height - 0.5) < 0.02);
++});
++test("PDFKit gera cupom e A4 reais com logo dentro da área reservada", async (t) => {
++  const f = await fixture(t),
++    a = await f.service.carregarIdentidade({ user: { empresaId: 1 } });
++  for (const width of [204, 595]) {
++    const doc = new PDFDocument({ size: [width, 842], margin: 8 }),
++      chunks = [];
++    const result = new Promise((resolve, reject) => {
++      doc.on("data", (b) => chunks.push(b));
++      doc.on("end", () => resolve(Buffer.concat(chunks)));
++      doc.on("error", reject);
++    });
++    assert.equal(
++      desenharLogo(doc, a.logoBuffer, {
++        x: (width - 90) / 2,
++        y: 10,
++        largura: 90,
++        altura: 64,
++      }),
++      true,
++    );
++    doc.text("Empresa A", 8, 82, { width: width - 16, align: "center" });
++    doc.end();
++    const pdf = await result;
++    assert.equal(pdf.subarray(0, 5).toString(), "%PDF-");
++    assert(pdf.includes(Buffer.from("/Subtype /Image")));
++  }
++});
++test("rotas reais de comprovante e faturamento incorporam logo da empresa e rejeitam documento cruzado", async (t) => {
++  const f = await fixture(t),
++    express = require("express"),
++    vm = require("node:vm"),
++    syncfs = require("node:fs");
++  const helper = require("../backend/services/identidadeEmpresaPDF"),
++    records = [];
++  const authUser = (req, res, next) => {
++    const emp = Number(req.get("x-company"));
++    if (!emp) return res.sendStatus(401);
++    req.user = { empresaId: emp, id: 1 };
++    next();
++  };
++  const Venda = {
++    findOne: async ({ where }) =>
++      Number(where.id) === 10 && Number(where.empresa_id) === 1
++        ? {
++            id: 10,
++            empresa_id: 1,
++            itens: [],
++            pagamentos: [],
++            totais: {},
++            data: new Date(),
++          }
++        : null,
++    findAll: async () => [],
++  };
++  const models = {
++    Venda,
++    Empresa: { findByPk: async (id) => f.companies.get(Number(id)) },
++    Cliente: { findByPk: async () => null },
++    Produto: { findAll: async () => [] },
++  };
++  function load(name) {
++    const filename = path.join(__dirname, "../backend/routes", name),
++      module = { exports: {} };
++    const customRequire = (p) => {
++      if (p === "../services/identidadeEmpresaPDF")
++        return {
++          ...helper,
++          carregarIdentidade: async (req, op) => {
++            const r = await f.service.carregarIdentidade(req, op);
++            records.push({ emp: req.user.empresaId, origem: r.origem });
++            return r;
++          },
++        };
++      if (p === "../models") return models;
++      if (p === "../models/Venda") return { Venda };
++      if (p === "../models/Produto") return models.Produto;
++      if (p === "../models/Cliente")
++        return { Cliente: models.Cliente, sequelize: {} };
++      if (p === "../models/Agendamento") return { Agendamento: {} };
++      if (p === "../models/Pet") return {};
++      if (p === "../middleware/authUser") return { authUser };
++      if (p === "../middleware/exigePermissao")
++        return { exigePermissao: () => (req, res, next) => next() };
++      if (p === "../services/layoutCaixa")
++        return { criarRouter: () => express.Router() };
++      if (p === "../services/validarVendaCaixa")
++        return { criarValidador: () => (req, res, next) => next() };
++      if (p === "../controllers/vendaController")
++        return new Proxy({}, { get: () => (req, res) => res.sendStatus(204) });
++      return require(p);
++    };
++    vm.runInNewContext(
++      syncfs.readFileSync(filename, "utf8"),
++      {
++        require: customRequire,
++        module,
++        exports: module.exports,
++        __dirname: path.dirname(filename),
++        Buffer,
++        console,
++        setTimeout,
++        clearTimeout,
++        process,
++      },
++      { filename },
++    );
++    return module.exports;
++  }
++  const app = express();
++  app.use(express.json());
++  app.use("/vendas", load("vendaRoutes.js"));
++  app.use("/relatorios", load("relatoriosRoutes.js"));
++  const server = app.listen(0, "127.0.0.1");
++  await new Promise((r) => server.once("listening", r));
++  t.after(() => new Promise((r) => server.close(r)));
++  const base = `http://127.0.0.1:${server.address().port}`;
++  assert.equal(
++    (
++      await fetch(base + "/vendas/10/comprovante", {
++        headers: { "x-company": "2" },
++      })
++    ).status,
++    404,
++  );
++  assert.equal((await fetch(base + "/vendas/10/comprovante")).status, 401);
++  for (const url of [
++    "/vendas/10/comprovante",
++    "/relatorios/venda-no-periodo/pdf",
++  ]) {
++    const res = await fetch(base + url, { headers: { "x-company": "1" } });
++    assert.equal(res.status, 200);
++    assert.match(res.headers.get("content-type"), /application\/pdf/);
++    const pdf = Buffer.from(await res.arrayBuffer());
++    assert(pdf.includes(Buffer.from("/Subtype /Image")));
++    assert.equal(pdf.subarray(0, 5).toString(), "%PDF-");
++  }
++  f.companies.get(1).logo = null;
++  const faturamento = await fetch(base + '/relatorios/faturamento/pdf', {
++    method: 'POST', headers: { 'x-company': '1', 'content-type': 'application/json' },
++    body: JSON.stringify({ companyLogo: 'data:image/png;base64,' + f.blue.toString('base64') }),
++  });
++  assert.equal(faturamento.status, 200);
++  assert(Buffer.from(await faturamento.arrayBuffer()).includes(Buffer.from('/Subtype /Image')));
++  assert.deepEqual(records, [
++    { emp: 1, origem: "empresa" },
++    { emp: 1, origem: "empresa" },
++    { emp: 1, origem: "padrao" },
++  ]);
++});

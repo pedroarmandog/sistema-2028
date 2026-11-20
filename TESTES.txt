@@ -1,25 +1,14 @@
-✔ preferência persiste por empresa, sessão/dispositivo e valida entradas/autorizações (149.50559ms)
-✔ servidor valida centavos, estoque acumulado, vínculos e soma dos pagamentos (23.078234ms)
-✔ carregamento esconde conteúdo desde o HTML e só revela o layout confirmado (554.021891ms)
-✔ erro de preferência não revela o clássico; nova tentativa aplica escolha da empresa (467.007395ms)
-✔ preferência clássico libera somente o clássico e remove estado de carregamento (383.324595ms)
-✔ troca mantém o mesmo carrinho, cliente, profissional e campos; clássico é padrão (401.447429ms)
-✔ leitor repetido incrementa, impede estoque acumulado e preserva quantidades fracionadas (608.467381ms)
-✔ atalhos, totais com descontos/acréscimo e seletores reais do layout (394.124743ms)
-✔ dinheiro/troco e F8 duplo usam uma venda e uma baixa de estoque (682.712447ms)
-✔ múltiplo recusa falta e aceita soma exata sem enviar venda parcial (751.373338ms)
-✔ seletor salva no servidor e muda sem descartar a venda; ESC pede confirmação (534.510378ms)
-✔ fechado bloqueia pagamento e falha de catálogo não introduz produtos de exemplo (415.471702ms)
-✔ busca seleciona primeiro resultado, setas mantêm foco e Enter confirma só destaque (541.033797ms)
-✔ botão fica antes do suporte inclusive montagem tardia; sem linha antiga (411.465225ms)
-✔ miniaturas reutilizam nome de arquivo, URL persistente e data URL; fallback e atualização no carrinho (393.093002ms)
-✔ Enter na quantidade confirma sem duplicar e retorna à busca; render não rouba foco de cliente/modal (468.059423ms)
-✔ Enter no pagamento adiciona valor uma vez e F8 conclui pelo fluxo original (1023.176377ms)
-ℹ tests 17
+✔ logo persistente é lida com empresa autenticada e payload antigo não substitui cadastro (46.265116ms)
+✔ remover logo usa PetHub imediatamente, sem cache nem imagem antiga de outra empresa (54.39971ms)
+✔ nomes antigos, data URLs, JPEG, WebP e SVG são normalizados sem distorção (103.282717ms)
+✔ PDFKit gera cupom e A4 reais com logo dentro da área reservada (63.915991ms)
+Fri, 20 Nov 2026 21:22:50 GMT router deprecated handlers that are Promise-like are deprecated, use a native Promise instead at ui-test-runtime/node_modules/router/lib/route.js:163:13
+✔ rotas reais de comprovante e faturamento incorporam logo da empresa e rejeitam documento cruzado (343.893241ms)
+ℹ tests 5
 ℹ suites 0
-ℹ pass 17
+ℹ pass 5
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 8559.168848
+ℹ duration_ms 821.683458

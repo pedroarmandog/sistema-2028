@@ -1,3 +1,4 @@
+const { carregarIdentidade, desenharLogo } = require('../services/identidadeEmpresaPDF');
 const express = require("express");
 const router = express.Router();
 const vendaController = require("../controllers/vendaController");
@@ -19,7 +20,7 @@ router.get("/:id/comprovante", async (req, res) => {
     const { id } = req.params;
     const PDFDocument = require("pdfkit");
 
-    const venda = await Venda.findByPk(id);
+    const venda = await Venda.findOne({ where: { id, empresa_id: req.user.empresaId } });
     if (!venda) return res.status(404).json({ erro: "Venda não encontrada" });
 
     // Buscar cliente para exibir nome e endereço no comprovante
@@ -42,6 +43,7 @@ router.get("/:id/comprovante", async (req, res) => {
       } catch (_) {}
     }
 
+    const identidadePDF = await carregarIdentidade(req, { empresaId: venda.empresa_id });
     const mmToPt = (mm) => (mm * 72) / 25.4;
     const RECEIPT_MM = 72;
     const receiptWidth = Math.round(mmToPt(RECEIPT_MM));
@@ -71,136 +73,13 @@ router.get("/:id/comprovante", async (req, res) => {
     const contentWidth = right - left;
     const lineHeight = 12;
 
-    // --- Logo e dados da empresa ---
-    let logoRendered = false;
-    let empresa = null;
-    try {
-      // Preferir empresa vinculada à venda, depois a do cookie JWT, depois a do req.user, senão qualquer empresa ativa
-      if (venda.empresa_id) empresa = await Empresa.findByPk(venda.empresa_id);
-      if (!empresa) {
-        // Tentar cookie JWT
-        try {
-          const jwt = require("jsonwebtoken");
-          const JWT_SECRET =
-            process.env.JWT_USER_SECRET || "pethub_user_secret_2026_!@#$%";
-          const cookieHeader = req.headers.cookie || "";
-          const match = cookieHeader.match(/pethub_token=([^;]+)/);
-          if (match) {
-            const decoded = jwt.verify(match[1], JWT_SECRET);
-            if (decoded.empresaId)
-              empresa = await Empresa.findByPk(decoded.empresaId);
-          }
-        } catch (_) {}
-      }
-      if (!empresa && req.user && req.user.empresaId)
-        empresa = await Empresa.findByPk(req.user.empresaId);
-      if (!empresa)
-        empresa = await Empresa.findOne({
-          where: { ativa: true },
-          order: [["id", "ASC"]],
-        });
-
-      let logoPath = null;
-      let logoBuffer = null;
-
-      // Se empresa tem logo, tentar diferentes formatos (dataURI / base64 / arquivo)
-      if (empresa && empresa.logo) {
-        try {
-          const logoVal = String(empresa.logo || "").trim();
-          if (logoVal.startsWith("data:")) {
-            const parts = logoVal.split(",");
-            if (parts[1]) logoBuffer = Buffer.from(parts[1], "base64");
-          } else if (
-            /^[A-Za-z0-9+/=\r\n]+$/.test(logoVal) &&
-            logoVal.length > 200
-          ) {
-            // provável base64 cru
-            try {
-              logoBuffer = Buffer.from(logoVal, "base64");
-            } catch (e) {
-              logoBuffer = null;
-            }
-          } else {
-            const candidates = [
-              path.join(__dirname, "../../uploads", empresa.logo),
-              path.join(
-                __dirname,
-                "../../uploads",
-                "logos-empresas",
-                empresa.logo,
-              ),
-              path.join(
-                __dirname,
-                "../../uploads",
-                path.basename(empresa.logo),
-              ),
-            ];
-            for (const p of candidates) {
-              if (fs.existsSync(p)) {
-                logoPath = p;
-                break;
-              }
-            }
-          }
-        } catch (e) {
-          /* ignore */
-        }
-      }
-
-      // Se nada obtido da empresa, tentar logos padrões do frontend
-      if (!logoBuffer && !logoPath) {
-        const defaultPaths = [
-          path.join(
-            __dirname,
-            "../../frontend/fivecon/Design sem nome (17).png",
-          ),
-          path.join(__dirname, "../../frontend/logos/Logo PetHub (2).svg"),
-        ];
-        for (const p of defaultPaths) {
-          if (fs.existsSync(p)) {
-            logoPath = p;
-            break;
-          }
-        }
-      }
-
-      // Renderizar logo (buffer ou arquivo)
-      if (logoBuffer) {
-        try {
-          const maxLogoWidth = Math.round(pageWidth * 0.6);
-          const logoWidth = Math.min(maxLogoWidth, Math.round(mmToPt(30)));
-          const logoX = (pageWidth - logoWidth) / 2;
-          const logoY = smallMargin + 4;
-          doc.image(logoBuffer, logoX, logoY, {
-            width: logoWidth,
-            align: "center",
-          });
-          logoRendered = true;
-          const logoEstimatedHeight = Math.round(logoWidth * 0.9);
-          var y = logoY + logoEstimatedHeight + 2;
-        } catch (e) {
-          logoRendered = false;
-        }
-      } else if (logoPath && fs.existsSync(logoPath)) {
-        try {
-          const maxLogoWidth = Math.round(pageWidth * 0.6);
-          const logoWidth = Math.min(maxLogoWidth, Math.round(mmToPt(30)));
-          const logoX = (pageWidth - logoWidth) / 2;
-          const logoY = smallMargin + 4;
-          doc.image(logoPath, logoX, logoY, {
-            width: logoWidth,
-            align: "center",
-          });
-          logoRendered = true;
-          const logoEstimatedHeight = Math.round(logoWidth * 0.9);
-          var y = logoY + logoEstimatedHeight + 2;
-        } catch (e) {
-          logoRendered = false;
-        }
-      }
-    } catch (e) {
-      /* fallback */
-    }
+    // Identidade atual do cadastro, incluindo objetos persistidos fora do disco local.
+    const empresa = identidadePDF.empresa;
+    const logoTop = smallMargin + 4;
+    const logoAltura = 64;
+    const logoLargura = Math.min(contentWidth * 0.7, 100);
+    const logoRendered = desenharLogo(doc, identidadePDF.logoBuffer, { x: (pageWidth - logoLargura) / 2, y: logoTop, largura: logoLargura, altura: logoAltura });
+    var y = logoTop + (logoRendered ? logoAltura + 6 : 0);
 
     if (!logoRendered) {
       // tentar ainda exibir a logo padrão como texto se imagem não encontrada

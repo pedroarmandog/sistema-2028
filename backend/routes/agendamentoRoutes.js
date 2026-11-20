@@ -1,4 +1,4 @@
-const {carregarIdentidade}=require("../services/identidadeEmpresaPDF");
+const {carregarIdentidade, desenharLogo}=require("../services/identidadeEmpresaPDF");
 const express = require("express");
 const router = express.Router();
 const { Agendamento, Pet, Cliente, Empresa, Usuario } = require("../models");
@@ -1068,38 +1068,10 @@ router.get("/:id/comprovante", async (req, res) => {
     const pageWidth = doc.page.width;
     const lineHeight = 12;
 
-    // Cabeçalho: usar a logo cadastrada da empresa correta (campo `logo` da tabela empresas)
-    let logoRendered = false;
-    var y = 0;
-    try {
-      let logoPath = null;
-      let logoBuffer = null;
-
-      logoBuffer=(await carregarIdentidade(req)).logoBuffer;
-
-      const imagemLogo =
-        logoBuffer || (logoPath && (Buffer.isBuffer(logoPath) || fs.existsSync(logoPath)) ? logoPath : null);
-      if (imagemLogo) {
-        const maxLogoWidth = Math.round(pageWidth * 0.6);
-        const logoWidth = Math.min(maxLogoWidth, Math.round(mmToPt(30)));
-        const logoX = (pageWidth - logoWidth) / 2;
-        const logoY = smallMargin + 4;
-        try {
-          doc.image(imagemLogo, logoX, logoY, {
-            width: logoWidth,
-            align: "center",
-          });
-          logoRendered = true;
-        } catch (e) {
-          logoRendered = false;
-        }
-        const logoEstimatedHeight = Math.round(logoWidth * 0.9);
-        y = logoY + logoEstimatedHeight + 2;
-      }
-    } catch (e) {
-      console.warn("Erro ao buscar logo da empresa:", e && e.message);
-    }
-
+    const identidadePDF = await carregarIdentidade(req, { empresaId: agendamento.empresa_id });
+    const logoW = Math.min(pageWidth * 0.65, 100), logoH = 64;
+    const logoRendered = desenharLogo(doc, identidadePDF.logoBuffer, { x: (pageWidth - logoW) / 2, y: smallMargin + 4, largura: logoW, altura: logoH });
+    var y = smallMargin + 4 + (logoRendered ? logoH + 6 : 0);
     if (!logoRendered) {
       const nomeEmp = empresa ? empresa.nome || empresa.razaoSocial || "" : "";
       if (nomeEmp) {

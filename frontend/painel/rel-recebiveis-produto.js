@@ -1477,12 +1477,20 @@ document
         filtroProfissional,
       };
 
-      // Identidade oficial da empresa autenticada, sem cache local nem logo fixa.
+      // Mesma identidade autenticada dos PDFs do servidor; respeita troca e remoção da logo.
       try {
-        const identidade = await ApiClient.getIdentidadePDF();
-        payload.companyLogo = identidade.logoDataUrl;
-        payload.companyRazao = identidade.nomeEmpresa;
-      } catch (e) { throw new Error('Não foi possível obter a identidade da empresa para o PDF.'); }
+        const resposta = await fetch('/api/empresas/logo-pdf', { credentials: 'include', cache: 'no-store' });
+        if (resposta.ok) {
+          const blobLogo = await resposta.blob();
+          payload.companyLogo = await new Promise((resolve, reject) => {
+            const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.onerror = reject;
+            reader.readAsDataURL(blobLogo);
+          });
+        }
+        const empresas = await ApiClient.getEmpresas();
+        const empresa = Array.isArray(empresas) ? empresas[0] : empresas;
+        payload.companyRazao = empresa?.razaoSocial || empresa?.nome || '';
+      } catch (e) { console.warn('Erro ao carregar identidade para o PDF:', e); }
 
       console.log("🚀 Payload preparado (API futura):", payload);
 
@@ -1561,7 +1569,7 @@ async function gerarPdfMockRecebiveis(payload) {
   // Título
   doc.setFontSize(16);
   doc.setFont(undefined, "bold");
-  doc.text(payload.companyRazao || "", 105, yPos, {
+  doc.text(payload.companyRazao || "PET CRIA LTDA", 105, yPos, {
     align: "center",
   });
   yPos += 8;

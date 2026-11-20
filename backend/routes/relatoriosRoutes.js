@@ -1,9 +1,8 @@
-const {carregarIdentidade,desenharLogo,cabecalhoFaturamento}=require("../services/identidadeEmpresaPDF");
+const { carregarIdentidade, desenharLogo } = require('../services/identidadeEmpresaPDF');
 const express = require("express");
 const router = express.Router();
 const { authUser } = require("../middleware/authUser");
 router.use(authUser);
-router.use((req,res,next)=>{if(req.path.endsWith("/pdf")||req.path.endsWith("/comprovante"))res.set("Cache-Control","private, no-store");next();});
 const path = require("path");
 const fs = require("fs");
 const { Empresa } = require("../models");
@@ -14,29 +13,13 @@ const { Agendamento } = require("../models/Agendamento");
 const Pet = require("../models/Pet");
 const { Cliente } = require("../models/Cliente");
 
-// Somente os três recursos públicos necessários ao visualizador legado.
-// O servidor não expõe node_modules inteiro nem caminhos recebidos do usuário.
-router.get('/recursos/stimulsoft/:arquivo', (req,res) => {
-  const arquivos = {'reports.js':'Scripts/stimulsoft.reports.js','viewer.js':'Scripts/stimulsoft.viewer.js','viewer.css':'Css/stimulsoft.viewer.office2013.whiteblue.css'};
-  if (!Object.hasOwn(arquivos,req.params.arquivo)) return res.sendStatus(404);
-  res.set('Cache-Control','private, no-store');
-  res.sendFile(path.join(path.dirname(require.resolve('stimulsoft-reports-js/package.json')), arquivos[req.params.arquivo]));
-});
-
-// Empresa e logo dos relatórios pertencem ao usuário autenticado.
+// Helper centralizado: busca a empresa do usuário logado a partir do cookie JWT
+// Ordem: req.user.empresaId → cookie JWT → body/query → primeira ativa (último recurso)
 async function obterEmpresaDoRequest(req) {
-  // 1) req.user (se authUser middleware já preencheu)
-  if (req.user && req.user.empresaId) {
-    const emp = await Empresa.findByPk(req.user.empresaId);
-    if (emp) return emp;
-  }
-
-  // Empresa vem exclusivamente do middleware autenticado.
-
-  return null;
+  const id = Number(req.user?.empresaId);
+  if (!Number.isSafeInteger(id) || id <= 0) throw Object.assign(Error('Empresa autenticada não identificada.'), { status: 401 });
+  return Empresa.findByPk(id);
 }
-
-// Helper: retorna logo path absoluto e nome da empresa
 async function obterDadosEmpresaPDF(req) { return carregarIdentidade(req); }
 
 // Helper: agrega vendas por produto e retorna array de linhas com custos e lucros
@@ -312,16 +295,16 @@ router.get("/venda-no-periodo/pdf", async (req, res) => {
     const rowHeight = 18;
     const cellPadding = 4;
 
-    const identidade = await obterDadosEmpresaPDF(req);
-    const {logoBuffer, nomeEmpresa} = identidade;
-    const pageWidth = doc.page.width;
-    const logoY = 25;
-    const logo = desenharLogo(doc, logoBuffer, {y: logoY, width: 90, maxHeight: 75});
+    const identidadePDF = await carregarIdentidade(req);
+    const logoBuffer = identidadePDF.logoBuffer;
+    const nomeEmpresa = identidadePDF.nomeEmpresa;
+    const pageWidth = doc.page.width, logoWidth = 90, logoX = (pageWidth - logoWidth) / 2, logoY = 25;
+    desenharLogo(doc, logoBuffer, { x: logoX, y: logoY, largura: logoWidth, altura: 65 });
     // Título e razão social
     const leftTable = left;
     const usableWidth = pageUsableWidth;
     const prodW = usableWidth - 60 - (headers.length - 2) * 70;
-    const headerStartY = logo.desenhada ? Math.max(110, logo.fimY + 10) : 36;
+    const headerStartY = logoBuffer ? Math.max(110, logoY + 85) : doc.y + 6;
 
     doc.font("Helvetica-Bold").fontSize(14).fillColor("#000");
     doc.text("RELATÓRIO DE VENDA NO PERÍODO", leftTable, headerStartY, {
@@ -550,8 +533,11 @@ router.post("/faturamento/pdf", async (req, res) => {
     const rowHeight = 18;
     const cellPadding = 4;
 
-    const identidade = await obterDadosEmpresaPDF(req);
-    const headerStartY = cabecalhoFaturamento(doc, identidade);
+    const identidadePDF = await carregarIdentidade(req);
+    const logoBuffer = identidadePDF.logoBuffer;
+    const nomeEmpresa = identidadePDF.nomeEmpresa;
+    const pageWidth = doc.page.width, logoWidth = 90, logoX = (pageWidth - logoWidth) / 2, logoY = 25;
+    desenharLogo(doc, logoBuffer, { x: logoX, y: logoY, largura: logoWidth, altura: 65 });
     // tabela usa a largura total disponível na página
     const leftTable = left;
     let usableWidth = pageUsableWidth;
@@ -603,6 +589,9 @@ router.post("/faturamento/pdf", async (req, res) => {
         out = out.slice(0, -1);
       return out.length ? out + ell : ell;
     }
+
+    // Cabeçalho: título e período abaixo da logo, depois os headers da tabela
+    const headerStartY = logoBuffer ? Math.max(110, logoY + 85) : doc.y + 6;
 
     // Título principal (h3/h4 equivalente)
     doc.font("Helvetica-Bold").fontSize(14).fillColor("#000");
@@ -1706,7 +1695,7 @@ router.post("/comissao/pdf", async (req, res) => {
     // ---- cabeçalho da primeira página ----
     const desenharCabecalho = () => {
       if (logoPath) {
-        desenharLogo(doc, logoPath, {y:20, width:80, maxHeight:75});
+        desenharLogo(doc, logoPath, { x: pageW / 2 - 40, y: 20, largura: 80, altura: 65 });
       }
       doc.y = logoPath ? 110 : 40;
       doc
@@ -2276,7 +2265,7 @@ router.post("/atendimento-periodo/pdf", async (req, res) => {
     const drawHeader = () => {
       if (empData.logoPath) {
         try {
-          desenharLogo(doc, empData.logoPath, {y:30, width:60, maxHeight:60});
+          desenharLogo(doc, empData.logoPath, { x: doc.page.width / 2 - 30, y: 30, largura: 60, altura: 50 });
           doc.moveDown(4);
         } catch (_) {
           doc.moveDown(1);
@@ -2521,8 +2510,8 @@ router.get("/produtos/pdf", async (req, res) => {
     // pipe direto para response
     doc.pipe(res);
 
-    const identidade = await obterDadosEmpresaPDF(req);
-    desenharLogo(doc, identidade.logoBuffer, {y: 30, width: 110, maxHeight: 100});
+    const identidadePDF = await carregarIdentidade(req);
+    desenharLogo(doc, identidadePDF.logoBuffer, { x: 595 / 2 - 55, y: 30, largura: 110, altura: 75 });
     // Título
     doc.fontSize(14).font("Helvetica-Bold");
     doc.text("RELATÓRIO DE PRODUTO", 0, 150, { align: "center" });
@@ -2743,10 +2732,10 @@ router.post("/entradas/pdf", async (req, res) => {
       console.warn("⚠️ Erro ao buscar empresa para entradas:", e && e.message);
     }
 
-    const identidade = await obterDadosEmpresaPDF(req);
-    const companyRazao = identidade.nomeEmpresa;
-    const pageWidth = 595, logoY = 25;
-    desenharLogo(doc, identidade.logoBuffer, {y: logoY, width: 90, maxHeight: 75});
+    const companyRazao = empresa ? empresa.razaoSocial || empresa.nome : '';
+    const identidadePDF = await carregarIdentidade(req);
+    const pageWidth = doc.page.width, logoWidth = 90, logoX = (pageWidth - logoWidth) / 2, logoY = 25;
+    const logoRendered = desenharLogo(doc, identidadePDF.logoBuffer, { x: logoX, y: logoY, largura: logoWidth, altura: 65 });
     // Título específico para Entradas (mantendo o estilo visual)
     const tituloY = Math.max(110, logoY + 85);
     doc.fontSize(14).font("Helvetica-Bold");
@@ -3025,10 +3014,19 @@ router.post("/produtos/pdf", async (req, res) => {
       empresa = null;
     }
 
-    const identidade = await obterDadosEmpresaPDF(req);
-    const companyRazao = identidade.nomeEmpresa;
-    const pageWidth = 595, logoY = 25;
-    desenharLogo(doc, identidade.logoBuffer, {y: logoY, width: 90, maxHeight: 75});
+    // Definir razão social (payload > empresa > fallback)
+    const payloadCompanyRazao =
+      req.body &&
+      (req.body.companyRazao || req.body.razaoSocial || req.body.companyName);
+    const companyRazao =
+      payloadCompanyRazao ||
+      (empresa &&
+        (empresa.razaoSocial || empresa.nome || empresa.nomeFantasia)) ||
+      "";
+
+    const identidadePDF = await carregarIdentidade(req);
+    const pageWidth = doc.page.width, logoWidth = 90, logoX = (pageWidth - logoWidth) / 2, logoY = 25;
+    const logoRendered = desenharLogo(doc, identidadePDF.logoBuffer, { x: logoX, y: logoY, largura: logoWidth, altura: 65 });
     // Título centralizado com espaço seguro abaixo da logo (mínimo 110px do topo)
     const tituloY = Math.max(110, logoY + 85); // garante espaço mínimo maior entre logo e título
     doc.fontSize(14).font("Helvetica-Bold");
@@ -3397,8 +3395,8 @@ router.post("/fornecedores/pdf", async (req, res) => {
     const logoX = 50; // deixar margem esquerda para a logo
     const logoY = 25;
 
-    const identidade = await obterDadosEmpresaPDF(req);
-    desenharLogo(doc, identidade.logoBuffer, {x: logoX, y: logoY, width: logoWidth, maxHeight: 65});
+    const identidadePDF = await carregarIdentidade(req);
+    desenharLogo(doc, identidadePDF.logoBuffer, { x: logoX, y: logoY, largura: logoWidth, altura: 60 });
     // Título centralizado
     const tituloY = 40;
     doc.fontSize(14).font("Helvetica-Bold");
@@ -3640,10 +3638,10 @@ router.post("/demonstrativo-resultados/pdf", async (req, res) => {
     );
     doc.pipe(res);
 
-    const identidade = await obterDadosEmpresaPDF(req);
-    const companyRazaoFinal = identidade.nomeEmpresa;
-    const pageWidth = 595, logoY = 25;
-    desenharLogo(doc, identidade.logoBuffer, {y: logoY, width: 120, maxHeight: 75});
+    const identidadePDF = await carregarIdentidade(req);
+    const companyRazaoFinal = identidadePDF.nomeEmpresa;
+    const pageWidth = doc.page.width, logoWidth = 110, logoX = (pageWidth - logoWidth) / 2, logoY = 25;
+    const logoRendered = desenharLogo(doc, identidadePDF.logoBuffer, { x: logoX, y: logoY, largura: logoWidth, altura: 75 });
     // CABEÇALHO (posicionar abaixo da logo)
     const tituloY = Math.max(110, logoY + 85);
     doc.fontSize(18).font("Helvetica-Bold").fillColor("#000");
