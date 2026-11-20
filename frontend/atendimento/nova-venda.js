@@ -582,24 +582,7 @@ function inicializarNovaVenda() {
   };
 
   // Função para atualizar totais gerais
-  function atualizarTotaisGerais() {
-    totais.bruto = itensVenda.reduce((sum, item) => sum + item.totalBruto, 0);
-    totais.final = itensVenda.reduce((sum, item) => sum + item.totalFinal, 0);
-    totais.desconto = totais.bruto - totais.final;
-
-    // Atualizar elementos na tela
-    const el1 = document.querySelector(".total-item:nth-child(1) .valor");
-    if (el1)
-      el1.textContent = `R$ ${totais.bruto.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
-    const el2 = document.querySelector(".total-item:nth-child(2) .valor");
-    if (el2)
-      el2.textContent = totais.desconto.toLocaleString("pt-BR", {
-        minimumFractionDigits: 2,
-      });
-    const el4 = document.querySelector(".total-item:nth-child(4) .valor");
-    if (el4)
-      el4.textContent = `R$ ${totais.final.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
-  }
+  function atualizarTotaisGerais() { calcularTotaisComCondicoesPagamento(); }
   // Expor para uso externo (seed do orçamento)
   window._atualizarTotaisInternoOrc = atualizarTotaisGerais;
 
@@ -633,9 +616,11 @@ function inicializarNovaVenda() {
 
     // Validar estoque do produto
     const produtosSistema = await carregarProdutosDoSistema();
-    const produtoEncontrado = produtosSistema.find(
-      (p) => p.nome === produtoNome,
-    );
+    const campoProduto = document.getElementById('pesquisarProduto');
+    const produtoEncontrado = produtosSistema.find(p => campoProduto.dataset.produtoId
+      ? String(p.id) === String(campoProduto.dataset.produtoId) : p.nome === produtoNome);
+    if (!produtoEncontrado) { mostrarNotificacao('error', 'Selecione um produto do catálogo.'); return false; }
+    const quantidadeNoCarrinho = itensVenda.filter(i => String(i.produto.id) === String(produtoEncontrado.id)).reduce((n,i) => n + i.quantidade, 0);
 
     if (produtoEncontrado) {
       // Verificar se é produto físico (não é serviço ou plano)
@@ -653,7 +638,7 @@ function inicializarNovaVenda() {
             return;
           }
 
-          if (qtd > estoqueDisponivel) {
+          if (qtd + quantidadeNoCarrinho > estoqueDisponivel) {
             mostrarNotificacao(
               "warning",
               `Quantidade informada (${qtd}) não disponível no estoque. Disponível: ${estoqueDisponivel} unidades`,
@@ -678,7 +663,7 @@ function inicializarNovaVenda() {
     const totalFinal = calcularTotalItem();
 
     const item = {
-      id: Date.now(),
+      id: Date.now() + Math.random(),
       produto: produtoEncontrado || { nome: produtoNome, id: null },
       quantidade: qtd,
       valorUnitario: valor,
@@ -690,7 +675,10 @@ function inicializarNovaVenda() {
     console.log("📦 Item criado:", item);
     console.log("📋 Array antes:", itensVenda.length, "itens");
 
-    itensVenda.push(item);
+    const mesmo = document.body.classList.contains('caixa-rapido') && itensVenda.find(i =>
+      String(i.produto.id) === String(item.produto.id) && i.valorUnitario === valor && i.desconto === desc);
+    if (mesmo) { mesmo.quantidade += qtd; mesmo.totalBruto += totalBruto; mesmo.totalFinal += totalFinal; }
+    else itensVenda.push(item);
 
     console.log("📋 Array depois:", itensVenda.length, "itens");
     console.log("🎨 Renderizando...");
@@ -701,8 +689,41 @@ function inicializarNovaVenda() {
 
     mostrarNotificacao("success", `${produtoNome} adicionado com sucesso!`);
     console.log("✅ Item adicionado com sucesso!");
+    return true;
   }
 
+  // Ponte das duas interfaces para o mesmo carrinho e as mesmas validações.
+  window.PetHubVenda = {
+    dados: obterDadosVenda,
+    produtos: carregarProdutosDoSistema,
+    async adicionar(produto, qtd = 1) {
+      document.getElementById('pesquisarProduto').value = produto.nome;
+      document.getElementById('pesquisarProduto').dataset.produtoId = produto.id;
+      quantidade.value = String(qtd);
+      valorUnitario.value = String(produto.preco);
+      descontoPercent.value = '';
+      return adicionarItem();
+    },
+    async quantidade(id, qtd) {
+      const item = itensVenda.find(i => String(i.id) === String(id));
+      if (!item || !Number.isFinite(qtd) || qtd <= 0) return false;
+      const catalogo = await carregarProdutosDoSistema();
+      const produto = catalogo.find(p => String(p.id) === String(item.produto.id));
+      if (!produto) { mostrarNotificacao('error', 'Produto indisponível.'); return false; }
+      const outros = itensVenda.filter(i => i !== item && String(i.produto.id) === String(produto.id)).reduce((n,i) => n + i.quantidade, 0);
+      if (produto.tipo === 'produto' && !produto.permiteEstoqueNegativo && qtd + outros > produto.estoqueAtual) {
+        mostrarNotificacao('warning', 'Quantidade não disponível no estoque.'); return false;
+      }
+      item.quantidade = qtd;
+      item.totalBruto = qtd * item.valorUnitario;
+      item.totalFinal = Number((item.totalBruto * (1 - item.desconto / 100)).toFixed(2));
+      renderizarItens(); atualizarTotaisGerais(); return true;
+    },
+    remover: id => window.removerItem(id),
+    limpar: () => window.limparFormulario(),
+    finalizar: () => finalizarVendaComDados(),
+  };
+  queueMicrotask(() => document.dispatchEvent(new Event('pethub:venda-pronta')));
   // Função para renderizar lista de itens
   window.renderizarItens = function renderizarItens() {
     console.log(
@@ -717,6 +738,7 @@ function inicializarNovaVenda() {
       return;
     }
 
+    document.dispatchEvent(new Event('pethub:venda-atualizada'));
     if (itensVenda.length === 0) {
       listaItens.innerHTML = `
                 <div style="color: #999; text-align: center; padding: 20px;">
@@ -768,6 +790,7 @@ function inicializarNovaVenda() {
 
   // Função para limpar formulário
   function limparFormulario() {
+    delete document.getElementById("pesquisarProduto").dataset.produtoId;
     document.getElementById("pesquisarProduto").value = "";
     quantidade.value = "1";
     valorUnitario.value = "";
@@ -1025,6 +1048,7 @@ function inicializarNovaVenda() {
     });
 
     // Configurar dropdown de produtos
+    pesquisarProduto.addEventListener("input", () => { delete pesquisarProduto.dataset.produtoId; });
     pesquisarProduto.addEventListener("input", debounce(buscarProdutos, 300));
     pesquisarProduto.addEventListener("focus", function () {
       if (pesquisarProduto.value.trim().length > 0) {
@@ -1237,17 +1261,18 @@ async function carregarProdutosDoSistema() {
     console.log("📦 Resposta da API:", produtosSistema);
 
     // Verificar se a resposta é válida
-    if (Array.isArray(produtosSistema) && produtosSistema.length > 0) {
+    if (Array.isArray(produtosSistema)) {
       console.log("✅ Produtos carregados da API:", produtosSistema.length);
 
       // Normalizar dados para garantir que todas as propriedades existem
       return produtosSistema.map((p) => ({
+        ...p,
         id: p.id || "",
         nome: p.nome || "Sem nome",
         categoria: p.categoria || "Sem categoria",
         tipo: p.tipo || "produto",
         preco: parseFloat(p.preco) || 0,
-        estoqueAtual: parseInt(p.estoqueAtual) || 0,
+        estoqueAtual: parseFloat(p.estoqueAtual) || 0,
         finalidade: p.finalidade || "",
         marca: p.marca || "",
         // normalizar flag permiteEstoqueNegativo (aceita 'sim'/'nao', true/false)
@@ -1269,108 +1294,8 @@ async function carregarProdutosDoSistema() {
     console.log("🔄 Usando produtos de fallback");
   }
 
-  // Produtos de fallback (sempre disponível em caso de erro)
-  const produtosFallback = [
-    {
-      id: 1,
-      nome: "PA HIGIENICA CARA DE GATO AZUL",
-      categoria: "Higiene",
-      tipo: "produto",
-      preco: 3.0,
-      estoqueAtual: 0,
-    },
-    {
-      id: 2,
-      nome: "BUTOX P CE 25 - 20ML",
-      categoria: "Farmácia",
-      tipo: "produto",
-      preco: 7.0,
-      estoqueAtual: 40,
-    },
-    {
-      id: 3,
-      nome: "Ganadol Pomada Anti-infecciosa e Cicatrizante 50g",
-      categoria: "Farmácia",
-      tipo: "produto",
-      preco: 40.0,
-      estoqueAtual: 27,
-    },
-    {
-      id: 4,
-      nome: "THUYA AVÍCOLA SIMÕES ORAL 20ML",
-      categoria: "Farmácia",
-      tipo: "produto",
-      preco: 10.0,
-      estoqueAtual: 5,
-    },
-    {
-      id: 5,
-      nome: "GOLDEN ADULTO RAÇA PEQ FRANGO E ARROZ 15KG",
-      categoria: "Rações",
-      tipo: "produto",
-      preco: 131.0,
-      estoqueAtual: 4,
-    },
-    {
-      id: 6,
-      nome: "GOLDEN COOKIE FILHOTE 400G",
-      categoria: "Ossos e Petiscos",
-      tipo: "produto",
-      preco: 13.0,
-      estoqueAtual: 0,
-    },
-    {
-      id: 7,
-      nome: "Ração N&D Prime Cordeiro e Blueberry Cães Adultos",
-      categoria: "Rações",
-      tipo: "produto",
-      preco: 314.99,
-      estoqueAtual: 15,
-    },
-    {
-      id: 8,
-      nome: "GOLDEN GATO CASTRADO SALMAO 10,1KG",
-      categoria: "Rações",
-      tipo: "produto",
-      preco: 126.0,
-      estoqueAtual: 4,
-    },
-    {
-      id: 9,
-      nome: "GOLDEN GATO FILHOTE FRANGO 1KG",
-      categoria: "Rações",
-      tipo: "produto",
-      preco: 22.0,
-      estoqueAtual: 0,
-    },
-    {
-      id: 10,
-      nome: "Banho e Tosa - Cães Pequeno Porte",
-      categoria: "Serviços",
-      tipo: "servico",
-      preco: 50.0,
-      estoqueAtual: 0,
-    },
-    {
-      id: 11,
-      nome: "Consulta Veterinária",
-      categoria: "Serviços",
-      tipo: "servico",
-      preco: 120.0,
-      estoqueAtual: 0,
-    },
-    {
-      id: 12,
-      nome: "Plano Mensal - Banho Ilimitado",
-      categoria: "Planos",
-      tipo: "plano",
-      preco: 199.9,
-      estoqueAtual: 0,
-    },
-  ];
-
-  console.log("✅ Retornando produtos de fallback:", produtosFallback.length);
-  return produtosFallback;
+  mostrarNotificacao('error', 'Não foi possível carregar o catálogo. Tente novamente.');
+  return [];
 } // Função para buscar produtos
 async function buscarProdutos() {
   console.log("🔍 buscarProdutos() iniciado");
@@ -1510,6 +1435,7 @@ async function selecionarProduto(produtoId) {
 
   // Preencher campos do formulário
   document.getElementById("pesquisarProduto").value = produto.nome;
+  document.getElementById("pesquisarProduto").dataset.produtoId = produto.id;
   document.getElementById("valorUnitario").value = produto.preco.toFixed(2);
 
   // Limpar campo de desconto ao selecionar novo produto
@@ -1638,22 +1564,97 @@ function fetchWithTimeout(resource, options = {}, timeout = 4000) {
   return fetch(resource, finalOpts).finally(() => clearTimeout(id));
 }
 
-// Busca filtrada no servidor: não depende da primeira página de cadastros.
-const clientesBuscaVenda = new Map();
-let revisaoBuscaCliente = 0;
-async function carregarClientesDoSistema(termo = "", id = null) {
-  const query = new URLSearchParams(id != null ? {id:String(id)} : {search:termo});
-  const response = await fetchWithTimeout('/api/clientes/busca-venda?' + query, {
-    credentials:'include', cache:'no-store',
-  }, 15000);
-  if (!response.ok) throw new Error([401,403].includes(response.status)
-    ? 'Sessão indisponível. Entre novamente no sistema.'
-    : 'Não foi possível pesquisar clientes. Tente novamente.');
-  const data=await response.json();
-  if (!data.success || !Array.isArray(data.clientes)) throw new Error('Resposta de clientes inválida.');
-  return data.clientes;
-}
-// Função para carregar profissionais do sistema via API real
+// Função para carregar clientes da API real (modelo copiado de clientes.js)
+async function carregarClientesDoSistema() {
+  console.log("🔍 INÍCIO carregarClientesDoSistema (nova-venda)...");
+
+  try {
+    console.log("📡 Fazendo fetch para API de clientes...");
+    // Usar fetch com timeout e tentar localhost como preferência, depois fallback
+    let response = null;
+    try {
+      response = await fetchWithTimeout("/api/clientes", {}, 3000);
+    } catch (err) {
+      console.warn(
+        "⚠️ Fallback para rota relativa por timeout/erro",
+        err && err.message,
+      );
+      try {
+        response = await fetchWithTimeout("/api/clientes", {}, 2500);
+      } catch (err2) {
+        throw err2;
+      }
+    }
+
+    console.log("📡 Response status:", response && response.status);
+    if (!response || !response.ok) {
+      throw new Error(
+        `HTTP error! status: ${response ? response.status : "no-response"}`,
+      );
+    }
+
+    const data = await response.json();
+    console.log("📄 Dados recebidos da API:", data);
+
+    // A API retorna {success: true, clientes: [...]}
+    if (data.success && Array.isArray(data.clientes)) {
+      console.log("🎯 Clientes carregados da API:", data.clientes.length);
+      return data.clientes;
+    } else {
+      console.error("❌ Formato de resposta inválido:", data);
+      throw new Error("Formato de resposta inválido");
+    }
+  } catch (error) {
+    console.error("❌ Erro ao carregar clientes da API:", error);
+
+    // Fallback para dados mock apenas em caso de erro
+    console.log("🔄 Usando dados mock como fallback...");
+    const clientesMock = [
+      {
+        id: 1,
+        codigo: "001",
+        nome: "João Silva",
+        telefone: "(11) 99999-8888",
+        email: "joao@email.com",
+        endereco: "Rua A, 123",
+      },
+      {
+        id: 2,
+        codigo: "002",
+        nome: "Maria Santos",
+        telefone: "(11) 88888-7777",
+        email: "maria@email.com",
+        endereco: "Av. B, 456",
+      },
+      {
+        id: 3,
+        codigo: "003",
+        nome: "Pedro Costa",
+        telefone: "(11) 77777-6666",
+        email: "pedro@email.com",
+        endereco: "Rua C, 789",
+      },
+      {
+        id: 4,
+        codigo: "004",
+        nome: "Ana Oliveira",
+        telefone: "(11) 66666-5555",
+        email: "ana@email.com",
+        endereco: "Av. D, 321",
+      },
+      {
+        id: 5,
+        codigo: "005",
+        nome: "Carlos Souza",
+        telefone: "(11) 55555-4444",
+        email: "carlos@email.com",
+        endereco: "Rua E, 654",
+      },
+    ];
+    console.log("📋 Usando dados mock de clientes:", clientesMock.length);
+    return clientesMock;
+  }
+} // Função para carregar profissionais do sistema via API real
 async function carregarProfissionaisDoSistema() {
   try {
     let response;
@@ -1683,29 +1684,62 @@ async function carregarProfissionaisDoSistema() {
 
 // Função para filtrar e exibir clientes
 async function buscarClientes(termo) {
-  const dropdown = document.getElementById('clientesDropdown');
-  if (!dropdown) return;
-  const revisao=++revisaoBuscaCliente;
-  if (!String(termo||'').trim()) { dropdown.replaceChildren();dropdown.style.display='none';return; }
-  const aviso = texto => {const n=document.createElement('div');n.className='no-results';n.textContent=texto;dropdown.replaceChildren(n);dropdown.style.display='block';};
-  aviso('Carregando clientes…');
+  const dropdown = document.getElementById("clientesDropdown");
+
+  if (!termo.trim()) {
+    dropdown.style.display = "none";
+    return;
+  }
+
+  // Mostrar loading
+  dropdown.innerHTML = '<div class="loading">Carregando clientes...</div>';
+  dropdown.style.display = "block";
+
   try {
-    const clientes=await carregarClientesDoSistema(termo);
-    if(revisao!==revisaoBuscaCliente)return;
-    clientesBuscaVenda.clear();dropdown.replaceChildren();
-    if(!clientes.length){aviso('Nenhum cliente encontrado');return;}
-    for(const cliente of clientes){
-      clientesBuscaVenda.set(String(cliente.id),cliente);
-      const item=document.createElement('button');item.type='button';item.className='cliente-item';
-      item.style.cssText='display:block;width:100%;text-align:left;border:0;background:white;cursor:pointer';
-      const nome=document.createElement('span'),detalhes=document.createElement('span');
-      nome.className='nome';nome.textContent=cliente.nome||'Cliente sem nome';
-      detalhes.className='detalhes';detalhes.textContent=`${cliente.telefone||'Sem telefone'} • Cód: ${cliente.codigo||cliente.id}`;
-      item.append(nome,detalhes);item.onclick=()=>selecionarCliente(cliente.id);dropdown.append(item);
+    // Carregar clientes
+    const clientes = await carregarClientesDoSistema();
+    console.log(
+      "🔍 Buscando clientes com termo:",
+      termo,
+      "Total:",
+      clientes.length,
+    );
+
+    // Filtrar clientes
+    const clientesFiltrados = clientes.filter(
+      (cliente) =>
+        cliente.nome.toLowerCase().includes(termo.toLowerCase()) ||
+        cliente.telefone.includes(termo) ||
+        String(cliente.codigo).includes(termo) ||
+        (cliente.email &&
+          cliente.email.toLowerCase().includes(termo.toLowerCase())),
+    );
+
+    console.log("📋 Clientes filtrados:", clientesFiltrados.length);
+
+    // Renderizar dropdown
+    if (clientesFiltrados.length > 0) {
+      dropdown.innerHTML = clientesFiltrados
+        .map(
+          (cliente) => `
+                <div class="cliente-item" onclick="selecionarCliente(${cliente.id})">
+                    <span class="nome">${cliente.nome}</span>
+                    <span class="detalhes">${cliente.telefone} • Cód: ${cliente.codigo}</span>
+                </div>
+            `,
+        )
+        .join("");
+      dropdown.style.display = "block";
+    } else {
+      dropdown.innerHTML =
+        '<div class="no-results">Nenhum cliente encontrado</div>';
+      dropdown.style.display = "block";
     }
-    dropdown.style.display='block';
-  } catch(error) {
-    if(revisao===revisaoBuscaCliente)aviso(error.message||'Erro ao carregar clientes');
+  } catch (error) {
+    console.error("❌ Erro ao buscar clientes:", error);
+    dropdown.innerHTML =
+      '<div class="no-results">Erro ao carregar clientes</div>';
+    dropdown.style.display = "block";
   }
 }
 
@@ -1777,16 +1811,35 @@ async function buscarProfissionais(termo) {
 // Função para selecionar um cliente
 async function selecionarCliente(clienteId) {
   try {
-    const cliente=clientesBuscaVenda.get(String(clienteId)) || (await carregarClientesDoSistema('',clienteId))[0];
-    if(!cliente)throw new Error('Cliente não encontrado nesta empresa. Pesquise novamente.');
-    revisaoBuscaCliente++;
-    clienteSelecionado=cliente;
-    document.getElementById('pesquisarCliente').value=cliente.nome;
-    const box=document.getElementById('clienteSelecionado');
-    box.querySelector('.cliente-nome').textContent=cliente.nome;
-    box.querySelector('.cliente-detalhes').textContent=`${cliente.telefone||'Sem telefone'} • Cód: ${cliente.codigo||cliente.id}`;
-    box.style.display='flex';document.getElementById('clientesDropdown').style.display='none';
-  } catch(error) {mostrarNotificacao('error',error.message||'Não foi possível selecionar o cliente.');}
+    const clientes = await carregarClientesDoSistema();
+    const cliente = clientes.find((c) => c.id === clienteId);
+
+    if (cliente) {
+      clienteSelecionado = cliente;
+
+      // Atualizar campo de pesquisa
+      const inputCliente = document.getElementById("pesquisarCliente");
+      inputCliente.value = cliente.nome;
+
+      // Mostrar cliente selecionado
+      const clienteSelecionadoDiv =
+        document.getElementById("clienteSelecionado");
+      clienteSelecionadoDiv.querySelector(".cliente-nome").textContent =
+        cliente.nome;
+      clienteSelecionadoDiv.querySelector(".cliente-detalhes").textContent =
+        `${cliente.telefone} • Cód: ${cliente.codigo}`;
+      clienteSelecionadoDiv.style.display = "flex";
+
+      // Ocultar dropdown
+      document.getElementById("clientesDropdown").style.display = "none";
+
+      console.log("✅ Cliente selecionado:", cliente);
+    } else {
+      console.error("❌ Cliente não encontrado:", clienteId);
+    }
+  } catch (error) {
+    console.error("❌ Erro ao selecionar cliente:", error);
+  }
 }
 
 // Função para selecionar um profissional
@@ -1828,7 +1881,6 @@ async function selecionarProfissional(profissionalCodigo) {
 // Função para remover cliente selecionado
 function removerClienteSelecionado() {
   clienteSelecionado = null;
-  revisaoBuscaCliente++;
   __safeSetValue("pesquisarCliente", "");
   document.getElementById("clienteSelecionado").style.display = "none";
   console.log("🗑️ Cliente removido da venda");
@@ -1850,14 +1902,6 @@ function configurarBuscaClientesProfissionais() {
   if (inputCliente) {
     console.log("✅ Configurando busca de clientes");
 
-    inputCliente.addEventListener('input', function () {
-      revisaoBuscaCliente++;
-      if (clienteSelecionado && this.value !== clienteSelecionado.nome) {
-        clienteSelecionado=null;
-        const box=document.getElementById('clienteSelecionado');if(box)box.style.display='none';
-      }
-      if(!this.value.trim())document.getElementById('clientesDropdown').style.display='none';
-    });
     // Evento de digitação para clientes
     inputCliente.addEventListener(
       "input",
@@ -1954,13 +1998,12 @@ function obterDadosVenda() {
 }
 
 // Atualizar a função de finalização da venda para incluir cliente e profissional
-function validarClienteDaVenda() {
-  const texto=document.getElementById('pesquisarCliente')?.value.trim();
-  if(texto && !clienteSelecionado?.id){mostrarNotificacao('warning','Selecione o cliente nos resultados ou limpe o campo para vender sem cliente.');return false;}
-  return true;
-}
+let abrindoPagamento = false;
 async function finalizarVendaComDados() {
-  if(!validarClienteDaVenda())return;
+  if (abrindoPagamento || document.getElementById('modalPagamento')) return;
+  abrindoPagamento = true;
+  try {
+  calcularTotaisComCondicoesPagamento();
   if (itensVenda.length === 0) {
     mostrarNotificacao(
       "warning",
@@ -1992,6 +2035,7 @@ async function finalizarVendaComDados() {
   if (!vendaPendenteId) {
     try {
       const dadosPendente = {
+        origemInterface: document.querySelector(".nova-venda-layout") ? "caixa-compartilhado" : undefined,
         timestamp: new Date().toISOString(),
         cliente: clienteSelecionado
           ? clienteSelecionado.nome
@@ -2003,6 +2047,7 @@ async function finalizarVendaComDados() {
         profissionalId: profissionalSelecionado
           ? profissionalSelecionado.id
           : null,
+        observacoes: __safeGetValue("observacoes"),
         itens: [...itensVenda],
         totais: { ...totais },
         pagamentos: [],
@@ -2014,11 +2059,14 @@ async function finalizarVendaComDados() {
       console.log("💾 Venda pendente criada: #" + vendaPendenteId);
     } catch (err) {
       console.error("Erro ao salvar venda pendente:", err);
+      mostrarNotificacao('error', err.message || 'Não foi possível preparar a venda. Tente novamente.');
+      return;
     }
   }
 
   // Abrir modal de pagamento em vez do alert
   abrirModalPagamento();
+  } finally { abrindoPagamento = false; }
 }
 
 // Função para mostrar notificação amarela de aviso
@@ -2247,29 +2295,8 @@ function calcularTotaisComCondicoesPagamento() {
     });
 
     // Calcular total bruto dos itens
-    let totalBruto = 0;
-    if (window.itensVenda && window.itensVenda.length > 0) {
-      totalBruto = window.itensVenda.reduce((sum, item) => {
-        const itemTotal = item.totalFinal || item.totalBruto || item.total || 0;
-        console.log("🛒 Item:", item.nome || "Sem nome", "Total:", itemTotal);
-        return sum + itemTotal;
-      }, 0);
-    } else {
-      // Se não há itens ainda, tentar pegar do total atual na tela
-      const totalBrutoElement = document.querySelector(
-        ".total-item:nth-child(1) .valor",
-      );
-      if (totalBrutoElement) {
-        const totalBrutoTexto = totalBrutoElement.textContent
-          .replace("R$", "")
-          .replace(/\./g, "")
-          .replace(",", ".")
-          .trim();
-        totalBruto = parseFloat(totalBrutoTexto) || 0;
-        console.log("🔍 Total bruto obtido da tela:", totalBruto);
-      }
-    }
-
+    const brutoOriginal = itensVenda.reduce((n,i) => n + i.totalBruto, 0);
+    const totalBruto = itensVenda.reduce((n,i) => n + i.totalFinal, 0);
     console.log("💰 Total bruto calculado:", totalBruto);
 
     // Aplicar acréscimos
@@ -2310,12 +2337,9 @@ function calcularTotaisComCondicoesPagamento() {
     });
 
     // Atualizar elementos na tela
-    atualizarElementosTotais(
-      totalBruto,
-      valorDesconto,
-      valorAcrescimo,
-      totalFinal,
-    );
+    totais = { bruto: Number(brutoOriginal.toFixed(2)), desconto: Number((brutoOriginal - totalBruto + valorDesconto).toFixed(2)), acrescimo: Number(valorAcrescimo.toFixed(2)), arredondamento: arredondamentoValor, final: Number(totalFinal.toFixed(2)) };
+    atualizarElementosTotais(totais.bruto, totais.desconto, totais.acrescimo, totais.final);
+    document.dispatchEvent(new Event('pethub:venda-atualizada'));
   } catch (error) {
     console.error("❌ Erro ao calcular totais:", error);
   }
@@ -2796,6 +2820,7 @@ function configurarModalPagamento(modal, overlay, totalVenda) {
   let formaSelecionada = null;
   let totalPago = 0;
   let pagamentosEfetuados = [];
+  let pagamentoConcluido = false;
 
   // --- Banner de haver disponível ---
   // Mostrar assincronamente se o cliente tiver saldo
@@ -3135,7 +3160,10 @@ function configurarModalPagamento(modal, overlay, totalVenda) {
           alert("Digite um valor válido para dinheiro.");
           return null;
         }
-        dadosPagamento.valor = valorDinheiro;
+        const restanteDinheiro = Math.max(0, Number((totalVenda - totalPago).toFixed(2)));
+        dadosPagamento.valor = Math.min(valorDinheiro, restanteDinheiro);
+        dadosPagamento.recebido = valorDinheiro;
+        dadosPagamento.troco = Math.max(0, Number((valorDinheiro - restanteDinheiro).toFixed(2)));
         break;
 
       case "debito":
@@ -3346,6 +3374,9 @@ function configurarModalPagamento(modal, overlay, totalVenda) {
   document
     .getElementById("finalizarPagamento")
     .addEventListener("click", async function () {
+      if (this.disabled || pagamentoConcluido) return;
+      this.disabled = true;
+      try {
       // Verificar se existe pelo menos um pagamento efetuado OU uma forma selecionada com dados válidos
       let temPagamentoValido = pagamentosEfetuados.length > 0;
 
@@ -3389,7 +3420,10 @@ function configurarModalPagamento(modal, overlay, totalVenda) {
         return;
       }
 
-      const falta = totalVenda - totalPago;
+      const falta = Number((totalVenda - totalPago).toFixed(2));
+      if (document.body.classList.contains('caixa-rapido') && Math.abs(falta) > 0.009) {
+        mostrarNotificacao('warning', 'Os pagamentos devem cobrir exatamente o total da venda.'); return;
+      }
       if (falta > 0) {
         if (
           !(await confirmar(
@@ -3400,10 +3434,10 @@ function configurarModalPagamento(modal, overlay, totalVenda) {
         }
       }
 
-      if(!validarClienteDaVenda())return;
       // Salvar venda
       // Preferir enviar o objeto selecionado (com id) quando disponível
       const dadosVenda = {
+        origemInterface: document.querySelector(".nova-venda-layout") ? "caixa-compartilhado" : undefined,
         timestamp: new Date().toISOString(),
         cliente: clienteSelecionado
           ? clienteSelecionado.nome
@@ -3415,6 +3449,7 @@ function configurarModalPagamento(modal, overlay, totalVenda) {
         profissionalId: profissionalSelecionado
           ? profissionalSelecionado.id
           : null,
+        observacoes: __safeGetValue("observacoes"),
         itens: [...itensVenda],
         totais: { ...totais },
         pagamentos: [...pagamentosEfetuados],
@@ -3444,6 +3479,7 @@ function configurarModalPagamento(modal, overlay, totalVenda) {
         vendaSalva = await ApiClient.criarVenda(dadosVenda);
       }
       vendaPendenteId = null;
+      pagamentoConcluido = true;
 
       console.log("✅ Venda finalizada e salva no banco:", vendaSalva);
       // Emitir evento global para que outras partes do sistema possam reagir (ex: checkout de agendamento)
@@ -3455,8 +3491,8 @@ function configurarModalPagamento(modal, overlay, totalVenda) {
         console.warn("Não foi possível disparar evento venda:finalizada", e);
       }
 
-      // Atualizar estoque após venda
-      atualizarEstoque(dadosVenda.itens);
+      // Uma única execução de estoque, no mesmo fluxo compartilhado.
+      await atualizarEstoque(dadosVenda.itens);
 
       fecharModal();
 
@@ -3465,6 +3501,8 @@ function configurarModalPagamento(modal, overlay, totalVenda) {
 
       // Limpar formulário
       limparFormulario();
+      } catch (e) { mostrarNotificacao('error', e.message || 'Não foi possível concluir a venda.'); }
+      finally { this.disabled = pagamentoConcluido; }
     });
 }
 
@@ -3494,6 +3532,7 @@ function limparFormulario() {
   __safeSetValue("pesquisarCliente", "");
   __safeSetValue("pesquisarProfissional", "");
   __safeSetValue("pesquisarProduto", "");
+  delete document.getElementById("pesquisarProduto").dataset.produtoId;
   __safeSetValue("quantidade", "1");
   __safeSetValue("valorUnitario", "");
   __safeSetValue("desconto", "0");
@@ -3513,6 +3552,7 @@ function limparFormulario() {
   const acrescimoPercent = document.getElementById("acrescimoPercent");
   if (acrescimoPercent) acrescimoPercent.value = "0";
 
+  document.querySelectorAll('.pagamento-section input').forEach(input => { input.value = ''; });
   // Resetar totais
   totais = {
     bruto: 0,
@@ -3677,13 +3717,16 @@ function mostrarModalVendaFinalizada(vendaSalva, dadosVenda) {
     "margin-top:14px;text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center;";
   body.appendChild(fiscalBox);
 
+  try {
+    montarAcoesFiscaisModal(fiscalBox, vendaSalva, dadosVenda);
+  } catch (e) {
+    console.warn("[Fiscal] Erro ao montar ações fiscais no modal:", e);
+  }
+
   modal.appendChild(header);
   modal.appendChild(body);
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
-
-  fiscalBox.setAttribute("aria-live", "polite");
-  carregarFluxoFiscal(vendaId, fiscalBox);
 
   // Fechar clicando fora
   overlay.addEventListener("click", (e) => {
@@ -3706,53 +3749,72 @@ function mostrarModalVendaFinalizada(vendaSalva, dadosVenda) {
    que compartilham este arquivo). Respeita o modo de emissão da empresa.
    ======================================== */
 
-function botaoAcaoFiscal(box, texto, acao) {
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.textContent = texto;
-  btn.style.cssText = "border:1px solid #cbd5e1;border-radius:8px;background:white;padding:8px 14px;cursor:pointer;";
-  btn.onclick = acao;
-  box.appendChild(btn);
+function montarAcoesFiscaisModal(fiscalBox, vendaSalva, dadosVenda) {
+  const vendaId =
+    (vendaSalva && (vendaSalva.id || vendaSalva.vendaId)) || "";
+  if (!vendaId) return;
+
+  // Carregar o fluxo fiscal + notas existentes e então renderizar
+  carregarFluxoFiscal(vendaId, fiscalBox);
 }
 
 async function carregarFluxoFiscal(vendaId, fiscalBox) {
-  if (!vendaId) {
-    renderizarStatusFiscal(fiscalBox, "O servidor não retornou o número da venda. Confira a Lista de Vendas.", false);
+  let fluxo = null;
+  try {
+    fluxo = await ApiClient.getFluxoFiscal();
+  } catch (e) {
+    console.warn("[Fiscal] Sem acesso ao fluxo fiscal:", e);
+    return; // comportamento atual preservado (sem NF)
+  }
+
+  const fiscalHabilitado =
+    fluxo &&
+    fluxo.configurado &&
+    (fluxo.emitir_nfe || fluxo.emitir_nfce || fluxo.emitir_nfse);
+
+  if (!fiscalHabilitado) return; // vendas sem NF habilitada → nada muda
+
+  const modo = fluxo.modo_emissao || "manual";
+
+  // Notas já existentes desta venda
+  let notas = [];
+  try {
+    const resp = await ApiClient.listarNotasPorVenda(vendaId);
+    notas = Array.isArray(resp) ? resp : [];
+  } catch (e) {
+    notas = [];
+  }
+
+  const notaAutorizada = notas.find((n) => n.status === "autorizada");
+  const notaAguardando = notas.find((n) => n.status === "aguardando");
+  const notaErro = notas.find((n) => n.status === "erro");
+  const notaPendente = notas.find((n) => n.status === "rascunho");
+
+  // Já emitida → apenas imprimir (nunca "Emitir" de novo)
+  if (notaAutorizada) {
+    renderizarBotaoImprimir(fiscalBox, notaAutorizada);
     return;
   }
-  renderizarStatusFiscal(fiscalBox, "Consultando configuração fiscal…", true);
-  let modo;
-  try {
-    const fluxo = await ApiClient.getFluxoFiscal();
-    if (!fluxo) throw new Error("O servidor não retornou a configuração.");
-    if (!fluxo.configurado || !fluxo.ativo || !(fluxo.emitir_nfe || fluxo.emitir_nfce || fluxo.emitir_nfse)) {
-      const mensagem = !fluxo.configurado || !fluxo.ativo
-        ? "A emissão fiscal está desativada para esta empresa."
-        : "Nenhum tipo de nota está habilitado para esta empresa.";
-      renderizarStatusFiscal(fiscalBox, mensagem, false);
-      const link = document.createElement("a");
-      link.href = "/configuracoes/configuracao-fiscal.html";
-      link.textContent = "Abrir Configuração Fiscal";
-      fiscalBox.appendChild(link);
-      return;
-    }
-    modo = fluxo.modo_emissao || "manual";
-    // A API recupera o documento da venda e do ambiente atual ou cria um rascunho.
-    const { nota } = await ApiClient.registrarNotaPendente(vendaId);
-    if (!nota?.id) throw new Error("A API não retornou o documento fiscal da venda.");
-    if (nota.status === "autorizada") return renderizarBotaoImprimir(fiscalBox, nota);
-    if (nota.status === "aguardando") return mostrarConsultaFiscal(fiscalBox, vendaId);
-    if (nota.status === "erro") return renderizarErroEmitir(fiscalBox, vendaId, nota);
-    if (nota.status !== "rascunho" || nota.tipo === "nfse") {
-      const texto = nota.tipo === "nfse" && nota.status === "rascunho"
-        ? "Rascunho de NFS-e registrado. A transmissão de serviços ainda não está disponível."
-        : "Documento fiscal com status " + nota.status + ". Confira a Central Fiscal.";
-      return renderizarStatusFiscal(fiscalBox, texto, false);
-    }
-  } catch (erro) {
-    renderizarStatusFiscal(fiscalBox, "Venda salva. Não foi possível preparar a nota. " + erro.message, false);
-    botaoAcaoFiscal(fiscalBox, "Verificar novamente", () => carregarFluxoFiscal(vendaId, fiscalBox));
+
+  // Emissão em andamento
+  if (notaAguardando) {
+    renderizarStatusFiscal(fiscalBox, "Emitindo NF...", true);
     return;
+  }
+
+  // Houve erro → oferece retentativa
+  if (notaErro) {
+    renderizarErroEmitir(fiscalBox, vendaId, notaErro);
+    return;
+  }
+
+  // Sem nota → registra a pendente para a Central Fiscal antes de renderizar
+  if (!notaPendente) {
+    try {
+      await ApiClient.registrarNotaPendente(vendaId);
+    } catch (e) {
+      console.warn("[Fiscal] Não foi possível registrar nota pendente:", e);
+    }
   }
 
   // Comportamento conforme o modo de emissão configurado
@@ -3774,18 +3836,11 @@ function renderizarStatusFiscal(box, texto, carregando) {
   const el = document.createElement("div");
   el.style.cssText =
     "display:inline-flex;align-items:center;gap:8px;font-size:13px;color:#555;font-weight:600;";
-  el.textContent = texto;
-  if (carregando) {
-    const icon = document.createElement("i");
-    icon.className = "fas fa-spinner fa-spin";
-    el.prepend(icon);
-  }
+  el.innerHTML = carregando
+    ? '<i class="fas fa-spinner fa-spin" style="color:#0066cc"></i> ' +
+      texto
+    : texto;
   box.appendChild(el);
-}
-
-function mostrarConsultaFiscal(box, vendaId) {
-  renderizarStatusFiscal(box, "Aguardando autorização da nota fiscal.", false);
-  botaoAcaoFiscal(box, "Consultar autorização", () => emitirNF(box, vendaId));
 }
 
 function renderizarBotaoImprimir(box, nota) {
@@ -3927,10 +3982,6 @@ async function emitirNF(box, vendaId, opts) {
       renderizarBotaoImprimir(box, resultado.nota);
       return;
     }
-    if (resultado?.status === "aguardando") return mostrarConsultaFiscal(box, vendaId);
-    if (["denegada", "cancelada", "inutilizada"].includes(resultado?.status)) {
-      return renderizarStatusFiscal(box, resultado.motivo || "Nota " + resultado.status + ".", false);
-    }
     const motivo =
       (resultado && resultado.motivo) || "Emissão não concluída.";
     renderizarErroEmitir(box, vendaId, {
@@ -3950,7 +4001,7 @@ async function emitirNF(box, vendaId, opts) {
  * "Imprimir NF" = abrir o documento da NF já emitida (DANFE).
  */
 function abrirDanfeNota(notaId) {
-  fetch(API_BASE_URL + "/notas-fiscais/" + encodeURIComponent(notaId) + "/danfe", { credentials: "include" })
+  fetch("/api/notas-fiscais/" + encodeURIComponent(notaId) + "/danfe")
     .then(function (resp) {
       if (!resp.ok) {
         throw new Error("Nota ainda não autorizada para impressão");

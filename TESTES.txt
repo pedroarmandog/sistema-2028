@@ -1,40 +1,17 @@
-✔ without globals, instance and settings requests use the Render page origin and never the old host (230.963165ms)
-✔ API_URL overrides stale VPS_URL; creation and QR use the same configured API (117.149636ms)
-✔ configuration arriving after script evaluation is read at request time (92.953149ms)
-✔ explicit empty origin and the VPS compatibility setting remain supported (143.845963ms)
-✔ stalled listing leaves loading state after timeout even when fetch ignores abort (65.663453ms)
-✔ stalled creation releases button, warns about uncertain outcome and never retries POST (75.795718ms)
-✔ an actual empty list is explained and creation immediately renders the stored instance and QR stream (275.528361ms)
-✔ HTTP failure is displayed with retry instead of silently pretending there are no instances (119.186009ms)
-✔ a failed refresh retains previously visible instances (100.329555ms)
-✔ ten real instances appear after a quota rejection and the create button becomes available again (122.68692ms)
-✔ a pending creation blocks double clicks and sends a single POST (55.03222ms)
-✔ an older listing response cannot replace a newer listing and returned names/phone remain text (66.740186ms)
-✔ connect preserves credentials via /connect and cached initial QR is displayed (84.806052ms)
-✔ real service accepts dispatcher keys and isolates QR/connection from the main WhatsApp (10.61331ms)
-✔ text and attachment sends use the dispatcher socket and real company for consent/media (4.067431ms)
-✔ connect is idempotent and explicit dispatcher disconnect preserves main connection (2.899802ms)
-✔ default repository preserves separate encrypted auth keys for company and dispatcher (87.760379ms)
-✔ default database summary targets only its instance and main updates exclude named/config rows (2.99874ms)
-✔ controller reset works with the real Baileys service that has no limparSessaoDoDisco (6.05272ms)
-✔ SSE sends cached dispatcher QR and rejects another company before streaming headers (7.922578ms)
-✔ iniciarCampanha worker sends through selected dispatcher while DB queue stays scoped to company (5.909968ms)
-✔ continuarCampanha worker sends through selected dispatcher while DB queue stays scoped to company (10.100782ms)
-✔ connected main WhatsApp never substitutes a disconnected selected dispatcher (1.880713ms)
-✔ legacy marketing SSE delegates dispatcher keys to ownership validation (2.351931ms)
-✔ ten internal sessions do not consume the dispatcher quota; no records are deleted (38.965039ms)
-✔ the same normalized SQL filter lists/counts instances and preserves the real quota of ten (4.908005ms)
-✔ another company neither consumes the quota nor appears in the list (4.768659ms)
-✔ authorized explicit deletion frees one real slot without deleting internal sessions (4.68147ms)
-✔ internal and foreign sessions cannot be reset, connected, disconnected or deleted through instance actions (4.381396ms)
-✔ one failed runtime status does not hide stored instances or leak sessionData (7.062083ms)
-✔ invalid/reserved names and missing company are rejected without creating records (2.351972ms)
-✔ a rejected asynchronous connection retains the visible instance without an unhandled rejection (8.202913ms)
-ℹ tests 32
+✔ preferência persiste por empresa, sessão/dispositivo e valida entradas/autorizações (101.840818ms)
+✔ servidor valida centavos, estoque acumulado, vínculos e soma dos pagamentos (22.502411ms)
+✔ troca mantém o mesmo carrinho, cliente, profissional e campos; clássico é padrão (518.339373ms)
+✔ leitor repetido incrementa, impede estoque acumulado e preserva quantidades fracionadas (605.042709ms)
+✔ atalhos, totais com descontos/acréscimo e seletores reais do layout (407.029366ms)
+✔ dinheiro/troco e F8 duplo usam uma venda e uma baixa de estoque (704.514044ms)
+✔ múltiplo recusa falta e aceita soma exata sem enviar venda parcial (752.450874ms)
+✔ seletor salva no servidor e muda sem descartar a venda; ESC pede confirmação (558.820082ms)
+✔ fechado bloqueia pagamento e falha de catálogo não introduz produtos de exemplo (439.21161ms)
+ℹ tests 9
 ℹ suites 0
-ℹ pass 32
+ℹ pass 9
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 1333.767475
+ℹ duration_ms 4397.859199

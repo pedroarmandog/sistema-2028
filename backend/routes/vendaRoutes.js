@@ -1,4 +1,3 @@
-const {carregarIdentidade}=require("../services/identidadeEmpresaPDF");
 const express = require("express");
 const router = express.Router();
 const vendaController = require("../controllers/vendaController");
@@ -9,7 +8,10 @@ const { authUser } = require("../middleware/authUser");
 
 // Aplicar auth em todas as rotas de venda
 router.use(authUser);
-router.use((req,res,next)=>{if(req.path.endsWith("/pdf")||req.path.endsWith("/comprovante"))res.set("Cache-Control","private, no-store");next();});
+router.use('/preferencias/layout-caixa', require('../services/layoutCaixa').criarRouter({
+  db: require('../models/Cliente').sequelize,
+  autorizar: require('../middleware/exigePermissao').exigePermissao('atendimento.vendas'),
+}));
 
 // Comprovante PDF (cupom fiscal) - DEVE vir antes de /:id
 router.get("/:id/comprovante", async (req, res) => {
@@ -17,14 +19,14 @@ router.get("/:id/comprovante", async (req, res) => {
     const { id } = req.params;
     const PDFDocument = require("pdfkit");
 
-    const venda = await Venda.findOne({where:{id,empresa_id:req.user.empresaId}});
+    const venda = await Venda.findByPk(id);
     if (!venda) return res.status(404).json({ erro: "Venda não encontrada" });
 
     // Buscar cliente para exibir nome e endereço no comprovante
     let clienteObj = null;
     if (venda.clienteId) {
       try {
-        clienteObj = await Cliente.findOne({ where:{id:venda.clienteId,empresa_id:req.user.empresaId},
+        clienteObj = await Cliente.findByPk(venda.clienteId, {
           attributes: [
             "id",
             "nome",
@@ -73,10 +75,94 @@ router.get("/:id/comprovante", async (req, res) => {
     let logoRendered = false;
     let empresa = null;
     try {
-      const identidade = await carregarIdentidade(req);
-      empresa = identidade.empresa;
-      const logoBuffer = identidade.logoBuffer;
-      const logoPath = null;
+      // Preferir empresa vinculada à venda, depois a do cookie JWT, depois a do req.user, senão qualquer empresa ativa
+      if (venda.empresa_id) empresa = await Empresa.findByPk(venda.empresa_id);
+      if (!empresa) {
+        // Tentar cookie JWT
+        try {
+          const jwt = require("jsonwebtoken");
+          const JWT_SECRET =
+            process.env.JWT_USER_SECRET || "pethub_user_secret_2026_!@#$%";
+          const cookieHeader = req.headers.cookie || "";
+          const match = cookieHeader.match(/pethub_token=([^;]+)/);
+          if (match) {
+            const decoded = jwt.verify(match[1], JWT_SECRET);
+            if (decoded.empresaId)
+              empresa = await Empresa.findByPk(decoded.empresaId);
+          }
+        } catch (_) {}
+      }
+      if (!empresa && req.user && req.user.empresaId)
+        empresa = await Empresa.findByPk(req.user.empresaId);
+      if (!empresa)
+        empresa = await Empresa.findOne({
+          where: { ativa: true },
+          order: [["id", "ASC"]],
+        });
+
+      let logoPath = null;
+      let logoBuffer = null;
+
+      // Se empresa tem logo, tentar diferentes formatos (dataURI / base64 / arquivo)
+      if (empresa && empresa.logo) {
+        try {
+          const logoVal = String(empresa.logo || "").trim();
+          if (logoVal.startsWith("data:")) {
+            const parts = logoVal.split(",");
+            if (parts[1]) logoBuffer = Buffer.from(parts[1], "base64");
+          } else if (
+            /^[A-Za-z0-9+/=\r\n]+$/.test(logoVal) &&
+            logoVal.length > 200
+          ) {
+            // provável base64 cru
+            try {
+              logoBuffer = Buffer.from(logoVal, "base64");
+            } catch (e) {
+              logoBuffer = null;
+            }
+          } else {
+            const candidates = [
+              path.join(__dirname, "../../uploads", empresa.logo),
+              path.join(
+                __dirname,
+                "../../uploads",
+                "logos-empresas",
+                empresa.logo,
+              ),
+              path.join(
+                __dirname,
+                "../../uploads",
+                path.basename(empresa.logo),
+              ),
+            ];
+            for (const p of candidates) {
+              if (fs.existsSync(p)) {
+                logoPath = p;
+                break;
+              }
+            }
+          }
+        } catch (e) {
+          /* ignore */
+        }
+      }
+
+      // Se nada obtido da empresa, tentar logos padrões do frontend
+      if (!logoBuffer && !logoPath) {
+        const defaultPaths = [
+          path.join(
+            __dirname,
+            "../../frontend/fivecon/Design sem nome (17).png",
+          ),
+          path.join(__dirname, "../../frontend/logos/Logo PetHub (2).svg"),
+        ];
+        for (const p of defaultPaths) {
+          if (fs.existsSync(p)) {
+            logoPath = p;
+            break;
+          }
+        }
+      }
 
       // Renderizar logo (buffer ou arquivo)
       if (logoBuffer) {
@@ -433,10 +519,16 @@ router.get("/:id/comprovante", async (req, res) => {
   }
 });
 
+const validarCaixa = require('../services/validarVendaCaixa').criarValidador(require('../models'));
+const permissaoCaixa = require('../middleware/exigePermissao').exigePermissao('atendimento.vendas');
+function autorizarInterfaceCaixa(req, res, next) {
+  if (req.body?.origemInterface === 'caixa-compartilhado') return permissaoCaixa(req, res, next);
+  next();
+}
 router.get("/", vendaController.listarVendas);
 router.get("/:id", vendaController.buscarVenda);
-router.post("/", vendaController.criarVenda);
-router.put("/:id", vendaController.atualizarVenda);
+router.post("/", autorizarInterfaceCaixa, validarCaixa, vendaController.criarVenda);
+router.put("/:id", autorizarInterfaceCaixa, validarCaixa, vendaController.atualizarVenda);
 router.delete("/:id", vendaController.deletarVenda);
 
 module.exports = router;

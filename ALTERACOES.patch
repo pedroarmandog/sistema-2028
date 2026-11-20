@@ -1,349 +1,2523 @@
---- a/backend/services/whatsappService.js
-+++ b/backend/services/whatsappService.js
-@@ -36,6 +36,7 @@
+--- a/backend/routes/vendaRoutes.js
++++ b/backend/routes/vendaRoutes.js
+@@ -8,6 +8,10 @@
  
- function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.toDataURL,
-   agendar = setTimeout, cancelar = clearTimeout, agora = Date.now, atualizarResumo = async () => {}, registrar = () => {}, flushDiagnostico = async () => {},
-+  resolverEmpresa = empresaDaSessao,
-   verificarPermissao = async () => ({permitido:true}),
-   carregarMidia = (empresa,ref) => require("./midias/whatsapp").carregar(empresa,ref),
-   pausaEnvio = () => new Promise(resolve => setTimeout(resolve, 3000 + Math.random() * 7000)) } = {}) {
-@@ -151,6 +152,7 @@
-     s.abrindo = true;
-     s.inicioAbertura = agora();
-     try {
-+      s.empresaId ??= await resolverEmpresa(s.id);
-       const lib = await carregar();
-       if (!atual(s)) return;
-       if (!s.auth && repositorio) {
-@@ -296,7 +298,7 @@
-   async function inicializarCliente(id, manual = true) {
-     if (parando) throw new Error('Servidor reiniciando. Aguarde.');
-     const chave = String(id);
--    if (!/^[1-9]\d*$/.test(chave)) throw new Error('Empresa inválida');
-+    if (!/^(?:disp_)?[1-9]\d*$/.test(chave)) throw new Error('Empresa inválida');
-     if (desligando.has(chave)) await desligando.get(chave);
-     const existente = sessoes.get(chave);
-     if (existente) {
-@@ -447,7 +449,7 @@
-       await pausaEnvio();
-       if (!isConectado(id) || sessoes.get(String(id))?.socket !== socket) return indisponivel();
-       let permissao;
--      try { permissao = await verificarPermissao(id, telefone); }
-+      try { permissao = await verificarPermissao(s.empresaId, telefone); }
-       catch { return {sucesso:false,temporario:true,erro:'Não foi possível verificar as preferências de comunicação. Envio preservado.'}; }
-       if (!permissao.permitido) return {sucesso:false,bloqueado:true,ignorado:true,erro:permissao.erro};
-       const numeros = await socket.onWhatsApp(...candidatos);
-@@ -457,7 +459,7 @@
-       let conteudo = { text: texto || '' };
-       if (arquivo) {
-         let midia;
--        try { midia = await carregarMidia(id,arquivo); }
-+        try { midia = await carregarMidia(s.empresaId,arquivo); }
-         catch { return {sucesso:false,temporario:true,erro:'Anexo indisponível. A mensagem foi preservada para nova tentativa.'}; }
-         const bytes = midia.bytes;
-         const mime = midia.tipo?.startsWith('image/') ? midia.tipo : null;
-@@ -465,7 +467,7 @@
-           : { document: bytes, fileName: path.basename(arquivo), mimetype: midia.tipo || 'application/octet-stream', caption: texto || '' };
-       }
-       if (!isConectado(id) || sessoes.get(String(id))?.socket !== socket) return indisponivel();
--      try { permissao = await verificarPermissao(id, telefone); }
-+      try { permissao = await verificarPermissao(s.empresaId, telefone); }
-       catch { return {sucesso:false,temporario:true,erro:'Não foi possível verificar as preferências de comunicação. Envio preservado.'}; }
-       if (!permissao.permitido) return {sucesso:false,bloqueado:true,ignorado:true,erro:permissao.erro};
-       if (!isConectado(id) || sessoes.get(String(id))?.socket !== socket) return indisponivel();
-@@ -480,7 +482,7 @@
-     }
+ // Aplicar auth em todas as rotas de venda
+ router.use(authUser);
++router.use('/preferencias/layout-caixa', require('../services/layoutCaixa').criarRouter({
++  db: require('../models/Cliente').sequelize,
++  autorizar: require('../middleware/exigePermissao').exigePermissao('atendimento.vendas'),
++}));
+ 
+ // Comprovante PDF (cupom fiscal) - DEVE vir antes de /:id
+ router.get("/:id/comprovante", async (req, res) => {
+@@ -515,10 +519,16 @@
    }
-   return { iniciarMonitor, restaurar, suspender, inicializarCliente, obterStatus, isConectado, adicionarListenerSSE, enviarMensagem,
--    empresasConectadas: () => [...sessoes.keys()].filter(isConectado), desconectar, limparSessao: desconectar };
-+    empresasConectadas: () => [...sessoes.keys()].filter(id => /^[1-9]\d*$/.test(id) && isConectado(id)), desconectar, limparSessao: desconectar };
- }
+ });
  
- function variantes(telefone) {
-@@ -536,13 +538,26 @@
-   banco ??= require('./whatsappAuthStore').criarRepositorio(require('../models/Cliente').sequelize);
-   return banco;
- }
-+async function empresaDaSessao(id) {
-+  const chave=String(id);
-+  if (/^[1-9]\d*$/.test(chave)) return Number(chave);
-+  if (!/^disp_[1-9]\d*$/.test(chave)) throw new Error('Sessão inválida');
-+  const sess=await require('../models').WhatsappSession.findByPk(chave.slice(5));
-+  const nome=String(sess?.nome||'').trim().toLowerCase();
-+  if(!sess||!nome||nome==='config_disparador')throw new Error('Instância não encontrada');
-+  const empresaId=Number(sess.empresaId);
-+  if(!Number.isSafeInteger(empresaId)||empresaId<=0)throw new Error('Empresa inválida');
-+  return empresaId;
++const validarCaixa = require('../services/validarVendaCaixa').criarValidador(require('../models'));
++const permissaoCaixa = require('../middleware/exigePermissao').exigePermissao('atendimento.vendas');
++function autorizarInterfaceCaixa(req, res, next) {
++  if (req.body?.origemInterface === 'caixa-compartilhado') return permissaoCaixa(req, res, next);
++  next();
 +}
- async function atualizarResumo(id, status, numero) {
--  const empresaId = Number(id);
--  if (!Number.isSafeInteger(empresaId) || empresaId <= 0) return;
-+  const chave=String(id), dispatcher=/^disp_([1-9]\d*)$/.exec(chave);
-   const { WhatsappSession } = require('../models');
--  // Nunca upsert sem chave única: isso criava novas linhas a cada reconexão.
--  await WhatsappSession.update({ status, numero: numero || null,
--    ...(status === 'conectado' ? { ultimaConexao: new Date() } : {}) }, { where: { empresaId } });
-+  const { Op } = require('sequelize');
-+  const scope=dispatcher?{id:Number(dispatcher[1])}
-+    : {empresaId:Number(chave),[Op.or]:[{nome:null},{nome:''}]};
-+  if(!dispatcher&&(!Number.isSafeInteger(scope.empresaId)||scope.empresaId<=0))return;
-+  await WhatsappSession.update({status,numero:numero||null,
-+    ...(status==='conectado'?{ultimaConexao:new Date()}: {})},{where:scope});
- }
- const diagnostico=require('./whatsappDiagnostico');
- module.exports = { ...criarServico({ repositorio, atualizarResumo, verificarPermissao:require('./clienteComunicacao').verificar, registrar:diagnostico.registrar, flushDiagnostico:diagnostico.flush }), criarServico, substituirVariaveis, obterDiagnostico:diagnostico.historico };
---- a/backend/controllers/instanciaController.js
-+++ b/backend/controllers/instanciaController.js
-@@ -73,12 +73,11 @@
-       status: "aguardando_qr",
-     });
+ router.get("/", vendaController.listarVendas);
+ router.get("/:id", vendaController.buscarVenda);
+-router.post("/", vendaController.criarVenda);
+-router.put("/:id", vendaController.atualizarVenda);
++router.post("/", autorizarInterfaceCaixa, validarCaixa, vendaController.criarVenda);
++router.put("/:id", autorizarInterfaceCaixa, validarCaixa, vendaController.atualizarVenda);
+ router.delete("/:id", vendaController.deletarVenda);
  
--    // Manter a API do serviço WhatsApp existente (Baileys ou adaptador atual).
-     try {
--      Promise.resolve(whatsappService.inicializarCliente(DISP_PREFIX + sess.id))
--        .catch(() => console.warn("[Instancia] conexão inicial indisponível; reconecte pela lista."));
--    } catch (e) {
--      console.warn("[Instancia] falha ao inicializar cliente", e && e.message);
-+      await whatsappService.inicializarCliente(DISP_PREFIX + sess.id);
-+    } catch (_) {
-+      await WhatsappSession.update({ status: "erro" }, { where: { id: sess.id, empresaId: Number(empresaId) } });
-+      return res.status(503).json({error:"Instância cadastrada, mas não foi possível iniciar o WhatsApp. Use Conectar na lista; não crie outra instância.",instancia:{...dtoInstancia(sess),status:"erro"}});
-     }
- 
-     return res.json({ success: true, instancia: dtoInstancia(sess) });
-@@ -105,9 +104,8 @@
-       // Uma falha de status de uma sessão não pode esconder toda a lista.
-       let real;
-       try { real = whatsappService.obterStatus(DISP_PREFIX + s.id); } catch (_) {}
--      if (json.status === "conectado") {
--        json.status = typeof real?.status === "string" ? real.status : "desconectado";
--      }
-+      if (typeof real?.status === "string") json.status = real.status;
-+      else if (json.status === "conectado") json.status = "desconectado";
-       return json;
-     });
- 
-@@ -136,7 +134,7 @@
-       { status: "aguardando_qr" },
-       { where: { id } },
-     );
--    whatsappService.inicializarCliente(DISP_PREFIX + id);
-+    await whatsappService.inicializarCliente(DISP_PREFIX + id);
-     return res.json({ success: true });
-   } catch (err) {
-     console.error("conectarInstancia error", err && err.message);
-@@ -209,19 +207,15 @@
-       return res.status(404).json({ error: "Instância do disparador não encontrada" });
- 
-     const chave = DISP_PREFIX + id;
--    // Destruir cliente existente
--    try {
--      await whatsappService.desconectar(chave);
--    } catch (_) {}
--    // Limpar sessão corrompida do disco
--    whatsappService.limparSessaoDoDisco(chave);
-+    // Baileys mantém autenticação no repositório; não há diretório Puppeteer.
-+    await whatsappService.desconectar(chave);
-     // Atualizar banco
-     await WhatsappSession.update(
-       { status: "aguardando_qr" },
-       { where: { id } },
-     );
-     // Reconectar (gera QR novo)
--    whatsappService.inicializarCliente(chave);
-+    await whatsappService.inicializarCliente(chave);
-     return res.json({ success: true });
-   } catch (err) {
-     console.error("resetarInstancia error", err && err.message);
-@@ -229,7 +223,29 @@
-   }
- }
- 
-+async function eventosInstancia(req,res) {
-+  const empresaId=Number(req.user?.empresaId),id=String(req.params.id);
-+  if(!empresaId)return res.status(403).json({error:"Empresa não identificada"});
-+  try {
-+    const sess=await WhatsappSession.findByPk(id);
-+    if(!sess||!registroDeInstancia(sess))return res.status(404).json({error:"Instância não encontrada"});
-+    if(Number(sess.empresaId)!==empresaId)return res.status(403).json({error:"Instância não pertence à sua empresa"});
-+    const chave=DISP_PREFIX+id;
-+    res.setHeader("Content-Type","text/event-stream");res.setHeader("Cache-Control","no-cache, no-transform");
-+    res.setHeader("Connection","keep-alive");res.flushHeaders();
-+    whatsappService.adicionarListenerSSE(chave,res);
-+    res.write('data: '+JSON.stringify({evento:'status_inicial',...whatsappService.obterStatus(chave)})+'\n\n');
-+    const timer=setInterval(()=>{try{res.write(': ping\n\n');}catch{}},25000);
-+    res.once('close',()=>clearInterval(timer));
-+  } catch (_) {
-+    if(!res.headersSent)return res.status(503).json({error:"Não foi possível acompanhar a conexão WhatsApp."});
-+    res.end();
+ module.exports = router;
+--- /dev/null
++++ b/backend/scripts/preparar-layout-caixa.js
+@@ -0,0 +1,15 @@
++"use strict";
++// Idempotente: cria apenas a tabela nova, sem sync/alter do restante do ERP.
++const { sequelize } = require("../models/Cliente");
++require("../services/layoutCaixa")
++  .modelo(sequelize)
++  .sync()
++  .then(() => console.log("Preferências de caixa preparadas."))
++  .catch((e) => {
++    console.error(e.message);
++    process.exitCode = 1;
++  })
++  .finally(async () => {
++    await sequelize.close();
++    process.exit(process.exitCode || 0);
++  });
+--- /dev/null
++++ b/backend/services/layoutCaixa.js
+@@ -0,0 +1,83 @@
++"use strict";
++const { DataTypes } = require("sequelize");
++function modelo(db) {
++  return (
++    db.models.PreferenciaCaixa ||
++    db.define(
++      "PreferenciaCaixa",
++      {
++        empresa_id: {
++          type: DataTypes.INTEGER,
++          primaryKey: true,
++          allowNull: false,
++        },
++        layout: {
++          type: DataTypes.STRING(8),
++          allowNull: false,
++          defaultValue: "classico",
++          validate: { isIn: [["classico", "rapido"]] },
++        },
++      },
++      { tableName: "preferencias_caixa", timestamps: false },
++    )
++  );
++}
++function criarRouter({ db, autorizar }) {
++  const router = require("express").Router(),
++    Config = modelo(db);
++  router.use(autorizar);
++  router.use((req, res, next) => {
++    if (
++      !Number.isSafeInteger(Number(req.user?.empresaId)) ||
++      Number(req.user.empresaId) <= 0
++    )
++      return res
++        .status(403)
++        .json({ erro: "Empresa autenticada não identificada." });
++    res.set("Cache-Control", "no-store");
++    next();
++  });
++  router.get("/", async (req, res) => {
++    try {
++      if (Object.keys(req.query).length)
++        return res
++          .status(400)
++          .json({ erro: "A empresa é determinada pela sessão." });
++      const config = await Config.findByPk(Number(req.user.empresaId));
++      res.json({ layout: config?.layout || "classico" });
++    } catch (e) {
++      console.error("[LayoutCaixa]", e.message);
++      res
++        .status(503)
++        .json({ erro: "Execute a preparação do layout do caixa no servidor." });
++    }
++  });
++  router.put("/", async (req, res) => {
++    const b = req.body;
++    if (
++      !b ||
++      Object.keys(b).length !== 1 ||
++      !["classico", "rapido"].includes(b.layout)
++    )
++      return res
++        .status(400)
++        .json({ erro: "Envie somente layout: classico ou rapido." });
++    // Rejeita escrita cross-origin; mantém sessões por cookie e Bearer do ERP.
++    if (req.get("Sec-Fetch-Site") === "cross-site")
++      return res.status(403).json({ erro: "Origem não autorizada." });
++    try {
++      await Config.upsert({
++        empresa_id: Number(req.user.empresaId),
++        layout: b.layout,
++      });
++      res.json({ layout: b.layout });
++    } catch (e) {
++      console.error("[LayoutCaixa]", e.message);
++      res
++        .status(503)
++        .json({ erro: "Não foi possível salvar o visual do caixa." });
++    }
++  });
++  return router;
++}
++module.exports = { modelo, criarRouter };
+--- /dev/null
++++ b/backend/services/validarVendaCaixa.js
+@@ -0,0 +1,166 @@
++"use strict";
++// Validação de entrada das duas interfaces. A gravação continua no vendaController.
++function criarValidador({ Produto, Cliente, Profissional, Caixa }) {
++  const cents = (n) => Math.round(Number(n) * 100);
++  const numero = (n) => typeof n === "number" && Number.isFinite(n);
++  return async (req, res, next) => {
++    if (req.body?.origemInterface !== "caixa-compartilhado") return next();
++    const fail = (msg) => res.status(400).json({ erro: msg });
++    const b = req.body,
++      emp = Number(req.user?.empresaId);
++    if (!Number.isSafeInteger(emp) || emp <= 0)
++      return res.status(403).json({ erro: "Empresa não identificada." });
++    if (req.get("Sec-Fetch-Site") === "cross-site")
++      return res.status(403).json({ erro: "Origem não autorizada." });
++    try {
++      if (!(await Caixa.findOne({ where: { empresa_id: emp, aberto: true } })))
++        return res
++          .status(409)
++          .json({ erro: "Caixa fechado. Abra o caixa para realizar vendas." });
++      if (!Array.isArray(b.itens) || !b.itens.length || b.itens.length > 1000)
++        return fail("Itens da venda inválidos.");
++      let bruto = 0,
++        liquidoItens = 0;
++      const quantidades = new Map();
++      for (const i of b.itens) {
++        if (
++          !i.produto?.id ||
++          !numero(i.quantidade) ||
++          i.quantidade <= 0 ||
++          !numero(i.valorUnitario) ||
++          i.valorUnitario < 0 ||
++          !numero(i.desconto) ||
++          i.desconto < 0 ||
++          i.desconto > 100
++        )
++          return fail("Quantidade, preço ou desconto inválido.");
++        const totalBruto = i.quantidade * i.valorUnitario,
++          totalFinal = totalBruto * (1 - i.desconto / 100);
++        if (
++          !numero(i.totalBruto) ||
++          !numero(i.totalFinal) ||
++          Math.abs(cents(i.totalBruto) - cents(totalBruto)) > 1 ||
++          Math.abs(cents(i.totalFinal) - cents(totalFinal)) > 1
++        )
++          return fail(
++            "Os valores dos itens foram alterados. Atualize a venda.",
++          );
++        bruto += totalBruto;
++        liquidoItens += totalFinal;
++        const id = String(i.produto.id);
++        quantidades.set(id, (quantidades.get(id) || 0) + i.quantidade);
++      }
++      const produtos = await Produto.findAll({
++        where: { id: [...quantidades.keys()], empresa_id: emp },
++      });
++      if (produtos.length !== quantidades.size)
++        return fail("Há produto indisponível para esta empresa.");
++      for (const p of produtos) {
++        const permite = [true, 1, "1", "sim", "true"].includes(
++          p.permiteEstoqueNegativo,
++        );
++        if (
++          p.tipo === "produto" &&
++          !permite &&
++          quantidades.get(String(p.id)) > Number(p.estoqueAtual || 0)
++        )
++          return fail("Quantidade informada não disponível no estoque.");
++      }
++      for (const [id, Model] of [
++        [b.clienteId, Cliente],
++        [b.profissionalId, Profissional],
++      ]) {
++        if (
++          id != null &&
++          !(await Model.findOne({ where: { id, empresa_id: emp } }))
++        )
++          return fail(
++            "Cliente ou profissional indisponível para esta empresa.",
++          );
++      }
++      const totals = b.totais;
++      if (
++        !totals ||
++        !["bruto", "desconto", "acrescimo", "final"].every((k) =>
++          numero(totals[k]),
++        ) ||
++        totals.desconto < 0 ||
++        totals.acrescimo < 0 ||
++        totals.final < 0 ||
++        !numero(totals.arredondamento || 0)
++      )
++        return fail("Totais inválidos.");
++      if (
++        Math.abs(cents(bruto) - cents(totals.bruto)) > 1 ||
++        cents(totals.desconto) + 1 < cents(bruto - liquidoItens) ||
++        Math.abs(
++          cents(
++            bruto -
++              totals.desconto +
++              totals.acrescimo +
++              (totals.arredondamento || 0),
++          ) - cents(totals.final),
++        ) > 1
++      )
++        return fail("Totais divergentes. Atualize a venda.");
++      if (!["pendente", "pago", "parcial"].includes(b.status))
++        return fail("Status da venda inválido.");
++      if (b.status !== "pendente") {
++        if (
++          !Array.isArray(b.pagamentos) ||
++          !b.pagamentos.length ||
++          b.pagamentos.some(
++            (p) =>
++              !numero(p.valor) ||
++              p.valor <= 0 ||
++              ![
++                "dinheiro",
++                "pix",
++                "credito",
++                "debito",
++                "crediario",
++                "haver",
++                "cheque",
++              ].includes(p.forma),
++          )
++        )
++          return fail("Pagamentos inválidos.");
++        const pago = b.pagamentos.reduce((n, p) => n + cents(p.valor), 0);
++        if (
++          !numero(b.totalPago) ||
++          pago !== cents(b.totalPago) ||
++          (b.status === "pago" && Math.abs(pago - cents(totals.final)) > 1) ||
++          pago > cents(totals.final) + 1
++        )
++          return fail("A soma dos pagamentos não confere com a venda.");
++      }
++      // Nenhuma alteração de empresa vinda do payload alcança o controller.
++      const campos = [
++        "origemInterface",
++        "timestamp",
++        "itens",
++        "totais",
++        "pagamentos",
++        "totalPago",
++        "status",
++        "cliente",
++        "clienteId",
++        "profissional",
++        "profissionalId",
++        "observacoes",
++      ];
++      Object.keys(b).forEach((k) => {
++        if (!campos.includes(k)) delete b[k];
++      });
++      return next();
++    } catch (e) {
++      console.error("[ValidarVendaCaixa]", e.message);
++      return res
++        .status(503)
++        .json({
++          erro: "Não foi possível validar esta venda. Tente novamente.",
++        });
++    }
++  };
++}
++module.exports = { criarValidador };
+--- /dev/null
++++ b/frontend/atendimento/caixa-rapido.css
+@@ -0,0 +1,652 @@
++.qr-toolbar {
++  display: flex;
++  justify-content: flex-end;
++  padding: 10px 0;
++}
++.qr-toolbar button,
++.qr-dialog button {
++  border: 1px solid #ccd4df;
++  background: #fff;
++  border-radius: 10px;
++  padding: 11px 18px;
++  color: #173045;
++  font-weight: 650;
++  cursor: pointer;
++}
++.qr-shell[hidden],
++.nova-venda-layout[hidden] {
++  display: none !important;
++}
++.qr-shell {
++  --qr-navy: #14283e;
++  --qr-accent: var(--primary-color, #ff8a00);
++  font-family: Arial, sans-serif;
++  color: #14283e;
++  display: flex;
++  flex-direction: column;
++  gap: 14px;
++}
++.qr-shell * {
++  box-sizing: border-box;
++}
++.qr-header {
++  display: flex;
++  justify-content: space-between;
++  align-items: center;
++  gap: 14px;
++  background: linear-gradient(110deg, #14283e, #29384a);
++  color: white;
++  padding: 17px 20px;
++  border-radius: 14px;
++}
++.qr-header > div {
++  display: flex;
++  align-items: center;
++  gap: 14px;
++}
++.qr-header strong {
++  font-size: 25px;
++  white-space: nowrap;
++}
++.qr-header small {
++  border-left: 1px solid #697482;
++  padding-left: 14px;
++}
++.qr-cart-symbol {
++  background: var(--qr-accent);
++  border-radius: 9px;
++  padding: 7px 12px;
++  font-size: 24px;
++}
++.qr-meta {
++  font-size: 13px;
++  flex-wrap: wrap;
++  justify-content: flex-end;
++}
++.qr-meta time {
++  white-space: nowrap;
++}
++#qr-status {
++  border: 1px solid #9cabb7;
++  border-radius: 8px;
++  padding: 8px;
++  background: #263e53;
++}
++#qr-status.open {
++  background: #0b713c;
++  border-color: #228458;
++}
++.qr-shortcuts {
++  display: grid;
++  grid-template-columns: repeat(7, minmax(0, 1fr));
++  gap: 8px;
++}
++.qr-shell button {
++  cursor: pointer;
++  font: inherit;
++}
++.qr-shortcuts button {
++  display: flex;
++  gap: 9px;
++  align-items: center;
++  justify-content: center;
++  border: 1px solid #d5dbe3;
++  background: #fff;
++  border-radius: 10px;
++  padding: 10px 6px;
++  font-size: 13px;
++  font-weight: bold;
++  box-shadow: 0 2px 3px #1830440c;
++}
++.qr-shortcuts kbd {
++  background: var(--qr-accent);
++  color: #fff;
++  padding: 7px;
++  border-radius: 6px;
++}
++.qr-grid {
++  display: grid;
++  grid-template-columns: minmax(230px, 0.95fr) minmax(350px, 1.6fr) minmax(
++      280px,
++      0.9fr
++    );
++  gap: 13px;
++  align-items: stretch;
++}
++.qr-left,
++.qr-right {
++  display: flex;
++  flex-direction: column;
++  gap: 12px;
++  min-width: 0;
++}
++.qr-card {
++  border: 1px solid #d6dde6;
++  border-radius: 14px;
++  background: linear-gradient(145deg, #fff, #f9fafc);
++  box-shadow: 0 2px 5px #1930450c;
++  overflow: visible;
++}
++.qr-card h2 {
++  font-size: 17px;
++  margin: 0;
++  padding: 16px;
++  border-bottom: 1px solid #e3e7ed;
++}
++.qr-card h2 small {
++  font-size: 13px;
++  font-weight: 400;
++  color: #677b8e;
++  margin-left: 6px;
++}
++.qr-shell .search-produto {
++  margin: 14px;
++  position: relative;
++}
++.qr-shell .search-produto input {
++  width: 100%;
++  padding: 13px;
++  border: 2px solid var(--qr-accent);
++  border-radius: 9px;
++  outline-offset: 3px;
++}
++.qr-shell .underline {
++  display: none;
++}
++.qr-shell .item-form {
++  padding: 0 14px 14px;
++  margin: 0;
++  background: transparent;
++}
++.qr-shell .item-form .form-row {
++  display: grid;
++  grid-template-columns: 1fr 1fr;
++  gap: 7px;
++}
++.qr-shell .item-form .form-group {
++  margin: 0;
++  min-width: 0;
++}
++.qr-shell .item-form label {
++  font-size: 12px;
++}
++.qr-shell .item-form input {
++  width: 100%;
++  min-width: 0;
++  padding: 7px;
++  border: 1px solid #cbd3dd;
++  border-radius: 6px;
++}
++.qr-shell .btn-adicionar {
++  width: 100%;
++  margin-top: 8px;
++  background: #14283e;
++  color: white;
++  padding: 9px;
++  border: 0;
++  border-radius: 7px;
++}
++.qr-products {
++  display: grid;
++  grid-template-columns: 1fr 1fr;
++  gap: 9px;
++  padding: 12px;
++  max-height: 44vh;
++  overflow: auto;
++}
++.qr-shell .qr-product {
++  display: flex;
++  align-items: center;
++  gap: 9px;
++  text-align: left;
++  padding: 11px 9px;
++  background: #fff;
++  border: 1px solid #d6dce4;
++  border-radius: 10px;
++  min-width: 0;
++  box-shadow: 0 2px 3px #1930450c;
++}
++.qr-product > span:last-child {
++  display: flex;
++  flex-direction: column;
++  gap: 5px;
++  min-width: 0;
++  overflow-wrap: anywhere;
++}
++.qr-product strong {
++  font-size: 12px;
++}
++.qr-product small {
++  font-size: 10px;
++  color: #65758a;
++}
++.qr-product b {
++  font-size: 15px;
++  color: #b34e00;
++}
++.qr-product img,
++.qr-product-icon,
++.qr-desc img {
++  width: 35px;
++  height: 45px;
++  object-fit: contain;
++  flex-shrink: 0;
++}
++.qr-product-icon {
++  display: grid;
++  place-items: center;
++  background: #edf2f6;
++  border-radius: 7px;
++  font-size: 23px;
++  color: #778ba0;
++}
++#qr-all {
++  display: block;
++  width: calc(100% - 24px);
++  margin: 4px 12px 12px;
++  padding: 12px;
++  border: 1px solid #d5dce6;
++  border-radius: 8px;
++  background: #f3f5f8;
++  font-weight: bold;
++}
++.qr-middle {
++  display: flex;
++  flex-direction: column;
++  min-width: 0;
++  min-height: 480px;
++}
++.qr-table-head {
++  display: grid;
++  grid-template-columns: minmax(0, 1fr) 100px 80px 85px;
++  padding: 12px 28px 12px 14px;
++  background: #e9edf2;
++  font-size: 12px;
++  font-weight: bold;
++}
++.qr-table-head span:not(:first-child) {
++  text-align: center;
++}
++#qr-cart {
++  flex: 1;
++  overflow: auto;
++  max-height: 58vh;
++  padding: 4px;
++}
++.qr-row {
++  display: grid;
++  grid-template-columns: minmax(0, 1fr) 100px 80px 85px 23px;
++  align-items: center;
++  gap: 3px;
++  padding: 16px 8px;
++  border-bottom: 1px solid #e7eaf0;
++  min-height: 82px;
++}
++.qr-row.selected {
++  background: #fff0df;
++  border-left: 3px solid var(--qr-accent);
++  border-radius: 8px;
++}
++.qr-row:focus {
++  outline: 2px solid #ff9d2a;
++  outline-offset: -2px;
++}
++.qr-desc {
++  display: flex;
++  align-items: center;
++  gap: 9px;
++  min-width: 0;
++}
++.qr-desc strong {
++  display: block;
++  font-size: 13px;
++  overflow-wrap: anywhere;
++}
++.qr-desc small {
++  display: block;
++  font-size: 11px;
++  color: #617183;
++  margin-top: 6px;
++}
++.qr-qty {
++  display: flex;
++  align-items: center;
++}
++.qr-qty input {
++  width: 48px;
++  text-align: center;
++  min-width: 0;
++  border: 1px solid #cbd3dd;
++  padding: 7px 1px;
++  background: #fff;
++  border-radius: 4px;
++}
++.qr-qty button {
++  border: 1px solid #cbd3dd;
++  background: #fff;
++  font-size: 18px;
++  border-radius: 4px;
++  min-width: 25px;
++  min-height: 32px;
++}
++.qr-unit,
++.qr-line-total {
++  text-align: center;
++  font-size: 13px;
++}
++.qr-remove {
++  color: #ae2734;
++  background: transparent;
++  border: 0;
++  font-size: 22px !important;
++}
++.qr-empty {
++  padding: 65px 25px;
++  text-align: center;
++  color: #778798;
++  line-height: 1.6;
++}
++.qr-scanner {
++  padding: 16px;
++  border-top: 1px solid #d5dce6;
++  margin: 0;
++  color: #426552;
++  font-size: 12px;
++}
++.qr-shell .totais-box,
++.qr-shell .cliente-section {
++  margin: 0;
++  border: 1px solid #d6dde6;
++  border-radius: 13px;
++  box-shadow: none;
++  padding: 14px;
++  background: white;
++}
++.qr-shell .total-item {
++  padding: 10px 0;
++}
++.qr-shell .total-item .total-info {
++  width: 100%;
++  display: flex;
++  justify-content: space-between;
++  align-items: center;
++  gap: 10px;
++}
++.qr-shell .valor-circle {
++  display: none;
++}
++.qr-shell .total-venda {
++  background: #14283e;
++  color: white;
++  border-radius: 9px;
++  margin-top: 7px;
++  padding: 15px 10px;
++}
++.qr-shell .total-venda .valor {
++  color: var(--qr-accent);
++  font-size: 27px;
++  font-weight: bold;
++}
++.qr-shell .total-venda .label {
++  color: white;
++}
++.qr-shell .cliente-section input {
++  width: 100%;
++  padding: 11px;
++  border: 1px solid #d0d8e1;
++  border-radius: 7px;
++}
++.qr-shell .section-title {
++  font-weight: bold;
++  margin-bottom: 8px;
++}
++.qr-shell .qr-pay,
++.qr-shell .qr-finish {
++  width: 100%;
++  border: 0;
++  border-radius: 10px;
++  padding: 16px 8px;
++  font-weight: 750;
++  color: #fff;
++}
++.qr-pay {
++  background: #d36100;
++}
++.qr-finish {
++  background: #14283e;
++  font-size: 17px !important;
++}
++.qr-shell summary {
++  padding: 14px;
++  cursor: pointer;
++  font-weight: bold;
++}
++.qr-shell #qr-options {
++  padding: 0 12px 12px;
++  max-height: 44vh;
++  overflow: auto;
++}
++.qr-shell #qr-options .form-row {
++  display: flex;
++  flex-wrap: wrap;
++  gap: 8px;
++}
++.qr-shell #qr-options .form-group {
++  flex: 1;
++  min-width: 90px;
++}
++.qr-shell #qr-options input,
++.qr-shell textarea {
++  width: 100%;
++  min-width: 0;
++  border: 1px solid #ccd4df;
++  border-radius: 6px;
++  padding: 8px;
++}
++.qr-bottom {
++  display: flex;
++  gap: 10px;
++  align-items: center;
++  background: white;
++  border: 1px solid #d5dce6;
++  border-radius: 13px;
++  padding: 12px;
++  flex-wrap: wrap;
++}
++.qr-bottom strong {
++  padding: 0 14px;
++  font-size: 15px;
++}
++.qr-bottom button {
++  flex: 1;
++  background: #fff;
++  border: 1px solid #cbd4df;
++  border-radius: 9px;
++  padding: 13px 10px;
++  min-width: 110px;
++  font-weight: bold;
++}
++.qr-shell button:hover {
++  filter: brightness(0.96);
++}
++.qr-shell button:focus-visible,
++.qr-dialog button:focus-visible {
++  outline: 3px solid #fba12f;
++  outline-offset: 2px;
++}
++.qr-dialog {
++  max-width: 760px;
++  width: 90%;
++  border: 1px solid #d6dde6;
++  border-radius: 20px;
++  padding: 25px;
++  box-shadow: 0 22px 90px #0005;
++  color: #14283e;
++}
++.qr-dialog::backdrop {
++  background: #11263d99;
++  backdrop-filter: blur(4px);
++}
++.qr-dialog h2 {
++  margin: 0 0 10px;
++}
++.qr-dialog p {
++  line-height: 1.6;
++  color: #5d6f82;
++}
++.qr-layout-cards {
++  display: grid;
++  grid-template-columns: 1fr 1fr;
++  gap: 18px;
++  margin: 20px 0;
++}
++.qr-layout-cards article {
++  padding: 15px;
++  border: 1px solid #d1dbe5;
++  border-radius: 12px;
++}
++.qr-thumbnail {
++  height: 100px;
++  background: #f2f5f8;
++  border: 1px solid #d5dde6;
++  border-top: 12px solid #14283e;
++  display: grid;
++  grid-template-columns: 2fr 1fr;
++  gap: 7px;
++  padding: 10px;
++}
++.qr-thumbnail.rapido {
++  grid-template-columns: 1fr 1.6fr 1fr;
++  border-top-color: #ff8a00;
++}
++.qr-thumbnail i {
++  display: block;
++  background: repeating-linear-gradient(#fff 0 12px, #e7edf3 12px 15px);
++  border-radius: 4px;
++}
++.qr-thumbnail.classico i:last-child {
++  display: none;
++}
++.qr-change {
++  color: #136037;
++  font-weight: bold;
++}
++.caixa-rapido .container {
++  max-width: none !important;
++  width: 100%;
++  padding: 0 14px 14px !important;
++  margin: 0 !important;
++}
++.caixa-rapido .produtos-dropdown {
++  display: none !important;
++}
++.qr-shell .clientes-dropdown,
++.qr-shell .profissionais-dropdown {
++  z-index: 40;
++}
++.caixa-rapido #modalPagamento {
++  max-height: 90vh !important;
++  overflow-y: auto !important;
++  width: min(760px, 94vw) !important;
++}
++.qr-shell button:disabled,
++.qr-dialog button:disabled,
++.caixa-rapido #modalPagamento button:disabled {
++  cursor: wait;
++  opacity: 0.65;
++}
++@media (min-width: 1600px) {
++  .qr-grid {
++    grid-template-columns: minmax(280px, 1fr) minmax(480px, 1.6fr) minmax(
++        310px,
++        0.9fr
++      );
++  }
++  .qr-row {
++    grid-template-columns: minmax(0, 1fr) 110px 85px 90px 25px;
++  }
++  .qr-table-head {
++    grid-template-columns: minmax(0, 1fr) 110px 85px 90px;
++  }
++}
++@media (max-width: 1250px) {
++  .qr-grid {
++    grid-template-columns: minmax(210px, 0.9fr) minmax(310px, 1.5fr);
++  }
++  .qr-right {
++    grid-column: 1/-1;
++    display: grid;
++    grid-template-columns: 1fr 1fr;
++  }
++  .qr-header {
++    flex-wrap: wrap;
++  }
++  .qr-unit {
++    display: none;
++  }
++  .qr-row {
++    grid-template-columns: minmax(0, 1fr) 100px 75px 23px;
++  }
++  .qr-table-head {
++    grid-template-columns: minmax(0, 1fr) 100px 75px;
++  }
++  .qr-table-head span:nth-child(3) {
++    display: none;
++  }
++  .qr-shortcuts button {
++    flex-direction: column;
++  }
++  .qr-shortcuts {
++    gap: 5px;
++  }
++}
++@media (max-width: 760px) {
++  .qr-grid {
++    display: flex;
++    flex-direction: column;
++  }
++  .qr-right {
++    display: flex;
++  }
++  .qr-meta {
++    justify-content: flex-start;
++  }
++  .qr-header strong {
++    font-size: 20px;
++  }
++  .qr-header small {
++    display: none;
++  }
++  .qr-shortcuts {
++    grid-template-columns: repeat(4, 1fr);
++  }
++  .qr-layout-cards {
++    grid-template-columns: 1fr;
++  }
++  .qr-row {
++    grid-template-columns: minmax(0, 1fr) 98px 68px 22px;
++  }
++  .qr-desc img,
++  .qr-desc .qr-product-icon {
++    display: none;
++  }
++  .qr-middle {
++    min-height: 300px;
++  }
++  .qr-bottom button {
++    min-width: 100px;
++  }
++  .qr-products {
++    max-height: 260px;
 +  }
 +}
 +
- module.exports = {
-+  filtroInstancias,
-+  eventosInstancia,
-   criarInstancia,
-   listarInstancias,
-   conectarInstancia,
---- a/backend/controllers/disparadorController.js
-+++ b/backend/controllers/disparadorController.js
-@@ -281,7 +281,7 @@
-       }
-     } else {
-       instanciaValida = await WhatsappSession.findOne({
--        where: { empresaId: empresaAuth },
-+        where: require("./instanciaController").filtroInstancias(empresaAuth),
-       });
-       if (!instanciaValida) {
-         return res.status(400).json({
-@@ -292,7 +292,7 @@
-     }
- 
-     // Verificar/reconectar o cliente WhatsApp (chave validada)
--    const conectado = whatsappService.isConectado(empresaAuth);
-+    const conectado = whatsappService.isConectado("disp_" + instanciaValida.id);
-     if (!conectado) {
-       return res.status(400).json({
-         error:
-@@ -328,6 +328,7 @@
-     return;
-   }
-   const empresaId = String(campanha.empresaId);
-+  const chaveWhatsapp = "disp_" + instanciaId;
- 
-   if (activeWorkers.has(campId)) return;
- 
-@@ -402,7 +403,7 @@
-         }
- 
-         // Verificar se o WhatsApp está conectado
--        if (!whatsappService.isConectado(empresaId)) {
-+        if (!whatsappService.isConectado(chaveWhatsapp)) {
-           desconectadoRetries++;
-           if (desconectadoRetries >= MAX_DESCONECTADO_RETRIES) {
-             console.warn(
-@@ -497,7 +498,7 @@
- 
-         // Enviar via whatsappService
-         const resultado = await whatsappService.enviarMensagem(
--          empresaId,
-+          chaveWhatsapp,
-           envio.telefoneDestino,
-           textoEnvio,
-           envio.imagemPath || null,
-@@ -718,7 +719,7 @@
-       }
-     } else {
-       instanciaValida = await WhatsappSession.findOne({
--        where: { empresaId: empresaAuth },
-+        where: require("./instanciaController").filtroInstancias(empresaAuth),
-       });
-       if (!instanciaValida) {
-         return res.status(400).json({
-@@ -729,7 +730,7 @@
-     }
- 
-     // Verificar/reconectar o cliente WhatsApp (chave validada)
--    const conectado = whatsappService.isConectado(empresaAuth);
-+    const conectado = whatsappService.isConectado("disp_" + instanciaValida.id);
-     if (!conectado) {
-       return res.status(400).json({
-         error:
---- a/backend/routes/instanciaRoutes.js
-+++ b/backend/routes/instanciaRoutes.js
-@@ -4,6 +4,7 @@
- 
- router.post("/", controller.criarInstancia);
- router.get("/", controller.listarInstancias);
-+router.get("/:id/eventos", controller.eventosInstancia);
- router.post("/:id/connect", controller.conectarInstancia);
- router.post("/:id/disconnect", controller.desconectarInstancia);
- router.post("/:id/reset", controller.resetarInstancia);
---- a/backend/routes/marketingRoutes.js
-+++ b/backend/routes/marketingRoutes.js
-@@ -20,7 +20,13 @@
- router.post("/whatsapp/conectar", marketingController.conectarWhatsapp);
- router.post("/whatsapp/desconectar", marketingController.desconectarWhatsapp);
- router.post("/whatsapp/resetar", marketingController.resetarWhatsapp);
--router.get("/whatsapp/eventos", marketingController.eventoSSE); // SSE
-+router.get("/whatsapp/eventos", (req,res,next)=>{
-+  if(!String(req.query.empresaId||'').startsWith('disp_'))return next();
-+  const match=/^disp_([1-9]\d*)$/.exec(String(req.query.empresaId));
-+  if(!match)return res.status(400).json({erro:'Instância inválida'});
-+  req.params.id=match[1];
-+  return require('../controllers/instanciaController').eventosInstancia(req,res);
-+}, marketingController.eventoSSE); // SSE
- 
- router.post("/whatsapp/enviar", async (req, res) => {
-   const id = req.user?.empresaId;
---- a/frontend/marketing-disparador.js
-+++ b/frontend/marketing-disparador.js
-@@ -357,6 +357,7 @@
-           var msg =
-             (data && (data.error || data.message)) || text || res.statusText;
-           showSubmodalError("Erro: " + msg);
-+          if (data && data.instancia) await fetchInstancias();
-           if ((data && data.code === "INSTANCIA_LIMIT") || /limite.*inst[aâ]ncias/i.test(msg)) await fetchInstancias();
-           return;
-         }
-@@ -483,8 +484,10 @@
-         btnConn.addEventListener("click", async function () {
-           var id = this.dataset.instId;
-           var act = this.dataset.action;
--          // Usar /reset ao conectar para limpar sessão corrompida
--          var endpoint = act === "connect" ? "reset" : act;
-+          // Conexão normal preserva as credenciais; reset é uma ação separada.
-+          var endpoint = act === "connect" ? "connect" : act;
-+          if (this.disabled) return;
-+          this.disabled = true;
-           try {
-             var r = await fetchComTimeout(
-               apiBase() + "/api/instancias/" + id + "/" + endpoint,
-@@ -494,7 +497,8 @@
-               },
-             );
-             if (!r.ok) {
--              appendLog("Erro ao " + act);
-+              var details = await r.json().catch(function () { return {}; });
-+              appendLog("Erro ao " + act + ": " + (details.error || details.erro || "Conexão indisponível (HTTP " + r.status + ")."));
-               return;
-             }
-             if (act === "connect") {
-@@ -505,8 +509,8 @@
-             }
-             fetchInstancias();
-           } catch (e) {
--            console.error(e);
--          }
-+            appendLog("Falha ao conectar: " + (e.message || "Conexão indisponível."));
-+          } finally { this.disabled = false; }
-         });
-         actions.appendChild(btnConn);
- 
-@@ -561,7 +565,7 @@
-     // Prefixo "disp_" para isolar do sistema principal de marketing
-     var chaveWpp = "disp_" + instanciaId;
-     qrEventSource = new EventSource(
--      apiBase() + "/api/marketing/whatsapp/eventos?empresaId=" + chaveWpp,
-+      apiBase() + "/api/instancias/" + encodeURIComponent(instanciaId) + "/eventos",
-       { withCredentials: true },
-     );
- 
-@@ -569,11 +573,12 @@
-       try {
-         var data = JSON.parse(event.data);
- 
--        if (data.evento === "qr" && data.qrBase64) {
-+        if (["qr", "status_inicial", "status"].includes(data.evento) && data.qrBase64) {
-           showQRModal(data.qrBase64, instanciaId);
--        }
--
--        if (data.evento === "conectado") {
-+          void fetchInstancias();
++.caixa-rapido #modalPagamento > div:first-child {
++  background: #14283e !important;
++}
++.caixa-rapido #finalizarPagamento {
++  background: #14283e !important;
++}
++.caixa-rapido #adicionarPagamento {
++  background: #bd5800 !important;
++}
+--- /dev/null
++++ b/frontend/atendimento/caixa-rapido.js
+@@ -0,0 +1,573 @@
++/* Interfaces do mesmo caixa: os controles originais são movidos, nunca clonados. */
++(() => {
++  "use strict";
++  if (window.__petHubCaixaInstalado) return;
++  window.__petHubCaixaInstalado = true;
++  const $ = (s) => document.querySelector(s);
++  const el = (tag, cls, text) => {
++    const n = document.createElement(tag);
++    if (cls) n.className = cls;
++    if (text != null) n.textContent = text;
++    return n;
++  };
++  const money = (n) =>
++    Number(n || 0).toLocaleString("pt-BR", {
++      style: "currency",
++      currency: "BRL",
++    });
++  const button = (label, fn, cls = "") => {
++    const b = el("button", cls, label);
++    b.type = "button";
++    b.addEventListener("click", fn);
++    return b;
++  };
++  let layout = "classico",
++    selected = null,
++    busy = false,
++    catalog = [],
++    queue = Promise.resolve(),
++    timer,
++    initialized = false;
++  const origins = [],
++    api = () => window.PetHubVenda;
++  const notify = (message, type = "info") =>
++    window.mostrarNotificacao(type, message);
++  const endpoint = () => ApiClient.request("/vendas/preferencias/layout-caixa");
++  function focus(node) {
++    node?.focus();
++    node?.select?.();
++  }
++  function move(selector, target) {
++    const n = $(selector);
++    if (!n) return;
++    const anchor = document.createComment("posição original do controle");
++    n.before(anchor);
++    origins.push([n, anchor]);
++    target.append(n);
++  }
++  async function refreshCatalog() {
++    catalog = (await api().produtos()).filter(
++      (p) => ![false, "nao", "não", "inativo", 0].includes(p.ativo),
++    );
++    renderProducts("");
++  }
++  function codes(p) {
++    let more = p.codigosBarras || [];
++    if (typeof more === "string") {
++      try {
++        more = JSON.parse(more);
++      } catch (_) {
++        more = [];
++      }
++    }
++    return [
++      p.id,
++      p.codigo,
++      p.codigoBarras,
++      p.codigo_barras,
++      p.ean,
++      p.gtin,
++      ...(Array.isArray(more) ? more : []),
++    ];
++  }
++  function picture(p) {
++    const src = p.imagem_url || p.foto_url || p.imagem || p.foto || p.imagemUrl;
++    if (
++      typeof src !== "string" ||
++      !/^(\/|https?:\/\/|data:image\/(png|jpeg|webp);base64,)/.test(src) ||
++      src.startsWith("//")
++    )
++      return el("span", "qr-product-icon", "▧");
++    const img = el("img");
++    img.src = src;
++    img.alt = "";
++    img.loading = "lazy";
++    img.addEventListener(
++      "error",
++      () => img.replaceWith(el("span", "qr-product-icon", "▧")),
++      { once: true },
++    );
++    return img;
++  }
++  function renderProducts(term, all = false) {
++    const target = $("#qr-products");
++    if (!target) return;
++    const q = term.trim().toLocaleLowerCase("pt-BR");
++    const found = catalog.filter(
++      (p) =>
++        !q ||
++        [p.nome, ...codes(p)].some((v) =>
++          String(v || "")
++            .toLocaleLowerCase("pt-BR")
++            .includes(q),
++        ),
++    );
++    target.replaceChildren();
++    $("#qr-product-title").textContent = q
++      ? `${found.length} produtos encontrados`
++      : "Produtos de acesso rápido";
++    for (const p of found.slice(0, all ? found.length : q ? 100 : 8)) {
++      const b = button("", () => add(p), "qr-product");
++      b.append(picture(p));
++      const d = el("span");
++      d.append(
++        el("strong", "", p.nome),
++        el("small", "", `Cód. ${p.codigo || p.id}`),
++        el("b", "", money(p.preco)),
++      );
++      b.append(d);
++      target.append(b);
++    }
++    if (!found.length) target.append(el("p", "", "Nenhum produto disponível."));
++  }
++  function add(p) {
++    // Serializa leituras consecutivas para evitar corrida entre consultas de estoque.
++    queue = queue
++      .then(async () => {
++        if ($("#modalPagamento")) return;
++        const ok = await api().adicionar(p);
++        if (ok) {
++          selected = api().dados().itens.at(-1)?.id;
++          $("#pesquisarProduto").value = "";
++          renderProducts("");
 +        }
++        renderCart();
++        focus($("#pesquisarProduto"));
++      })
++      .catch((e) => notify(e.message, "error"));
++    return queue;
++  }
++  function renderCart() {
++    if (!api() || !$("#qr-cart")) return;
++    const data = api().dados(),
++      box = $("#qr-cart");
++    box.replaceChildren();
++    $("#qr-count").textContent = `${data.itens.length} itens`;
++    if (!data.itens.length) {
++      box.append(
++        el(
++          "div",
++          "qr-empty",
++          "Passe um código de barras ou selecione um produto para começar.",
++        ),
++      );
++      return;
++    }
++    if (!data.itens.some((i) => i.id === selected)) selected = data.itens[0].id;
++    data.itens.forEach((i) => {
++      const row = el("div", `qr-row${i.id === selected ? " selected" : ""}`);
++      row.tabIndex = 0;
++      row.dataset.id = i.id;
++      row.setAttribute(
++        "aria-label",
++        `${i.produto.nome}, quantidade ${i.quantidade}, ${money(i.totalFinal)}`,
++      );
++      row.addEventListener("focus", () => {
++        selected = i.id;
++        box
++          .querySelectorAll(".qr-row")
++          .forEach((n) => n.classList.toggle("selected", n === row));
++      });
++      const desc = el("div", "qr-desc");
++      desc.append(picture(i.produto));
++      const name = el("div");
++      name.append(
++        el("strong", "", i.produto.nome),
++        el(
++          "small",
++          "",
++          `Cód. ${i.produto.codigo || i.produto.id} · ${i.desconto || 0}% desc.`,
++        ),
++      );
++      desc.append(name);
++      const qty = el("div", "qr-qty");
++      const change = (value) => {
++        selected = i.id;
++        queue = queue
++          .then(async () => {
++            await api().quantidade(
++              i.id,
++              typeof value === "function" ? value(i.quantidade) : value,
++            );
++            renderCart();
++          })
++          .catch((e) => notify(e.message, "error"));
++      };
++      const input = el("input");
++      input.type = "number";
++      input.min = "0.001";
++      input.step = "any";
++      input.value = i.quantidade;
++      input.setAttribute("aria-label", `Quantidade de ${i.produto.nome}`);
++      input.addEventListener("change", () => change(Number(input.value)));
++      qty.append(
++        button("−", () => change((q) => q - 1)),
++        input,
++        button("+", () => change((q) => q + 1)),
++      );
++      row.append(
++        desc,
++        qty,
++        el("span", "qr-unit", money(i.valorUnitario)),
++        el("strong", "qr-line-total", money(i.totalFinal)),
++        button("×", () => api().remover(i.id), "qr-remove"),
++      );
++      box.append(row);
++    });
++  }
++  async function payment(forma) {
++    await queue;
++    await api().finalizar();
++    const modal = $("#modalPagamento");
++    if (!modal) return;
++    modal.setAttribute("role", "dialog");
++    modal.setAttribute("aria-label", "Pagamento");
++    modal.setAttribute("aria-modal", "true");
++    if (forma && forma !== "multiplo")
++      modal.querySelector(`[data-forma="${forma}"]`)?.click();
++    const field =
++      forma && forma !== "multiplo"
++        ? modal.querySelector(`#valor-${forma}`)
++        : modal.querySelector(".forma-pagamento");
++    focus(field);
++    if (!$("#qr-change")) {
++      const out = el("p", "qr-change");
++      out.id = "qr-change";
++      out.setAttribute("role", "status");
++      $("#campos-dinheiro").append(out);
++      const refresh = () => {
++        const total = Number(api().dados().totais.final);
++        const paid =
++          Number(
++            ($("#totalPagoModal")?.textContent || "")
++              .replace(/[^\d,]/g, "")
++              .replace(",", "."),
++          ) || 0;
++        const received = Number($("#valor-dinheiro").value) || 0;
++        out.textContent = `Troco: ${money(Math.max(0, received - Math.max(0, total - paid)))}`;
++      };
++      $("#valor-dinheiro").addEventListener("input", refresh);
++      refresh();
++    }
++  }
++  async function cancel() {
++    if (
++      await (window.confirmar
++        ? window.confirmar("Descartar os itens desta venda?")
++        : Promise.resolve(window.confirm("Descartar os itens desta venda?")))
++    ) {
++      api().limpar();
++      renderCart();
++      focus($("#pesquisarProduto"));
++    }
++  }
++  function action(key) {
++    switch (key) {
++      case "F2":
++        focus($("#pesquisarProduto"));
++        break;
++      case "F3": {
++        const rows = [...document.querySelectorAll("#qr-cart .qr-row")];
++        focus(
++          rows
++            .find((n) => n.dataset.id === String(selected))
++            ?.querySelector("input") || $("#quantidade"),
++        );
++        break;
++      }
++      case "F4":
++        focus($("#pesquisarCliente"));
++        break;
++      case "F6":
++        $("#qr-more").open = true;
++        focus($("#descontoGeralValor"));
++        break;
++      case "F7":
++        payment();
++        break;
++      case "F8":
++        $("#modalPagamento") ? $("#finalizarPagamento").click() : payment();
++        break;
++      case "Escape":
++        cancel();
++        break;
++    }
++  }
++  function build() {
++    const shell = el("section", "qr-shell");
++    shell.id = "qr-shell";
++    shell.hidden = true;
++    shell.innerHTML = `<header class="qr-header"><div><span class="qr-cart-symbol">▣</span><strong>CAIXA / PDV</strong><small>Venda rápida</small></div><div class="qr-meta"><span id="qr-operator">Operador</span><time id="qr-clock"></time><span id="qr-status" role="status">Verificando caixa…</span></div></header><nav class="qr-shortcuts" aria-label="Atalhos do caixa"></nav><div class="qr-grid"><aside class="qr-left"><section class="qr-card" id="qr-search"><h2>Buscar produto</h2></section><section class="qr-card"><h2 id="qr-product-title">Produtos de acesso rápido</h2><div id="qr-products" class="qr-products"></div><button type="button" id="qr-all">Ver todos os produtos (F2)</button></section></aside><section class="qr-card qr-middle"><h2>Itens da venda <small id="qr-count"></small></h2><div class="qr-table-head"><span>Produto</span><span>Qtd.</span><span>Unitário</span><span>Total</span></div><div id="qr-cart" role="list" aria-label="Itens da venda"></div><p class="qr-scanner">▥ Leitor de barras pronto · Enter para adicionar</p></section><aside class="qr-right"><div id="qr-totals"></div><div id="qr-customer"></div><button type="button" class="qr-pay" id="qr-payment">Pagamento (F7)</button><button type="button" class="qr-finish" id="qr-finish">✓ FINALIZAR VENDA (F8)</button><details id="qr-more" class="qr-card"><summary>Mais opções da venda</summary><div id="qr-options"></div></details></aside></div><footer class="qr-bottom"><strong>Pagamento rápido</strong></footer>`;
++    $(".container .nova-venda-layout").before(shell);
++    const shortcuts = {
++      F2: "Buscar produto",
++      F3: "Quantidade",
++      F4: "Cliente",
++      F6: "Desconto",
++      F7: "Pagamento",
++      F8: "Finalizar venda",
++      Escape: "Cancelar",
++    };
++    for (const [key, label] of Object.entries(shortcuts)) {
++      const b = button("", () => action(key));
++      b.append(
++        el("kbd", "", key === "Escape" ? "ESC" : key),
++        el("span", "", label),
++      );
++      $(".qr-shortcuts").append(b);
++    }
++    for (const [key, label] of [
++      ["dinheiro", "Dinheiro"],
++      ["pix", "Pix"],
++      ["credito", "Cartão crédito"],
++      ["debito", "Cartão débito"],
++      ["multiplo", "Múltiplo"],
++    ])
++      $(".qr-bottom").append(button(label, () => payment(key)));
++    $("#qr-payment").addEventListener("click", () => payment());
++    $("#qr-finish").addEventListener("click", () => action("F8"));
++    $("#qr-all").addEventListener("click", () => {
++      $("#pesquisarProduto").value = "";
++      renderProducts("", true);
++      focus($("#pesquisarProduto"));
++      $("#qr-product-title").textContent = "Catálogo · digite para filtrar";
++    });
++    $("#qr-cart").addEventListener("keydown", (e) => {
++      if (
++        !["ArrowDown", "ArrowUp", "Delete"].includes(e.key) ||
++        e.target.tagName === "INPUT"
++      )
++        return;
++      e.preventDefault();
++      const rows = [...$("#qr-cart").children],
++        idx = rows.findIndex((n) => n.dataset.id === String(selected));
++      if (e.key === "Delete") {
++        api().remover(selected);
++        return;
++      }
++      rows[
++        Math.max(
++          0,
++          Math.min(rows.length - 1, idx + (e.key === "ArrowDown" ? 1 : -1)),
++        )
++      ]?.focus();
++    });
++    const clock = () => {
++      $("#qr-clock").textContent = new Date().toLocaleString("pt-BR", {
++        dateStyle: "short",
++        timeStyle: "short",
++      });
++    };
++    clock();
++    timer = setInterval(clock, 10000);
++  }
++  function apply(value) {
++    if (value === layout && (value === "classico" || origins.length)) return;
++    if ($("#modalPagamento"))
++      throw Error("Feche o pagamento antes de trocar o visual.");
++    if (value === "rapido") {
++      move(".search-produto", $("#qr-search"));
++      move(".item-form", $("#qr-search"));
++      move(".totais-box", $("#qr-totals"));
++      move(".cliente-section", $("#qr-customer"));
++      for (const s of [
++        ".header-actions",
++        ".profissional-section",
++        ".pagamento-section",
++        ".info-section",
++        ".action-buttons",
++      ])
++        move(s, $("#qr-options"));
++      layout = value;
++      document.body.classList.add("caixa-rapido");
++      $("#qr-shell").hidden = false;
++      $(".nova-venda-layout").hidden = true;
++      renderCart();
++      refreshCatalog();
++      focus($("#pesquisarProduto"));
++      status();
++    } else {
++      for (const [n, anchor] of origins.splice(0)) {
++        anchor.replaceWith(n);
++      }
++      layout = value;
++      document.body.classList.remove("caixa-rapido");
++      $("#qr-shell").hidden = true;
++      $(".nova-venda-layout").hidden = false;
++    }
++  }
++  async function status() {
++    try {
++      const r = await ApiClient.request("/caixas/aberto");
++      $("#qr-status").textContent =
++        r?.aberto === true ? "● Caixa aberto" : "● Caixa fechado";
++      $("#qr-status").classList.toggle("open", r?.aberto === true);
++    } catch (_) {
++      $("#qr-status").textContent = "Status indisponível";
++    }
++    $("#qr-operator").textContent =
++      `Operador: ${$(".user-menu span")?.textContent?.trim() || "—"}`;
++  }
++  function selector() {
++    const dialog = el("dialog", "qr-dialog");
++    dialog.setAttribute("aria-label", "Alterar visual do caixa");
++    dialog.append(
++      el("h2", "", "Escolha o visual do caixa"),
++      el(
++        "p",
++        "",
++        "A escolha vale para todos os usuários desta empresa. A venda atual será preservada.",
++      ),
++    );
++    const cards = el("div", "qr-layout-cards");
++    for (const [value, name, description] of [
++      [
++        "classico",
++        "Caixa Clássico",
++        "Visual tradicional do caixa, com todos os campos e controles de venda.",
++      ],
++      [
++        "rapido",
++        "Caixa Rápido",
++        "PDV otimizado para vendas rápidas, atalhos de teclado e leitura de código de barras.",
++      ],
++    ]) {
++      const card = el("article");
++      card.append(el("div", `qr-thumbnail ${value}`));
++      card.firstChild.innerHTML = "<i></i><i></i><i></i>";
++      card.append(
++        el("h3", "", name + (value === layout ? " · Em uso" : "")),
++        el("p", "", description),
++      );
++      const b = button(`Usar ${name}`, async () => {
++        if (busy) return;
++        busy = true;
++        b.disabled = true;
++        try {
++          await queue;
++          if ($("#modalPagamento"))
++            throw Error("Feche o pagamento antes de trocar o visual.");
++          const saved = await ApiClient.request(
++            "/vendas/preferencias/layout-caixa",
++            { method: "PUT", body: JSON.stringify({ layout: value }) },
++          );
++          apply(saved.layout);
++          dialog.close();
++          notify("Visual salvo para esta empresa.");
++        } catch (e) {
++          notify(e.message || "Não foi possível salvar o visual.", "error");
++        } finally {
++          busy = false;
++          b.disabled = false;
++        }
++      });
++      card.append(b);
++      cards.append(card);
++    }
++    dialog.append(
++      cards,
++      button("Fechar", () => dialog.close()),
++    );
++    document.body.append(dialog);
++    dialog.addEventListener("close", () => dialog.remove(), { once: true });
++    dialog.showModal();
++  }
++  function init() {
++    if (initialized || !api() || !$(".nova-venda-layout")) return;
++    initialized = true;
++    build();
++    const toolbar = el("div", "qr-toolbar");
++    toolbar.append(button("⇄ Alterar visual do caixa", selector));
++    $(".container").prepend(toolbar);
++    // Capture intercepts only the rapid view, before legacy Enter handlers.
++    document.addEventListener(
++      "input",
++      (e) => {
++        if (e.target.id !== "pesquisarProduto") return;
++        delete e.target.dataset.produtoId;
++        if (layout === "rapido") {
++          e.stopImmediatePropagation();
++          renderProducts(e.target.value);
++        }
++      },
++      true,
++    );
++    document.addEventListener(
++      "keydown",
++      (e) => {
++        if (layout !== "rapido") return;
++        if ($("dialog[open]")) return; // Native dialog Escape and focus trapping.
++        if (e.key === "Escape" && $("#modalPagamento")) {
++          e.preventDefault();
++          $("#fecharModalPagamento")?.click();
++          return;
++        }
++        if ($("#modalPagamento") && e.key !== "F8") return;
++        if (["F2", "F3", "F4", "F6", "F7", "F8", "Escape"].includes(e.key)) {
++          e.preventDefault();
++          e.stopImmediatePropagation();
++          if (!e.repeat) action(e.key);
++          return;
++        }
++        if (e.key === "Enter" && e.target.id === "pesquisarProduto") {
++          e.preventDefault();
++          e.stopImmediatePropagation();
++          const term = e.target.value.trim();
++          e.target.value = "";
++          const exact = catalog.filter((p) =>
++            [...codes(p), p.nome].some(
++              (v) =>
++                String(v || "").toLocaleLowerCase("pt-BR") ===
++                term.toLocaleLowerCase("pt-BR"),
++            ),
++          );
++          if (exact.length === 1) add(exact[0]);
++          else {
++            e.target.value = term;
++            notify("Selecione um produto nos resultados.");
++          }
++        }
++        if (e.key === "ArrowDown" && e.target.id === "pesquisarProduto") {
++          e.preventDefault();
++          e.stopImmediatePropagation();
++          $("#qr-products button")?.focus();
++        }
++      },
++      true,
++    );
++    document.addEventListener("pethub:venda-atualizada", renderCart);
++    document.addEventListener("venda:finalizada", () => {
++      if (layout === "rapido") {
++        setTimeout(() => {
++          refreshCatalog();
++          status();
++        }, 500);
++      }
++    });
++    window.addEventListener("focus", () => {
++      // Sincroniza outros operadores quando não há pagamento/modal em andamento.
++      if (!busy && !$("#modalPagamento") && !$("dialog[open]"))
++        endpoint()
++          .then((r) => apply(r.layout))
++          .catch(() => {});
++      if (layout === "rapido") status();
++    });
++    window.addEventListener("pagehide", () => clearInterval(timer), {
++      once: true,
++    });
++    endpoint()
++      .then((r) => apply(r.layout))
++      .catch((e) => notify(`Caixa Clássico mantido. ${e.message}`, "warning"));
++    window.PetHubCaixa = {
++      get layout() {
++        return layout;
++      },
++      aplicar: apply,
++      catalogo: refreshCatalog,
++    };
++  }
++  document.addEventListener("pethub:venda-pronta", init, { once: true });
++  if (document.readyState === "loading")
++    document.addEventListener("DOMContentLoaded", init, { once: true });
++  else init();
++})();
+--- a/frontend/atendimento/nova-venda.html
++++ b/frontend/atendimento/nova-venda.html
+@@ -19,6 +19,7 @@
+     <link rel="stylesheet" href="./nova-venda.css" />
+     <link rel="stylesheet" href="../colors.css" />
+     <link rel="stylesheet" href="../dashboard.css" />
++    <link rel="stylesheet" href="./caixa-rapido.css?v=20261120-1">
+   </head>
+   <body>
+     <!-- Sidebar -->
+@@ -1345,7 +1346,8 @@
+     <!-- API Client -->
+     <script src="../api/api-client.js"></script>
+     <!-- Script do menu (copiar para sua página) -->
+-    <script src="./nova-venda.js"></script>
++    <script src="./nova-venda.js?v=20261120-pdv1"></script>
++    <script src="./caixa-rapido.js?v=20261120-1"></script>
+     <!-- Script global do calendário (copia do dashboard) -->
+     <script src="../novo-atendimento-global.js"></script>
+   </body>
+--- a/frontend/atendimento/nova-venda.js
++++ b/frontend/atendimento/nova-venda.js
+@@ -582,24 +582,7 @@
+   };
+ 
+   // Função para atualizar totais gerais
+-  function atualizarTotaisGerais() {
+-    totais.bruto = itensVenda.reduce((sum, item) => sum + item.totalBruto, 0);
+-    totais.final = itensVenda.reduce((sum, item) => sum + item.totalFinal, 0);
+-    totais.desconto = totais.bruto - totais.final;
+-
+-    // Atualizar elementos na tela
+-    const el1 = document.querySelector(".total-item:nth-child(1) .valor");
+-    if (el1)
+-      el1.textContent = `R$ ${totais.bruto.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+-    const el2 = document.querySelector(".total-item:nth-child(2) .valor");
+-    if (el2)
+-      el2.textContent = totais.desconto.toLocaleString("pt-BR", {
+-        minimumFractionDigits: 2,
+-      });
+-    const el4 = document.querySelector(".total-item:nth-child(4) .valor");
+-    if (el4)
+-      el4.textContent = `R$ ${totais.final.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+-  }
++  function atualizarTotaisGerais() { calcularTotaisComCondicoesPagamento(); }
+   // Expor para uso externo (seed do orçamento)
+   window._atualizarTotaisInternoOrc = atualizarTotaisGerais;
+ 
+@@ -633,9 +616,11 @@
+ 
+     // Validar estoque do produto
+     const produtosSistema = await carregarProdutosDoSistema();
+-    const produtoEncontrado = produtosSistema.find(
+-      (p) => p.nome === produtoNome,
+-    );
++    const campoProduto = document.getElementById('pesquisarProduto');
++    const produtoEncontrado = produtosSistema.find(p => campoProduto.dataset.produtoId
++      ? String(p.id) === String(campoProduto.dataset.produtoId) : p.nome === produtoNome);
++    if (!produtoEncontrado) { mostrarNotificacao('error', 'Selecione um produto do catálogo.'); return false; }
++    const quantidadeNoCarrinho = itensVenda.filter(i => String(i.produto.id) === String(produtoEncontrado.id)).reduce((n,i) => n + i.quantidade, 0);
+ 
+     if (produtoEncontrado) {
+       // Verificar se é produto físico (não é serviço ou plano)
+@@ -653,7 +638,7 @@
+             return;
+           }
+ 
+-          if (qtd > estoqueDisponivel) {
++          if (qtd + quantidadeNoCarrinho > estoqueDisponivel) {
+             mostrarNotificacao(
+               "warning",
+               `Quantidade informada (${qtd}) não disponível no estoque. Disponível: ${estoqueDisponivel} unidades`,
+@@ -678,7 +663,7 @@
+     const totalFinal = calcularTotalItem();
+ 
+     const item = {
+-      id: Date.now(),
++      id: Date.now() + Math.random(),
+       produto: produtoEncontrado || { nome: produtoNome, id: null },
+       quantidade: qtd,
+       valorUnitario: valor,
+@@ -690,7 +675,10 @@
+     console.log("📦 Item criado:", item);
+     console.log("📋 Array antes:", itensVenda.length, "itens");
+ 
+-    itensVenda.push(item);
++    const mesmo = document.body.classList.contains('caixa-rapido') && itensVenda.find(i =>
++      String(i.produto.id) === String(item.produto.id) && i.valorUnitario === valor && i.desconto === desc);
++    if (mesmo) { mesmo.quantidade += qtd; mesmo.totalBruto += totalBruto; mesmo.totalFinal += totalFinal; }
++    else itensVenda.push(item);
+ 
+     console.log("📋 Array depois:", itensVenda.length, "itens");
+     console.log("🎨 Renderizando...");
+@@ -701,8 +689,41 @@
+ 
+     mostrarNotificacao("success", `${produtoNome} adicionado com sucesso!`);
+     console.log("✅ Item adicionado com sucesso!");
+-  }
+-
++    return true;
++  }
 +
-+        if (data.evento === "conectado" || (data.evento === "status_inicial" && data.status === "conectado")) {
-           appendLog(
-             "✅ Instância #" +
-               instanciaId +
++  // Ponte das duas interfaces para o mesmo carrinho e as mesmas validações.
++  window.PetHubVenda = {
++    dados: obterDadosVenda,
++    produtos: carregarProdutosDoSistema,
++    async adicionar(produto, qtd = 1) {
++      document.getElementById('pesquisarProduto').value = produto.nome;
++      document.getElementById('pesquisarProduto').dataset.produtoId = produto.id;
++      quantidade.value = String(qtd);
++      valorUnitario.value = String(produto.preco);
++      descontoPercent.value = '';
++      return adicionarItem();
++    },
++    async quantidade(id, qtd) {
++      const item = itensVenda.find(i => String(i.id) === String(id));
++      if (!item || !Number.isFinite(qtd) || qtd <= 0) return false;
++      const catalogo = await carregarProdutosDoSistema();
++      const produto = catalogo.find(p => String(p.id) === String(item.produto.id));
++      if (!produto) { mostrarNotificacao('error', 'Produto indisponível.'); return false; }
++      const outros = itensVenda.filter(i => i !== item && String(i.produto.id) === String(produto.id)).reduce((n,i) => n + i.quantidade, 0);
++      if (produto.tipo === 'produto' && !produto.permiteEstoqueNegativo && qtd + outros > produto.estoqueAtual) {
++        mostrarNotificacao('warning', 'Quantidade não disponível no estoque.'); return false;
++      }
++      item.quantidade = qtd;
++      item.totalBruto = qtd * item.valorUnitario;
++      item.totalFinal = Number((item.totalBruto * (1 - item.desconto / 100)).toFixed(2));
++      renderizarItens(); atualizarTotaisGerais(); return true;
++    },
++    remover: id => window.removerItem(id),
++    limpar: () => window.limparFormulario(),
++    finalizar: () => finalizarVendaComDados(),
++  };
++  queueMicrotask(() => document.dispatchEvent(new Event('pethub:venda-pronta')));
+   // Função para renderizar lista de itens
+   window.renderizarItens = function renderizarItens() {
+     console.log(
+@@ -717,6 +738,7 @@
+       return;
+     }
+ 
++    document.dispatchEvent(new Event('pethub:venda-atualizada'));
+     if (itensVenda.length === 0) {
+       listaItens.innerHTML = `
+                 <div style="color: #999; text-align: center; padding: 20px;">
+@@ -768,6 +790,7 @@
+ 
+   // Função para limpar formulário
+   function limparFormulario() {
++    delete document.getElementById("pesquisarProduto").dataset.produtoId;
+     document.getElementById("pesquisarProduto").value = "";
+     quantidade.value = "1";
+     valorUnitario.value = "";
+@@ -1025,6 +1048,7 @@
+     });
+ 
+     // Configurar dropdown de produtos
++    pesquisarProduto.addEventListener("input", () => { delete pesquisarProduto.dataset.produtoId; });
+     pesquisarProduto.addEventListener("input", debounce(buscarProdutos, 300));
+     pesquisarProduto.addEventListener("focus", function () {
+       if (pesquisarProduto.value.trim().length > 0) {
+@@ -1237,17 +1261,18 @@
+     console.log("📦 Resposta da API:", produtosSistema);
+ 
+     // Verificar se a resposta é válida
+-    if (Array.isArray(produtosSistema) && produtosSistema.length > 0) {
++    if (Array.isArray(produtosSistema)) {
+       console.log("✅ Produtos carregados da API:", produtosSistema.length);
+ 
+       // Normalizar dados para garantir que todas as propriedades existem
+       return produtosSistema.map((p) => ({
++        ...p,
+         id: p.id || "",
+         nome: p.nome || "Sem nome",
+         categoria: p.categoria || "Sem categoria",
+         tipo: p.tipo || "produto",
+         preco: parseFloat(p.preco) || 0,
+-        estoqueAtual: parseInt(p.estoqueAtual) || 0,
++        estoqueAtual: parseFloat(p.estoqueAtual) || 0,
+         finalidade: p.finalidade || "",
+         marca: p.marca || "",
+         // normalizar flag permiteEstoqueNegativo (aceita 'sim'/'nao', true/false)
+@@ -1269,108 +1294,8 @@
+     console.log("🔄 Usando produtos de fallback");
+   }
+ 
+-  // Produtos de fallback (sempre disponível em caso de erro)
+-  const produtosFallback = [
+-    {
+-      id: 1,
+-      nome: "PA HIGIENICA CARA DE GATO AZUL",
+-      categoria: "Higiene",
+-      tipo: "produto",
+-      preco: 3.0,
+-      estoqueAtual: 0,
+-    },
+-    {
+-      id: 2,
+-      nome: "BUTOX P CE 25 - 20ML",
+-      categoria: "Farmácia",
+-      tipo: "produto",
+-      preco: 7.0,
+-      estoqueAtual: 40,
+-    },
+-    {
+-      id: 3,
+-      nome: "Ganadol Pomada Anti-infecciosa e Cicatrizante 50g",
+-      categoria: "Farmácia",
+-      tipo: "produto",
+-      preco: 40.0,
+-      estoqueAtual: 27,
+-    },
+-    {
+-      id: 4,
+-      nome: "THUYA AVÍCOLA SIMÕES ORAL 20ML",
+-      categoria: "Farmácia",
+-      tipo: "produto",
+-      preco: 10.0,
+-      estoqueAtual: 5,
+-    },
+-    {
+-      id: 5,
+-      nome: "GOLDEN ADULTO RAÇA PEQ FRANGO E ARROZ 15KG",
+-      categoria: "Rações",
+-      tipo: "produto",
+-      preco: 131.0,
+-      estoqueAtual: 4,
+-    },
+-    {
+-      id: 6,
+-      nome: "GOLDEN COOKIE FILHOTE 400G",
+-      categoria: "Ossos e Petiscos",
+-      tipo: "produto",
+-      preco: 13.0,
+-      estoqueAtual: 0,
+-    },
+-    {
+-      id: 7,
+-      nome: "Ração N&D Prime Cordeiro e Blueberry Cães Adultos",
+-      categoria: "Rações",
+-      tipo: "produto",
+-      preco: 314.99,
+-      estoqueAtual: 15,
+-    },
+-    {
+-      id: 8,
+-      nome: "GOLDEN GATO CASTRADO SALMAO 10,1KG",
+-      categoria: "Rações",
+-      tipo: "produto",
+-      preco: 126.0,
+-      estoqueAtual: 4,
+-    },
+-    {
+-      id: 9,
+-      nome: "GOLDEN GATO FILHOTE FRANGO 1KG",
+-      categoria: "Rações",
+-      tipo: "produto",
+-      preco: 22.0,
+-      estoqueAtual: 0,
+-    },
+-    {
+-      id: 10,
+-      nome: "Banho e Tosa - Cães Pequeno Porte",
+-      categoria: "Serviços",
+-      tipo: "servico",
+-      preco: 50.0,
+-      estoqueAtual: 0,
+-    },
+-    {
+-      id: 11,
+-      nome: "Consulta Veterinária",
+-      categoria: "Serviços",
+-      tipo: "servico",
+-      preco: 120.0,
+-      estoqueAtual: 0,
+-    },
+-    {
+-      id: 12,
+-      nome: "Plano Mensal - Banho Ilimitado",
+-      categoria: "Planos",
+-      tipo: "plano",
+-      preco: 199.9,
+-      estoqueAtual: 0,
+-    },
+-  ];
+-
+-  console.log("✅ Retornando produtos de fallback:", produtosFallback.length);
+-  return produtosFallback;
++  mostrarNotificacao('error', 'Não foi possível carregar o catálogo. Tente novamente.');
++  return [];
+ } // Função para buscar produtos
+ async function buscarProdutos() {
+   console.log("🔍 buscarProdutos() iniciado");
+@@ -1510,6 +1435,7 @@
+ 
+   // Preencher campos do formulário
+   document.getElementById("pesquisarProduto").value = produto.nome;
++  document.getElementById("pesquisarProduto").dataset.produtoId = produto.id;
+   document.getElementById("valorUnitario").value = produto.preco.toFixed(2);
+ 
+   // Limpar campo de desconto ao selecionar novo produto
+@@ -2072,7 +1998,12 @@
+ }
+ 
+ // Atualizar a função de finalização da venda para incluir cliente e profissional
++let abrindoPagamento = false;
+ async function finalizarVendaComDados() {
++  if (abrindoPagamento || document.getElementById('modalPagamento')) return;
++  abrindoPagamento = true;
++  try {
++  calcularTotaisComCondicoesPagamento();
+   if (itensVenda.length === 0) {
+     mostrarNotificacao(
+       "warning",
+@@ -2104,6 +2035,7 @@
+   if (!vendaPendenteId) {
+     try {
+       const dadosPendente = {
++        origemInterface: document.querySelector(".nova-venda-layout") ? "caixa-compartilhado" : undefined,
+         timestamp: new Date().toISOString(),
+         cliente: clienteSelecionado
+           ? clienteSelecionado.nome
+@@ -2115,6 +2047,7 @@
+         profissionalId: profissionalSelecionado
+           ? profissionalSelecionado.id
+           : null,
++        observacoes: __safeGetValue("observacoes"),
+         itens: [...itensVenda],
+         totais: { ...totais },
+         pagamentos: [],
+@@ -2126,11 +2059,14 @@
+       console.log("💾 Venda pendente criada: #" + vendaPendenteId);
+     } catch (err) {
+       console.error("Erro ao salvar venda pendente:", err);
++      mostrarNotificacao('error', err.message || 'Não foi possível preparar a venda. Tente novamente.');
++      return;
+     }
+   }
+ 
+   // Abrir modal de pagamento em vez do alert
+   abrirModalPagamento();
++  } finally { abrindoPagamento = false; }
+ }
+ 
+ // Função para mostrar notificação amarela de aviso
+@@ -2359,29 +2295,8 @@
+     });
+ 
+     // Calcular total bruto dos itens
+-    let totalBruto = 0;
+-    if (window.itensVenda && window.itensVenda.length > 0) {
+-      totalBruto = window.itensVenda.reduce((sum, item) => {
+-        const itemTotal = item.totalFinal || item.totalBruto || item.total || 0;
+-        console.log("🛒 Item:", item.nome || "Sem nome", "Total:", itemTotal);
+-        return sum + itemTotal;
+-      }, 0);
+-    } else {
+-      // Se não há itens ainda, tentar pegar do total atual na tela
+-      const totalBrutoElement = document.querySelector(
+-        ".total-item:nth-child(1) .valor",
+-      );
+-      if (totalBrutoElement) {
+-        const totalBrutoTexto = totalBrutoElement.textContent
+-          .replace("R$", "")
+-          .replace(/\./g, "")
+-          .replace(",", ".")
+-          .trim();
+-        totalBruto = parseFloat(totalBrutoTexto) || 0;
+-        console.log("🔍 Total bruto obtido da tela:", totalBruto);
+-      }
+-    }
+-
++    const brutoOriginal = itensVenda.reduce((n,i) => n + i.totalBruto, 0);
++    const totalBruto = itensVenda.reduce((n,i) => n + i.totalFinal, 0);
+     console.log("💰 Total bruto calculado:", totalBruto);
+ 
+     // Aplicar acréscimos
+@@ -2422,12 +2337,9 @@
+     });
+ 
+     // Atualizar elementos na tela
+-    atualizarElementosTotais(
+-      totalBruto,
+-      valorDesconto,
+-      valorAcrescimo,
+-      totalFinal,
+-    );
++    totais = { bruto: Number(brutoOriginal.toFixed(2)), desconto: Number((brutoOriginal - totalBruto + valorDesconto).toFixed(2)), acrescimo: Number(valorAcrescimo.toFixed(2)), arredondamento: arredondamentoValor, final: Number(totalFinal.toFixed(2)) };
++    atualizarElementosTotais(totais.bruto, totais.desconto, totais.acrescimo, totais.final);
++    document.dispatchEvent(new Event('pethub:venda-atualizada'));
+   } catch (error) {
+     console.error("❌ Erro ao calcular totais:", error);
+   }
+@@ -2908,6 +2820,7 @@
+   let formaSelecionada = null;
+   let totalPago = 0;
+   let pagamentosEfetuados = [];
++  let pagamentoConcluido = false;
+ 
+   // --- Banner de haver disponível ---
+   // Mostrar assincronamente se o cliente tiver saldo
+@@ -3247,7 +3160,10 @@
+           alert("Digite um valor válido para dinheiro.");
+           return null;
+         }
+-        dadosPagamento.valor = valorDinheiro;
++        const restanteDinheiro = Math.max(0, Number((totalVenda - totalPago).toFixed(2)));
++        dadosPagamento.valor = Math.min(valorDinheiro, restanteDinheiro);
++        dadosPagamento.recebido = valorDinheiro;
++        dadosPagamento.troco = Math.max(0, Number((valorDinheiro - restanteDinheiro).toFixed(2)));
+         break;
+ 
+       case "debito":
+@@ -3458,6 +3374,9 @@
+   document
+     .getElementById("finalizarPagamento")
+     .addEventListener("click", async function () {
++      if (this.disabled || pagamentoConcluido) return;
++      this.disabled = true;
++      try {
+       // Verificar se existe pelo menos um pagamento efetuado OU uma forma selecionada com dados válidos
+       let temPagamentoValido = pagamentosEfetuados.length > 0;
+ 
+@@ -3501,7 +3420,10 @@
+         return;
+       }
+ 
+-      const falta = totalVenda - totalPago;
++      const falta = Number((totalVenda - totalPago).toFixed(2));
++      if (document.body.classList.contains('caixa-rapido') && Math.abs(falta) > 0.009) {
++        mostrarNotificacao('warning', 'Os pagamentos devem cobrir exatamente o total da venda.'); return;
++      }
+       if (falta > 0) {
+         if (
+           !(await confirmar(
+@@ -3515,6 +3437,7 @@
+       // Salvar venda
+       // Preferir enviar o objeto selecionado (com id) quando disponível
+       const dadosVenda = {
++        origemInterface: document.querySelector(".nova-venda-layout") ? "caixa-compartilhado" : undefined,
+         timestamp: new Date().toISOString(),
+         cliente: clienteSelecionado
+           ? clienteSelecionado.nome
+@@ -3526,6 +3449,7 @@
+         profissionalId: profissionalSelecionado
+           ? profissionalSelecionado.id
+           : null,
++        observacoes: __safeGetValue("observacoes"),
+         itens: [...itensVenda],
+         totais: { ...totais },
+         pagamentos: [...pagamentosEfetuados],
+@@ -3555,6 +3479,7 @@
+         vendaSalva = await ApiClient.criarVenda(dadosVenda);
+       }
+       vendaPendenteId = null;
++      pagamentoConcluido = true;
+ 
+       console.log("✅ Venda finalizada e salva no banco:", vendaSalva);
+       // Emitir evento global para que outras partes do sistema possam reagir (ex: checkout de agendamento)
+@@ -3566,8 +3491,8 @@
+         console.warn("Não foi possível disparar evento venda:finalizada", e);
+       }
+ 
+-      // Atualizar estoque após venda
+-      atualizarEstoque(dadosVenda.itens);
++      // Uma única execução de estoque, no mesmo fluxo compartilhado.
++      await atualizarEstoque(dadosVenda.itens);
+ 
+       fecharModal();
+ 
+@@ -3576,6 +3501,8 @@
+ 
+       // Limpar formulário
+       limparFormulario();
++      } catch (e) { mostrarNotificacao('error', e.message || 'Não foi possível concluir a venda.'); }
++      finally { this.disabled = pagamentoConcluido; }
+     });
+ }
+ 
+@@ -3605,6 +3532,7 @@
+   __safeSetValue("pesquisarCliente", "");
+   __safeSetValue("pesquisarProfissional", "");
+   __safeSetValue("pesquisarProduto", "");
++  delete document.getElementById("pesquisarProduto").dataset.produtoId;
+   __safeSetValue("quantidade", "1");
+   __safeSetValue("valorUnitario", "");
+   __safeSetValue("desconto", "0");
+@@ -3624,6 +3552,7 @@
+   const acrescimoPercent = document.getElementById("acrescimoPercent");
+   if (acrescimoPercent) acrescimoPercent.value = "0";
+ 
++  document.querySelectorAll('.pagamento-section input').forEach(input => { input.value = ''; });
+   // Resetar totais
+   totais = {
+     bruto: 0,
+--- /dev/null
++++ b/tests/caixa-layout.test.js
+@@ -0,0 +1,178 @@
++"use strict";
++const { test } = require("node:test"),
++  assert = require("node:assert/strict"),
++  express = require("express");
++const { Sequelize } = require("sequelize");
++const { modelo, criarRouter } = require("../backend/services/layoutCaixa");
++test("preferência persiste por empresa, sessão/dispositivo e valida entradas/autorizações", async (t) => {
++  const db = new Sequelize({
++    dialect: "sqlite",
++    storage: ":memory:",
++    logging: false,
++    dialectModule: require("./helpers/sqlite-caixa"),
++  });
++  await modelo(db).sync();
++  const app = express();
++  app.use(express.json());
++  app.use((req, res, next) => {
++    if (req.get("x-company"))
++      req.user = { empresaId: Number(req.get("x-company")) };
++    next();
++  });
++  app.use(
++    "/pref",
++    criarRouter({
++      db,
++      autorizar: (req, res, next) =>
++        !req.user
++          ? res.sendStatus(401)
++          : req.get("x-deny")
++            ? res.sendStatus(403)
++            : next(),
++    }),
++  );
++  const server = app.listen(0, "127.0.0.1");
++  await new Promise((r) => server.once("listening", r));
++  t.after(async () => {
++    await new Promise((r) => server.close(r));
++    await db.close();
++  });
++  const url = `http://127.0.0.1:${server.address().port}/pref`;
++  const call = (emp, method = "GET", body, extra = {}) =>
++    fetch(url, {
++      method,
++      headers: {
++        "content-type": "application/json",
++        ...(emp ? { "x-company": String(emp) } : {}),
++        ...extra,
++      },
++      ...(body ? { body: JSON.stringify(body) } : {}),
++    });
++  assert.equal((await call()).status, 401);
++  assert.equal((await call(1, "GET", null, { "x-deny": "1" })).status, 403);
++  assert.deepEqual(await (await call(1)).json(), { layout: "classico" });
++  assert.equal(
++    (await call(1, "PUT", { layout: "rapido", empresa_id: 2 })).status,
++    400,
++  );
++  assert.equal((await call(1, "PUT", { layout: "evil" })).status, 400);
++  assert.equal((await call(1, "PUT", { layout: "rapido" })).status, 200);
++  assert.deepEqual(await (await call(2)).json(), { layout: "classico" });
++  // Fresh independent request/session still reads DB, not process or browser cache.
++  assert.deepEqual(await (await call(1)).json(), { layout: "rapido" });
++  assert.equal(
++    (
++      await call(
++        2,
++        "PUT",
++        { layout: "rapido" },
++        { "sec-fetch-site": "cross-site" },
++      )
++    ).status,
++    403,
++  );
++  assert.equal((await call(1, "PUT", { layout: "classico" })).status, 200);
++  assert.equal((await modelo(db).findByPk(1)).layout, "classico");
++});
++test("servidor valida centavos, estoque acumulado, vínculos e soma dos pagamentos", async (t) => {
++  const db = new Sequelize({
++    dialect: "sqlite",
++    storage: ":memory:",
++    logging: false,
++    dialectModule: require("./helpers/sqlite-caixa"),
++  });
++  t.after(() => db.close());
++  const D = require("sequelize").DataTypes;
++  const Produto = db.define("Produto", {
++    id: { type: D.STRING, primaryKey: true },
++    empresa_id: D.INTEGER,
++    tipo: D.STRING,
++    estoqueAtual: D.DECIMAL,
++    permiteEstoqueNegativo: D.BOOLEAN,
++  });
++  const Cliente = db.define("Cliente", { empresa_id: D.INTEGER }),
++    Profissional = db.define("Profissional", { empresa_id: D.INTEGER });
++  const Caixa = db.define("Caixa", {
++    empresa_id: D.INTEGER,
++    aberto: D.BOOLEAN,
++  });
++  await db.sync();
++  await Caixa.bulkCreate([
++    { empresa_id: 1, aberto: true },
++    { empresa_id: 2, aberto: true },
++  ]);
++  await Produto.bulkCreate([
++    { id: "p1", empresa_id: 1, tipo: "produto", estoqueAtual: 3 },
++    { id: "p2", empresa_id: 2, tipo: "produto", estoqueAtual: 99 },
++  ]);
++  await Cliente.create({ id: 2, empresa_id: 2 });
++  const validate =
++    require("../backend/services/validarVendaCaixa").criarValidador({
++      Produto,
++      Cliente,
++      Profissional,
++      Caixa,
++    });
++  const seed = () => ({
++    origemInterface: "caixa-compartilhado",
++    itens: [
++      {
++        produto: { id: "p1" },
++        quantidade: 1,
++        valorUnitario: 12.5,
++        desconto: 0,
++        totalBruto: 12.5,
++        totalFinal: 12.5,
++      },
++    ],
++    totais: { bruto: 12.5, desconto: 0, acrescimo: 0, final: 12.5 },
++    pagamentos: [{ forma: "dinheiro", valor: 12.5 }],
++    totalPago: 12.5,
++    status: "pago",
++  });
++  async function run(body, empresaId = 1) {
++    let status = 200,
++      passed = false;
++    await validate(
++      { body, user: { empresaId }, get: () => "" },
++      {
++        status(v) {
++          status = v;
++          return this;
++        },
++        json() {},
++      },
++      () => (passed = true),
++    );
++    return { status, passed };
++  }
++  assert.equal((await run(seed())).passed, true);
++  let b = seed();
++  b.totais.final = 1;
++  assert.equal((await run(b)).status, 400);
++  b = seed();
++  b.clienteId = 2;
++  assert.equal((await run(b)).status, 400);
++  b = seed();
++  b.itens[0].produto.id = "p2";
++  assert.equal((await run(b)).status, 400);
++  assert.equal((await run(seed(), 2)).status, 400);
++  b = seed();
++  b.pagamentos[0].valor = 10;
++  b.totalPago = 10;
++  assert.equal((await run(b)).status, 400);
++  b = seed();
++  b.itens[0].quantidade = 4;
++  b.itens[0].totalBruto = b.itens[0].totalFinal = 50;
++  b.totais.bruto = b.totais.final = b.totalPago = b.pagamentos[0].valor = 50;
++  assert.equal((await run(b)).status, 400);
++  b = seed();
++  b.itens[0].totalFinal = 0;
++  assert.equal((await run(b)).status, 400);
++  b = seed();
++  b.empresa_id = 2;
++  assert.equal((await run(b)).passed, true);
++  assert.equal(b.empresa_id, undefined);
++  await Caixa.update({ aberto: false }, { where: { empresa_id: 1 } });
++  assert.equal((await run(seed())).status, 409);
++});
+--- /dev/null
++++ b/tests/caixa-rapido.test.js
+@@ -0,0 +1,256 @@
++"use strict";
++const { test } = require("node:test"),
++  assert = require("node:assert/strict"),
++  fs = require("fs"),
++  path = require("path"),
++  { JSDOM, VirtualConsole } = require("jsdom");
++const base = path.join(__dirname, "../frontend/atendimento/");
++const wait = (ms = 30) => new Promise((r) => setTimeout(r, ms));
++async function app(t, preferred = "rapido") {
++  const errors = [],
++    calls = [],
++    vc = new VirtualConsole();
++  vc.on("jsdomError", (e) => errors.push(e.message));
++  const dom = new JSDOM(fs.readFileSync(base + "nova-venda.html", "utf8"), {
++    url: "https://pethub.test/atendimento/nova-venda.html",
++    runScripts: "outside-only",
++    pretendToBeVisual: true,
++    virtualConsole: vc,
++  });
++  const w = dom.window,
++    d = w.document;
++  t.after(() => w.close());
++  w.confirmar = async () => true;
++  w.confirm = () => true;
++  w.alert = () => {};
++  w.scrollTo = () => {};
++  w.HTMLElement.prototype.scrollIntoView = () => {};
++  w.HTMLDialogElement.prototype.showModal = function () {
++    this.open = true;
++  };
++  w.HTMLDialogElement.prototype.close = function () {
++    this.open = false;
++    this.dispatchEvent(new w.Event("close"));
++  };
++  const products = [
++    {
++      id: "p1",
++      nome: "Ração",
++      preco: 12.5,
++      estoqueAtual: 3,
++      tipo: "produto",
++      codigoBarras: "789001",
++    },
++    { id: "p2", nome: "Banho", preco: 50, estoqueAtual: 0, tipo: "servico" },
++    { id: "p3", nome: "Granel", preco: 10, estoqueAtual: 2.5, tipo: "produto" },
++  ];
++  w.fetch = async (url, opt = {}) => ({
++    ok: true,
++    json: async () =>
++      String(url).includes("/caixas/aberto") ? { aberto: true } : [],
++  });
++  w.ApiClient = {
++    getProdutos: async () => products,
++    request: async (p, o = {}) => {
++      calls.push({ p, ...o });
++      if (p === "/caixas/aberto") return { aberto: true };
++      if (o.method === "PUT") {
++        preferred = JSON.parse(o.body).layout;
++        return { layout: preferred };
++      }
++      return { layout: preferred };
++    },
++    criarVenda: async (b) => {
++      calls.push({ kind: "create", b: JSON.parse(JSON.stringify(b)) });
++      await wait();
++      return { id: 88 };
++    },
++    atualizarVenda: async (id, b) => {
++      calls.push({ kind: "update", id, b: JSON.parse(JSON.stringify(b)) });
++      await wait(40);
++      return { id };
++    },
++    atualizarEstoque: async (...args) => calls.push({ kind: "stock", args }),
++  };
++  w.eval(fs.readFileSync(base + "nova-venda.js", "utf8"));
++  w.eval(fs.readFileSync(base + "caixa-rapido.js", "utf8"));
++  await wait(350);
++  w.mostrarNotificacao = (type, message) =>
++    calls.push({ kind: "notice", type, message });
++  return {
++    w,
++    d,
++    errors,
++    calls,
++    products,
++    click: (s) => d.querySelector(s).click(),
++    key: (key, node = d) =>
++      node.dispatchEvent(
++        new w.KeyboardEvent("keydown", {
++          key,
++          bubbles: true,
++          cancelable: true,
++        }),
++      ),
++  };
++}
++test("troca mantém o mesmo carrinho, cliente, profissional e campos; clássico é padrão", async (t) => {
++  const a = await app(t, "classico");
++  assert.equal(a.w.PetHubCaixa.layout, "classico");
++  await a.w.PetHubVenda.adicionar(a.products[0]);
++  a.d.querySelector("#observacoes").value = "Manter";
++  const original = a.d.querySelector("#pesquisarCliente");
++  original.value = "Ana";
++  a.d.querySelector("#pesquisarProfissional").value = "João";
++  a.w.PetHubCaixa.aplicar("rapido");
++  assert.equal(a.d.querySelector("#qr-customer #pesquisarCliente"), original);
++  assert.equal(a.w.PetHubVenda.dados().itens.length, 1);
++  a.w.PetHubCaixa.aplicar("classico");
++  assert.equal(
++    a.d.querySelector(".resumo-section #pesquisarCliente"),
++    original,
++  );
++  assert.equal(original.value, "Ana");
++  assert.equal(a.d.querySelector("#observacoes").value, "Manter");
++  assert.equal(a.d.querySelector("#pesquisarProfissional").value, "João");
++  assert.equal(a.d.querySelectorAll("#pesquisarCliente").length, 1);
++  assert.equal(a.errors.length, 0);
++});
++test("leitor repetido incrementa, impede estoque acumulado e preserva quantidades fracionadas", async (t) => {
++  const a = await app(t),
++    input = a.d.querySelector("#pesquisarProduto");
++  for (let n = 0; n < 4; n++) {
++    input.value = "789001";
++    a.key("Enter", input);
++  }
++  await wait(200);
++  assert.equal(a.w.PetHubVenda.dados().itens.length, 1);
++  assert.equal(a.w.PetHubVenda.dados().itens[0].quantidade, 3);
++  assert.equal(a.w.PetHubVenda.dados().totais.final, 37.5);
++  assert.equal(a.d.activeElement, input);
++  await a.w.PetHubVenda.adicionar(a.products[2], 0.5);
++  assert.equal(a.w.PetHubVenda.dados().totais.final, 42.5);
++  const id = a.w.PetHubVenda.dados().itens[1].id;
++  assert.equal(await a.w.PetHubVenda.quantidade(id, 2.6), false);
++  assert.equal(await a.w.PetHubVenda.quantidade(id, 1.25), true);
++  assert.equal(a.w.PetHubVenda.dados().totais.final, 50);
++  assert.equal(a.errors.length, 0);
++});
++test("atalhos, totais com descontos/acréscimo e seletores reais do layout", async (t) => {
++  const a = await app(t);
++  await a.w.PetHubVenda.adicionar(a.products[0]);
++  a.key("F2");
++  assert.equal(a.d.activeElement.id, "pesquisarProduto");
++  a.key("F4");
++  assert.equal(a.d.activeElement.id, "pesquisarCliente");
++  a.key("F6");
++  assert.equal(a.d.activeElement.id, "descontoGeralValor");
++  const discount = a.d.querySelector("#descontoGeralValor");
++  discount.value = "2,50";
++  discount.dispatchEvent(new a.w.Event("input", { bubbles: true }));
++  assert.equal(a.w.PetHubVenda.dados().totais.final, 10);
++  const fee = a.d.querySelector("#acrescimoValor");
++  fee.value = "1,00";
++  fee.dispatchEvent(new a.w.Event("input", { bubbles: true }));
++  assert.equal(a.w.PetHubVenda.dados().totais.final, 11);
++  a.key("F3");
++  assert.equal(
++    a.d.activeElement.getAttribute("aria-label"),
++    "Quantidade de Ração",
++  );
++  a.click(".qr-toolbar button");
++  assert(a.d.querySelector("dialog[open]"));
++  assert.match(a.d.querySelector("dialog").textContent, /Em uso/);
++  a.d.querySelector("dialog").close();
++  assert.equal(a.errors.length, 0);
++});
++test("dinheiro/troco e F8 duplo usam uma venda e uma baixa de estoque", async (t) => {
++  const a = await app(t);
++  await a.w.PetHubVenda.adicionar(a.products[0]);
++  a.d.querySelector("#observacoes").value = "Pedido balcão";
++  a.key("F7");
++  a.key("F7");
++  await wait(100);
++  assert.equal(a.calls.filter((c) => c.kind === "create").length, 1);
++  assert(a.d.querySelector("#modalPagamento"));
++  a.click("[data-forma=dinheiro]");
++  const input = a.d.querySelector("#valor-dinheiro");
++  input.value = "20";
++  input.dispatchEvent(new a.w.Event("input", { bubbles: true }));
++  assert.match(a.d.querySelector("#qr-change").textContent, /7,50/);
++  a.key("F8");
++  a.key("F8");
++  await wait(180);
++  assert.equal(a.calls.filter((c) => c.kind === "update").length, 1);
++  assert.equal(a.calls.filter((c) => c.kind === "stock").length, 1);
++  const sale = a.calls.find((c) => c.kind === "update").b;
++  assert.equal(sale.pagamentos[0].valor, 12.5);
++  assert.equal(sale.pagamentos[0].troco, 7.5);
++  assert.equal(sale.totalPago, 12.5);
++  assert.equal(sale.observacoes, "Pedido balcão");
++  assert.equal(a.w.PetHubVenda.dados().itens.length, 0);
++  assert.equal(a.errors.length, 0);
++});
++test("múltiplo recusa falta e aceita soma exata sem enviar venda parcial", async (t) => {
++  const a = await app(t);
++  await a.w.PetHubVenda.adicionar(a.products[1]);
++  a.key("F7");
++  await wait(100);
++  a.click("[data-forma=pix]");
++  a.d.querySelector("#valor-pix").value = "20";
++  a.d.querySelector("#chave-pix").value = "loja@example.test";
++  a.click("#adicionarPagamento");
++  await wait();
++  a.key("F8");
++  await wait();
++  assert.equal(a.calls.filter((c) => c.kind === "update").length, 0);
++  a.click("[data-forma=debito]");
++  a.d.querySelector("#valor-debito").value = "30";
++  a.click("#adicionarPagamento");
++  await wait();
++  a.key("F8");
++  await wait(150);
++  assert.equal(a.calls.filter((c) => c.kind === "update").length, 1);
++  assert.equal(a.calls.find((c) => c.kind === "update").b.totalPago, 50);
++  assert.equal(a.calls.filter((c) => c.kind === "stock").length, 0);
++  assert.equal(a.errors.length, 0);
++});
++test("seletor salva no servidor e muda sem descartar a venda; ESC pede confirmação", async (t) => {
++  const a = await app(t);
++  await a.w.PetHubVenda.adicionar(a.products[0]);
++  a.click(".qr-toolbar button");
++  a.d.querySelector(".qr-layout-cards article button").click();
++  await wait(80);
++  assert.equal(a.w.PetHubCaixa.layout, "classico");
++  assert.equal(a.w.PetHubVenda.dados().itens.length, 1);
++  assert.equal(a.calls.filter((c) => c.method === "PUT").length, 1);
++  assert.deepEqual(JSON.parse(a.calls.find((c) => c.method === "PUT").body), {
++    layout: "classico",
++  });
++  a.w.PetHubCaixa.aplicar("rapido");
++  a.w.confirmar = async () => false;
++  a.key("Escape");
++  await wait();
++  assert.equal(a.w.PetHubVenda.dados().itens.length, 1);
++  a.w.confirmar = async () => true;
++  a.key("Escape");
++  await wait();
++  assert.equal(a.w.PetHubVenda.dados().itens.length, 0);
++  assert.equal(a.errors.length, 0);
++});
++test("fechado bloqueia pagamento e falha de catálogo não introduz produtos de exemplo", async (t) => {
++  const a = await app(t);
++  await a.w.PetHubVenda.adicionar(a.products[0]);
++  a.w.fetch = async () => ({ ok: true, json: async () => ({ aberto: false }) });
++  a.key("F7");
++  await wait();
++  assert.equal(a.d.querySelector("#modalPagamento"), null);
++  assert.equal(a.calls.filter((c) => c.kind === "create").length, 0);
++  a.w.ApiClient.getProdutos = async () => {
++    throw Error("offline");
++  };
++  await a.w.PetHubCaixa.catalogo();
++  assert.equal(a.d.querySelectorAll("#qr-products button").length, 0);
++  assert.equal(a.w.PetHubVenda.dados().itens.length, 1);
++  assert.equal(a.errors.length, 0);
++});
+--- /dev/null
++++ b/tests/helpers/sqlite-caixa.js
+@@ -0,0 +1,49 @@
++// Adaptador exclusivo dos testes de caixa: expõe ao Sequelize 6 a interface
++// callback de sqlite3 usando o SQLite integrado ao Node 22.13+/24.
++const { DatabaseSync } = require("node:sqlite");
++class Statement {}
++class Database {
++  constructor(filename, mode, done) {
++    if (filename !== ":memory:")
++      throw new Error("O teste só aceita SQLite em memória.");
++    this.filename = filename;
++    this.db = new DatabaseSync(filename);
++    queueMicrotask(() => done(null));
++  }
++  serialize(work) {
++    work();
++  }
++  all(sql, params, done) {
++    this.exec("all", sql, params, done);
++  }
++  run(sql, params, done) {
++    this.exec("run", sql, params, done);
++  }
++  exec(method, sql, params, done) {
++    if (typeof params === "function") {
++      done = params;
++      params = [];
++    }
++    const meta = new Statement();
++    let result;
++    try {
++      const stmt = this.db.prepare(sql);
++      const args = Array.isArray(params) ? params : [params || {}];
++      result = stmt[method](...args);
++      if (method === "run")
++        Object.assign(meta, {
++          changes: result.changes,
++          lastID: result.lastInsertRowid,
++        });
++    } catch (err) {
++      if (done) return done.call(meta, err);
++      throw err;
++    }
++    done?.call(meta, null, method === "all" ? result : undefined);
++  }
++  close(done) {
++    this.db.close();
++    done?.();
++  }
++}
++module.exports = { Database, OPEN_CREATE: 4, OPEN_READWRITE: 2 };
