@@ -1,35 +1,26 @@
-# PetHub — Cliente na Nova Venda / Caixa
+# PetHub — Auditoria do comprovante de venda
 
-## Aplicar
+## Instalação
 
-1. Faça backup e substitua **nova-venda.js e nova-venda.html** dentro de `frontend/atendimento`, mantendo os caminhos.
-2. Faça deploy e recarregue Nova Venda. O HTML usa `nova-venda.js?v=20261120-clientes4` para evitar cache da versão anterior.
-3. Não há alteração de backend, migração, dependência ou variável nova.
+Este pacote atualiza os ajustes anteriores de caixa, clientes e logo nos PDFs. Faça backup dos arquivos correspondentes.
 
-Se sua página HTML tiver mudanças adicionais próprias, preserve-as e atualize somente a versão do script. `ALTERACOES.patch` mostra as alterações em relação à versão anterior.
+1. Aplique TODOS os arquivos de `backend` e `frontend`, mantendo seus caminhos. Inclua o novo `frontend/components/venda-calculos.js`: o caixa e o backend utilizam esse mesmo módulo. Não envie somente os dois arquivos de Nova Venda.
+2. Faça deploy/reinicie o serviço e recarregue Nova Venda. O HTML está versionado para evitar scripts antigos em cache. O HTML de agendamento-detalhes também carrega o módulo compartilhado antes do pagamento.
+3. Gere novamente o comprovante. PDFs já baixados não mudam.
 
-## O que foi corrigido
+Não é necessária migração, comando SQL, nova variável de ambiente nem alteração de dependências de produção. O pacote reutiliza PDFKit e o serviço de logo com sharp do ajuste anterior. Não substitua package.json/lock por versões antigas.
 
-A busca acessava diretamente `cliente.nome.toLowerCase()` e `cliente.telefone.includes()`. Um telefone nulo/ausente (ou nome ausente) interrompia o filtro da lista inteira, mostrando “Erro ao carregar clientes”.
+Se há mudanças mais recentes próprias nesses arquivos, revise/aplique `ALTERACOES.patch`, preservando suas alterações. Não remova o serviço de identidade `backend/services/identidadeEmpresaPDF.js` entregue anteriormente.
 
-- Campos opcionais são normalizados sem exceção; códigos ausentes usam o ID do cadastro.
-- Seleção compara IDs normalizados e preserva o ID real no payload da venda.
-- Busca consulta a API autenticada com `search` e `limit`, em vez de tentar encontrar tudo somente nos primeiros 100 clientes. Mantém o isolamento por empresa já aplicado no backend.
-- Aceita tanto `{success:true,clientes:[...]}` quanto um array de clientes da API. Respostas fora de ordem são ignoradas.
-- A seleção reaproveita o cadastro encontrado na busca, sem refazer uma listagem e perder o cliente selecionado. Quando necessário, consulta o cadastro pelo ID.
-- Removidos os nomes fictícios que eram usados como fallback quando a API falhava.
-- Resultados usam texto seguro, sem HTML/onclick montado com o nome ou o ID do cliente. Pode selecionar com clique ou setas/Enter; ESC fecha a busca de cliente sem descartar a venda.
-- Digitar outro nome invalida o vínculo anterior; limpar/remover cliente continua permitido. Cliente permanece opcional no fluxo original.
-- Carrinho, preferências de layout, carregador inicial, imagens, modais e demais melhorias anteriores preservados nos dois visuais.
+## Resultado
 
-## Testes
+- Horário explícito de Brasília (`America/Sao_Paulo`), usando a data registrada da venda. Não depende do TZ do Render e não altera timestamps no banco.
+- Quantidade/unidade/código/descrição/preço e descontos retirados do snapshot salvo nos itens. Não consulta preço atual do produto para reimprimir.
+- Desconto individual separado do geral. O preço unitário bruto não é rebaixado e depois descontado de novo.
+- Total líquido da venda independente do valor pago. Pagamentos parciais exibem saldo; dinheiro detalha recebido/troco quando registrado.
+- Valores monetários com cálculo decimal e arredondamento em centavos compartilhado entre caixa e validação do backend.
+- Logo e empresa continuam seguindo o cadastro e o isolamento do ajuste anterior. Comprovante permanece no formato de cupom.
 
-**20 testes automatizados passaram**. Incluem busca/seleção de cliente sem telefone nos dois visuais, ID em texto, cliente mantido no pedido enviado, resposta em array, descarte de resposta atrasada, falha da API sem inserir clientes fictícios e regressões anteriores de caixa.
+Veja `AUDITORIA.md` para detalhes dos problemas, decisões, arquivos, testes e limitações. `TESTES.txt` contém o resultado real: **35 testes passaram**.
 
-Resultado em `TESTES.txt`. Os scripts reais foram executados em JSDOM com API simulada; os testes anteriores de backend usam SQLite em memória. Não foi acessado o Render ou seu banco de produção. Após deploy, busque Karol, selecione e confirme que o cliente aparece na venda.
-
-O teste atualizado está incluído para seu ambiente de desenvolvimento:
-
-```sh
-node --test --test-force-exit tests/caixa-layout.test.js tests/caixa-rapido.test.js
-```
+Após publicar, confira uma venda real com desconto no item + desconto geral, compare o total do caixa com o PDF e valide a data/hora registrada. Não foram acessados seu Render, banco TiDB ou armazenamento R2 nesta auditoria.

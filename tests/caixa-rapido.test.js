@@ -6,6 +6,19 @@ const { test } = require("node:test"),
   { JSDOM, VirtualConsole } = require("jsdom");
 const base = path.join(__dirname, "../frontend/atendimento/");
 const wait = (ms = 30) => new Promise((r) => setTimeout(r, ms));
+test('quantidade fracionada e preço com separador de milhar não quebram cálculo ou validação',async t=>{
+ const a=await app(t,'classico');await a.w.selecionarProduto('p3');
+ const qty=a.d.querySelector('#quantidade'),unit=a.d.querySelector('#valorUnitario');qty.value='0.5';qty.dispatchEvent(new a.w.Event('input',{bubbles:true}));
+ unit.value='1.234,56';unit.dispatchEvent(new a.w.Event('input',{bubbles:true}));unit.dispatchEvent(new a.w.Event('blur'));await wait(50);
+ assert.equal(unit.value,'1.234,56');assert.match(a.d.querySelector('.total-value').textContent,/617,28/);assert.equal(a.errors.length,0);
+});
+test('desconto individual por percentual não altera preço bruto nem é duplicado no blur',async t=>{
+ const a=await app(t,'classico');await a.w.selecionarProduto('p1');
+ const discount=a.d.querySelector('#descontoPercent');discount.value='10';discount.dispatchEvent(new a.w.Event('input',{bubbles:true}));discount.dispatchEvent(new a.w.Event('blur'));
+ assert.equal(a.d.querySelector('#valorUnitario').value,'12.50');
+ a.click('#adicionarItem');await wait(50);const item=a.w.PetHubVenda.dados().itens[0];assert.equal(item.valorUnitario,12.5);assert.equal(item.desconto,10);assert.equal(item.totalBruto,12.5);assert.equal(item.totalFinal,11.25);
+ const geral=a.d.querySelector('#descontoGeralValor');geral.value='1,25';geral.dispatchEvent(new a.w.Event('input',{bubbles:true}));const totals=a.w.PetHubVenda.dados().totais;assert.equal(totals.descontoItens,1.25);assert.equal(totals.descontoGeral,1.25);assert.equal(totals.final,10);assert.equal(a.errors.length,0);
+});
 for (const visual of ['classico','rapido']) test(`cliente sem telefone pode ser pesquisado e vinculado no ${visual}`, async t => {
   const a=await app(t,visual),requests=[];
   await a.w.PetHubVenda.adicionar(a.products[0]);
@@ -155,6 +168,7 @@ async function app(t, preferred = "rapido", options = {}) {
     atualizarEstoque: async (...args) => calls.push({ kind: "stock", args }),
   };
   options.beforeScripts?.(w, d);
+  w.eval(fs.readFileSync(path.join(base, "../components/venda-calculos.js"), "utf8"));
   w.eval(fs.readFileSync(base + "nova-venda.js", "utf8"));
   w.eval(fs.readFileSync(base + "caixa-rapido.js", "utf8"));
   await wait(350);

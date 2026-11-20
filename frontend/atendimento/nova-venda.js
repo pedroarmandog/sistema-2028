@@ -564,14 +564,10 @@ function inicializarNovaVenda() {
   // Função para calcular total do item (global para ser acessível)
   window.calcularTotalItem = function () {
     const qtd = parseFloat(quantidade.value) || 0;
-    const valor = parseFloat(valorUnitario.value.replace(",", ".")) || 0;
-    const desc = parseFloat(descontoPercent.value) || 0;
+    const valor = window.PetHubCalculos.centavos(valorUnitario.value || 0) / 100;
+    const desc = parseFloat(descontoPercent.value.replace(",", ".")) || 0;
 
-    let total = qtd * valor;
-
-    if (desc > 0) {
-      total = total - (total * desc) / 100;
-    }
+    const total = window.PetHubCalculos.calcularItem(qtd, valor, desc).totalFinal;
 
     totalValue.textContent = total.toLocaleString("pt-BR", {
       minimumFractionDigits: 2,
@@ -590,8 +586,8 @@ function inicializarNovaVenda() {
   // Função para adicionar item à lista
   async function adicionarItem() {
     const qtd = parseFloat(quantidade.value) || 0;
-    const valor = parseFloat(valorUnitario.value.replace(",", ".")) || 0;
-    const desc = parseFloat(descontoPercent.value) || 0;
+    const valor = window.PetHubCalculos.centavos(valorUnitario.value || 0) / 100;
+    const desc = parseFloat(descontoPercent.value.replace(",", ".")) || 0;
     const produtoNome = document.getElementById("pesquisarProduto").value;
 
     console.log("➕ Tentando adicionar item:", {
@@ -601,7 +597,7 @@ function inicializarNovaVenda() {
       produtoNome,
     });
 
-    if (qtd <= 0 || valor <= 0) {
+    if (qtd <= 0 || valor <= 0 || desc < 0 || desc > 100) {
       mostrarNotificacao(
         "error",
         "Por favor, informe quantidade e valor válidos.",
@@ -659,7 +655,7 @@ function inicializarNovaVenda() {
       }
     }
 
-    const totalBruto = qtd * valor;
+    const totalBruto = window.PetHubCalculos.calcularItem(qtd, valor, desc).totalBruto;
     const totalFinal = calcularTotalItem();
 
     const item = {
@@ -715,8 +711,7 @@ function inicializarNovaVenda() {
         mostrarNotificacao('warning', 'Quantidade não disponível no estoque.'); return false;
       }
       item.quantidade = qtd;
-      item.totalBruto = qtd * item.valorUnitario;
-      item.totalFinal = Number((item.totalBruto * (1 - item.desconto / 100)).toFixed(2));
+      Object.assign(item, window.PetHubCalculos.calcularItem(qtd, item.valorUnitario, item.desconto));
       renderizarItens(); atualizarTotaisGerais(); return true;
     },
     remover: id => window.removerItem(id),
@@ -826,7 +821,7 @@ function inicializarNovaVenda() {
     });
     valorUnitario.addEventListener("blur", function () {
       // Formatar valor ao sair do campo
-      const valor = parseFloat(this.value.replace(",", ".")) || 0;
+      const valor = window.PetHubCalculos.centavos(this.value || 0) / 100;
       this.value = valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
     });
   }
@@ -869,148 +864,18 @@ function inicializarNovaVenda() {
   console.log("✅ Event listeners de Enter configurados");
 
   // Função para calcular porcentagem de desconto baseada no valor original vs atual
-  function calcularPorcentagemDesconto() {
-    const produtoNome = document
-      .getElementById("pesquisarProduto")
-      .value.trim();
-    if (!produtoNome) return;
+  function calcularPorcentagemDesconto() { calcularTotalItem(); }
+  // O preço unitário é bruto. O percentual é aplicado uma única vez ao total do item.
+  function calcularValorFinalComDesconto() { calcularTotalItem(); }
 
-    const produtosSistema = carregarProdutosDoSistema();
-    const produtoEncontrado = produtosSistema.find(
-      (p) => p.nome.toLowerCase() === produtoNome.toLowerCase(),
-    );
-
-    if (produtoEncontrado) {
-      const precoOriginal = produtoEncontrado.preco;
-      const valorAtual =
-        parseFloat(
-          document.getElementById("valorUnitario").value.replace(",", "."),
-        ) || 0;
-
-      if (precoOriginal > 0 && valorAtual > 0 && valorAtual !== precoOriginal) {
-        // Calcular porcentagem de diferença
-        const percentual = ((precoOriginal - valorAtual) / precoOriginal) * 100;
-
-        // Atualizar campo de porcentagem automaticamente
-        document.getElementById("descontoPercent").value =
-          Math.abs(percentual).toFixed(2);
-
-        // Mostrar indicador visual se é desconto ou acréscimo
-        const descontoField = document.getElementById("descontoPercent");
-        if (percentual > 0) {
-          // É desconto (valor atual menor que original)
-          descontoField.style.color = "#28a745"; // Verde para desconto
-          descontoField.title = `Desconto de ${percentual.toFixed(2)}% em relação ao preço original (R$ ${precoOriginal.toFixed(2)})`;
-        } else {
-          // É acréscimo (valor atual maior que original)
-          descontoField.style.color = "#ffc107"; // Amarelo para acréscimo
-          descontoField.title = `Acréscimo de ${Math.abs(percentual).toFixed(2)}% em relação ao preço original (R$ ${precoOriginal.toFixed(2)})`;
-        }
-
-        // Atualizar total
-        calcularTotalItem();
-
-        console.log(
-          `📊 Preço original: R$ ${precoOriginal.toFixed(2)} | Preço atual: R$ ${valorAtual.toFixed(2)} | Diferença: ${percentual.toFixed(2)}%`,
-        );
-      } else {
-        // Limpar porcentagem se valores forem iguais
-        document.getElementById("descontoPercent").value = "";
-        document.getElementById("descontoPercent").style.color = "";
-        document.getElementById("descontoPercent").title = "";
-      }
-    }
-  }
-
-  // Função para calcular valor final quando porcentagem for aplicada
-  function calcularValorFinalComDesconto() {
-    const produtoNome = document
-      .getElementById("pesquisarProduto")
-      .value.trim();
-    const percentualDesconto =
-      parseFloat(document.getElementById("descontoPercent").value) || 0;
-
-    if (!produtoNome || percentualDesconto === 0) return;
-
-    const produtosSistema = carregarProdutosDoSistema();
-    const produtoEncontrado = produtosSistema.find(
-      (p) => p.nome.toLowerCase() === produtoNome.toLowerCase(),
-    );
-
-    if (produtoEncontrado) {
-      const precoOriginal = produtoEncontrado.preco;
-
-      // Calcular novo valor com desconto/acréscimo aplicado
-      let valorFinal;
-      const descontoField = document.getElementById("descontoPercent");
-
-      // Verificar se é desconto ou acréscimo baseado na cor do campo
-      if (
-        descontoField.style.color === "rgb(40, 167, 69)" ||
-        !descontoField.style.color
-      ) {
-        // Verde = desconto ou campo neutro = assumir desconto
-        valorFinal = precoOriginal - (precoOriginal * percentualDesconto) / 100;
-      } else {
-        // Amarelo = acréscimo
-        valorFinal = precoOriginal + (precoOriginal * percentualDesconto) / 100;
-      }
-
-      // Garantir que valor final seja positivo
-      valorFinal = Math.max(0, valorFinal);
-
-      // Atualizar campo valor unitário
-      document.getElementById("valorUnitario").value =
-        valorFinal.toLocaleString("pt-BR", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        });
-
-      // Atualizar total
-      calcularTotalItem();
-
-      // Feedback visual no campo de desconto
-      descontoField.style.backgroundColor = "#f0f8f0";
-      setTimeout(() => {
-        descontoField.style.backgroundColor = "";
-      }, 1000);
-
-      console.log(
-        `💰 ${percentualDesconto}% aplicado | Preço original: R$ ${precoOriginal.toFixed(2)} | Valor final: R$ ${valorFinal.toFixed(2)}`,
-      );
-    } else {
-      // Se produto não encontrado, aplicar desconto no valor atual
-      const valorAtual =
-        parseFloat(
-          document.getElementById("valorUnitario").value.replace(",", "."),
-        ) || 0;
-      if (valorAtual > 0) {
-        const valorComDesconto =
-          valorAtual - (valorAtual * percentualDesconto) / 100;
-        const valorFinal = Math.max(0, valorComDesconto);
-
-        document.getElementById("valorUnitario").value =
-          valorFinal.toLocaleString("pt-BR", {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          });
-
-        calcularTotalItem();
-        console.log(
-          `💰 Desconto aplicado no valor atual: ${percentualDesconto}% | R$ ${valorAtual.toFixed(2)} → R$ ${valorFinal.toFixed(2)}`,
-        );
-      }
-    }
-  }
-
-  // Função para validar estoque em tempo real
-  function validarEstoqueEmTempoReal() {
+  async function validarEstoqueEmTempoReal() {
     const qtd = parseFloat(document.getElementById("quantidade").value) || 0;
     const produtoNome = document.getElementById("pesquisarProduto").value;
 
     if (!produtoNome.trim() || qtd === 0) return;
 
-    const produtosSistema = carregarProdutosDoSistema();
+    const produtosSistema = await carregarProdutosDoSistema();
+    if (document.getElementById("pesquisarProduto").value !== produtoNome || Number(document.getElementById("quantidade").value) !== qtd) return;
     const produtoEncontrado = produtosSistema.find(
       (p) => p.nome === produtoNome,
     );
@@ -1019,7 +884,7 @@ function inicializarNovaVenda() {
       const estoqueDisponivel = produtoEncontrado.estoqueAtual || 0;
       const quantidadeField = document.getElementById("quantidade");
 
-      if (qtd > estoqueDisponivel) {
+      if (qtd > estoqueDisponivel && !produtoEncontrado.permiteEstoqueNegativo) {
         // Destacar campo em vermelho
         quantidadeField.style.borderColor = "#dc3545";
         quantidadeField.style.backgroundColor = "#fff5f5";
@@ -1168,7 +1033,7 @@ function inicializarNovaVenda() {
             valorUnitario: parseFloat(item.valorUnitario || item.preco || 0),
             desconto: parseFloat(item.desconto || 0),
             totalBruto: parseFloat(item.totalBruto || 0),
-            totalFinal: parseFloat(item.totalFinal || item.total || 0),
+            totalFinal: parseFloat(item.totalFinal ?? item.total ?? 0),
           });
         });
         renderizarItens();
@@ -1952,7 +1817,7 @@ async function finalizarVendaComDados() {
         itens: [...itensVenda],
         totais: { ...totais },
         pagamentos: [],
-        totalPago: totais.final || 0,
+        totalPago: 0,
         status: "pendente",
       };
       const vendaCriada = await ApiClient.criarVenda(dadosPendente);
@@ -2177,15 +2042,15 @@ function calcularTotaisComCondicoesPagamento() {
       return;
     }
 
-    const acrescimoPercent = parseFloat(acrescimoPercentInput.value) || 0;
+    const acrescimoPercent = parseFloat(acrescimoPercentInput.value.replace(",", ".")) || 0;
     const acrescimoValor =
-      parseFloat(acrescimoValorInput.value.replace(",", ".")) || 0;
+      window.PetHubCalculos.centavos(acrescimoValorInput.value || 0) / 100;
     const descontoGeralPercent =
-      parseFloat(descontoGeralPercentInput.value) || 0;
+      parseFloat(descontoGeralPercentInput.value.replace(",", ".")) || 0;
     const descontoGeralValor =
-      parseFloat(descontoGeralValorInput.value.replace(",", ".")) || 0;
+      window.PetHubCalculos.centavos(descontoGeralValorInput.value || 0) / 100;
     const arredondamentoValor =
-      parseFloat(arredondamentoInput.value.replace(",", ".")) || 0;
+      window.PetHubCalculos.centavos(arredondamentoInput.value || 0) / 100;
 
     console.log("📊 Valores dos campos:", {
       acrescimoPercent,
@@ -2195,50 +2060,10 @@ function calcularTotaisComCondicoesPagamento() {
       arredondamentoValor,
     });
 
-    // Calcular total bruto dos itens
-    const brutoOriginal = itensVenda.reduce((n,i) => n + i.totalBruto, 0);
-    const totalBruto = itensVenda.reduce((n,i) => n + i.totalFinal, 0);
-    console.log("💰 Total bruto calculado:", totalBruto);
-
-    // Aplicar acréscimos
-    let valorAcrescimo = 0;
-    if (acrescimoPercent > 0) {
-      valorAcrescimo = totalBruto * (acrescimoPercent / 100);
-      console.log("📈 Acréscimo %:", acrescimoPercent, "% =", valorAcrescimo);
-    } else if (acrescimoValor > 0) {
-      valorAcrescimo = acrescimoValor;
-      console.log("📈 Acréscimo R$:", valorAcrescimo);
-    }
-
-    // Aplicar descontos
-    let valorDesconto = 0;
-    if (descontoGeralPercent > 0) {
-      valorDesconto = totalBruto * (descontoGeralPercent / 100);
-      console.log("📉 Desconto %:", descontoGeralPercent, "% =", valorDesconto);
-    } else if (descontoGeralValor > 0) {
-      valorDesconto = descontoGeralValor;
-      console.log("📉 Desconto R$:", valorDesconto);
-    }
-
-    // Calcular total final
-    let totalFinal =
-      totalBruto + valorAcrescimo - valorDesconto + arredondamentoValor;
-
-    // Garantir que não seja negativo
-    if (totalFinal < 0) {
-      totalFinal = 0;
-    }
-
-    console.log("🎯 RESULTADO FINAL:", {
-      totalBruto,
-      valorAcrescimo,
-      valorDesconto,
-      arredondamentoValor,
-      totalFinal,
+    totais = window.PetHubCalculos.calcularTotais(itensVenda, {
+      acrescimoPercent, acrescimoValor, descontoPercent: descontoGeralPercent,
+      descontoValor: descontoGeralValor, arredondamento: arredondamentoValor,
     });
-
-    // Atualizar elementos na tela
-    totais = { bruto: Number(brutoOriginal.toFixed(2)), desconto: Number((brutoOriginal - totalBruto + valorDesconto).toFixed(2)), acrescimo: Number(valorAcrescimo.toFixed(2)), arredondamento: arredondamentoValor, final: Number(totalFinal.toFixed(2)) };
     atualizarElementosTotais(totais.bruto, totais.desconto, totais.acrescimo, totais.final);
     document.dispatchEvent(new Event('pethub:venda-atualizada'));
   } catch (error) {
@@ -2394,7 +2219,7 @@ function abrirModalPagamento(totalOverride, seed) {
             valorUnitario: valor,
             desconto: s.desconto || 0,
             totalBruto: totalBruto,
-            totalFinal: parseFloat(s.totalFinal || s.total || totalBruto),
+            totalFinal: parseFloat(s.totalFinal ?? s.total ?? totalBruto),
           };
         });
       }

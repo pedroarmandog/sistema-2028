@@ -192,6 +192,7 @@ test("rotas reais de comprovante e faturamento incorporam logo da empresa e reje
     const filename = path.join(__dirname, "../backend/routes", name),
       module = { exports: {} };
     const customRequire = (p) => {
+      if (p === '../services/comprovanteVendaPDF') return require('../backend/services/comprovanteVendaPDF');
       if (p === "../services/identidadeEmpresaPDF")
         return {
           ...helper,

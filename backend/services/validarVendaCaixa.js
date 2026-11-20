@@ -1,7 +1,8 @@
 "use strict";
 // Validação de entrada das duas interfaces. A gravação continua no vendaController.
 function criarValidador({ Produto, Cliente, Profissional, Caixa }) {
-  const cents = (n) => Math.round(Number(n) * 100);
+  const calc = require('../../frontend/components/venda-calculos');
+  const cents = calc.centavos;
   const numero = (n) => typeof n === "number" && Number.isFinite(n);
   return async (req, res, next) => {
     if (req.body?.origemInterface !== "caixa-compartilhado") return next();
@@ -34,8 +35,8 @@ function criarValidador({ Produto, Cliente, Profissional, Caixa }) {
           i.desconto > 100
         )
           return fail("Quantidade, preço ou desconto inválido.");
-        const totalBruto = i.quantidade * i.valorUnitario,
-          totalFinal = totalBruto * (1 - i.desconto / 100);
+        const esperado = calc.calcularItem(i.quantidade, i.valorUnitario, i.desconto);
+        const totalBruto = esperado.totalBruto, totalFinal = esperado.totalFinal;
         if (
           !numero(i.totalBruto) ||
           !numero(i.totalFinal) ||
