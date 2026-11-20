@@ -1,13 +1,184 @@
-(function(){'use strict';if(window.PortalAparencia)return;
- const T=window.PortalTema,labels={principal:'Cor principal',secundaria:'Cor secundária',fundo:'Fundo do app',superficie:'Cards e menus',texto:'Texto'},presets={padrao:{...T.PADRAO},verde:{...T.PADRAO,principal:'#209866',secundaria:'#123F30'},azul:{...T.PADRAO,principal:'#2878D0',secundaria:'#173854'},roxo:{...T.PADRAO,principal:'#8654CE',secundaria:'#352454'},rosa:{...T.PADRAO,principal:'#D34B87',secundaria:'#54203E'}};
- let current,run=0;const api=(...a)=>window.PortalERP.api(...a);
- function aviso(text,erro=false){const e=document.getElementById('pc-aparencia-status');if(e){e.textContent=text;e.className='pc-note '+(erro?'pc-error':'');}}
- function draft(){const form=document.getElementById('pc-aparencia-form'),cores={};for(const k of T.CAMPOS)cores[k]=form.elements[k].value;return T.validar(cores);}
- function preview(){try{const cores=draft();T.aplicar(document.getElementById('pc-tema-preview'),cores);aviso('Prévia local. Salve para aplicar ao app dos tutores.');}catch(e){aviso(e.message,true);}}
- function preencher(cores){const form=document.getElementById('pc-aparencia-form');for(const k of T.CAMPOS){form.elements[k].value=cores[k];form.querySelector('[data-paleta-picker="'+k+'"]').value=cores[k];}preview();}
- async function mount(target){if(!target?.querySelector('#pc-config-form'))return;let section=target.querySelector('#pc-aparencia');if(!section){section=document.createElement('section');section.id='pc-aparencia';section.className='pc-card';target.querySelector('#pc-config-form').insertAdjacentElement('afterend',section);}const n=++run;try{const r=await api('/aparencia');if(n!==run||!section.isConnected)return;current=r;section.innerHTML='<h2>Aparência do app do tutor</h2><p class="pc-muted">Personalize as cores do PetHub Cliente desta empresa. Esta paleta não altera o visual do ERP nem de outros pet shops.</p><div class="pc-tema-layout"><div><div class="pc-row pc-tema-presets"><button type="button" data-paleta-preset="padrao" class="pc-secondary">PetHub padrão</button><button type="button" data-paleta-preset="verde" class="pc-secondary">Verde</button><button type="button" data-paleta-preset="azul" class="pc-secondary">Azul</button><button type="button" data-paleta-preset="roxo" class="pc-secondary">Roxo</button><button type="button" data-paleta-preset="rosa" class="pc-secondary">Rosa</button></div><form id="pc-aparencia-form">'+T.CAMPOS.map(k=>'<label>'+labels[k]+'<span class="pc-tema-inputs"><input type="color" data-paleta-picker="'+k+'" aria-label="Selecionar '+labels[k].toLowerCase()+'" value="'+r.cores[k]+'"><input name="'+k+'" aria-label="Código hexadecimal de '+labels[k].toLowerCase()+'" value="'+r.cores[k]+'" pattern="#[a-fA-F0-9]{6}" maxlength="7" required spellcheck="false"></span></label>').join('')+'<div class="pc-row"><button type="submit">Salvar paleta</button><button type="button" data-paleta-preset="padrao" class="pc-secondary">Restaurar padrão</button></div></form><div id="pc-aparencia-status" role="status"></div><p class="pc-muted">O texto dos elementos recebe ajuste automático de contraste quando necessário. As cores da logo e do mascote são preservadas.</p></div><div class="pc-tema-preview" id="pc-tema-preview" aria-label="Prévia das cores do app"><div class="pc-tema-phone-head">PetHub <small>CLIENTE</small></div><div class="pc-tema-phone-body"><div class="pc-tema-hero"><small>SEU PET SHOP</small><h3>Olá, tutor!</h3><p>Você e seu pet, em sintonia.</p><button type="button" tabindex="-1">Agendar cuidado →</button></div><h3>O próximo encontro</h3><div class="pc-tema-phone-card"><strong>Bobby</strong><p>Banho e cuidados</p><small>Agendamento confirmado</small></div><div class="pc-tema-phone-card">Saúde e vacinas</div></div><div class="pc-tema-phone-nav"><span>⌂ Início</span><span>Meus Pets</span><span>Agendar</span></div></div></div>';T.aplicar(section.querySelector('#pc-tema-preview'),r.cores);aviso('Cores salvas da empresa atual.');}catch(e){section.textContent=e.message;}}
- document.addEventListener('input',e=>{const picker=e.target.dataset.paletaPicker;if(picker){document.getElementById('pc-aparencia-form').elements[picker].value=e.target.value.toUpperCase();preview();}else if(e.target.closest('#pc-aparencia-form')&&T.CAMPOS.includes(e.target.name)){if(/^#[a-f0-9]{6}$/i.test(e.target.value))e.target.form.querySelector('[data-paleta-picker="'+e.target.name+'"]').value=e.target.value;preview();}});
- document.addEventListener('click',e=>{const b=e.target.closest('[data-paleta-preset]');if(b&&presets[b.dataset.paletaPreset])preencher(presets[b.dataset.paletaPreset]);});
- document.addEventListener('submit',async e=>{const form=e.target;if(form.id!=='pc-aparencia-form')return;e.preventDefault();if(form.dataset.busy)return;form.dataset.busy='1';const b=form.querySelector('[type=submit]');b.disabled=true;try{const r=await api('/aparencia',{method:'PUT',body:{versao:current.versao,cores:draft()}});current=r;document.dispatchEvent(new CustomEvent('pethub:config-salva',{detail:{form}}));aviso('Paleta salva. O app dos tutores será atualizado ao sincronizar.');window.dispatchEvent(new Event('pethub:portal-atualizado'));}catch(err){aviso(err.message,true);}finally{delete form.dataset.busy;b.disabled=false;}});
- window.PortalAparencia={mount};document.addEventListener('pethub:config-portal',e=>{void mount(e.detail.target);});const target=document.getElementById('pc-config');if(target?.querySelector('#pc-config-form'))void mount(target);
+(function () {
+  "use strict";
+  if (window.PortalAparencia) return;
+  const T = window.PortalTema,
+    labels = {
+      principal: "Cor principal",
+      secundaria: "Cor secundária",
+      fundo: "Fundo do app",
+      superficie: "Cards e menus",
+      texto: "Texto",
+    },
+    presets = {
+      padrao: { ...T.PADRAO },
+      verde: { ...T.PADRAO, principal: "#209866", secundaria: "#123F30" },
+      azul: { ...T.PADRAO, principal: "#2878D0", secundaria: "#173854" },
+      roxo: { ...T.PADRAO, principal: "#8654CE", secundaria: "#352454" },
+      rosa: { ...T.PADRAO, principal: "#D34B87", secundaria: "#54203E" },
+    };
+  let current,
+    run = 0;
+  const api = (...a) => window.PortalERP.api(...a);
+  function aviso(text, erro = false) {
+    const e = document.getElementById("pc-aparencia-status");
+    if (e) {
+      e.textContent = text;
+      e.className = "pc-note " + (erro ? "pc-error" : "");
+    }
+  }
+  async function extras(section, r) {
+    if (!window.PortalVisual) {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = "/cliente-app/visual.js";
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.append(s);
+      });
+    }
+    if (!window.PortalVisualPanel) {
+      await new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = "/components/cliente-portal-visuais.js";
+        s.onload = resolve;
+        s.onerror = reject;
+        document.head.append(s);
+      });
+    }
+    if (!document.querySelector("link[data-pc-visuais]")) {
+      const css = document.createElement("link");
+      css.rel = "stylesheet";
+      css.href = "/components/cliente-portal-visuais.css";
+      css.dataset.pcVisuais = "1";
+      document.head.append(css);
+    }
+    window.PortalVisualPanel.mount(section, api, r);
+  }
+  function draft() {
+    const form = document.getElementById("pc-aparencia-form"),
+      cores = {};
+    for (const k of T.CAMPOS) cores[k] = form.elements[k].value;
+    return T.validar(cores);
+  }
+  function preview() {
+    try {
+      const cores = draft();
+      T.aplicar(document.getElementById("pc-tema-preview"), cores);
+      aviso("Prévia local. Salve para aplicar ao app dos tutores.");
+    } catch (e) {
+      aviso(e.message, true);
+    }
+  }
+  function preencher(cores) {
+    const form = document.getElementById("pc-aparencia-form");
+    for (const k of T.CAMPOS) {
+      form.elements[k].value = cores[k];
+      form.querySelector('[data-paleta-picker="' + k + '"]').value = cores[k];
+    }
+    preview();
+  }
+  async function mount(target) {
+    if (!target?.querySelector("#pc-config-form")) return;
+    let section = target.querySelector("#pc-aparencia");
+    if (!section) {
+      section = document.createElement("section");
+      section.id = "pc-aparencia";
+      section.className = "pc-card";
+      target
+        .querySelector("#pc-config-form")
+        .insertAdjacentElement("afterend", section);
+    }
+    const n = ++run;
+    try {
+      const r = await api("/aparencia");
+      if (n !== run || !section.isConnected) return;
+      current = r;
+      section.innerHTML =
+        '<h2>Aparência do app do tutor</h2><p class="pc-muted">Personalize as cores do PetHub Cliente desta empresa. Esta paleta não altera o visual do ERP nem de outros pet shops.</p><div class="pc-tema-layout"><div><div class="pc-row pc-tema-presets"><button type="button" data-paleta-preset="padrao" class="pc-secondary">PetHub padrão</button><button type="button" data-paleta-preset="verde" class="pc-secondary">Verde</button><button type="button" data-paleta-preset="azul" class="pc-secondary">Azul</button><button type="button" data-paleta-preset="roxo" class="pc-secondary">Roxo</button><button type="button" data-paleta-preset="rosa" class="pc-secondary">Rosa</button></div><form id="pc-aparencia-form">' +
+        T.CAMPOS.map(
+          (k) =>
+            "<label>" +
+            labels[k] +
+            '<span class="pc-tema-inputs"><input type="color" data-paleta-picker="' +
+            k +
+            '" aria-label="Selecionar ' +
+            labels[k].toLowerCase() +
+            '" value="' +
+            r.cores[k] +
+            '"><input name="' +
+            k +
+            '" aria-label="Código hexadecimal de ' +
+            labels[k].toLowerCase() +
+            '" value="' +
+            r.cores[k] +
+            '" pattern="#[a-fA-F0-9]{6}" maxlength="7" required spellcheck="false"></span></label>',
+        ).join("") +
+        '<div class="pc-row"><button type="submit">Salvar paleta</button><button type="button" data-paleta-preset="padrao" class="pc-secondary">Restaurar padrão</button></div></form><div id="pc-aparencia-status" role="status"></div><p class="pc-muted">O texto dos elementos recebe ajuste automático de contraste quando necessário. As cores da logo e do mascote são preservadas.</p></div><div class="pc-tema-preview" id="pc-tema-preview" aria-label="Prévia das cores do app"><div class="pc-tema-phone-head">PetHub <small>CLIENTE</small></div><div class="pc-tema-phone-body"><div class="pc-tema-hero"><small>SEU PET SHOP</small><h3>Olá, tutor!</h3><p>Você e seu pet, em sintonia.</p><button type="button" tabindex="-1">Agendar cuidado →</button></div><h3>O próximo encontro</h3><div class="pc-tema-phone-card"><strong>Seu pet</strong><p>Banho e cuidados</p><small>Prévia da aparência</small></div><div class="pc-tema-phone-card">Saúde e vacinas</div></div><div class="pc-tema-phone-nav"><span>⌂ Início</span><span>Meus Pets</span><span>Agendar</span></div></div></div>';
+      T.aplicar(section.querySelector("#pc-tema-preview"), r.cores);
+      aviso("Cores salvas da empresa atual.");
+      await extras(section, r);
+    } catch (e) {
+      section.textContent = e.message;
+    }
+  }
+  document.addEventListener("input", (e) => {
+    const picker = e.target.dataset.paletaPicker;
+    if (picker) {
+      document.getElementById("pc-aparencia-form").elements[picker].value =
+        e.target.value.toUpperCase();
+      preview();
+    } else if (
+      e.target.closest("#pc-aparencia-form") &&
+      T.CAMPOS.includes(e.target.name)
+    ) {
+      if (/^#[a-f0-9]{6}$/i.test(e.target.value))
+        e.target.form.querySelector(
+          '[data-paleta-picker="' + e.target.name + '"]',
+        ).value = e.target.value;
+      preview();
+    }
+  });
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-paleta-preset]");
+    if (b && presets[b.dataset.paletaPreset])
+      preencher(presets[b.dataset.paletaPreset]);
+  });
+  document.addEventListener("submit", async (e) => {
+    const form = e.target;
+    if (form.id !== "pc-aparencia-form") return;
+    e.preventDefault();
+    if (form.dataset.busy) return;
+    form.dataset.busy = "1";
+    const b = form.querySelector("[type=submit]");
+    b.disabled = true;
+    try {
+      const r = await api("/aparencia", {
+        method: "PUT",
+        body: { versao: current.versao, cores: draft() },
+      });
+      current = r;
+      document.dispatchEvent(
+        new CustomEvent("pethub:aparencia-atualizada", { detail: r }),
+      );
+      document.dispatchEvent(
+        new CustomEvent("pethub:config-salva", { detail: { form } }),
+      );
+      aviso("Paleta salva. O app dos tutores será atualizado ao sincronizar.");
+      window.dispatchEvent(new Event("pethub:portal-atualizado"));
+    } catch (err) {
+      aviso(err.message, true);
+    } finally {
+      delete form.dataset.busy;
+      b.disabled = false;
+    }
+  });
+  document.addEventListener("pethub:aparencia-atualizada", (e) => {
+    current = e.detail;
+  });
+  window.PortalAparencia = { mount };
+  document.addEventListener("pethub:config-portal", (e) => {
+    void mount(e.detail.target);
+  });
+  const target = document.getElementById("pc-config");
+  if (target?.querySelector("#pc-config-form")) void mount(target);
 })();

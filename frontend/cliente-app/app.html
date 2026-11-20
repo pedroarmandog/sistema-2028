@@ -1,1 +1,68 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#14283e"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="referrer" content="no-referrer"><title>PetHub Cliente</title><link rel="manifest" href="/cliente-app/manifest.webmanifest"><link rel="apple-touch-icon" href="/cliente-app/assets/icon-192.png"><link rel="icon" href="/cliente-app/assets/icon-192.png"><link rel="stylesheet" href="/cliente-app/app.css"><script defer src="/cliente-app/api.js"></script><script defer src="/cliente-app/tema.js"></script><script defer src="/cliente-app/app.js"></script></head><body><a class="skip" href="#conteudo">Ir ao conteúdo</a><header class="topbar"><a class="marca" href="/cliente-app/app.html" aria-label="Página inicial do estabelecimento" aria-busy="true"><span class="marca-loader" role="status" aria-label="Carregando logo do estabelecimento"></span></a><button id="sino" class="icon-btn" aria-label="Notificações" hidden></button></header><div id="conexao" class="offline" role="status" hidden>Você está sem conexão. Conecte-se para consultar ou salvar seus dados.</div><main id="conteudo" tabindex="-1"><div class="empty">Preparando seu espaço…</div></main><nav id="navegacao" aria-label="Navegação principal" hidden></nav><div id="aviso" role="status" aria-live="polite"></div><dialog id="modal"><div class="dialog-head"><h2 id="modal-titulo"></h2><button class="icon-btn" id="fechar-modal" aria-label="Fechar">×</button></div><div id="modal-corpo"></div></dialog><noscript>Ative o JavaScript para acessar o PetHub Cliente.</noscript></body></html>
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#14283e" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="referrer" content="no-referrer" />
+    <title>PetHub Cliente</title>
+    <link rel="manifest" href="/cliente-app/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/cliente-app/assets/icon-192.png" />
+    <link rel="icon" href="/cliente-app/assets/icon-192.png" />
+    <link rel="stylesheet" href="/cliente-app/app.css" />
+    <script defer src="/cliente-app/api.js"></script>
+    <script defer src="/cliente-app/tema.js"></script>
+    <link rel="stylesheet" href="/cliente-app/premium.css?v=20261120" />
+    <script defer src="/cliente-app/visual.js"></script>
+    <script defer src="/cliente-app/app.js"></script>
+  </head>
+  <body>
+    <a class="skip" href="#conteudo">Ir ao conteúdo</a>
+    <header class="topbar">
+      <a
+        class="marca"
+        href="/cliente-app/app.html"
+        aria-label="Página inicial do estabelecimento"
+        aria-busy="true"
+        ><span
+          class="marca-loader"
+          role="status"
+          aria-label="Carregando logo do estabelecimento"
+        ></span></a
+      ><button
+        id="sino"
+        class="icon-btn"
+        aria-label="Notificações"
+        hidden
+      ></button>
+    </header>
+    <div id="conexao" class="offline" role="status" hidden>
+      Você está sem conexão. Conecte-se para consultar ou salvar seus dados.
+    </div>
+    <main id="conteudo" tabindex="-1">
+      <div class="loading-screen" role="status" aria-label="Carregando">
+        <span class="marca-loader"></span>
+        <div class="skeleton skeleton-hero"></div>
+        <div class="skeleton skeleton-card"></div>
+      </div>
+    </main>
+    <nav id="navegacao" aria-label="Navegação principal" hidden></nav>
+    <div id="aviso" role="status" aria-live="polite"></div>
+    <dialog id="modal">
+      <div class="dialog-head">
+        <h2 id="modal-titulo"></h2>
+        <button class="icon-btn" id="fechar-modal" aria-label="Fechar">
+          ×
+        </button>
+      </div>
+      <div id="modal-corpo"></div>
+    </dialog>
+    <noscript>Ative o JavaScript para acessar o PetHub Cliente.</noscript>
+  </body>
+</html>

@@ -1,0 +1,95 @@
+.pc-visuais {
+  margin-top: 30px;
+  padding-top: 28px;
+  border-top: 1px solid #dfe6ef;
+}
+.pc-visual-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+}
+.pc-visual-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 32px;
+  margin-top: 22px;
+}
+.pc-visual-workspace label {
+  display: block;
+  margin: 16px 0;
+  font-size: 13px;
+}
+.pc-visual-workspace select,
+.pc-visual-workspace input:not([type="checkbox"]),
+.pc-visual-workspace textarea {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.pc-visual-workspace input[type="range"] {
+  padding: 0;
+}
+.pc-upload-preview {
+  border: 1px dashed #b8c8d9;
+  border-radius: 18px;
+  min-height: 180px;
+  display: grid;
+  place-items: center;
+  background: repeating-conic-gradient(#f0f4f7 0% 25%, #fff 0% 50%) 50% / 20px
+    20px;
+  overflow: hidden;
+}
+.pc-upload-preview img {
+  width: 100%;
+  height: 210px;
+  object-fit: contain;
+}
+.pc-visual-preview {
+  position: sticky;
+  top: 95px;
+  align-self: start;
+  min-width: 0;
+}
+.pc-visual-preview iframe {
+  width: 100%;
+  height: 640px;
+  border: 6px solid #d8e1e9;
+  border-radius: 30px;
+  background: white;
+  box-sizing: border-box;
+}
+.pc-visual-workspace h3 {
+  margin-top: 24px;
+}
+.pc-visual-workspace form {
+  min-width: 0;
+}
+.pc-visual-heading button {
+  flex: none;
+}
+.pc-visual-heading p {
+  max-width: 700px;
+}
+@media (max-width: 1000px) {
+  .pc-visual-workspace {
+    grid-template-columns: 1fr;
+  }
+  .pc-visual-preview {
+    position: static;
+    max-width: 360px;
+    margin: auto;
+    width: 100%;
+  }
+  .pc-visual-heading {
+    flex-direction: column;
+  }
+}
+@media (max-width: 600px) {
+  .pc-visual-heading button {
+    width: 100%;
+  }
+  .pc-visual-workspace {
+    gap: 18px;
+  }
+}

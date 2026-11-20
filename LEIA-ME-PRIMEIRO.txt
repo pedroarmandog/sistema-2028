@@ -1,22 +1,21 @@
-PETHUB COMUNIDADE 0.2 — CADASTRO PÚBLICO E ADMINISTRAÇÃO
+PETHUB CLIENTE — REDESIGN + IMAGENS E TEXTOS POR EMPRESA
 
-Agora cada pessoa cria a própria conta com nome, @, e-mail e senha.
-Confirmação de e-mail é obrigatória. Não há código de loja, empresa ou liberação manual.
-O painel /comunidade/admin.html continua privado e serve para métricas, participantes, denúncias e moderação.
+1. Faça uma cópia de segurança dos arquivos atuais.
+2. Copie as pastas backend e frontend deste pacote para a raiz do projeto, preservando os caminhos e substituindo somente os arquivos correspondentes.
+3. Na raiz do projeto, confira se sharp já consta nas dependencies de package.json. Caso contrário, execute:
+   npm install sharp --save
+   Envie também package.json e package-lock.json ao GitHub. Não coloque sharp somente em devDependencies, pois o Render usa npm ci --omit=dev.
+4. Execute na raiz:
+   node backend/scripts/verificar-redesign-cliente.js
+   O comando não modifica banco nem mostra chaves. Se faltar armazenamento.js ou validar.js, mantenha/recupere o serviço de mídias original do seu projeto. O pacote usa esse serviço; não o substitui.
+5. Publique no Render. O build atual pode ser mantido. Se você também faz o build da Comunidade, preserve esse comando adicional.
+6. Acesse Configurações → PetHub Cliente → Aparência. As cores existentes continuam no início; abaixo ficam Imagens e banners do aplicativo, Textos e Pré-visualização.
+7. No app instalado, feche e abra novamente para concluir a troca da versão. No navegador, use Ctrl+Shift+R.
 
-ANTES DO DEPLOY
-1. Extraia as pastas na raiz do sistema-2028, substituindo o módulo/frontend antigos.
-2. Leia docs/comunidade/INSTALACAO.md.
-3. No Render, configure:
-   COMMUNITY_RESEND_API_KEY = sua chave privada do provedor
-   COMMUNITY_MAIL_FROM = remetente de domínio verificado
-   COMMUNITY_PUBLIC_URL = https://pethub-api-wdna.onrender.com/comunidade/
-4. Mantenha COMMUNITY_ENABLED=true e os IDs administrativos autorizados já configurados.
-5. No pre-deploy, preserve seus preparadores e execute node backend/comunidade/migrate.js ao final. Esta versão aplica a migração 002.
-6. Envie tudo ao GitHub e faça novo deploy. O build e o start atuais podem ser mantidos conforme o guia.
+NÃO substitua backend/app.js, .env, package.json ou package-lock.json por versões antigas. Nenhum desses arquivos está neste pacote. O menu do ERP e sua logo configurável continuam usando os arquivos compartilhados já aplicados.
 
-Sem configurar envio de e-mail, os cadastros ficam pendentes. Não há verificação automática fictícia.
+Não é necessária uma nova migração: as configurações ficam no campo JSON regras.aparencia da tabela existente cliente_portal_config. O portal e o serviço de mídias precisam estar instalados e preparados conforme a configuração atual.
 
-59 testes locais passaram e os builds passaram. E-mail, TiDB/R2 de produção e experiência em celular real ainda exigem homologação.
+O armazenamento de mídias deve continuar configurado no R2/permanente. O código chama o serviço midias existente e não grava os banners no disco temporário do Render. Este pacote não instala nem modifica credenciais do R2.
 
-Vídeos, chat e push social continuam pendentes, conforme o estágio anterior. Não foram apresentados como recursos prontos.
+Leia docs/IMPLEMENTACAO.md para detalhes e limites da validação.
