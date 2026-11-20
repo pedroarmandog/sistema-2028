@@ -650,3 +650,91 @@
 .caixa-rapido #adicionarPagamento {
   background: #bd5800 !important;
 }
+/* Otimização incremental: cabeçalho, resultados acessíveis e miniaturas. */
+.header-right .qr-layout-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 1px solid #d6dfe8;
+  border-radius: 8px;
+  background: #fff;
+  color: #173045;
+  cursor: pointer;
+  position: relative;
+}
+.header-right .qr-layout-toggle:hover {
+  background: #fff1df;
+  border-color: #ffa333;
+}
+.header-right .qr-layout-toggle:focus-visible {
+  outline: 3px solid #ffa333;
+  outline-offset: 2px;
+}
+.header-right .qr-layout-toggle:hover::after,
+.header-right .qr-layout-toggle:focus-visible::after {
+  content: attr(aria-label);
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  white-space: nowrap;
+  background: #14283e;
+  color: #fff;
+  font-size: 12px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  z-index: 1000;
+}
+.caixa-rapido .container {
+  padding-top: 8px !important;
+}
+.qr-products .qr-result-selected {
+  background: #fff0dc;
+  border-color: #f68b13;
+  box-shadow: inset 3px 0 #f68b13;
+}
+.qr-thumb {
+  display: inline-flex;
+  width: 40px;
+  height: 48px;
+  flex: 0 0 40px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  background: #f2f5f8;
+  overflow: hidden;
+}
+.qr-thumb img {
+  display: block !important;
+  width: 40px !important;
+  height: 48px !important;
+  object-fit: contain;
+}
+.qr-thumb.is-loading {
+  background: linear-gradient(110deg, #f0f3f6, #e1e7ee, #f0f3f6);
+}
+.qr-desc .qr-product-icon {
+  display: grid !important;
+}
+.qr-products[role="listbox"] {
+  scroll-behavior: auto;
+}
+@media (max-width: 760px) {
+  .qr-desc .qr-thumb {
+    width: 30px;
+    flex-basis: 30px;
+    height: 40px;
+  }
+  .qr-desc .qr-thumb img {
+    width: 30px !important;
+    height: 40px !important;
+  }
+  .header-right .qr-layout-toggle {
+    width: 36px;
+    height: 36px;
+    flex-basis: 36px;
+  }
+}

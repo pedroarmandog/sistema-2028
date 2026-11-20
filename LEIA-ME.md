@@ -1,51 +1,46 @@
-# PetHub — Caixa Clássico e Caixa Rápido
+# PetHub — Otimização do Caixa Rápido
 
-## Instalação
+Este é um ajuste incremental para o pacote **PetHub-Caixa-Classico-e-Rapido.zip** já instalado. Não reinstale o projeto inteiro.
 
-1. Faça backup dos arquivos de venda atuais e aplique os arquivos das pastas `frontend` e `backend` na raiz do seu projeto, preservando os caminhos. O pacote contém apenas este ajuste; não substitua o projeto inteiro. `ALTERACOES.patch` oferece as mesmas alterações em formato de diff para revisão/aplicação em uma versão mais recente.
-2. Prepare a tabela nova com as variáveis normais do banco já configuradas:
+## Aplicar
+
+1. Faça backup dos três arquivos atuais de `frontend/atendimento` presentes neste pacote.
+2. Substitua-os mantendo os caminhos: `caixa-rapido.js`, `caixa-rapido.css` e `nova-venda.html`.
+3. Faça o deploy normal e atualize a página Nova Venda. As URLs do CSS/JS foram versionadas para evitar o cache antigo.
+
+**Não há migração, variável de ambiente ou dependência nova de produção.** O backend e a preferência de layout por empresa continuam os mesmos do pacote anterior. Não substitua o `nova-venda.js` nem os arquivos de backend usando uma versão anterior.
+
+Se sua página `nova-venda.html` recebeu outras alterações depois do pacote anterior, preserve-as e atualize somente as versões de `caixa-rapido.css` e `caixa-rapido.js` para `v=20261120-teclado2`, como mostrado no diff incluído.
+
+## Mudanças
+
+- Botão compacto “Alterar visual do caixa” no cabeçalho principal, imediatamente antes do suporte `hcHeaderBtn`, inclusive quando o suporte é inserido depois. Ícone, tooltip e nome acessível. Aparece nos dois visuais de Nova Venda; não modifica o componente de ajuda compartilhado nem outras páginas.
+- Removida a linha separada do botão. Espaçamento superior do PDV reduzido.
+- Busca com padrão combobox/listbox, primeiro resultado selecionado automaticamente, destaque laranja, setas ↑/↓ e Enter. O cursor permanece na busca e somente a lista rola para acompanhar a seleção.
+- ESC fecha resultados sem cancelar a venda. F2 retoma a busca. Enter sem termo/sem seleção não inclui produto. Códigos exatos têm prioridade para o leitor.
+- Inclusões continuam serializadas no carrinho original; Enter repetido com o campo vazio não duplica itens. A busca limpa e continua pronta após a inclusão. Nova digitação iniciada durante uma inclusão assíncrona é preservada.
+- Foco restaurado ao encerrar operação/fechar modais/iniciar nova venda. Renderizar o catálogo ou carrinho não transfere o foco de cliente, desconto ou de um modal.
+- Enter na quantidade da linha confirma a alteração e retorna à busca; Enter nos campos da forma de pagamento usa o botão original de adicionar pagamento. F7/F8 permanecem no fluxo existente, sem nova gravação independente.
+- Fotos reais de `imagem` e aliases já retornados pelo catálogo: aceita nome de arquivo (convertido em `/uploads/arquivo`), caminho persistente, URL HTTP(S) ou data URL de imagem. Usa a origem correta da API quando configurada, sem duplicar `/api` nem `/uploads`.
+- Mesmas miniaturas em cartões rápidos, resultados e carrinho; dimensões fixas, `object-fit: contain`, lazy loading, decodificação assíncrona, fundo discreto enquanto carrega e fallback de produto/serviço em caso de ausência/erro.
+- Atualizar o catálogo também atualiza a referência de foto do produto já no carrinho. Ao reabrir/recarregar Nova Venda, o cadastro é consultado novamente. Não existe upload, tabela ou cópia permanente de imagens específica do PDV.
+
+## Persistência e empresa
+
+As imagens vêm exclusivamente dos produtos da API autenticada já usada por Meus Itens. O PDV mantém o vínculo pelo ID do produto e reutiliza a referência persistida; não consulta produtos por nome em outra empresa nem constrói chaves de armazenamento de outra empresa. O leitor `/uploads` existente no backend continua responsável por recuperar os arquivos persistentes e aplicar a proteção correspondente.
+
+Este pacote corrige a interpretação da referência da foto no frontend. Não altera o armazenamento existente: não recupera arquivos que já tenham sido perdidos no servidor nem transforma um arquivo local antigo em objeto R2. Quando a referência existe mas o arquivo não está mais disponível, exibe o fallback. Fotos novas devem continuar sendo salvas pelo armazenamento persistente configurado em Meus Itens.
+
+## Testes
+
+**14 testes automatizados passaram**: os testes anteriores de persistência/validação e as interações com os scripts reais em JSDOM. Cobertura de botão antes do suporte tardio, seleção e scroll interno, Enter/leitor sem duplicidade, quantidade, pagamentos, fotos/formatos/fallback/atualização e preservação de foco. Resultado em `TESTES.txt`. CSS analisado e JavaScript verificado quanto à sintaxe.
+
+O arquivo de teste atualizado está incluído. Em ambiente de desenvolvimento com Node 22.13+/24 e as dependências do pacote anterior, mais JSDOM:
 
 ```sh
-node backend/scripts/preparar-layout-caixa.js
-```
-
-Execute uma vez antes de iniciar a versão nova, ou acrescente ` && node backend/scripts/preparar-layout-caixa.js` ao final do comando de preparação/build que você JÁ usa. Preserve os comandos existentes de build da Comunidade e outras migrações. A preparação é idempotente: cria somente `preferencias_caixa`, não altera dados de clientes, vendas ou estoque. Não execute `sequelize.sync({ alter: true })` global.
-3. Faça deploy/reinicie o serviço. Não há dependência nova de produção e não é necessário modificar `package.json`, `package-lock.json` ou `backend/app.js`.
-4. Abra **Nova Venda → Alterar visual do caixa → Usar Caixa Rápido**. A escolha será salva para a empresa autenticada. Sem preferência salva, o padrão é Clássico.
-5. Se o navegador ainda mostrar a versão antiga, atualize a página. Os dois scripts possuem uma versão nova na URL.
-
-## O que foi implementado
-
-- Seletor com miniaturas, descrição e indicação “Em uso”. A venda permanece aberta ao alternar: os campos existentes são movidos e restaurados, sem clone nem segundo carrinho.
-- Preferência permanente em tabela própria, chave `empresa_id`, rotas GET/PUT `/api/vendas/preferencias/layout-caixa`. Empresa obtida exclusivamente da sessão autenticada; permissão `atendimento.vendas`, seguindo a política existente de usuários legados do ERP. Payload aceita somente `layout`.
-- Caixa Rápido em três colunas, operador, relógio, status real do caixa, catálogo real, fotos quando disponíveis, pesquisa e códigos de barras. Releituras somam quantidades compatíveis. Há controles +/−, edição de quantidade, exclusão, destaque e navegação pelas setas na lista.
-- F2 pesquisa, F3 quantidade da linha selecionada, F4 cliente, F6 desconto, F7 pagamento e F8 finalização. ESC fecha o pagamento ou pede confirmação para descartar itens. O diálogo de layout usa o fechamento nativo e mantém a venda.
-- Dinheiro, Pix, crédito, débito e múltiplo abrem o MESMO pagamento atual. Dinheiro separa valor recebido/troco do valor efetivamente pago; pagamentos múltiplos no rápido exigem soma exata. Os campos específicos e validações de cada forma continuam existentes, inclusive chave Pix quando exigida pelo caixa atual.
-- Profissional, observações, condições de pagamento, arredondamento, importação, lista de vendas e demais controles ficam em “Mais opções da venda”. Comprovantes e ações fiscais continuam no fluxo existente.
-- Totais compartilhados recalculados a partir dos itens e condições, sem ler os valores exibidos na tela. Descontos/acréscimos/observações permanecem no payload real da venda.
-- Validação adicional no servidor para as DUAS interfaces desta página: caixa aberto, produtos/cliente/profissional da empresa, quantidade/estoque acumulado, cálculos em centavos e soma dos pagamentos. A gravação continua nos controllers originais de vendas.
-- Proteção contra abertura e finalização concorrentes, inclusive repetição de F8, sem criar uma segunda rotina de estoque/financeiro. O fluxo existente cria uma venda pendente e atualiza o MESMO ID na conclusão; a baixa de estoque continua na chamada existente após pagamento.
-- Produtos fictícios de fallback foram removidos. Quando o catálogo falha, o caixa informa o erro e mantém a venda.
-
-## Testes e validação
-
-**9 testes automatizados passaram**, conforme `TESTES.txt`. Executados com Node 24, Sequelize/Express e JSDOM. A persistência da preferência e as validações usaram banco SQLite real em memória; o adaptador de teste está incluído. As interações de tela executaram os scripts reais com APIs simuladas, incluindo leitor consecutivo, estoque acumulado, frações, alternância, atalhos, pagamentos e repetição da finalização.
-
-Para repetir localmente, use Node 22.13+ ou 24, com as dependências normais instaladas. JSDOM é somente uma dependência de testes:
-
-```sh
-npm install --save-dev jsdom
 node --test --test-force-exit tests/caixa-layout.test.js tests/caixa-rapido.test.js
 ```
 
-O CSS também foi analisado e os JavaScripts passaram pela verificação de sintaxe. Não foi possível executar inspeção visual em navegador real neste ambiente. Não foram acessados seu TiDB, caixa real, financeiro, emissão fiscal ou Render. O teste de baixa única verifica as chamadas do fluxo de tela; não constitui teste de transação ou concorrência entre dois terminais no banco de produção.
+A execução ocorreu com APIs de tela simuladas e SQLite em memória nos testes de backend anteriores. Não acessou o TiDB/Render/R2 real e não substitui uma inspeção visual no navegador. Depois do deploy, confirme uma foto já cadastrada em Meus Itens, pesquisa com setas, leitor físico, F7/F8 e troca de layout em Nova Venda.
 
-Após deploy, valide uma venda de teste em cada visual, com duas empresas diferentes, confira histórico, estoque e fechamento do caixa; teste também recarregar e acessar a mesma empresa em outro dispositivo. A preferência é lida novamente ao abrir/retomar a página. Uma janela já em uso é sincronizada ao receber foco, sem interromper pagamento aberto.
-
-O catálogo utiliza `/api/itens`, com os filtros e limite já existentes no backend (até 1.000 itens nesta base). “Ver todos” mostra os itens retornados por essa API; não foi introduzida uma fonte de produtos paralela. Produtos rápidos são os primeiros itens reais do catálogo; não foi criado cadastro de favoritos.
-
-Este pacote não reescreve o mecanismo original de gravação/baixa em uma nova transação. Eventuais políticas de concorrência e recuperação de falhas de rede entre persistir a venda e baixar o estoque seguem a arquitetura atual. Os arquivos entregues mantêm os endpoints de venda e estoque existentes.
-
-## Reverter
-
-Retorne os arquivos de Nova Venda e `vendaRoutes.js` ao backup anterior e retire os novos arquivos, se desejar. A tabela de preferências pode permanecer; não contém vendas nem interfere nos dados existentes.
+O limite atual de catálogo retornado pela API e as regras de venda do pacote anterior permanecem.

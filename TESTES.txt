@@ -1,17 +1,22 @@
-✔ preferência persiste por empresa, sessão/dispositivo e valida entradas/autorizações (101.840818ms)
-✔ servidor valida centavos, estoque acumulado, vínculos e soma dos pagamentos (22.502411ms)
-✔ troca mantém o mesmo carrinho, cliente, profissional e campos; clássico é padrão (518.339373ms)
-✔ leitor repetido incrementa, impede estoque acumulado e preserva quantidades fracionadas (605.042709ms)
-✔ atalhos, totais com descontos/acréscimo e seletores reais do layout (407.029366ms)
-✔ dinheiro/troco e F8 duplo usam uma venda e uma baixa de estoque (704.514044ms)
-✔ múltiplo recusa falta e aceita soma exata sem enviar venda parcial (752.450874ms)
-✔ seletor salva no servidor e muda sem descartar a venda; ESC pede confirmação (558.820082ms)
-✔ fechado bloqueia pagamento e falha de catálogo não introduz produtos de exemplo (439.21161ms)
-ℹ tests 9
+✔ preferência persiste por empresa, sessão/dispositivo e valida entradas/autorizações (114.687908ms)
+✔ servidor valida centavos, estoque acumulado, vínculos e soma dos pagamentos (20.798102ms)
+✔ troca mantém o mesmo carrinho, cliente, profissional e campos; clássico é padrão (541.086257ms)
+✔ leitor repetido incrementa, impede estoque acumulado e preserva quantidades fracionadas (631.432321ms)
+✔ atalhos, totais com descontos/acréscimo e seletores reais do layout (414.167451ms)
+✔ dinheiro/troco e F8 duplo usam uma venda e uma baixa de estoque (697.582505ms)
+✔ múltiplo recusa falta e aceita soma exata sem enviar venda parcial (759.182262ms)
+✔ seletor salva no servidor e muda sem descartar a venda; ESC pede confirmação (556.152242ms)
+✔ fechado bloqueia pagamento e falha de catálogo não introduz produtos de exemplo (420.361291ms)
+✔ busca seleciona primeiro resultado, setas mantêm foco e Enter confirma só destaque (553.02868ms)
+✔ botão fica antes do suporte inclusive montagem tardia; sem linha antiga (419.259954ms)
+✔ miniaturas reutilizam nome de arquivo, URL persistente e data URL; fallback e atualização no carrinho (425.82248ms)
+✔ Enter na quantidade confirma sem duplicar e retorna à busca; render não rouba foco de cliente/modal (472.267321ms)
+✔ Enter no pagamento adiciona valor uma vez e F8 conclui pelo fluxo original (1034.887915ms)
+ℹ tests 14
 ℹ suites 0
-ℹ pass 9
+ℹ pass 14
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 4397.859199
+ℹ duration_ms 7279.741486

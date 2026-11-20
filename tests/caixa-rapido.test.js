@@ -158,7 +158,7 @@ test("atalhos, totais com descontos/acréscimo e seletores reais do layout", asy
     a.d.activeElement.getAttribute("aria-label"),
     "Quantidade de Ração",
   );
-  a.click(".qr-toolbar button");
+  a.click("#qr-layout-toggle");
   assert(a.d.querySelector("dialog[open]"));
   assert.match(a.d.querySelector("dialog").textContent, /Em uso/);
   a.d.querySelector("dialog").close();
@@ -218,7 +218,7 @@ test("múltiplo recusa falta e aceita soma exata sem enviar venda parcial", asyn
 test("seletor salva no servidor e muda sem descartar a venda; ESC pede confirmação", async (t) => {
   const a = await app(t);
   await a.w.PetHubVenda.adicionar(a.products[0]);
-  a.click(".qr-toolbar button");
+  a.click("#qr-layout-toggle");
   a.d.querySelector(".qr-layout-cards article button").click();
   await wait(80);
   assert.equal(a.w.PetHubCaixa.layout, "classico");
@@ -252,5 +252,137 @@ test("fechado bloqueia pagamento e falha de catálogo não introduz produtos de 
   await a.w.PetHubCaixa.catalogo();
   assert.equal(a.d.querySelectorAll("#qr-products button").length, 0);
   assert.equal(a.w.PetHubVenda.dados().itens.length, 1);
+  assert.equal(a.errors.length, 0);
+});
+test("busca seleciona primeiro resultado, setas mantêm foco e Enter confirma só destaque", async (t) => {
+  const a = await app(t),
+    input = a.d.querySelector("#pesquisarProduto");
+  assert.equal(a.d.activeElement, input);
+  input.value = "a";
+  input.dispatchEvent(new a.w.Event("input", { bubbles: true }));
+  assert.equal(input.getAttribute("aria-expanded"), "true");
+  let cards = [...a.d.querySelectorAll("#qr-products button")];
+  assert.equal(cards[0].getAttribute("aria-selected"), "true");
+  a.d.querySelector("#qr-products").getBoundingClientRect = () => ({
+    top: 0,
+    bottom: 100,
+  });
+  cards[1].getBoundingClientRect = () => ({ top: 120, bottom: 180 });
+  a.key("ArrowDown", input);
+  assert.equal(a.d.querySelector("#qr-products").scrollTop, 80);
+  assert.equal(a.d.activeElement, input);
+  assert.equal(cards[1].getAttribute("aria-selected"), "true");
+  a.key("ArrowUp", input);
+  assert.equal(cards[0].getAttribute("aria-selected"), "true");
+  a.key("ArrowDown", input);
+  a.key("Enter", input);
+  a.key("Enter", input);
+  await wait(120);
+  assert.equal(a.w.PetHubVenda.dados().itens.length, 1);
+  assert.equal(a.w.PetHubVenda.dados().itens[0].produto.id, "p2");
+  assert.equal(input.value, "");
+  assert.equal(a.d.activeElement, input);
+  input.value = "nenhum-resultado";
+  input.dispatchEvent(new a.w.Event("input", { bubbles: true }));
+  a.key("Enter", input);
+  await wait();
+  assert.equal(a.w.PetHubVenda.dados().itens.length, 1);
+  a.key("Escape", input);
+  assert.equal(input.getAttribute("aria-expanded"), "false");
+  assert.equal(a.w.PetHubVenda.dados().itens.length, 1);
+  assert.equal(a.errors.length, 0);
+});
+test("botão fica antes do suporte inclusive montagem tardia; sem linha antiga", async (t) => {
+  const a = await app(t, "classico"),
+    header = a.d.querySelector(".header-right");
+  const support = a.d.createElement("button");
+  support.id = "hcHeaderBtn";
+  header.prepend(support);
+  await wait();
+  assert.equal(support.previousElementSibling.id, "qr-layout-toggle");
+  assert.equal(a.d.querySelector(".qr-toolbar"), null);
+  assert.equal(a.d.querySelectorAll("#qr-layout-toggle").length, 1);
+  a.w.PetHubCaixa.aplicar("rapido");
+  assert.equal(support.previousElementSibling.id, "qr-layout-toggle");
+  assert.equal(a.errors.length, 0);
+});
+test("miniaturas reutilizam nome de arquivo, URL persistente e data URL; fallback e atualização no carrinho", async (t) => {
+  const a = await app(t);
+  a.products[0].imagem = "embalagem hot cat.webp";
+  a.products[1].imagem = "/uploads/servicos/banho.webp";
+  a.products[2].imagem = "data:image/png;base64,aGVsbG8=";
+  await a.w.PetHubCaixa.catalogo();
+  const pics = [...a.d.querySelectorAll("#qr-products img")];
+  assert.equal(pics.length, 3);
+  assert.equal(
+    pics[0].src,
+    "https://pethub.test/uploads/embalagem%20hot%20cat.webp",
+  );
+  assert.equal(pics[1].src, "https://pethub.test/uploads/servicos/banho.webp");
+  assert.equal(pics[0].loading, "lazy");
+  await a.w.PetHubVenda.adicionar(a.products[0]);
+  assert.equal(a.d.querySelector("#qr-cart img").src, pics[0].src);
+  const input = a.d.querySelector("#pesquisarProduto");
+  input.value = "Ração";
+  input.dispatchEvent(new a.w.Event("input", { bubbles: true }));
+  assert.equal(a.d.querySelector("#qr-products img").src, pics[0].src);
+  a.products[0].imagem = "/uploads/itens/nova-foto.webp";
+  await a.w.PetHubCaixa.catalogo();
+  assert.match(a.d.querySelector("#qr-cart img").src, /nova-foto.webp$/);
+  a.d.querySelector("#qr-cart img").dispatchEvent(new a.w.Event("error"));
+  assert(a.d.querySelector("#qr-cart .qr-product-icon"));
+  a.products[0].imagem = "javascript:alert(1)";
+  delete a.products[1].imagem;
+  await a.w.PetHubCaixa.catalogo();
+  assert.equal(a.d.querySelector("#qr-products img"), null);
+  assert.equal(a.errors.length, 0);
+});
+test("Enter na quantidade confirma sem duplicar e retorna à busca; render não rouba foco de cliente/modal", async (t) => {
+  const a = await app(t);
+  await a.w.PetHubVenda.adicionar(a.products[0]);
+  a.key("F3");
+  const qty = a.d.activeElement;
+  qty.value = "2";
+  a.key("Enter", qty);
+  await wait(80);
+  assert.equal(a.w.PetHubVenda.dados().itens[0].quantidade, 2);
+  assert.equal(a.d.activeElement.id, "pesquisarProduto");
+  const cliente = a.d.querySelector("#pesquisarCliente");
+  cliente.focus();
+  await a.w.PetHubCaixa.catalogo();
+  assert.equal(a.d.activeElement, cliente);
+  const dialog = a.d.createElement("dialog");
+  a.d.body.append(dialog);
+  dialog.showModal();
+  const field = a.d.createElement("input");
+  dialog.append(field);
+  field.focus();
+  await a.w.PetHubCaixa.catalogo();
+  assert.equal(a.d.activeElement, field);
+  dialog.close();
+  assert.equal(a.errors.length, 0);
+});
+test("Enter no pagamento adiciona valor uma vez e F8 conclui pelo fluxo original", async (t) => {
+  const a = await app(t);
+  await a.w.PetHubVenda.adicionar(a.products[0]);
+  a.key("F7");
+  await wait(100);
+  a.click("[data-forma=dinheiro]");
+  const field = a.d.querySelector("#valor-dinheiro");
+  field.focus();
+  field.value = "20";
+  a.key("Enter", field);
+  await wait();
+  assert(a.d.querySelector("#modalPagamento"));
+  assert.notEqual(a.d.activeElement.id, "pesquisarProduto");
+  a.key("F8");
+  await wait(150);
+  const saved = a.calls.filter((c) => c.kind === "update");
+  assert.equal(saved.length, 1);
+  assert.equal(saved[0].b.pagamentos.length, 1);
+  assert.equal(saved[0].b.totalPago, 12.5);
+  a.d.querySelector("#modalVendaFinalizada").remove();
+  await wait(350);
+  assert.equal(a.d.activeElement.id, "pesquisarProduto");
   assert.equal(a.errors.length, 0);
 });
