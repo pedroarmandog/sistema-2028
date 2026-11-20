@@ -1,0 +1,7 @@
+Substitua frontend/configuracoes/portal-cliente.html e copie frontend/configuracoes/portal-cliente.css para essa mesma pasta.
+Não substitua dashboard.css, dashboard.js ou logo-manager.js: a página usa diretamente os mesmos arquivos do sistema.
+O HTML do menu lateral veio do dashboard enviado; o cabeçalho veio do dashboard.html existente, pois o trecho enviado termina antes do cabeçalho. Somente caminhos relativos e título da página foram ajustados.
+Foram removidos os carregadores alternativos inject-sidebar.js e cliente-portal-config-shell.js desta página, e as regras próprias de sidebar/cabeçalho.
+Os componentes de configurações, agenda, aparência e som continuam carregados.
+Após publicar, atualize com Ctrl+Shift+R.
+Validação local: comparação estrutural dos menus, rotas, ausência de IDs duplicados e execução dos controladores compartilhados com APIs simuladas. Não houve deploy nem teste com a conta real.
