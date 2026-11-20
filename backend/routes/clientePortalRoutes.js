@@ -95,6 +95,7 @@ function criarRotas(p, { authERP, permissao } = {}) {
     res.send(r.bytes);
   }
   tutor.use(ajax);
+  const { nomeEmpresa } = require("../services/clientePortal/identidadeEmpresa");
   const logoEmpresa = require("../services/clientePortal/logoEmpresa"),
     logoApp = logoEmpresa.criarLogo(p);
   const estabelecimento =
@@ -150,7 +151,7 @@ function criarRotas(p, { authERP, permissao } = {}) {
     wrap(async (req) => {
       const { config, empresa } = await estabelecimento(req.params.slug);
       return {
-        nome: empresa.nome,
+        nome: nomeEmpresa(empresa),
         telefone: empresa.telefone || null,
         slug: config.slug,
         ...logoEmpresa.dto(empresa, { slug: config.slug }),
@@ -188,7 +189,7 @@ function criarRotas(p, { authERP, permissao } = {}) {
           logging: false,
         });
         return {
-          nome: e.nome,
+          nome: nomeEmpresa(e),
           aparencia: require("../services/clientePortal/aparencia").ler(
             req.tutor.config,
           ),

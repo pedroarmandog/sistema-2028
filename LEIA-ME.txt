@@ -1,5 +1,11 @@
-Substitua frontend/pets/meus-pets.html e frontend/pets/meus-pets.js pelos arquivos deste pacote. Publique e atualize com Ctrl+Shift+R.
+PETHUB CLIENTE — NOME DO ESTABELECIMENTO
 
-A coluna Cliente usa a associação de cliente retornada pelo próprio pet, sem depender de o responsável estar na primeira página de /api/clientes. O ID usado pelo link é normalizado para não confundir um objeto cliente com o identificador. Pesquisa e exportação usam a mesma resolução de nome. Cadastros e vínculos não são alterados.
+Copie as pastas backend e frontend deste pacote sobre o projeto já atualizado com o redesign, preservando os caminhos. Publique e reabra o app; no navegador use Ctrl+Shift+R.
 
-Validação local com APIs simuladas: nomes vinculados fora da primeira página, associação em objeto, IDs legados, nomes com caracteres especiais, link e lista separada indisponível. Não houve deploy ou teste no sistema publicado.
+As rotas de loja pública e de sessão usam a mesma função de identificação da empresa, sempre pelo registro da empresa da sessão/slug correto. Os campos de nome fantasia são priorizados quando existentes, com suporte ao campo nome usado pelo cadastro atual e à razão social. O marcador antigo Pet Cria não é usado como nome substituto. Se nenhum nome válido existir, aparece Seu pet shop.
+
+Textos de banners que ainda contenham a expressão antiga passam a usar o nome dinâmico da empresa. O conteúdo salvo não é apagado e não há alterações de banco, credenciais ou logo.
+
+IMPORTANTE: nas duas áreas mostradas, o código anterior já usava Empresa.nome. Se esse campo do cadastro ainda estiver como Pet Cria, confirme/atualize Configurações → Empresa → Nome fantasia e salve. Quando esse campo não trouxer o nome correto e não houver razão social válida, não é possível deduzir o nome da imagem da logo; o app exibirá Seu pet shop até o cadastro ser atualizado.
+
+Validação local: resolução dos campos, duas empresas distintas, substituição dos textos antigos, fallback e interpolação segura. Sem acesso ao cadastro real ou deploy.

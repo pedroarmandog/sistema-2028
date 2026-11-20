@@ -107,7 +107,9 @@
     return r;
   }
   function interpolar(texto, values = {}) {
-    return String(texto || "").replace(
+    return String(texto || "")
+      .replace(/\bpet[\s_-]+cria\b/gi, () => String(values.nome_empresa || "seu pet shop"))
+      .replace(
       /\{(nome_cliente|nome_empresa|nome_pet)\}/g,
       (_, k) =>
         String(
