@@ -1,9 +1,21 @@
 ﻿<!doctype html>
-<html lang="pt-BR">
+<html lang="pt-BR" class="qr-booting">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>PetHub</title>
+    <!-- Visibilidade inicial definida antes dos scripts: evita flash do layout Clássico. -->
+    <style id="qr-boot-critical">
+      html.qr-booting #qr-sale-content { display: none !important; }
+      #qr-boot-loader { display: none; }
+      html.qr-booting #qr-boot-loader { display: grid; place-items: center; align-content: center; gap: 16px; min-height: calc(100vh - 100px); }
+      .qr-boot-spinner { width: 42px; height: 42px; border: 4px solid #dce4ed; border-top-color: #f7941d; border-radius: 50%; animation: qr-boot-spin .8s linear infinite; }
+      #qr-boot-error { text-align: center; color: #20384e; padding: 20px; }
+      #qr-boot-error[hidden], .qr-boot-spinner[hidden] { display: none !important; }
+      #qr-boot-retry { margin-top: 14px; border: 0; border-radius: 8px; padding: 12px 20px; background: #14283e; color: white; cursor: pointer; }
+      @keyframes qr-boot-spin { to { transform: rotate(360deg); } }
+      @media (prefers-reduced-motion: reduce) { .qr-boot-spinner { animation: none; border-style: dotted; } }
+    </style>
     <script src="../custom-colors.js"></script>
     <link
       rel="icon"
@@ -19,7 +31,7 @@
     <link rel="stylesheet" href="./nova-venda.css" />
     <link rel="stylesheet" href="../colors.css" />
     <link rel="stylesheet" href="../dashboard.css" />
-    <link rel="stylesheet" href="./caixa-rapido.css?v=20261120-teclado2">
+    <link rel="stylesheet" href="./caixa-rapido.css?v=20261120-loading3">
   </head>
   <body>
     <!-- Sidebar -->
@@ -1069,7 +1081,11 @@
       </header>
 
       <!-- Conteúdo da Nova Venda -->
-      <div class="container">
+      <div id="qr-boot-loader" role="status" aria-label="Carregando caixa" aria-live="polite">
+        <span class="qr-boot-spinner" aria-hidden="true"></span>
+        <div id="qr-boot-error" hidden><p>Não foi possível carregar o visual do caixa.</p><button id="qr-boot-retry" type="button">Tentar novamente</button></div>
+      </div>
+      <div class="container" id="qr-sale-content" aria-busy="true" inert>
         <div class="nova-venda-layout">
           <!-- Área dos Itens (lado esquerdo) -->
           <div class="itens-section">
@@ -1347,7 +1363,7 @@
     <script src="../api/api-client.js"></script>
     <!-- Script do menu (copiar para sua página) -->
     <script src="./nova-venda.js?v=20261120-pdv1"></script>
-    <script src="./caixa-rapido.js?v=20261120-teclado2"></script>
+    <script src="./caixa-rapido.js?v=20261120-loading3"></script>
     <!-- Script global do calendário (copia do dashboard) -->
     <script src="../novo-atendimento-global.js"></script>
   </body>

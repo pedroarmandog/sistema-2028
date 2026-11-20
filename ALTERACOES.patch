@@ -1,715 +1,229 @@
---- a/frontend/atendimento/caixa-rapido.js
-+++ b/frontend/atendimento/caixa-rapido.js
-@@ -28,6 +28,11 @@
-     queue = Promise.resolve(),
-     timer,
-     initialized = false;
-+  let results = [],
-+    resultIndex = 0,
-+    resultsOpen = false,
-+    inputRevision = 0,
-+    lastTyped = "";
-   const origins = [],
-     api = () => window.PetHubVenda;
-   const notify = (message, type = "info") =>
-@@ -49,7 +54,8 @@
-     catalog = (await api().produtos()).filter(
-       (p) => ![false, "nao", "não", "inativo", 0].includes(p.ativo),
-     );
--    renderProducts("");
-+    renderProducts($("#pesquisarProduto")?.value || "");
-+    renderCart();
-   }
-   function codes(p) {
-     let more = p.codigosBarras || [];
-@@ -70,24 +76,108 @@
-       ...(Array.isArray(more) ? more : []),
-     ];
-   }
-+  function modalOpen() {
-+    return !!$(
-+      "dialog[open], #modalPagamento, #modalVendaFinalizada, #pdfModalVendaOverlay, .hc-open",
-+    );
-+  }
-+  function returnToSearch() {
-+    if (layout !== "rapido" || modalOpen()) return;
-+    const active = document.activeElement;
-+    if (active === $("#pesquisarProduto")) return;
-+    if (
-+      active &&
-+      active !== document.body &&
-+      active !== $("#pesquisarProduto") &&
-+      !active.closest("#qr-products, #qr-cart, .action-buttons")
-+    )
-+      return;
-+    focus($("#pesquisarProduto"));
-+  }
-+  function imageSource(p) {
-+    const ref = [p.imagem_url, p.foto_url, p.imagem, p.foto, p.imagemUrl].find(
-+      (v) => typeof v === "string" && v.trim(),
-+    );
-+    if (!ref) return "";
-+    const src = ref.trim();
-+    if (/^data:image\/(png|jpeg|webp|gif);base64,/i.test(src)) return src;
-+    if (/^[a-z]+:/i.test(src) && !/^https?:\/\//i.test(src)) return "";
-+    if (
-+      src.startsWith("//") ||
-+      src.includes("\\") ||
-+      /(^|\/)\.\.(\/|$)/.test(src)
-+    )
-+      return "";
-+    try {
-+      const base = new URL(
-+        window.__API_BASE__ || "/api",
-+        window.location.origin,
-+      );
-+      const path =
-+        /^https?:\/\//i.test(src) || src.startsWith("/")
-+          ? src
-+          : src.startsWith("uploads/")
-+            ? "/" + src
-+            : "/uploads/" + src.split("/").map(encodeURIComponent).join("/");
-+      return new URL(path, base.origin).href;
-+    } catch (_) {
-+      return "";
-+    }
-+  }
-+  function fallbackPicture(p) {
-+    const n = el("span", "qr-product-icon");
-+    n.setAttribute("aria-hidden", "true");
-+    const icon = el(
-+      "i",
-+      /servi|plano/i.test(p.tipo || "") ? "fas fa-scissors" : "fas fa-box",
-+    );
-+    n.append(icon);
-+    return n;
-+  }
-   function picture(p) {
--    const src = p.imagem_url || p.foto_url || p.imagem || p.foto || p.imagemUrl;
--    if (
--      typeof src !== "string" ||
--      !/^(\/|https?:\/\/|data:image\/(png|jpeg|webp);base64,)/.test(src) ||
--      src.startsWith("//")
--    )
--      return el("span", "qr-product-icon", "▧");
--    const img = el("img");
--    img.src = src;
-+    const src = imageSource(p);
-+    if (!src) return fallbackPicture(p);
-+    const frame = el("span", "qr-thumb is-loading"),
-+      img = el("img");
-     img.alt = "";
-     img.loading = "lazy";
--    img.addEventListener(
--      "error",
--      () => img.replaceWith(el("span", "qr-product-icon", "▧")),
--      { once: true },
--    );
--    return img;
-+    img.decoding = "async";
-+    img.width = 40;
-+    img.height = 48;
-+    img.addEventListener("load", () => frame.classList.remove("is-loading"), {
-+      once: true,
-+    });
-+    img.addEventListener("error", () => frame.replaceWith(fallbackPicture(p)), {
-+      once: true,
-+    });
-+    img.src = src;
-+    frame.append(img);
-+    return frame;
-+  }
-+  function selectResult(index, scroll = false) {
-+    if (!resultsOpen || !results.length) return;
-+    resultIndex = Math.max(0, Math.min(results.length - 1, index));
-+    const cards = [...$("#qr-products").querySelectorAll(".qr-product")];
-+    cards.forEach((n, i) => {
-+      n.classList.toggle("qr-result-selected", i === resultIndex);
-+      n.setAttribute("aria-selected", String(i === resultIndex));
-+    });
-+    const active = cards[resultIndex],
-+      input = $("#pesquisarProduto");
-+    if (active) input.setAttribute("aria-activedescendant", active.id);
-+    if (scroll && active) {
-+      const list = $("#qr-products"),
-+        r = active.getBoundingClientRect(),
-+        bounds = list.getBoundingClientRect();
-+      if (r.bottom > bounds.bottom) list.scrollTop += r.bottom - bounds.bottom;
-+      if (r.top < bounds.top) list.scrollTop -= bounds.top - r.top;
-+    }
-+  }
-+  function closeResults() {
-+    resultsOpen = false;
-+    $("#pesquisarProduto").setAttribute("aria-expanded", "false");
-+    $("#pesquisarProduto").removeAttribute("aria-activedescendant");
-+    renderProducts("");
-   }
-   function renderProducts(term, all = false) {
-     const target = $("#qr-products");
-@@ -102,12 +192,24 @@
-             .includes(q),
-         ),
-     );
-+    results = found.slice(0, all ? found.length : q ? 100 : 8);
-+    resultsOpen = Boolean(q);
-+    resultIndex = 0;
-+    const input = $("#pesquisarProduto");
-+    input.setAttribute("aria-expanded", String(resultsOpen));
-+    input.removeAttribute("aria-activedescendant");
-+    target.setAttribute("role", resultsOpen ? "listbox" : "group");
-     target.replaceChildren();
-     $("#qr-product-title").textContent = q
-       ? `${found.length} produtos encontrados`
-       : "Produtos de acesso rápido";
--    for (const p of found.slice(0, all ? found.length : q ? 100 : 8)) {
-+    for (const [index, p] of results.entries()) {
-       const b = button("", () => add(p), "qr-product");
-+      b.id = "qr-result-" + index;
-+      if (resultsOpen) {
-+        b.setAttribute("role", "option");
-+        b.tabIndex = -1;
-+      }
-       b.append(picture(p));
-       const d = el("span");
-       d.append(
-@@ -118,21 +220,27 @@
-       b.append(d);
-       target.append(b);
-     }
--    if (!found.length) target.append(el("p", "", "Nenhum produto disponível."));
-+    if (!found.length)
-+      target.append(el("p", "qr-no-results", "Nenhum produto encontrado."));
-+    if (resultsOpen) selectResult(0);
-   }
-   function add(p) {
-     // Serializa leituras consecutivas para evitar corrida entre consultas de estoque.
-     queue = queue
-       .then(async () => {
-         if ($("#modalPagamento")) return;
-+        const revision = inputRevision;
-         const ok = await api().adicionar(p);
--        if (ok) {
-+        if (revision !== inputRevision) {
-+          $("#pesquisarProduto").value = lastTyped;
-+          renderProducts(lastTyped);
-+        } else if (ok) {
-           selected = api().dados().itens.at(-1)?.id;
-           $("#pesquisarProduto").value = "";
-           renderProducts("");
-         }
-         renderCart();
--        focus($("#pesquisarProduto"));
-+        returnToSearch();
-       })
-       .catch((e) => notify(e.message, "error"));
-     return queue;
-@@ -169,7 +277,12 @@
-           .forEach((n) => n.classList.toggle("selected", n === row));
-       });
-       const desc = el("div", "qr-desc");
--      desc.append(picture(i.produto));
-+      desc.append(
-+        picture(
-+          catalog.find((p) => String(p.id) === String(i.produto.id)) ||
-+            i.produto,
-+        ),
-+      );
-       const name = el("div");
-       name.append(
-         el("strong", "", i.produto.nome),
-@@ -199,7 +312,22 @@
-       input.step = "any";
-       input.value = i.quantidade;
-       input.setAttribute("aria-label", `Quantidade de ${i.produto.nome}`);
--      input.addEventListener("change", () => change(Number(input.value)));
-+      let committed = String(input.value);
-+      const commit = (returnFocus = false) => {
-+        if (String(input.value) !== committed) {
-+          committed = String(input.value);
-+          change(Number(input.value));
-+        }
-+        if (returnFocus) queue.then(returnToSearch);
-+      };
-+      input.addEventListener("change", () => commit());
-+      input.addEventListener("keydown", (e) => {
-+        if (e.key === "Enter") {
-+          e.preventDefault();
-+          e.stopPropagation();
-+          commit(true);
-+        }
-+      });
-       qty.append(
-         button("−", () => change((q) => q - 1)),
-         input,
-@@ -223,6 +351,20 @@
-     modal.setAttribute("role", "dialog");
-     modal.setAttribute("aria-label", "Pagamento");
-     modal.setAttribute("aria-modal", "true");
-+    if (!modal.dataset.qrKeyboard) {
-+      modal.dataset.qrKeyboard = "1";
-+      modal.addEventListener("keydown", (e) => {
-+        if (
-+          e.key === "Enter" &&
-+          !e.repeat &&
-+          e.target.matches(".campos-forma input, .campos-forma select")
-+        ) {
-+          e.preventDefault();
-+          e.stopPropagation();
-+          $("#adicionarPagamento")?.click();
-+        }
-+      });
-+    }
-     if (forma && forma !== "multiplo")
-       modal.querySelector(`[data-forma="${forma}"]`)?.click();
-     const field =
-@@ -265,6 +407,8 @@
-     switch (key) {
-       case "F2":
-         focus($("#pesquisarProduto"));
-+        if ($("#pesquisarProduto").value.trim())
-+          renderProducts($("#pesquisarProduto").value);
-         break;
-       case "F3": {
-         const rows = [...document.querySelectorAll("#qr-cart .qr-row")];
-@@ -384,7 +528,7 @@
-       $(".nova-venda-layout").hidden = true;
-       renderCart();
-       refreshCatalog();
--      focus($("#pesquisarProduto"));
-+      returnToSearch();
-       status();
-     } else {
-       for (const [n, anchor] of origins.splice(0)) {
-@@ -476,9 +620,61 @@
-     if (initialized || !api() || !$(".nova-venda-layout")) return;
-     initialized = true;
-     build();
--    const toolbar = el("div", "qr-toolbar");
--    toolbar.append(button("⇄ Alterar visual do caixa", selector));
--    $(".container").prepend(toolbar);
-+    const layoutButton = button("", selector, "qr-layout-toggle");
-+    layoutButton.id = "qr-layout-toggle";
-+    layoutButton.title = "Alterar visual do caixa";
-+    layoutButton.setAttribute("aria-label", "Alterar visual do caixa");
-+    layoutButton.append(el("i", "fas fa-exchange-alt"));
-+    function mountToggle() {
-+      const header =
-+        $(".main-content .header .header-right") || $(".header-right");
-+      if (!header) return;
-+      const support = header.querySelector("#hcHeaderBtn, .btn-help-center");
-+      if (support) {
-+        if (layoutButton.nextElementSibling !== support)
-+          support.before(layoutButton);
-+      } else if (layoutButton.parentNode !== header)
-+        header.prepend(layoutButton);
-+    }
-+    mountToggle();
-+    const headerObserver = new MutationObserver(mountToggle);
-+    headerObserver.observe($(".header-right") || document.body, {
-+      childList: true,
-+      subtree: true,
-+    });
-+    window.addEventListener("pagehide", () => headerObserver.disconnect(), {
-+      once: true,
-+    });
-+    const search = $("#pesquisarProduto");
-+    search.setAttribute("role", "combobox");
-+    search.setAttribute("aria-controls", "qr-products");
-+    search.setAttribute("aria-autocomplete", "list");
-+    search.setAttribute("aria-expanded", "false");
-+    search.placeholder = "Nome, código ou código de barras";
-+    $(".btn-nova")?.addEventListener("click", () =>
-+      queueMicrotask(returnToSearch),
-+    );
-+    // Modal de conclusão usa controles originais; restaura foco após seu fechamento.
-+    const modalObserver = new MutationObserver((records) => {
-+      if (
-+        records.some((r) =>
-+          [...r.removedNodes].some(
-+            (n) =>
-+              n.nodeType === 1 &&
-+              [
-+                "modalPagamento",
-+                "modalVendaFinalizada",
-+                "pdfModalVendaOverlay",
-+              ].includes(n.id),
-+          ),
-+        )
-+      )
-+        returnToSearch();
-+    });
-+    modalObserver.observe(document.body, { childList: true });
-+    window.addEventListener("pagehide", () => modalObserver.disconnect(), {
-+      once: true,
-+    });
-     // Capture intercepts only the rapid view, before legacy Enter handlers.
-     document.addEventListener(
-       "input",
-@@ -487,6 +683,8 @@
-         delete e.target.dataset.produtoId;
-         if (layout === "rapido") {
-           e.stopImmediatePropagation();
-+          inputRevision++;
-+          lastTyped = e.target.value;
-           renderProducts(e.target.value);
-         }
-       },
-@@ -503,34 +701,67 @@
-           return;
-         }
-         if ($("#modalPagamento") && e.key !== "F8") return;
-+        if (
-+          e.key === "Escape" &&
-+          resultsOpen &&
-+          e.target.id === "pesquisarProduto"
-+        ) {
-+          e.preventDefault();
-+          e.stopImmediatePropagation();
-+          closeResults();
-+          return;
-+        }
-+        if ($("#modalVendaFinalizada, #pdfModalVendaOverlay, .hc-open")) return;
-         if (["F2", "F3", "F4", "F6", "F7", "F8", "Escape"].includes(e.key)) {
-           e.preventDefault();
-           e.stopImmediatePropagation();
-           if (!e.repeat) action(e.key);
-           return;
-         }
--        if (e.key === "Enter" && e.target.id === "pesquisarProduto") {
--          e.preventDefault();
--          e.stopImmediatePropagation();
--          const term = e.target.value.trim();
--          e.target.value = "";
--          const exact = catalog.filter((p) =>
--            [...codes(p), p.nome].some(
--              (v) =>
--                String(v || "").toLocaleLowerCase("pt-BR") ===
--                term.toLocaleLowerCase("pt-BR"),
--            ),
--          );
--          if (exact.length === 1) add(exact[0]);
--          else {
--            e.target.value = term;
--            notify("Selecione um produto nos resultados.");
-+        if (e.target.id === "pesquisarProduto") {
-+          if (["ArrowDown", "ArrowUp", "Enter", "Escape"].includes(e.key)) {
-+            e.preventDefault();
-+            e.stopImmediatePropagation();
-+            const term = e.target.value.trim();
-+            if (e.key === "Escape") {
-+              closeResults();
-+              return;
-+            }
-+            if (e.key.startsWith("Arrow")) {
-+              if (!resultsOpen) {
-+                renderProducts(term);
-+                selectResult(0, true);
-+              } else
-+                selectResult(
-+                  resultIndex + (e.key === "ArrowDown" ? 1 : -1),
-+                  true,
-+                );
-+              return;
-+            }
-+            if (e.repeat || !term) return;
-+            // Códigos exatos têm prioridade para leitores; texto usa somente o destaque.
-+            const exact = catalog.filter((p) =>
-+              codes(p).some(
-+                (v) =>
-+                  String(v || "").toLocaleLowerCase("pt-BR") ===
-+                  term.toLocaleLowerCase("pt-BR"),
-+              ),
-+            );
-+            const chosen =
-+              exact.length === 1
-+                ? exact[0]
-+                : resultsOpen
-+                  ? results[resultIndex]
-+                  : null;
-+            if (!chosen) {
-+              notify("Nenhum produto selecionado.");
-+              return;
-+            }
-+            e.target.value = "";
-+            lastTyped = "";
-+            closeResults();
-+            add(chosen);
-           }
--        }
--        if (e.key === "ArrowDown" && e.target.id === "pesquisarProduto") {
--          e.preventDefault();
--          e.stopImmediatePropagation();
--          $("#qr-products button")?.focus();
-         }
-       },
-       true,
---- a/frontend/atendimento/caixa-rapido.css
-+++ b/frontend/atendimento/caixa-rapido.css
-@@ -650,3 +650,91 @@
- .caixa-rapido #adicionarPagamento {
-   background: #bd5800 !important;
- }
-+/* Otimização incremental: cabeçalho, resultados acessíveis e miniaturas. */
-+.header-right .qr-layout-toggle {
-+  display: inline-flex;
-+  align-items: center;
-+  justify-content: center;
-+  flex: 0 0 42px;
-+  width: 42px;
-+  height: 42px;
-+  padding: 0;
-+  border: 1px solid #d6dfe8;
-+  border-radius: 8px;
-+  background: #fff;
-+  color: #173045;
-+  cursor: pointer;
-+  position: relative;
-+}
-+.header-right .qr-layout-toggle:hover {
-+  background: #fff1df;
-+  border-color: #ffa333;
-+}
-+.header-right .qr-layout-toggle:focus-visible {
-+  outline: 3px solid #ffa333;
-+  outline-offset: 2px;
-+}
-+.header-right .qr-layout-toggle:hover::after,
-+.header-right .qr-layout-toggle:focus-visible::after {
-+  content: attr(aria-label);
-+  position: absolute;
-+  top: calc(100% + 8px);
-+  right: 0;
-+  white-space: nowrap;
-+  background: #14283e;
-+  color: #fff;
-+  font-size: 12px;
-+  padding: 8px 10px;
-+  border-radius: 6px;
-+  z-index: 1000;
-+}
-+.caixa-rapido .container {
-+  padding-top: 8px !important;
-+}
-+.qr-products .qr-result-selected {
-+  background: #fff0dc;
-+  border-color: #f68b13;
-+  box-shadow: inset 3px 0 #f68b13;
-+}
-+.qr-thumb {
-+  display: inline-flex;
-+  width: 40px;
-+  height: 48px;
-+  flex: 0 0 40px;
-+  align-items: center;
-+  justify-content: center;
-+  border-radius: 7px;
-+  background: #f2f5f8;
-+  overflow: hidden;
-+}
-+.qr-thumb img {
-+  display: block !important;
-+  width: 40px !important;
-+  height: 48px !important;
-+  object-fit: contain;
-+}
-+.qr-thumb.is-loading {
-+  background: linear-gradient(110deg, #f0f3f6, #e1e7ee, #f0f3f6);
-+}
-+.qr-desc .qr-product-icon {
-+  display: grid !important;
-+}
-+.qr-products[role="listbox"] {
-+  scroll-behavior: auto;
-+}
-+@media (max-width: 760px) {
-+  .qr-desc .qr-thumb {
-+    width: 30px;
-+    flex-basis: 30px;
-+    height: 40px;
-+  }
-+  .qr-desc .qr-thumb img {
-+    width: 30px !important;
-+    height: 40px !important;
-+  }
-+  .header-right .qr-layout-toggle {
-+    width: 36px;
-+    height: 36px;
-+    flex-basis: 36px;
-+  }
-+}
 --- a/frontend/atendimento/nova-venda.html
 +++ b/frontend/atendimento/nova-venda.html
-@@ -19,7 +19,7 @@
+@@ -1,9 +1,21 @@
+ ﻿<!doctype html>
+-<html lang="pt-BR">
++<html lang="pt-BR" class="qr-booting">
+   <head>
+     <meta charset="utf-8" />
+     <meta name="viewport" content="width=device-width,initial-scale=1" />
+     <title>PetHub</title>
++    <!-- Visibilidade inicial definida antes dos scripts: evita flash do layout Clássico. -->
++    <style id="qr-boot-critical">
++      html.qr-booting #qr-sale-content { display: none !important; }
++      #qr-boot-loader { display: none; }
++      html.qr-booting #qr-boot-loader { display: grid; place-items: center; align-content: center; gap: 16px; min-height: calc(100vh - 100px); }
++      .qr-boot-spinner { width: 42px; height: 42px; border: 4px solid #dce4ed; border-top-color: #f7941d; border-radius: 50%; animation: qr-boot-spin .8s linear infinite; }
++      #qr-boot-error { text-align: center; color: #20384e; padding: 20px; }
++      #qr-boot-error[hidden], .qr-boot-spinner[hidden] { display: none !important; }
++      #qr-boot-retry { margin-top: 14px; border: 0; border-radius: 8px; padding: 12px 20px; background: #14283e; color: white; cursor: pointer; }
++      @keyframes qr-boot-spin { to { transform: rotate(360deg); } }
++      @media (prefers-reduced-motion: reduce) { .qr-boot-spinner { animation: none; border-style: dotted; } }
++    </style>
+     <script src="../custom-colors.js"></script>
+     <link
+       rel="icon"
+@@ -19,7 +31,7 @@
      <link rel="stylesheet" href="./nova-venda.css" />
      <link rel="stylesheet" href="../colors.css" />
      <link rel="stylesheet" href="../dashboard.css" />
--    <link rel="stylesheet" href="./caixa-rapido.css?v=20261120-1">
-+    <link rel="stylesheet" href="./caixa-rapido.css?v=20261120-teclado2">
+-    <link rel="stylesheet" href="./caixa-rapido.css?v=20261120-teclado2">
++    <link rel="stylesheet" href="./caixa-rapido.css?v=20261120-loading3">
    </head>
    <body>
      <!-- Sidebar -->
-@@ -1347,7 +1347,7 @@
+@@ -1069,7 +1081,11 @@
+       </header>
+ 
+       <!-- Conteúdo da Nova Venda -->
+-      <div class="container">
++      <div id="qr-boot-loader" role="status" aria-label="Carregando caixa" aria-live="polite">
++        <span class="qr-boot-spinner" aria-hidden="true"></span>
++        <div id="qr-boot-error" hidden><p>Não foi possível carregar o visual do caixa.</p><button id="qr-boot-retry" type="button">Tentar novamente</button></div>
++      </div>
++      <div class="container" id="qr-sale-content" aria-busy="true" inert>
+         <div class="nova-venda-layout">
+           <!-- Área dos Itens (lado esquerdo) -->
+           <div class="itens-section">
+@@ -1347,7 +1363,7 @@
      <script src="../api/api-client.js"></script>
      <!-- Script do menu (copiar para sua página) -->
      <script src="./nova-venda.js?v=20261120-pdv1"></script>
--    <script src="./caixa-rapido.js?v=20261120-1"></script>
-+    <script src="./caixa-rapido.js?v=20261120-teclado2"></script>
+-    <script src="./caixa-rapido.js?v=20261120-teclado2"></script>
++    <script src="./caixa-rapido.js?v=20261120-loading3"></script>
      <!-- Script global do calendário (copia do dashboard) -->
      <script src="../novo-atendimento-global.js"></script>
    </body>
+--- a/frontend/atendimento/caixa-rapido.js
++++ b/frontend/atendimento/caixa-rapido.js
+@@ -777,7 +777,12 @@
+     });
+     window.addEventListener("focus", () => {
+       // Sincroniza outros operadores quando não há pagamento/modal em andamento.
+-      if (!busy && !$("#modalPagamento") && !$("dialog[open]"))
++      if (
++        !document.documentElement.classList.contains("qr-booting") &&
++        !busy &&
++        !$("#modalPagamento") &&
++        !$("dialog[open]")
++      )
+         endpoint()
+           .then((r) => apply(r.layout))
+           .catch(() => {});
+@@ -786,9 +791,49 @@
+     window.addEventListener("pagehide", () => clearInterval(timer), {
+       once: true,
+     });
+-    endpoint()
+-      .then((r) => apply(r.layout))
+-      .catch((e) => notify(`Caixa Clássico mantido. ${e.message}`, "warning"));
++    let loadingPreference = false;
++    async function loadInitialLayout() {
++      if (loadingPreference) return;
++      loadingPreference = true;
++      layoutButton.disabled = true;
++      const loader = $("#qr-boot-loader"),
++        error = $("#qr-boot-error"),
++        spinner = $(".qr-boot-spinner");
++      if (error) error.hidden = true;
++      if (spinner) spinner.hidden = false;
++      loader?.setAttribute("aria-label", "Carregando caixa");
++      const controller = new AbortController();
++      const timeout = setTimeout(() => controller.abort(), 20000);
++      try {
++        const preference = await ApiClient.request(
++          "/vendas/preferencias/layout-caixa",
++          { signal: controller.signal },
++        );
++        if (!["classico", "rapido"].includes(preference?.layout))
++          throw Error("Visual inválido.");
++        apply(preference.layout);
++        // Revela somente depois de mover os controles para a interface correta.
++        const content = $("#qr-sale-content");
++        content?.removeAttribute("inert");
++        content?.setAttribute("aria-busy", "false");
++        document.documentElement.classList.remove("qr-booting");
++        layoutButton.disabled = false;
++        if (layout === "rapido") returnToSearch();
++      } catch (e) {
++        // Sem preferência conhecida, não exibe outro caixa por engano.
++        if (spinner) spinner.hidden = true;
++        if (error) error.hidden = false;
++        loader?.setAttribute(
++          "aria-label",
++          "Falha ao carregar caixa. Tente novamente.",
++        );
++      } finally {
++        clearTimeout(timeout);
++        loadingPreference = false;
++      }
++    }
++    $("#qr-boot-retry")?.addEventListener("click", loadInitialLayout);
++    loadInitialLayout();
+     window.PetHubCaixa = {
+       get layout() {
+         return layout;
+--- a/frontend/atendimento/caixa-rapido.css
++++ b/frontend/atendimento/caixa-rapido.css
+@@ -475,6 +475,12 @@
+   outline-offset: 2px;
+ }
+ .qr-dialog {
++  position: fixed;
++  inset: 50% auto auto 50%;
++  transform: translate(-50%, -50%);
++  margin: 0 !important;
++  max-height: calc(100dvh - 32px);
++  overflow-y: auto;
+   max-width: 760px;
+   width: 90%;
+   border: 1px solid #d6dde6;
 --- a/tests/caixa-rapido.test.js
 +++ b/tests/caixa-rapido.test.js
-@@ -158,7 +158,7 @@
-     a.d.activeElement.getAttribute("aria-label"),
-     "Quantidade de Ração",
-   );
--  a.click(".qr-toolbar button");
-+  a.click("#qr-layout-toggle");
-   assert(a.d.querySelector("dialog[open]"));
-   assert.match(a.d.querySelector("dialog").textContent, /Em uso/);
-   a.d.querySelector("dialog").close();
-@@ -218,7 +218,7 @@
- test("seletor salva no servidor e muda sem descartar a venda; ESC pede confirmação", async (t) => {
-   const a = await app(t);
-   await a.w.PetHubVenda.adicionar(a.products[0]);
--  a.click(".qr-toolbar button");
-+  a.click("#qr-layout-toggle");
-   a.d.querySelector(".qr-layout-cards article button").click();
-   await wait(80);
-   assert.equal(a.w.PetHubCaixa.layout, "classico");
-@@ -254,3 +254,135 @@
-   assert.equal(a.w.PetHubVenda.dados().itens.length, 1);
-   assert.equal(a.errors.length, 0);
- });
-+test("busca seleciona primeiro resultado, setas mantêm foco e Enter confirma só destaque", async (t) => {
-+  const a = await app(t),
-+    input = a.d.querySelector("#pesquisarProduto");
-+  assert.equal(a.d.activeElement, input);
-+  input.value = "a";
-+  input.dispatchEvent(new a.w.Event("input", { bubbles: true }));
-+  assert.equal(input.getAttribute("aria-expanded"), "true");
-+  let cards = [...a.d.querySelectorAll("#qr-products button")];
-+  assert.equal(cards[0].getAttribute("aria-selected"), "true");
-+  a.d.querySelector("#qr-products").getBoundingClientRect = () => ({
-+    top: 0,
-+    bottom: 100,
+@@ -6,7 +6,64 @@
+   { JSDOM, VirtualConsole } = require("jsdom");
+ const base = path.join(__dirname, "../frontend/atendimento/");
+ const wait = (ms = 30) => new Promise((r) => setTimeout(r, ms));
+-async function app(t, preferred = "rapido") {
++test("carregamento esconde conteúdo desde o HTML e só revela o layout confirmado", async (t) => {
++  let resolve;
++  const deferred = new Promise((r) => (resolve = r));
++  const a = await app(t, "rapido", {
++    readPreference: () => deferred,
++    beforeScripts(w, d) {
++      assert(d.documentElement.classList.contains("qr-booting"));
++      assert(d.querySelector("#qr-sale-content").hasAttribute("inert"));
++      assert.match(
++        d.querySelector("#qr-boot-critical").textContent,
++        /html\.qr-booting #qr-sale-content\s*\{\s*display: none !important/,
++      );
++    },
 +  });
-+  cards[1].getBoundingClientRect = () => ({ top: 120, bottom: 180 });
-+  a.key("ArrowDown", input);
-+  assert.equal(a.d.querySelector("#qr-products").scrollTop, 80);
-+  assert.equal(a.d.activeElement, input);
-+  assert.equal(cards[1].getAttribute("aria-selected"), "true");
-+  a.key("ArrowUp", input);
-+  assert.equal(cards[0].getAttribute("aria-selected"), "true");
-+  a.key("ArrowDown", input);
-+  a.key("Enter", input);
-+  a.key("Enter", input);
-+  await wait(120);
-+  assert.equal(a.w.PetHubVenda.dados().itens.length, 1);
-+  assert.equal(a.w.PetHubVenda.dados().itens[0].produto.id, "p2");
-+  assert.equal(input.value, "");
-+  assert.equal(a.d.activeElement, input);
-+  input.value = "nenhum-resultado";
-+  input.dispatchEvent(new a.w.Event("input", { bubbles: true }));
-+  a.key("Enter", input);
-+  await wait();
-+  assert.equal(a.w.PetHubVenda.dados().itens.length, 1);
-+  a.key("Escape", input);
-+  assert.equal(input.getAttribute("aria-expanded"), "false");
-+  assert.equal(a.w.PetHubVenda.dados().itens.length, 1);
-+  assert.equal(a.errors.length, 0);
-+});
-+test("botão fica antes do suporte inclusive montagem tardia; sem linha antiga", async (t) => {
-+  const a = await app(t, "classico"),
-+    header = a.d.querySelector(".header-right");
-+  const support = a.d.createElement("button");
-+  support.id = "hcHeaderBtn";
-+  header.prepend(support);
-+  await wait();
-+  assert.equal(support.previousElementSibling.id, "qr-layout-toggle");
-+  assert.equal(a.d.querySelector(".qr-toolbar"), null);
-+  assert.equal(a.d.querySelectorAll("#qr-layout-toggle").length, 1);
-+  a.w.PetHubCaixa.aplicar("rapido");
-+  assert.equal(support.previousElementSibling.id, "qr-layout-toggle");
-+  assert.equal(a.errors.length, 0);
-+});
-+test("miniaturas reutilizam nome de arquivo, URL persistente e data URL; fallback e atualização no carrinho", async (t) => {
-+  const a = await app(t);
-+  a.products[0].imagem = "embalagem hot cat.webp";
-+  a.products[1].imagem = "/uploads/servicos/banho.webp";
-+  a.products[2].imagem = "data:image/png;base64,aGVsbG8=";
-+  await a.w.PetHubCaixa.catalogo();
-+  const pics = [...a.d.querySelectorAll("#qr-products img")];
-+  assert.equal(pics.length, 3);
++  assert(a.d.documentElement.classList.contains("qr-booting"));
 +  assert.equal(
-+    pics[0].src,
-+    "https://pethub.test/uploads/embalagem%20hot%20cat.webp",
++    a.d.querySelector("#qr-sale-content").getAttribute("aria-busy"),
++    "true",
 +  );
-+  assert.equal(pics[1].src, "https://pethub.test/uploads/servicos/banho.webp");
-+  assert.equal(pics[0].loading, "lazy");
-+  await a.w.PetHubVenda.adicionar(a.products[0]);
-+  assert.equal(a.d.querySelector("#qr-cart img").src, pics[0].src);
-+  const input = a.d.querySelector("#pesquisarProduto");
-+  input.value = "Ração";
-+  input.dispatchEvent(new a.w.Event("input", { bubbles: true }));
-+  assert.equal(a.d.querySelector("#qr-products img").src, pics[0].src);
-+  a.products[0].imagem = "/uploads/itens/nova-foto.webp";
-+  await a.w.PetHubCaixa.catalogo();
-+  assert.match(a.d.querySelector("#qr-cart img").src, /nova-foto.webp$/);
-+  a.d.querySelector("#qr-cart img").dispatchEvent(new a.w.Event("error"));
-+  assert(a.d.querySelector("#qr-cart .qr-product-icon"));
-+  a.products[0].imagem = "javascript:alert(1)";
-+  delete a.products[1].imagem;
-+  await a.w.PetHubCaixa.catalogo();
-+  assert.equal(a.d.querySelector("#qr-products img"), null);
-+  assert.equal(a.errors.length, 0);
-+});
-+test("Enter na quantidade confirma sem duplicar e retorna à busca; render não rouba foco de cliente/modal", async (t) => {
-+  const a = await app(t);
-+  await a.w.PetHubVenda.adicionar(a.products[0]);
-+  a.key("F3");
-+  const qty = a.d.activeElement;
-+  qty.value = "2";
-+  a.key("Enter", qty);
-+  await wait(80);
-+  assert.equal(a.w.PetHubVenda.dados().itens[0].quantidade, 2);
-+  assert.equal(a.d.activeElement.id, "pesquisarProduto");
-+  const cliente = a.d.querySelector("#pesquisarCliente");
-+  cliente.focus();
-+  await a.w.PetHubCaixa.catalogo();
-+  assert.equal(a.d.activeElement, cliente);
-+  const dialog = a.d.createElement("dialog");
-+  a.d.body.append(dialog);
-+  dialog.showModal();
-+  const field = a.d.createElement("input");
-+  dialog.append(field);
-+  field.focus();
-+  await a.w.PetHubCaixa.catalogo();
-+  assert.equal(a.d.activeElement, field);
-+  dialog.close();
-+  assert.equal(a.errors.length, 0);
-+});
-+test("Enter no pagamento adiciona valor uma vez e F8 conclui pelo fluxo original", async (t) => {
-+  const a = await app(t);
-+  await a.w.PetHubVenda.adicionar(a.products[0]);
-+  a.key("F7");
-+  await wait(100);
-+  a.click("[data-forma=dinheiro]");
-+  const field = a.d.querySelector("#valor-dinheiro");
-+  field.focus();
-+  field.value = "20";
-+  a.key("Enter", field);
-+  await wait();
-+  assert(a.d.querySelector("#modalPagamento"));
-+  assert.notEqual(a.d.activeElement.id, "pesquisarProduto");
-+  a.key("F8");
-+  await wait(150);
-+  const saved = a.calls.filter((c) => c.kind === "update");
-+  assert.equal(saved.length, 1);
-+  assert.equal(saved[0].b.pagamentos.length, 1);
-+  assert.equal(saved[0].b.totalPago, 12.5);
-+  a.d.querySelector("#modalVendaFinalizada").remove();
-+  await wait(350);
++  assert(a.d.querySelector("#qr-layout-toggle").disabled);
++  resolve({ layout: "rapido" });
++  await wait(70);
++  assert(!a.d.documentElement.classList.contains("qr-booting"));
++  assert(!a.d.querySelector("#qr-sale-content").hasAttribute("inert"));
++  assert(a.d.querySelector(".nova-venda-layout").hidden);
++  assert(!a.d.querySelector("#qr-shell").hidden);
 +  assert.equal(a.d.activeElement.id, "pesquisarProduto");
 +  assert.equal(a.errors.length, 0);
 +});
++test("erro de preferência não revela o clássico; nova tentativa aplica escolha da empresa", async (t) => {
++  let attempts = 0;
++  const a = await app(t, "rapido", {
++    readPreference: async () => {
++      attempts++;
++      if (attempts === 1) throw Error("offline");
++      return { layout: "rapido" };
++    },
++  });
++  assert(a.d.documentElement.classList.contains("qr-booting"));
++  assert(!a.d.querySelector("#qr-boot-error").hidden);
++  a.click("#qr-boot-retry");
++  await wait(70);
++  assert.equal(attempts, 2);
++  assert(!a.d.documentElement.classList.contains("qr-booting"));
++  assert.equal(a.w.PetHubCaixa.layout, "rapido");
++  assert.equal(a.errors.length, 0);
++});
++test("preferência clássico libera somente o clássico e remove estado de carregamento", async (t) => {
++  const a = await app(t, "classico");
++  assert(!a.d.documentElement.classList.contains("qr-booting"));
++  assert(!a.d.querySelector(".nova-venda-layout").hidden);
++  assert(a.d.querySelector("#qr-shell").hidden);
++  assert.equal(
++    a.d.querySelector("#qr-sale-content").getAttribute("aria-busy"),
++    "false",
++  );
++});
++async function app(t, preferred = "rapido", options = {}) {
+   const errors = [],
+     calls = [],
+     vc = new VirtualConsole();
+@@ -54,6 +111,12 @@
+     request: async (p, o = {}) => {
+       calls.push({ p, ...o });
+       if (p === "/caixas/aberto") return { aberto: true };
++      if (
++        p === "/vendas/preferencias/layout-caixa" &&
++        !o.method &&
++        options.readPreference
++      )
++        return options.readPreference();
+       if (o.method === "PUT") {
+         preferred = JSON.parse(o.body).layout;
+         return { layout: preferred };
+@@ -72,6 +135,7 @@
+     },
+     atualizarEstoque: async (...args) => calls.push({ kind: "stock", args }),
+   };
++  options.beforeScripts?.(w, d);
+   w.eval(fs.readFileSync(base + "nova-venda.js", "utf8"));
+   w.eval(fs.readFileSync(base + "caixa-rapido.js", "utf8"));
+   await wait(350);

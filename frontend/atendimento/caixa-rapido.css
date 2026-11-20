@@ -475,6 +475,12 @@
   outline-offset: 2px;
 }
 .qr-dialog {
+  position: fixed;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  margin: 0 !important;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
   max-width: 760px;
   width: 90%;
   border: 1px solid #d6dde6;

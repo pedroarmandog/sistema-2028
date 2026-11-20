@@ -777,7 +777,12 @@
     });
     window.addEventListener("focus", () => {
       // Sincroniza outros operadores quando não há pagamento/modal em andamento.
-      if (!busy && !$("#modalPagamento") && !$("dialog[open]"))
+      if (
+        !document.documentElement.classList.contains("qr-booting") &&
+        !busy &&
+        !$("#modalPagamento") &&
+        !$("dialog[open]")
+      )
         endpoint()
           .then((r) => apply(r.layout))
           .catch(() => {});
@@ -786,9 +791,49 @@
     window.addEventListener("pagehide", () => clearInterval(timer), {
       once: true,
     });
-    endpoint()
-      .then((r) => apply(r.layout))
-      .catch((e) => notify(`Caixa Clássico mantido. ${e.message}`, "warning"));
+    let loadingPreference = false;
+    async function loadInitialLayout() {
+      if (loadingPreference) return;
+      loadingPreference = true;
+      layoutButton.disabled = true;
+      const loader = $("#qr-boot-loader"),
+        error = $("#qr-boot-error"),
+        spinner = $(".qr-boot-spinner");
+      if (error) error.hidden = true;
+      if (spinner) spinner.hidden = false;
+      loader?.setAttribute("aria-label", "Carregando caixa");
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 20000);
+      try {
+        const preference = await ApiClient.request(
+          "/vendas/preferencias/layout-caixa",
+          { signal: controller.signal },
+        );
+        if (!["classico", "rapido"].includes(preference?.layout))
+          throw Error("Visual inválido.");
+        apply(preference.layout);
+        // Revela somente depois de mover os controles para a interface correta.
+        const content = $("#qr-sale-content");
+        content?.removeAttribute("inert");
+        content?.setAttribute("aria-busy", "false");
+        document.documentElement.classList.remove("qr-booting");
+        layoutButton.disabled = false;
+        if (layout === "rapido") returnToSearch();
+      } catch (e) {
+        // Sem preferência conhecida, não exibe outro caixa por engano.
+        if (spinner) spinner.hidden = true;
+        if (error) error.hidden = false;
+        loader?.setAttribute(
+          "aria-label",
+          "Falha ao carregar caixa. Tente novamente.",
+        );
+      } finally {
+        clearTimeout(timeout);
+        loadingPreference = false;
+      }
+    }
+    $("#qr-boot-retry")?.addEventListener("click", loadInitialLayout);
+    loadInitialLayout();
     window.PetHubCaixa = {
       get layout() {
         return layout;

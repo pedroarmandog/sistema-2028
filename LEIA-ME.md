@@ -1,46 +1,32 @@
-# PetHub — Otimização do Caixa Rápido
+# PetHub — Modal centralizado e carregamento inicial
 
-Este é um ajuste incremental para o pacote **PetHub-Caixa-Classico-e-Rapido.zip** já instalado. Não reinstale o projeto inteiro.
+## Aplicação
 
-## Aplicar
+Este pacote atualiza o Caixa Rápido já instalado, preservando as melhorias anteriores de teclado e imagens.
 
-1. Faça backup dos três arquivos atuais de `frontend/atendimento` presentes neste pacote.
-2. Substitua-os mantendo os caminhos: `caixa-rapido.js`, `caixa-rapido.css` e `nova-venda.html`.
-3. Faça o deploy normal e atualize a página Nova Venda. As URLs do CSS/JS foram versionadas para evitar o cache antigo.
+1. Faça backup e substitua os **três arquivos** de `frontend/atendimento`, mantendo os caminhos.
+2. Faça o deploy normal e recarregue Nova Venda. As URLs do JS e CSS estão versionadas com `20261120-loading3` para evitar o cache anterior.
+3. Não é necessário executar migração, alterar banco, variáveis ou dependências.
 
-**Não há migração, variável de ambiente ou dependência nova de produção.** O backend e a preferência de layout por empresa continuam os mesmos do pacote anterior. Não substitua o `nova-venda.js` nem os arquivos de backend usando uma versão anterior.
+A alteração de HTML é necessária: esconder o caixa apenas depois que o JavaScript carregar não impediria o flash inicial. Se seu HTML tiver alterações adicionais próprias, use `ALTERACOES.patch` para preservar essas mudanças, incluindo o estilo crítico no início do head, a classe inicial `qr-booting`, o carregador e os atributos do container.
 
-Se sua página `nova-venda.html` recebeu outras alterações depois do pacote anterior, preserve-as e atualize somente as versões de `caixa-rapido.css` e `caixa-rapido.js` para `v=20261120-teclado2`, como mostrado no diff incluído.
+## Correções
 
-## Mudanças
+- Seletor de visual fixado no centro horizontal e vertical da viewport. Margem zerada explicitamente para não depender da margem automática afetada pelo reset global. Altura máxima e rolagem interna para telas menores; backdrop e comportamento nativo do dialog mantidos.
+- HTML já inicia com a área de venda oculta e não interativa. Enquanto o backend informa a preferência, aparece uma bolinha de carregamento no centro da área útil do caixa; cabeçalho e menu continuam visíveis.
+- A área só é liberada depois que os controles estão no layout correto, seja Clássico ou Rápido. Não há escolha antecipada via localStorage nem atraso visual artificial.
+- No Rápido, a busca recebe foco depois da liberação do conteúdo.
+- Falha/timeout ao consultar a preferência mantém os caixas ocultos e oferece “Tentar novamente”, em vez de mostrar o Clássico por engano. A consulta possui cancelamento após 20 segundos; uma nova tentativa pode ser feita sem recarregar.
+- A preferência por empresa, carrinho, pagamentos, imagens e atalhos existentes foram preservados.
 
-- Botão compacto “Alterar visual do caixa” no cabeçalho principal, imediatamente antes do suporte `hcHeaderBtn`, inclusive quando o suporte é inserido depois. Ícone, tooltip e nome acessível. Aparece nos dois visuais de Nova Venda; não modifica o componente de ajuda compartilhado nem outras páginas.
-- Removida a linha separada do botão. Espaçamento superior do PDV reduzido.
-- Busca com padrão combobox/listbox, primeiro resultado selecionado automaticamente, destaque laranja, setas ↑/↓ e Enter. O cursor permanece na busca e somente a lista rola para acompanhar a seleção.
-- ESC fecha resultados sem cancelar a venda. F2 retoma a busca. Enter sem termo/sem seleção não inclui produto. Códigos exatos têm prioridade para o leitor.
-- Inclusões continuam serializadas no carrinho original; Enter repetido com o campo vazio não duplica itens. A busca limpa e continua pronta após a inclusão. Nova digitação iniciada durante uma inclusão assíncrona é preservada.
-- Foco restaurado ao encerrar operação/fechar modais/iniciar nova venda. Renderizar o catálogo ou carrinho não transfere o foco de cliente, desconto ou de um modal.
-- Enter na quantidade da linha confirma a alteração e retorna à busca; Enter nos campos da forma de pagamento usa o botão original de adicionar pagamento. F7/F8 permanecem no fluxo existente, sem nova gravação independente.
-- Fotos reais de `imagem` e aliases já retornados pelo catálogo: aceita nome de arquivo (convertido em `/uploads/arquivo`), caminho persistente, URL HTTP(S) ou data URL de imagem. Usa a origem correta da API quando configurada, sem duplicar `/api` nem `/uploads`.
-- Mesmas miniaturas em cartões rápidos, resultados e carrinho; dimensões fixas, `object-fit: contain`, lazy loading, decodificação assíncrona, fundo discreto enquanto carrega e fallback de produto/serviço em caso de ausência/erro.
-- Atualizar o catálogo também atualiza a referência de foto do produto já no carrinho. Ao reabrir/recarregar Nova Venda, o cadastro é consultado novamente. Não existe upload, tabela ou cópia permanente de imagens específica do PDV.
+## Validação
 
-## Persistência e empresa
+**17 testes automatizados passaram**, incluindo preferência por empresa, carregamento com resposta atrasada, conteúdo inicialmente inerte/oculto, liberação do visual certo, erro e nova tentativa, além da regressão de teclado, imagens, carrinho e pagamento. Resultado em `TESTES.txt`.
 
-As imagens vêm exclusivamente dos produtos da API autenticada já usada por Meus Itens. O PDV mantém o vínculo pelo ID do produto e reutiliza a referência persistida; não consulta produtos por nome em outra empresa nem constrói chaves de armazenamento de outra empresa. O leitor `/uploads` existente no backend continua responsável por recuperar os arquivos persistentes e aplicar a proteção correspondente.
+Os testes executam os scripts reais em JSDOM com APIs de tela simuladas; os testes anteriores de backend usam SQLite em memória. O CSS é analisado sintaticamente. Não houve inspeção visual em navegador real nem acesso ao Render/TiDB/R2 nesta execução. Após o deploy, confirme o alinhamento visual do seletor e o carregamento com F5 na página publicada.
 
-Este pacote corrige a interpretação da referência da foto no frontend. Não altera o armazenamento existente: não recupera arquivos que já tenham sido perdidos no servidor nem transforma um arquivo local antigo em objeto R2. Quando a referência existe mas o arquivo não está mais disponível, exibe o fallback. Fotos novas devem continuar sendo salvas pelo armazenamento persistente configurado em Meus Itens.
-
-## Testes
-
-**14 testes automatizados passaram**: os testes anteriores de persistência/validação e as interações com os scripts reais em JSDOM. Cobertura de botão antes do suporte tardio, seleção e scroll interno, Enter/leitor sem duplicidade, quantidade, pagamentos, fotos/formatos/fallback/atualização e preservação de foco. Resultado em `TESTES.txt`. CSS analisado e JavaScript verificado quanto à sintaxe.
-
-O arquivo de teste atualizado está incluído. Em ambiente de desenvolvimento com Node 22.13+/24 e as dependências do pacote anterior, mais JSDOM:
+O teste atualizado está em `tests/caixa-rapido.test.js`; para repetir com o ambiente de testes do pacote anterior:
 
 ```sh
 node --test --test-force-exit tests/caixa-layout.test.js tests/caixa-rapido.test.js
 ```
-
-A execução ocorreu com APIs de tela simuladas e SQLite em memória nos testes de backend anteriores. Não acessou o TiDB/Render/R2 real e não substitui uma inspeção visual no navegador. Depois do deploy, confirme uma foto já cadastrada em Meus Itens, pesquisa com setas, leitor físico, F7/F8 e troca de layout em Nova Venda.
-
-O limite atual de catálogo retornado pela API e as regras de venda do pacote anterior permanecem.

@@ -6,7 +6,64 @@ const { test } = require("node:test"),
   { JSDOM, VirtualConsole } = require("jsdom");
 const base = path.join(__dirname, "../frontend/atendimento/");
 const wait = (ms = 30) => new Promise((r) => setTimeout(r, ms));
-async function app(t, preferred = "rapido") {
+test("carregamento esconde conteúdo desde o HTML e só revela o layout confirmado", async (t) => {
+  let resolve;
+  const deferred = new Promise((r) => (resolve = r));
+  const a = await app(t, "rapido", {
+    readPreference: () => deferred,
+    beforeScripts(w, d) {
+      assert(d.documentElement.classList.contains("qr-booting"));
+      assert(d.querySelector("#qr-sale-content").hasAttribute("inert"));
+      assert.match(
+        d.querySelector("#qr-boot-critical").textContent,
+        /html\.qr-booting #qr-sale-content\s*\{\s*display: none !important/,
+      );
+    },
+  });
+  assert(a.d.documentElement.classList.contains("qr-booting"));
+  assert.equal(
+    a.d.querySelector("#qr-sale-content").getAttribute("aria-busy"),
+    "true",
+  );
+  assert(a.d.querySelector("#qr-layout-toggle").disabled);
+  resolve({ layout: "rapido" });
+  await wait(70);
+  assert(!a.d.documentElement.classList.contains("qr-booting"));
+  assert(!a.d.querySelector("#qr-sale-content").hasAttribute("inert"));
+  assert(a.d.querySelector(".nova-venda-layout").hidden);
+  assert(!a.d.querySelector("#qr-shell").hidden);
+  assert.equal(a.d.activeElement.id, "pesquisarProduto");
+  assert.equal(a.errors.length, 0);
+});
+test("erro de preferência não revela o clássico; nova tentativa aplica escolha da empresa", async (t) => {
+  let attempts = 0;
+  const a = await app(t, "rapido", {
+    readPreference: async () => {
+      attempts++;
+      if (attempts === 1) throw Error("offline");
+      return { layout: "rapido" };
+    },
+  });
+  assert(a.d.documentElement.classList.contains("qr-booting"));
+  assert(!a.d.querySelector("#qr-boot-error").hidden);
+  a.click("#qr-boot-retry");
+  await wait(70);
+  assert.equal(attempts, 2);
+  assert(!a.d.documentElement.classList.contains("qr-booting"));
+  assert.equal(a.w.PetHubCaixa.layout, "rapido");
+  assert.equal(a.errors.length, 0);
+});
+test("preferência clássico libera somente o clássico e remove estado de carregamento", async (t) => {
+  const a = await app(t, "classico");
+  assert(!a.d.documentElement.classList.contains("qr-booting"));
+  assert(!a.d.querySelector(".nova-venda-layout").hidden);
+  assert(a.d.querySelector("#qr-shell").hidden);
+  assert.equal(
+    a.d.querySelector("#qr-sale-content").getAttribute("aria-busy"),
+    "false",
+  );
+});
+async function app(t, preferred = "rapido", options = {}) {
   const errors = [],
     calls = [],
     vc = new VirtualConsole();
@@ -54,6 +111,12 @@ async function app(t, preferred = "rapido") {
     request: async (p, o = {}) => {
       calls.push({ p, ...o });
       if (p === "/caixas/aberto") return { aberto: true };
+      if (
+        p === "/vendas/preferencias/layout-caixa" &&
+        !o.method &&
+        options.readPreference
+      )
+        return options.readPreference();
       if (o.method === "PUT") {
         preferred = JSON.parse(o.body).layout;
         return { layout: preferred };
@@ -72,6 +135,7 @@ async function app(t, preferred = "rapido") {
     },
     atualizarEstoque: async (...args) => calls.push({ kind: "stock", args }),
   };
+  options.beforeScripts?.(w, d);
   w.eval(fs.readFileSync(base + "nova-venda.js", "utf8"));
   w.eval(fs.readFileSync(base + "caixa-rapido.js", "utf8"));
   await wait(350);
