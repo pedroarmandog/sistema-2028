@@ -1,4 +1,4 @@
-﻿// Copiado de frontend/dashboard.js - funcionalidades do menu e header
+// Copiado de frontend/dashboard.js - funcionalidades do menu e header
 
 console.log("🚀 menu.js carregado (snippet do dashboard)");
 
@@ -523,7 +523,21 @@ function nomeDoPet(p) {
   return p.nome || p.name || p.nome_pet || p.pet_nome || "";
 }
 function nomeDoCliente(c) {
-  return c.nome || c.name || c.nome_cliente || "";
+  return c?.nome || c?.name || c?.nome_cliente || "";
+}
+function idClienteDoPet(p) {
+  const valores=[p.cliente_id,p.clienteId,p.tutor_id,p.cliente?.id,p.Cliente?.id,p.tutor?.id,p.cliente];
+  const id=valores.find(v=>(typeof v==='number'||typeof v==='string')&&/^[1-9]\d*$/.test(String(v)));
+  return id===undefined?null:String(id);
+}
+function clienteDoPet(p) {
+  const id=idClienteDoPet(p);
+  const associado=[p.cliente,p.Cliente,p.tutor].find(c=>c&&typeof c==='object'&&!Array.isArray(c)&&nomeDoCliente(c)&&(!id||!c.id||String(c.id)===id));
+  const cadastrado=id?_meusClientsMap[id]:null;
+  if(associado)return {...(cadastrado||{}),...associado};
+  if(cadastrado&&nomeDoCliente(cadastrado))return cadastrado;
+  const nome=p.cliente_nome||p.nome_cliente||p.tutor_nome;
+  return nome?{id,nome}:null;
 }
 
 // normalizadores/utilitários usados por filtros (declarados em escopo superior)
@@ -554,8 +568,8 @@ function renderPetsTable(pets) {
       const id = p.id || p.codigo || p.codigo_pet || p.pet_id || p._id || "";
       const petName = nomeDoPet(p) || "(sem nome)";
       const clienteId =
-        p.cliente_id || p.cliente || p.clienteId || p.tutor_id || null;
-      const cliente = clienteId ? _meusClientsMap[clienteId] : null;
+        idClienteDoPet(p);
+      const cliente = clienteDoPet(p);
       const clienteDisplay = cliente
         ? cliente.id
           ? `${cliente.id} - ${nomeDoCliente(cliente)}`
@@ -906,7 +920,7 @@ async function fetchPetsAndClients() {
 
     const [petsResp, clientsResp] = await Promise.all([
       tryFetchAny("/api/pets"),
-      tryFetchAny("/api/clientes"),
+      tryFetchAny("/api/clientes").catch(() => null),
     ]);
 
     let petsJson = [];
@@ -928,6 +942,10 @@ async function fetchPetsAndClients() {
       if (id !== undefined) _meusClientsMap[id] = cli;
     });
 
+    for(const p of petsJson){
+      const id=idClienteDoPet(p),cliente=clienteDoPet(p);
+      if(id&&cliente)_meusClientsMap[id]={...(_meusClientsMap[id]||{}),...cliente};
+    }
     _meusPetsData = petsJson || [];
     // também expor como propriedade de window para compatibilidade com outras páginas/scripts
     try {
@@ -974,8 +992,8 @@ function applyPetSearchFilter() {
     const id = String(p.id || p.codigo || p.pet_id || p._id || "");
     const micro = String(p.microchip || p.chip || p.micro || "").toLowerCase();
     const clienteId =
-      p.cliente_id || p.cliente || p.clienteId || p.tutor_id || null;
-    const cliente = clienteId ? _meusClientsMap[clienteId] : null;
+      idClienteDoPet(p);
+    const cliente = clienteDoPet(p);
     const clienteName = cliente
       ? (nomeDoCliente(cliente) || "").toLowerCase()
       : "";
@@ -1994,8 +2012,8 @@ document.addEventListener("DOMContentLoaded", function () {
           let okGrupo = true;
           if (selectedGrupoKeys.length > 0) {
             const clienteId =
-              p.cliente_id || p.cliente || p.clienteId || p.tutor_id || null;
-            const cliente = clienteId ? _meusClientsMap[clienteId] : null;
+              idClienteDoPet(p);
+            const cliente = clienteDoPet(p);
             if (!cliente) okGrupo = false;
             else {
               const grupoNome =
@@ -2528,8 +2546,8 @@ function getFilteredPetsUsingCurrentFilters() {
     let okGrupo = true;
     if (selectedGrupoKeys.length > 0) {
       const clienteId =
-        p.cliente_id || p.cliente || p.clienteId || p.tutor_id || null;
-      const cliente = clienteId ? _meusClientsMap[clienteId] : null;
+        idClienteDoPet(p);
+      const cliente = clienteDoPet(p);
       if (!cliente) okGrupo = false;
       else {
         const grupoNome =
@@ -2751,9 +2769,7 @@ function generatePetsReportHTML(pets) {
       const id = p.id || p.codigo || p.pet_id || p._id || "";
       const petName = escapeHtml(nomeDoPet(p) || "");
       const cliente =
-        p.cliente_id && _meusClientsMap[p.cliente_id]
-          ? nomeDoCliente(_meusClientsMap[p.cliente_id])
-          : p.cliente_nome || p.cliente || "";
+        nomeDoCliente(clienteDoPet(p));
       const especie = escapeHtml(
         (p.especie || p.raca || p.species || "").toString(),
       );
@@ -2806,9 +2822,7 @@ function exportPetsToXLS(pets) {
       ID: p.id || p.codigo || p.pet_id || p._id || "",
       Nome: nomeDoPet(p) || "",
       Cliente:
-        p.cliente_id && _meusClientsMap[p.cliente_id]
-          ? nomeDoCliente(_meusClientsMap[p.cliente_id])
-          : p.cliente_nome || p.cliente || "",
+        nomeDoCliente(clienteDoPet(p)),
       Especie: p.especie || p.raca || "",
       Raca: p.raca || "",
       Dt_Nascimento: p.data_nascimento || p.nascimento || p.dob || "",

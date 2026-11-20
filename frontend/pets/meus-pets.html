@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8" />
@@ -19,8 +19,7 @@
     <link rel="stylesheet" href="./meus-pets.css" />
     <link rel="stylesheet" href="../colors.css" />
     <link rel="stylesheet" href="../dashboard.css" />
-  <link rel="stylesheet" href="/importacao.css">
-</head>
+  </head>
   <body>
     <!-- Sidebar -->
     <div class="sidebar">
@@ -1729,7 +1728,7 @@
     </div>
 
     <!-- Script do menu (copiar para sua página) -->
-    <script src="./meus-pets.js"></script>
+    <script src="./meus-pets.js?v=20261120-nome-cliente"></script>
     <!-- Script global do calendário (copia do dashboard) -->
     <script src="../novo-atendimento-global.js"></script>
     <!-- Modal de confirmação de exclusão (estilo pet-details) -->
@@ -1839,8 +1838,6 @@
         </div>
       </div>
     </div>
-  <script src="/importacao.js" data-tipo="pets" data-alvo=".actions-right"></script>
-<script>document.addEventListener("pethub:importacao-concluida",e=>{if(e.detail.tipo==="pets"){const b=document.createElement("button");b.textContent="Atualizar pets importados";b.onclick=()=>location.reload();document.querySelector(".actions-right").append(b);}});</script>
-</body>
+  </body>
 </html>
 

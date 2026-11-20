@@ -1,4 +1,5 @@
-Substitua os arquivos frontend/pets/pet-details.html e frontend/components/cliente-portal-erp.css pelos arquivos deste pacote. Publique e atualize com Ctrl+Shift+R.
+Substitua frontend/pets/meus-pets.html e frontend/pets/meus-pets.js pelos arquivos deste pacote. Publique e atualize com Ctrl+Shift+R.
 
-O painel Dados do PetHub Cliente passa a ficar na mesma área de conteúdo do perfil principal, com largura máxima de 1200 px e margens automáticas. O alinhamento acompanha o espaço disponível e o menu recolhido, sem deslocamento fixo para a esquerda. Não há alterações nas funções ou nos dados do pet.
-Verificada localmente a posição do painel na estrutura HTML. Sem validação visual no sistema publicado.
+A coluna Cliente usa a associação de cliente retornada pelo próprio pet, sem depender de o responsável estar na primeira página de /api/clientes. O ID usado pelo link é normalizado para não confundir um objeto cliente com o identificador. Pesquisa e exportação usam a mesma resolução de nome. Cadastros e vínculos não são alterados.
+
+Validação local com APIs simuladas: nomes vinculados fora da primeira página, associação em objeto, IDs legados, nomes com caracteres especiais, link e lista separada indisponível. Não houve deploy ou teste no sistema publicado.
