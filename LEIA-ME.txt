@@ -1,5 +1,7 @@
-Copie os quatro arquivos da pasta frontend/cliente-app para a mesma pasta no projeto, substituindo os atuais.
-Publique no Render. Atualize a página ou feche e reabra o app instalado. Se o app mostrar o aviso de atualização, confirme.
-O cabeçalho mostra somente o indicador circular enquanto a imagem carrega. Quando a imagem termina, ela substitui o indicador. Nenhum nome é usado como placeholder ou alternativa de erro. Na ausência ou falha da logo, a área fica vazia, sem nome.
-Versão do cache do aplicativo atualizada. Dimensões da logo preservadas: 113 x 77 px, sem distorção.
-Validação local de HTML/JavaScript e estados de carregamento, sucesso, falha, logo ausente e troca de empresa. Não houve deploy nem teste no celular real.
+Substitua os dois arquivos em frontend/pets, mantendo os caminhos. Publique e atualize a página com Ctrl+Shift+R.
+
+Ao adicionar um pet a partir do perfil do cliente, o responsável é buscado diretamente por ID e o campo fica desabilitado, mantendo o vínculo ao salvar e ao limpar o formulário. Se o responsável não puder ser carregado, o envio fica bloqueado. O cadastro aberto diretamente pelo menu de pets mantém a seleção normal do cliente. A edição de pets mantém o comportamento anterior.
+
+Não há alteração no banco nem nos arquivos do backend. A autorização por empresa continua sendo a dos endpoints atuais. O bloqueio solicitado é aplicado à interface e ao coletor do formulário; não representa uma nova permissão de servidor para troca de responsável.
+
+Validação local com DOM: resposta demorada, seleção bloqueada, envio do ID correto, limpeza do formulário, cadastro direto e cliente inacessível. Não houve deploy nem teste com a conta real.

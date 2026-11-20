@@ -1,17 +1,53 @@
-﻿// Sistema de Cadastro de Pets
+// Sistema de Cadastro de Pets
 console.log("🐾 Sistema de cadastro de pets carregado");
 
 // Variáveis globais
 let clientes = [];
 let petAtual = null;
 let editingPetId = null;
+// Context is captured once, only for creation opened from a client's profile.
+const contextoPetParams = new URLSearchParams(window.location.search);
+const veioParaEditar = ['pet_id','petId','id'].some(k => contextoPetParams.has(k));
+const clienteContexto = !veioParaEditar ? contextoPetParams.get('cliente_id') : null;
+let clienteContextoPronto = !clienteContexto;
+function aplicarClienteContexto() {
+  if (!clienteContexto) return;
+  const select=document.getElementById('cliente'),hidden=document.getElementById('clienteId');
+  if(!select)return;
+  select.disabled=true;
+  select.setAttribute('aria-disabled','true');
+  select.title='Responsável definido pelo perfil do cliente. Não pode ser alterado neste cadastro.';
+  if(clienteContextoPronto){
+    select.value=clienteContexto;
+    if(hidden)hidden.value=clienteContexto;
+    mostrarInfoCliente(clienteContexto);
+    validarCampoObrigatorio(select);
+  }
+}
+async function resolverClienteContexto(){
+  if(!clienteContexto)return;
+  const select=document.getElementById('cliente');
+  try{
+    if(!/^[1-9]\d*$/.test(clienteContexto))throw Error('Cliente do cadastro inválido. Volte ao perfil e tente novamente.');
+    const base=(window.__API_BASE__&&window.__API_BASE__.toString())||window.location.origin;
+    const response=await fetch(base+'/api/clientes/'+encodeURIComponent(clienteContexto),{credentials:'include'});
+    if(!response.ok)throw Error('Não foi possível carregar o responsável. Volte ao perfil do cliente e tente novamente.');
+    const data=await response.json(),cliente=data.cliente||data;
+    if(String(cliente?.id)!==clienteContexto||!cliente.nome)throw Error('Não foi possível identificar o responsável deste pet.');
+    if(!clientes.some(c=>String(c.id)===clienteContexto))clientes.push(cliente);
+    if(select){select.replaceChildren();const option=document.createElement('option');option.value=clienteContexto;option.textContent=cliente.nome;option.defaultSelected=true;select.append(option);}
+    clienteContextoPronto=true;aplicarClienteContexto();
+  }catch(error){clienteContextoPronto=false;if(select){select.replaceChildren();const option=document.createElement('option');option.value='';option.textContent='Responsável indisponível — volte ao perfil do cliente';select.append(option);}mostrarErro(error.message);}
+}
 
 // Inicialização
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", async function () {
   console.log("🚀 Inicializando sistema de cadastro de pets");
 
   // Carregar clientes
-  carregarClientes();
+  verificarClienteUrl();
+  await carregarClientes();
+  await resolverClienteContexto();
 
   // Configurar eventos
   configurarEventos();
@@ -166,6 +202,7 @@ async function carregarPetParaEdicao(petId) {
 
 // Carregar lista de clientes
 async function carregarClientes() {
+  if(clienteContexto)return;
   try {
     console.log("📡 Carregando lista de clientes...");
 
@@ -222,6 +259,7 @@ function configurarEventos() {
   const clienteSelect = document.getElementById("cliente");
   if (clienteSelect) {
     clienteSelect.addEventListener("change", function () {
+      if(clienteContexto){aplicarClienteContexto();return;}
       const clienteId = this.value;
       if (clienteId) {
         mostrarInfoCliente(clienteId);
@@ -236,6 +274,7 @@ function configurarEventos() {
   // Evento de submit do formulário
   const form = document.getElementById("petForm");
   if (form) {
+    form.addEventListener("reset",()=>queueMicrotask(aplicarClienteContexto));
     form.addEventListener("submit", function (e) {
       e.preventDefault();
       salvarPet();
@@ -283,21 +322,7 @@ function validarCampoObrigatorio(campo) {
 
 // Verificar se há cliente pré-selecionado na URL
 function verificarClienteUrl() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const clienteId = urlParams.get("cliente_id");
-
-  if (clienteId) {
-    console.log("🔗 Cliente pré-selecionado via URL:", clienteId);
-
-    // Aguardar um pouco para garantir que o select foi preenchido
-    setTimeout(() => {
-      const clienteSelect = document.getElementById("cliente");
-      if (clienteSelect) {
-        clienteSelect.value = clienteId;
-        clienteSelect.dispatchEvent(new Event("change"));
-      }
-    }, 500);
-  }
+  aplicarClienteContexto();
 }
 
 // Mostrar informações do cliente selecionado
@@ -542,6 +567,10 @@ async function salvarPet() {
 
 // Validar formulário
 function validarFormulario() {
+  if(clienteContexto){
+    if(!clienteContextoPronto){mostrarErro('Aguarde a identificação do responsável ou volte ao perfil do cliente.');return false;}
+    aplicarClienteContexto();
+  }
   let isValido = true;
   const camposObrigatorios = ["nome", "cliente"];
 
@@ -586,7 +615,7 @@ function coletarDadosFormulario() {
 
   const formData = {
     nome: nomeEl && nomeEl.value ? nomeEl.value.trim() : "",
-    cliente_id: clienteEl && clienteEl.value ? parseInt(clienteEl.value) : null,
+    cliente_id: clienteContexto ? (clienteContextoPronto ? Number(clienteContexto) : null) : clienteEl && clienteEl.value ? parseInt(clienteEl.value) : null,
     raca: racaEl && racaEl.value ? racaEl.value.trim() : null,
     genero: generoEl && generoEl.value ? generoEl.value : null,
     porte: porteEl && porteEl.value ? porteEl.value : null,
@@ -736,6 +765,7 @@ function limparFormulario() {
     // Ocultar mensagens
     ocultarSucesso();
     ocultarErro();
+    aplicarClienteContexto();
   }
 }
 
