@@ -49,7 +49,8 @@ async function dom(entry = "main", options = {}) {
     ),
     w = d.window,
     calls = [];
-  let authenticated = options.authenticated !== false;
+  let authenticated = options.authenticated !== false,
+    adminAuthenticated = options.adminAuthenticated === true;
   w.matchMedia = () => ({ matches: false, addEventListener() {} });
   w.scrollTo = () => {};
   w.HTMLElement.prototype.scrollIntoView = () => {};
@@ -77,17 +78,62 @@ async function dom(entry = "main", options = {}) {
     }
     let data = { ok: true },
       status = 200;
-    if (url.endsWith("/session")) {
+    if (url.includes("/api/comunidade-admin/")) {
+      if (url.endsWith("/login")) {
+        adminAuthenticated = true;
+        data = { ok: true, csrf: "admin-csrf", role: "admin" };
+      } else if (url.endsWith("/session")) {
+        status = adminAuthenticated ? 200 : 401;
+        data = adminAuthenticated
+          ? { id: "99", name: "Admin", role: "admin", csrf: "admin-csrf" }
+          : { erro: "Entre no painel." };
+      } else if (url.includes("/overview"))
+        data = {
+          users: 2,
+          active7: 1,
+          active30: 1,
+          todayUsers: 2,
+          monthUsers: 2,
+          verified: 2,
+          unverified: 0,
+          generatedAt: new Date().toISOString(),
+          activityDefinition: "Atividade autenticada real.",
+        };
+      else if (url.includes("/stats"))
+        data = {
+          series: [{ day: "2026-11-19", users: 2, active: 1 }],
+          popular: [],
+          returningUsers: 0,
+        };
+      else data = { items: [], next: null };
+    } else if (url.endsWith("/session")) {
       status = authenticated ? 200 : 401;
       data = authenticated
         ? {
-            user: { id: "test", canEvents: false },
+            user: { id: "test", canEvents: false, onboarded: true },
             profiles: [profile, other],
             pets: [],
             csrf: "test-csrf",
           }
         : { erro: "Entre para continuar." };
     } else if (url.endsWith("/login")) authenticated = true;
+    else if (url.includes("/public-config"))
+      data = { rules: "Respeite pessoas e animais." };
+    else if (url.includes("/auth/register"))
+      data = {
+        ok: true,
+        verificationRequired: true,
+        message: "Cadastro criado. Confira seu e-mail.",
+      };
+    else if (url.includes("/auth/verify"))
+      data = { ok: true, message: "E-mail confirmado. Entre para continuar." };
+    else if (url.includes("/auth/forgot"))
+      data = {
+        ok: true,
+        message: "Se o e-mail tiver cadastro, enviaremos o link.",
+      };
+    else if (url.includes("/auth/reset"))
+      data = { ok: true, message: "Senha atualizada." };
     else if (url.includes("/notifications")) data = { items: [], unread: 0 };
     else if (url.includes("/explore")) data = { items: [], next: null };
     else if (url.includes("/feed"))
@@ -108,11 +154,11 @@ async function until(fn) {
   }
   assert.fail("A interface não chegou ao estado esperado.");
 }
-test("DOM: boas-vindas usa loja do link, login abre feed real e não grava token em localStorage", async (t) => {
+test("DOM: boas-vindas não exige loja, login abre feed real e não grava token em localStorage", async (t) => {
   const f = await dom("main", { authenticated: false });
   t.after(f.close);
   await until(() => f.w.document.querySelector("#login"));
-  assert.equal(f.w.document.querySelector("[name=loja]").value, "loja-teste");
+  assert.equal(f.w.document.querySelector("[name=loja]"), null);
   f.w.document.querySelector("[name=email]").value = "ana@example.com";
   f.w.document.querySelector("[name=senha]").value = "SenhaNova1234";
   f.w.document
@@ -208,8 +254,89 @@ test("DOM: seleção de tema persiste preferência e sair retorna ao login", asy
 test("DOM: administração renderiza formulário na página correta", async (t) => {
   const f = await dom("admin");
   t.after(f.close);
-  assert.ok(f.w.document.querySelector(".admin-login"));
+  await until(() => f.w.document.querySelector(".admin-login"));
   assert.ok(
-    f.w.document.body.textContent.includes("administradores autorizados"),
+    f.w.document.body.textContent.includes("conta administrativa autorizada"),
   );
+});
+test("DOM: criar conta mostra cadastro independente e envia consentimentos sem empresa", async (t) => {
+  const f = await dom("main", { authenticated: false });
+  t.after(f.close);
+  await until(() => f.w.document.querySelector("#login"));
+  f.w.location.hash = "/criar-conta";
+  await until(() => f.w.document.querySelector("[name=handle]"));
+  const form = f.w.document.querySelector("form");
+  for (const [name, value] of Object.entries({
+    name: "Pessoa nova",
+    handle: "pessoa_nova",
+    email: "nova@example.com",
+    senha: "SenhaNova1234",
+    confirmacao: "SenhaNova1234",
+  }))
+    form.elements[name].value = value;
+  form.elements.adult.checked = form.elements.terms.checked = true;
+  form.dispatchEvent(
+    new f.w.Event("submit", { bubbles: true, cancelable: true }),
+  );
+  await until(() => f.calls.some((c) => c.url.endsWith("/auth/register")));
+  const call = f.calls.find((c) => c.url.endsWith("/auth/register"));
+  assert.equal(call.body.terms, true);
+  assert.equal(call.body.adult, true);
+  assert.equal(call.body.loja, undefined);
+  assert.equal(call.body.empresa_id, undefined);
+  await until(() => form.textContent.includes("Confira seu e-mail"));
+});
+test("DOM: confirmação consome link por POST explícito e retira token da URL", async (t) => {
+  const f = await dom("main", { authenticated: false });
+  t.after(f.close);
+  await until(() => f.w.document.querySelector("#login"));
+  f.w.location.hash = "/confirmar?token=token-teste";
+  await until(() =>
+    f.w.document
+      .querySelector("form button")
+      ?.textContent.includes("Confirmar meu e-mail"),
+  );
+  assert.equal(f.w.location.hash, "#/confirmar");
+  f.w.document
+    .querySelector("form")
+    .dispatchEvent(
+      new f.w.Event("submit", { bubbles: true, cancelable: true }),
+    );
+  await until(() => f.calls.some((c) => c.url.endsWith("/auth/verify")));
+  assert.equal(
+    f.calls.find((c) => c.url.endsWith("/auth/verify")).body.token,
+    "token-teste",
+  );
+});
+test("DOM: painel administrativo apresenta navegação operacional e indicadores reais da resposta", async (t) => {
+  const f = await dom("admin", { adminAuthenticated: true });
+  t.after(f.close);
+  await until(() => f.w.document.querySelector(".metric-card"));
+  assert.equal(f.w.document.querySelectorAll("[data-section]").length, 9);
+  assert.ok(f.w.document.body.textContent.includes("Pessoas na Comunidade"));
+  assert.ok(f.w.document.body.textContent.includes("E-mails confirmados"));
+  assert.equal(f.w.document.querySelector("[data-company]"), null);
+});
+test("DOM: sessão social antiga recebe atualização de conta independente, sem página de erro genérica", async (t) => {
+  const f = await dom("main", {
+    fetch: (url) =>
+      url.endsWith("/session")
+        ? {
+            status: 401,
+            body: {
+              erro: "Atualize sua conta social anterior.",
+              codigo: "LEGACY_UPGRADE_REQUIRED",
+            },
+          }
+        : null,
+  });
+  t.after(f.close);
+  await until(() => f.w.location.hash === "#/atualizar-conta");
+  await until(() =>
+    f.w.document.body.textContent.includes(
+      "Sua conta anterior será preservada",
+    ),
+  );
+  assert.ok(f.w.document.querySelector("[name=email]"));
+  assert.ok(f.w.document.querySelector("[name=terms]"));
 });

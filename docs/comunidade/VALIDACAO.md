@@ -1,54 +1,52 @@
-# Validação executada
+# Validação local — versão 0.2
 
-## Resultado
+59 testes automatizados passaram. Também passaram os builds de produção com base `/comunidade/` e com base `/` para domínio próprio. O build incluído em `dist` é o de `/comunidade/`.
 
-30 testes automatizados passaram, com Node 24.22.3. Comando reproduzível:
+Comando reproduzível:
 
 ```bash
 npm test --prefix comunidade
 ```
 
-Nesta execução, as dependências da API foram disponibilizadas em um diretório de laboratório através de NODE_PATH, pois a cópia local do projeto não tem a instalação completa da raiz. Em um checkout completo, elas são resolvidas pelo `node_modules` da raiz. As dependências de teste do frontend estão declaradas no seu package.json/lock.
+Ambiente: Node 24.22.3, Sequelize/SQLite em memória e jsdom para DOM. As dependências da API foram disponibilizadas pelo diretório de laboratório via NODE_PATH, pois a cópia local não tem o checkout completo instalado. Em um repositório completo, elas são resolvidas normalmente pelo node_modules da raiz.
 
-| Grupo | Quantidade | O que foi exercitado |
+| Área | Testes | Evidências |
 |---|---:|---|
-| Serviço social + autenticação do portal | 13 | Senha real/bcrypt e sessão ERP preservada; identidade e vínculos; liberação e revogação; consentimento/posse de pet; proteção de perfil alheio; audiência; idempotência; comentários; contadores; mídia; bloqueio; Momentos; paginação; eventos; expiração |
-| HTTP Express | 6 | Cookie HttpOnly/Secure/Path; CSRF; CORS; flag; isolamento de privilégios administrativos; auditoria; notificações bloqueadas; exclusão e preservação de clientes/pets |
-| DOM | 5 | Login e navegação; termo de hashtag; editor e CSRF; texto escapado; reversão de curtida após erro; tema; logout; formulário administrativo |
-| Instalador e PWA | 3 | Backup, montagem antes do CORS, idempotência e recusa de ponto desconhecido; comportamento do worker fora do escopo e nas escritas |
-| Migração vazia | 1 | Rollback somente sem registros, preservação de tabela ERP e reaplicação |
-| Proxy de domínio | 2 | Caminhos permitidos, cookie/CSRF/JSON, preservação de Set-Cookie e exigência de HTTPS para o destino |
+| Autenticação pública | 11 | Cadastro sem empresa, unicidade no serviço e no banco, hash, termos, confirmação obrigatória, expiração/uso único, recuperação e revogação de sessões, reenvio, falha de entrega sem sucesso fictício e proteção de contas não verificadas |
+| Administração | 9 | Métricas reais, listagem/filtros, ausência de hashes/contatos ERP, denúncia e snapshot, estados e auditoria, suspensão/reativação, bloqueio/exclusão, séries e retorno, grupos e configurações |
+| Interface DOM | 9 | Login sem loja, cadastro, consentimentos, confirmação por POST e limpeza da URL, navegação, editor, reversão de curtida, texto escapado, tema/logout, painel com nove seções e migração de sessão antiga |
+| HTTP | 13 | Cookies isolados, CSRF, HTTPS atrás do proxy, origem hostil, permissões, sessão privada, logout, allowlist, moderador, pausa pública e roteiro completo cadastrar→confirmar→entrar→criar pet→publicar |
+| Instalação e PWA | 3 | Backup e montagem antes dos middlewares ERP, idempotência/recusa de ponto desconhecido, worker fora do escopo e nas escritas |
+| E-mail | 2 | Contrato de transporte, chave de idempotência e fragmento; recusa de provedor não configurado ou com falha |
+| Migração | 3 | Conversão real de fixture do esquema 001 com registros/mídias/relacionamentos, preservação ERP, reaplicação, esquema vazio e upgrade de identidade com sessão social anterior |
+| Proxy de domínio | 2 | Encaminhamento permitido, cookies/CSRF/JSON e HTTPS do destino |
+| Regressão social | 7 | Curtida e reenvio idempotentes, audiência, comentários/respostas e contadores, mídia privada, bloqueio, Momentos, paginação, eventos e expiração de sessão |
 
-Os testes de serviço/HTTP usam Sequelize com SQLite em memória, o código real de autenticação do PetHub Cliente e um armazenamento controlado de laboratório. Os testes DOM usam jsdom e respostas HTTP controladas. Os adaptadores são exclusivos de `tests/` e não são usados em produção.
+Uma verificação de regressão utilizou o serviço real de autenticação do PetHub Cliente: mudar a senha pública da Comunidade não alterou a senha do portal nem invalidou a sessão anterior dele. Nenhum arquivo do módulo de autenticação do ERP/Cliente foi modificado nesta entrega.
 
-Foram executados builds de produção para:
+## O que os testes não significam
 
-- Base `/comunidade/`, servida pela API existente.
-- Base `/`, para domínio exclusivo; o manifest gerado teve `scope=/`.
+- O envio de e-mail foi exercitado com um adaptador de transporte controlado, que captura as mensagens no laboratório. Não houve envio real para a caixa de entrada, validação de SPF/DKIM ou chamada ao provedor usando suas credenciais.
+- O banco foi SQLite em memória; as queries e migrações TiDB/MySQL precisam de homologação no seu ambiente. O teste de migração preservou registros reais da fixture anterior, não apenas tabelas vazias.
+- O storage foi um adaptador controlado para verificar autorização, bytes e referências. Não houve teste no seu R2 nem restart de Render em produção.
+- Não houve teste integral do ERP, WhatsApp ou fiscal. Os testes verificaram as interfaces tocadas e a preservação de tabelas/dados ERP no laboratório.
+- O Chromium não iniciou neste ambiente (`socket() failed: Operation not permitted`). Houve testes DOM, mas não screenshot ou validação visual renderizada em celular/navegador real.
+- Não houve instalação Android/iOS, teste de carga, auditoria independente de segurança, configuração DNS/certificado ou deploy na sua conta.
 
-O `dist` incluído no ZIP é o build final de `/comunidade/`.
+## Dependência encontrada na cópia local
 
-## Limitações observadas
+O arquivo técnico compartilhado `backend/services/midias/armazenamento.js` não está presente na cópia reconstruída local, embora já seja referenciado pelo serviço de mídia anterior. O pré-verificador deve ser executado no seu checkout real. Esta entrega reutiliza essa interface e não sobrescreve o armazenamento já configurado. Sem o arquivo/credenciais corretos, os uploads não podem ser homologados.
 
-- A tentativa de iniciar Chromium falhou com `socket() failed: Operation not permitted`. Não houve screenshot nem revisão visual renderizada nesse navegador. Os testes DOM não substituem a revisão em celular real.
-- O pré-verificador identificou dois arquivos compartilhados ausentes na cópia local reconstruída: `backend/services/midias/armazenamento.js` e `backend/services/midias/validar.js`. Eles já são dependências do serviço de mídia existente, e não arquivos novos da Comunidade. Devem existir no seu checkout real antes de habilitar uploads. O pacote não sobrescreve ou reinventa esse serviço.
-- Não houve conexão ao TiDB ou R2 de produção. A migração SQL foi exercitada no laboratório; é necessário aplicá-la e conferir FKs/índices em homologação TiDB.
-- A persistência de registros/interações e o reaproveitamento de referências foram testados por novos serviços usando o mesmo banco de laboratório. Não foi realizado restart de Render, restauração de backup ou deploy contra o bucket real.
-- Não foram testadas instalação Android/iOS, permissões de push, DNS, certificados, cookies no domínio final, quota/custo de storage ou concorrência em carga.
-- Não foi executado o ERP inteiro nem integração real WhatsApp/fiscal. A verificação de regressão nesta entrega cobre autenticação reaproveitada, sessão anterior preservada, fronteira de montagem e ausência de alterações nos dados ERP do laboratório.
+## Homologação necessária
 
-## Roteiro de homologação antes de abrir ao público
+1. Aplicar migração 002 em cópia do TiDB e confirmar registros anteriores, índices e FKs.
+2. Configurar e-mail real, confirmar recebimento, expiração, reenvio e recuperação em duas caixas independentes.
+3. Criar conta sem empresa, confirmar, cadastrar pet/foto e publicar. Reiniciar a API e conferir persistência.
+4. Conferir visibilidade pública/seguidores/só eu, bloqueio e notificações com duas contas.
+5. Entrar como administrador e moderador separados; testar denúncias, auditoria, suspensão e revogação das sessões.
+6. Conferir períodos e virada de dia/mês em Brasília usando a configuração real do ORM/TiDB.
+7. Conferir app em 360/390 px, desktop, teclado, contraste e leitores de tela.
+8. Instalar PWA em HTTPS, testar offline após primeira visita online e conferir isolamento de sessões/workers.
+9. Publicar termos/política completa, canais de suporte e processo de retenção antes da abertura ampla.
 
-1. Rodar o pré-verificador no checkout completo; corrigir arquivos e dependências ausentes.
-2. Migrar uma cópia do TiDB e conferir criação exclusivamente de `community_*`.
-3. Liberar duas contas de empresas diferentes e testar o feed global com dados públicos escolhidos.
-4. Conferir publicação pública, seguidores e só eu em duas contas; incluir foto e abrir em sessão sem permissão.
-5. Reabrir navegador/API e conferir persistência de post, curtida, perfil e foto no R2.
-6. Revogar a conta e depois a empresa, testando também uma identidade com segundo vínculo comprovado.
-7. Conferir denúncia, revisão administrativa, bloqueio, desbloqueio, suspensão e ocultação de conteúdo.
-8. Conferir evento, presença, cancelamento e notificação; conferir expiração de Momento.
-9. Testar telefone real em 360/390 px, tablet e desktop; tema escuro, teclado, foco e leitor de tela.
-10. Instalar o PWA em HTTPS, abrir sem rede após uma visita online e conferir atualização do worker sem interceptar os apps existentes.
-11. Validar exportação inicial e o processo operacional de atendimento às solicitações de exclusão.
-
-Essa homologação ainda não foi executada no seu ambiente; não há deploy automático incluído nesta entrega.
+O pacote contém implementação funcional local e instruções; não representa confirmação de deploy ou homologação concluídos em produção.

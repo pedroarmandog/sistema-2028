@@ -1,3 +1,4 @@
+import { report } from "./posts.js";
 import { api } from "./api.js";
 import { state, rerender } from "./state.js";
 import { esc, icon, empty, modal, toast } from "./ui.js";
@@ -26,7 +27,7 @@ export async function events(container) {
         rows
           .map((e) => {
             const date = new Date(e.startsAt);
-            return `<article class="event-card surface" data-event="${e.id}"><div class="event-date"><strong>${date.toLocaleDateString("pt-BR", { day: "2-digit" })}</strong><span>${date.toLocaleDateString("pt-BR", { month: "short" })}</span></div><div class="event-info"><small>${esc(e.city)} · ${date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</small><h2>${esc(e.title)}</h2><p>${esc(e.description)}</p><p class="muted">${esc(e.place)}</p><a href="#/p/${e.organizer.id}">Organizado por ${esc(e.organizer.name)}</a><div class="event-actions"><button class="${e.attending ? "secondary" : "primary"}" data-rsvp>${e.attending ? "Presença confirmada" : "Quero participar"}</button><span>${e.participants} participante${e.participants === 1 ? "" : "s"}</span>${e.own ? '<button class="text-button" data-edit>Editar</button><button class="text-button danger" data-cancel>Cancelar evento</button>' : ""}</div></div></article>`;
+            return `<article class="event-card surface" data-event="${e.id}"><div class="event-date"><strong>${date.toLocaleDateString("pt-BR", { day: "2-digit" })}</strong><span>${date.toLocaleDateString("pt-BR", { month: "short" })}</span></div><div class="event-info"><small>${esc(e.city)} · ${date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</small><h2>${esc(e.title)}</h2><p>${esc(e.description)}</p><p class="muted">${esc(e.place)}</p><a href="#/p/${e.organizer.id}">Organizado por ${esc(e.organizer.name)}</a><div class="event-actions"><button class="${e.attending ? "secondary" : "primary"}" data-rsvp>${e.attending ? "Presença confirmada" : "Quero participar"}</button><span>${e.participants} participante${e.participants === 1 ? "" : "s"}</span><button class="text-button" data-report-event>${icon("flag", 15)} Denunciar</button>${e.own ? '<button class="text-button" data-edit>Editar</button><button class="text-button danger" data-cancel>Cancelar evento</button>' : ""}</div></div></article>`;
           })
           .join("") ||
         empty(
@@ -44,6 +45,7 @@ export async function events(container) {
     if (!article) return;
     const event = rows.find((r) => r.id === article.dataset.event),
       rsvp = e.target.closest("[data-rsvp]");
+    if (e.target.closest("[data-report-event]")) report("event", event.id);
     if (rsvp) {
       rsvp.disabled = true;
       try {

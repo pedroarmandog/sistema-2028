@@ -3,7 +3,7 @@ import { state, refresh, rerender } from "./state.js";
 import { esc, icon, avatar, modal, toast, empty } from "./ui.js";
 import { card, report } from "./posts.js";
 export function profileForm(container, p, onDone, { pet = null } = {}) {
-  container.innerHTML = `<form class="profile-form"><div class="form-grid"><label>Nome público<input name="name" value="${esc(p?.name || pet?.name || "")}" maxlength="80" required></label><label>Seu @identificador<input name="handle" value="${esc(p?.handle || "")}" pattern="[a-z0-9_]{3,30}" minlength="3" maxlength="30" placeholder="ex.: thor_aventureiro" required></label></div><label>Uma pequena apresentação<textarea name="bio" maxlength="500" placeholder="O que faz você ou seu pet ser único?">${esc(p?.bio || "")}</textarea></label><div class="form-grid"><label>Cidade (opcional)<input name="city" value="${esc(p?.city || "")}" maxlength="100" placeholder="Só a cidade, sem endereço"></label><label>Interesses (opcional)<input name="interests" value="${esc(p?.interests || "")}" maxlength="200" placeholder="Passeios, brincadeiras, novas amizades"></label></div>${pet ? `<div class="form-grid"><label>Espécie pública<input name="species" value="${esc(pet.species || "")}" maxlength="60"></label><label>Raça pública (opcional)<input name="breed" maxlength="80"></label></div>` : ""}${!p ? '<label class="checkbox"><input name="adult" type="checkbox" required>Tenho 18 anos ou mais.</label><label class="checkbox"><input name="consent" type="checkbox" required>Autorizo exibir os dados sociais que escolhi preencher. Entendo que eles poderão ser vistos por participantes de outros pet shops.</label>' : ""}<p class="form-error" role="alert"></p><button class="primary" type="submit">${p ? "Salvar perfil" : "Começar novas conexões"} ${icon("arrow")}</button></form>`;
+  container.innerHTML = `<form class="profile-form"><div class="form-grid"><label>Nome público<input name="name" value="${esc(p?.name || pet?.name || "")}" maxlength="80" required></label><label>Seu @identificador<input name="handle" value="${esc(p?.handle || "")}" pattern="[a-z0-9_]{3,30}" minlength="3" maxlength="30" placeholder="ex.: thor_aventureiro" required></label></div><label>Uma pequena apresentação<textarea name="bio" maxlength="500" placeholder="O que faz você ou seu pet ser único?">${esc(p?.bio || "")}</textarea></label><div class="form-grid"><label>Cidade (opcional)<input name="city" value="${esc(p?.city || "")}" maxlength="100" placeholder="Só a cidade, sem endereço"></label><label>Interesses (opcional)<input name="interests" value="${esc(p?.interests || "")}" maxlength="200" placeholder="Passeios, brincadeiras, novas amizades"></label></div>${pet || p?.kind === "pet" ? `<div class="form-grid"><label>Espécie pública<input name="species" value="${esc(pet?.species || p?.species || "")}" maxlength="60"></label><label>Raça pública (opcional)<input name="breed" maxlength="80" value="${esc(p?.breed || "")}"></label></div>` : ""}${!p ? '<label class="checkbox"><input name="adult" type="checkbox" required>Tenho 18 anos ou mais.</label><label class="checkbox"><input name="consent" type="checkbox" required>Autorizo exibir os dados sociais que escolhi preencher. Entendo que eles poderão ser vistos por outros participantes da Comunidade.</label>' : ""}<label>Foto de perfil (opcional)<input type="file" name="avatar" accept="image/jpeg,image/png,image/webp"></label><p class="form-error" role="alert"></p><button class="primary" type="submit">${p ? "Salvar perfil" : "Começar novas conexões"} ${icon("arrow")}</button></form>`;
   container.querySelector("form").onsubmit = async (e) => {
     e.preventDefault();
     const f = e.target,
@@ -12,13 +12,16 @@ export function profileForm(container, p, onDone, { pet = null } = {}) {
     b.disabled = true;
     try {
       const data = Object.fromEntries(new FormData(f));
+      delete data.avatar;
+      if (f.elements.avatar?.files[0])
+        data.avatar_id = (await upload(f.elements.avatar.files[0])).id;
       await api("/profiles" + (p ? "/" + p.id : ""), {
         method: p ? "PUT" : "POST",
         body: {
           ...data,
           adult: data.adult === "on",
           consent: data.consent === "on",
-          ...(pet ? { pet_id: pet.id, company: pet.company } : {}),
+          ...(pet ? { kind: "pet" } : {}),
         },
       });
       await onDone();
@@ -30,30 +33,19 @@ export function profileForm(container, p, onDone, { pet = null } = {}) {
   };
 }
 export async function newPet() {
-  const pets = state.me.pets.filter((p) => !p.linked);
-  if (!pets.length) {
-    modal(
-      `<h2>Seu pet já tem um lugar aqui?</h2><p>Os pets disponíveis são os vinculados às contas de tutor que você comprovou. Cadastre seu pet no PetHub Cliente ou vincule outro estabelecimento nas configurações.</p>`,
-    );
-    return;
-  }
   const dlg = modal(
-    `<p class="eyebrow">UMA PERSONALIDADE ÚNICA</p><h2>Um perfil só para ele.</h2><label>Escolha seu pet<select id="pet">${pets.map((p, i) => `<option value="${i}">${esc(p.name)}</option>`).join("")}</select></label><div id="pet-form"></div>`,
+    '<p class="eyebrow">UMA PERSONALIDADE ÚNICA</p><h2>Um perfil só para seu pet.</h2><p>Cadastre as informações que deseja compartilhar. Não é necessário vínculo com pet shop.</p><div id="pet-form"></div>',
   );
-  function draw() {
-    profileForm(
-      dlg.querySelector("#pet-form"),
-      null,
-      async () => {
-        await refresh();
-        dlg.close();
-        rerender();
-      },
-      { pet: pets[Number(dlg.querySelector("#pet").value)] },
-    );
-  }
-  dlg.querySelector("#pet").onchange = draw;
-  draw();
+  profileForm(
+    dlg.querySelector("#pet-form"),
+    null,
+    async () => {
+      await refresh();
+      dlg.close();
+      rerender();
+    },
+    { pet: { name: "", species: "" } },
+  );
 }
 export async function profile(container, id) {
   const p = await api("/profiles/" + encodeURIComponent(id)),
@@ -187,7 +179,7 @@ export async function profile(container, id) {
   });
   container.querySelector("#change-photo")?.addEventListener("click", () => {
     const dlg = modal(
-      `<h2>Um novo olhar.</h2><p>Use uma foto sua ou do pet. Nenhuma foto privada do cadastro será publicada automaticamente.</p><form><label>Foto do perfil<input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required></label><label>Usar como<select name="target"><option value="avatar_id">Avatar</option><option value="cover_id">Capa</option></select></label><button class="primary">Enviar e salvar</button><p class="upload-status" role="status"></p><p class="form-error" role="alert"></p></form>`,
+      `<h2>Um novo olhar.</h2><p>Use uma foto sua ou do pet. Compartilhe somente imagens que você tem autorização para publicar.</p><form><label>Foto do perfil<input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required></label><label>Usar como<select name="target"><option value="avatar_id">Avatar</option><option value="cover_id">Capa</option></select></label><button class="primary">Enviar e salvar</button><p class="upload-status" role="status"></p><p class="form-error" role="alert"></p></form>`,
     );
     dlg.querySelector("form").onsubmit = async (e) => {
       e.preventDefault();
@@ -223,7 +215,7 @@ export async function profile(container, id) {
   });
 }
 export async function explore(container) {
-  container.innerHTML = `<div class="page-title"><div><p class="eyebrow">SEMPRE HÁ ALGO PARA DESCOBRIR</p><h1>Encontre sua turma.</h1></div>${icon("explore", 28)}</div><form class="search-form"><label class="sr" for="social-search">Buscar perfis e histórias</label>${icon("search")}<input id="social-search" name="q" placeholder="Pets, pessoas, cidades ou #histórias" maxlength="100"><button class="secondary">Buscar</button></form><div class="category-chips">${["Cachorros", "Gatos", "Passeios", "Adoção", "Cuidados", "Diversão"].map((x) => `<button data-category="${x}">${x}</button>`).join("")}</div><section id="explore-results"><div class="skeleton"></div></section>`;
+  container.innerHTML = `<div class="page-title"><div><p class="eyebrow">SEMPRE HÁ ALGO PARA DESCOBRIR</p><h1>Encontre sua turma.</h1></div>${icon("explore", 28)}</div><form class="search-form"><label class="sr" for="social-search">Buscar perfis e histórias</label>${icon("search")}<input id="social-search" name="q" placeholder="Pets, pessoas, cidades ou #histórias" maxlength="100"><button class="secondary">Buscar</button></form><div class="category-chips">${["Cachorros", "Gatos", "Passeios", "Adoção", "Cuidados", "Diversão"].map((x) => `<button data-category="${x}">${x}</button>`).join("")}</div><a class="group-discover-link" href="#/grupos">${icon("paw", 18)} Descubra comunidades temáticas ${icon("arrow", 16)}</a><section id="explore-results"><div class="skeleton"></div></section>`;
   const result = container.querySelector("#explore-results"),
     input = container.querySelector("input");
   input.value =

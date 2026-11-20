@@ -1,5 +1,6 @@
 import "@fontsource-variable/manrope";
 import "./style.css";
+import "./admin.css";
 import { api, setCSRF, BASE } from "./api.js";
 import {
   esc,
@@ -15,46 +16,33 @@ import {
 startTheme();
 import { state, refresh } from "./state.js";
 const app = document.getElementById("app");
+import { welcome as authWelcome } from "./auth-ui.js";
 function welcome(error = "") {
-  app.innerHTML = `<main class="welcome"><section class="welcome-art"><img src="${asset("welcome.webp")}" alt="Cachorro e gato juntos em um jardim" fetchpriority="high"><div class="art-label">Uma comunidade.<br>Infinitas histórias.</div><span class="art-chip">${icon("heart", 18)} Conexões que fazem bem.</span></section><section class="welcome-copy"><a class="brand" href="#/"><span class="brand-mark">${icon("lamp", 24)}</span><span>PetHub <small>COMUNIDADE</small></span></a><p class="eyebrow">PARA QUEM AMA COM PATAS</p><h1>O mundo fica melhor quando nossos pets se conectam<span>.</span></h1><p class="welcome-description">Compartilhe momentos, descubra histórias e encontre uma turma que entende esse amor.</p><form id="login"><h2>Que bom ter você aqui.</h2><p>Use seu acesso do PetHub Cliente. A entrada precisa estar liberada pelo PetHub.</p><label>Link ou código do estabelecimento<input name="loja" required placeholder="Código presente no link do seu pet shop" autocomplete="off"></label><label>E-mail<input name="email" type="email" required autocomplete="username"></label><label>Senha<input name="senha" type="password" required autocomplete="current-password"></label><p class="form-error" role="alert">${esc(error)}</p><button class="primary" type="submit">Entrar na Comunidade ${icon("arrow")}</button></form><div class="welcome-foot">Um espaço para pessoas adultas. Você escolhe o que compartilhar.<br><button type="button" class="text-button" id="principles">Nossos princípios e privacidade</button></div></section></main>`;
-  app.querySelector("#login [name=loja]").value =
-    new URLSearchParams(location.search).get("loja") || "";
-  app.querySelector("#login").onsubmit = async (e) => {
-    e.preventDefault();
-    const form = e.target,
-      button = form.querySelector("button");
-    button.disabled = true;
-    try {
-      const body = Object.fromEntries(new FormData(form));
-      try {
-        if (body.loja.includes("://"))
-          body.loja = new URL(body.loja).searchParams.get("loja") || body.loja;
-      } catch {}
-      await api("/login", { method: "POST", body });
-      await refresh();
-      await render();
-    } catch (err) {
-      form.querySelector(".form-error").textContent = err.message;
-    } finally {
-      button.disabled = false;
-    }
-  };
-  app.querySelector("#principles").onclick = () =>
-    modal(
-      `<p class="eyebrow">UM ESPAÇO DE CONFIANÇA</p><h2>Pets aproximam. Respeito mantém a gente junto.</h2><p>Compartilhe apenas conteúdo que você tem autorização para publicar. Não exponha endereços residenciais, crianças, documentos ou contatos privados. Fotos e biografias sociais são escolhidas por você e ficam separadas do prontuário e do cadastro do pet shop.</p><p>Você pode denunciar conteúdo, bloquear perfis e solicitar exclusão da conta nas configurações. Nesta versão, o acesso é restrito a maiores de 18 anos e depende de liberação.</p><p>As fotos de boas-vindas são ilustrativas. O feed só mostra publicações reais de participantes.</p>`,
-    );
-}
-async function onboard() {
-  const { profileForm } = await import("./profiles.js");
-  app.innerHTML = `<main class="onboarding"><a class="brand"><span class="brand-mark">${icon("lamp")}</span><span>PetHub <small>COMUNIDADE</small></span></a><p class="eyebrow">PRIMEIRO, VAMOS NOS CONHECER</p><h1>Uma nova amizade começa com um olá.</h1><p>Crie seu perfil público de tutor. Nenhum dado privado do seu pet shop será publicado automaticamente.</p><section class="surface" id="onboarding-form"></section></main>`;
-  profileForm(app.querySelector("#onboarding-form"), null, async () => {
+  authWelcome(error, async () => {
     await refresh();
+    location.hash = "/inicio";
     await render();
   });
 }
+async function onboard() {
+  const { profileForm } = await import("./profiles.js");
+  app.innerHTML = `<main class="onboarding"><a class="brand"><span class="brand-mark">${icon("lamp")}</span><span>PetHub<small>COMUNIDADE</small></span></a><p class="eyebrow">SUA HISTÓRIA, DO SEU JEITO</p><h1>Vamos deixar esse cantinho com a sua cara?</h1><p>Uma foto, seus interesses e uma pequena apresentação ajudam a encontrar sua turma. Ter um pet é opcional.</p><section class="surface" id="onboarding-form"></section><button class="text-button" id="skip-onboarding">Fazer isso depois e conhecer o feed ${icon("arrow", 16)}</button></main>`;
+  const finish = async () => {
+    await api("/onboarding/finish", { method: "POST" });
+    await refresh();
+    await render();
+  };
+  profileForm(
+    app.querySelector("#onboarding-form"),
+    state.me.profiles.find((p) => p.kind === "tutor"),
+    finish,
+  );
+  app.querySelector("#skip-onboarding").onclick = finish;
+}
+
 function shell(tab) {
   const active = state.me.profiles.find((p) => p.id === state.active);
-  app.innerHTML = `<div class="community-shell"><aside class="rail"><a class="brand" href="#/inicio"><span class="brand-mark">${icon("lamp")}</span><span>PetHub<small>COMUNIDADE</small></span></a><nav aria-label="Navegação principal">${nav("inicio", "Início", "home", tab)}${nav("explorar", "Explorar", "explore", tab)}<button class="create-nav" data-create>${icon("plus")} Criar uma história</button>${nav("eventos", "Eventos", "calendar", tab)}${nav("perfil", "Meu perfil", "user", tab)}${nav("salvos", "Salvos", "save", tab)}</nav><div class="rail-foot"><p>Pequenos momentos.<br>Grandes conexões.</p><button class="text-button" data-settings>${icon("settings")} Configurações</button></div></aside><div class="center"><header class="app-header"><a class="mobile-brand" href="#/inicio">PetHub<span>Comunidade</span></a><div class="header-copy"><strong>Seu lugar no mundo pet.</strong><span>Uma boa história merece ser compartilhada.</span></div><div class="header-actions"><button class="icon-btn" data-notifications aria-label="Notificações">${icon("bell")}<i id="unread-dot" hidden></i></button><button class="profile-switch" data-switch aria-label="Alternar perfil">${avatar(active, BASE)}</button></div></header><main id="content" tabindex="-1"><div class="skeleton"></div><div class="skeleton"></div></main></div><aside class="discovery"><section class="discovery-note"><span class="eyebrow">MUITO ALÉM DO FEED</span><h2>Seu próximo encontro pode começar aqui.</h2><p>Descubra experiências para viver junto de quem você ama.</p><a href="#/eventos">Explorar eventos ${icon("arrow", 18)}</a></section><section class="suggestions" id="suggestions"><h3>Novas conexões</h3><div class="skeleton small"></div></section><footer>PetHub Comunidade · 2026<br><button class="text-button" data-settings>Privacidade e preferências</button></footer></aside><nav class="bottom-nav" aria-label="Navegação mobile">${nav("inicio", "Início", "home", tab)}${nav("explorar", "Explorar", "explore", tab)}<button data-create class="create-bubble" aria-label="Criar publicação">${icon("plus", 26)}</button>${nav("eventos", "Eventos", "calendar", tab)}${nav("perfil", "Perfil", "user", tab)}</nav></div>`;
+  app.innerHTML = `<div class="community-shell"><aside class="rail"><a class="brand" href="#/inicio"><span class="brand-mark">${icon("lamp")}</span><span>PetHub<small>COMUNIDADE</small></span></a><nav aria-label="Navegação principal">${nav("inicio", "Início", "home", tab)}${nav("explorar", "Explorar", "explore", tab)}<button class="create-nav" data-create>${icon("plus")} Criar uma história</button>${nav("eventos", "Eventos", "calendar", tab)}${nav("grupos", "Comunidades", "paw", tab)}${nav("perfil", "Meu perfil", "user", tab)}${nav("salvos", "Salvos", "save", tab)}</nav><div class="rail-foot"><p>Pequenos momentos.<br>Grandes conexões.</p><button class="text-button" data-settings>${icon("settings")} Configurações</button></div></aside><div class="center"><header class="app-header"><a class="mobile-brand" href="#/inicio">PetHub<span>Comunidade</span></a><div class="header-copy"><strong>Seu lugar no mundo pet.</strong><span>Uma boa história merece ser compartilhada.</span></div><div class="header-actions"><button class="icon-btn" data-notifications aria-label="Notificações">${icon("bell")}<i id="unread-dot" hidden></i></button><button class="profile-switch" data-switch aria-label="Alternar perfil">${avatar(active, BASE)}</button></div></header>${state.me.platform?.info ? `<aside class="platform-message">${esc(state.me.platform.info)}</aside>` : ""}<main id="content" tabindex="-1"><div class="skeleton"></div><div class="skeleton"></div></main></div><aside class="discovery"><section class="discovery-note"><span class="eyebrow">MUITO ALÉM DO FEED</span><h2>Seu próximo encontro pode começar aqui.</h2><p>Descubra experiências para viver junto de quem você ama.</p><a href="#/eventos">Explorar eventos ${icon("arrow", 18)}</a></section><section class="suggestions" id="suggestions"><h3>Novas conexões</h3><div class="skeleton small"></div></section><footer>PetHub Comunidade · 2026<br><button class="text-button" data-settings>Privacidade e preferências</button></footer></aside><nav class="bottom-nav" aria-label="Navegação mobile">${nav("inicio", "Início", "home", tab)}${nav("explorar", "Explorar", "explore", tab)}<button data-create class="create-bubble" aria-label="Criar publicação">${icon("plus", 26)}</button>${nav("eventos", "Eventos", "calendar", tab)}${nav("perfil", "Perfil", "user", tab)}</nav></div>`;
   app.querySelectorAll("[data-create]").forEach(
     (b) =>
       (b.onclick = async () => {
@@ -119,6 +107,21 @@ function shell(tab) {
 }
 export async function render() {
   const seq = ++state.sequence;
+  const publicRoute = location.hash.replace(/^#\/?/, "").split("?")[0];
+  if (
+    [
+      "entrar",
+      "criar-conta",
+      "recuperar",
+      "redefinir",
+      "confirmar",
+      "reenviar",
+      "atualizar-conta",
+    ].includes(publicRoute)
+  ) {
+    welcome();
+    return;
+  }
   if (!state.me) {
     welcome();
     return;
@@ -126,13 +129,15 @@ export async function render() {
   try {
     await refresh();
   } catch (e) {
+    if (e.code === "LEGACY_UPGRADE_REQUIRED")
+      location.hash = "/atualizar-conta";
     state.me = null;
     state.cache.clear();
     welcome(e.message);
     return;
   }
   if (seq !== state.sequence) return;
-  if (!state.me.profiles.length) {
+  if (!state.me.profiles.length || !state.me.user.onboarded) {
     await onboard();
     return;
   }
@@ -160,6 +165,9 @@ export async function render() {
     } else if (tab === "explorar") {
       const { explore } = await import("./profiles.js");
       if (seq === state.sequence) await explore(content);
+    } else if (tab === "grupos") {
+      const { groups } = await import("./groups.js");
+      if (seq === state.sequence) await groups(content);
     } else if (tab === "eventos") {
       const { events } = await import("./events.js");
       if (seq === state.sequence) await events(content);
@@ -189,7 +197,7 @@ async function notifications() {
 }
 function settings() {
   const dlg = modal(
-    `<p class="eyebrow">DO SEU JEITO</p><h2>Preferências e privacidade</h2><label>Aparência<select id="theme"><option value="auto">Automático</option><option value="light">Claro</option><option value="dark">Escuro</option></select></label><button class="settings-action" id="link-account">${icon("plus")} Vincular outro pet shop</button><button class="settings-action" id="blocks">Contas bloqueadas</button><button class="settings-action" id="export">${icon("save")} Exportar meus dados sociais</button><button class="settings-action" id="logout">${icon("logout")} Sair da Comunidade</button><button class="settings-action danger" id="delete">${icon("lock")} Solicitar exclusão da conta</button><p class="muted">O vínculo entre contas só acontece depois de comprovar seu acesso em cada estabelecimento. Nunca unimos pessoas por nome ou telefone.</p>`,
+    `<p class="eyebrow">DO SEU JEITO</p><h2>Preferências e privacidade</h2><label>Aparência<select id="theme"><option value="auto">Automático</option><option value="light">Claro</option><option value="dark">Escuro</option></select></label><button class="settings-action" id="blocks">Contas bloqueadas</button><button class="settings-action" id="export">${icon("save")} Exportar meus dados sociais</button><button class="settings-action" id="logout">${icon("logout")} Sair da Comunidade</button><button class="settings-action danger" id="delete">${icon("lock")} Solicitar exclusão da conta</button><p class="muted">Sua conta e os pets cadastrados aqui são independentes de pet shops.</p>`,
   );
   dlg.querySelector("#theme").value =
     localStorage.getItem("community_theme") || "auto";
@@ -256,34 +264,9 @@ function settings() {
       toast(e.message);
     }
   };
-  dlg.querySelector("#link-account").onclick = () => {
-    const sub = modal(
-      `<h2>Comprove seu outro vínculo</h2><form><label>Código do estabelecimento<input name="loja" required></label><label>E-mail<input name="email" type="email" required></label><label>Senha<input name="senha" type="password" required></label><button class="primary">Verificar e vincular</button><p role="alert" class="form-error"></p></form>`,
-    );
-    sub.querySelector("form").onsubmit = async (e) => {
-      e.preventDefault();
-      const f = e.target,
-        b = f.querySelector("button");
-      b.disabled = true;
-      try {
-        await api("/accounts/link", {
-          method: "POST",
-          body: Object.fromEntries(new FormData(f)),
-        });
-        await refresh();
-        sub.close();
-        dlg.close();
-        render();
-      } catch (err) {
-        f.querySelector(".form-error").textContent = err.message;
-      } finally {
-        b.disabled = false;
-      }
-    };
-  };
   dlg.querySelector("#delete").onclick = () => {
     const confirm = modal(
-      '<h2>Encerrar sua conta social?</h2><p>Seu acesso será encerrado e o conteúdo ocultado. A solicitação de exclusão será registrada. Isso não apaga seu cadastro no pet shop.</p><button class="primary danger" id="confirm-erasure">Confirmar solicitação</button>',
+      '<h2>Encerrar sua conta social?</h2><p>Seu acesso será encerrado e o conteúdo ocultado. A solicitação de exclusão será registrada. A exclusão física seguirá a política de retenção da plataforma.</p><button class="primary danger" id="confirm-erasure">Confirmar solicitação</button>',
     );
     confirm.querySelector("button#confirm-erasure").onclick = async (e) => {
       e.target.disabled = true;
@@ -309,7 +292,11 @@ window.addEventListener("community:refresh", () => render());
     await refresh();
     await render();
   } catch (e) {
-    welcome(e.status === 401 ? "" : e.message);
+    if (e.code === "LEGACY_UPGRADE_REQUIRED")
+      location.hash = "/atualizar-conta";
+    welcome(
+      e.status === 401 && e.code !== "LEGACY_UPGRADE_REQUIRED" ? "" : e.message,
+    );
   }
 })();
 if ("serviceWorker" in navigator && import.meta.env.PROD) {

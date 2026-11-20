@@ -56,6 +56,11 @@ test("proxy de domínio preserva cookie/CSRF/JSON e não encaminha endpoints do 
     env: { COMMUNITY_API_ORIGIN: "https://api.example.com" },
   });
   assert.equal(no.status, 404);
+  const oldERP = await handler({
+    request: new Request("https://social.example.com/api/admin/login"),
+    env: { COMMUNITY_API_ORIGIN: "https://api.example.com" },
+  });
+  assert.equal(oldERP.status, 404);
 });
 test("proxy recusa origem de destino ausente ou sem HTTPS", async () => {
   const handler = proxy(() => {

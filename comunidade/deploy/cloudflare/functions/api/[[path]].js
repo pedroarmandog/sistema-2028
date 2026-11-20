@@ -2,7 +2,7 @@
 export async function onRequest(context) {
   const url = new URL(context.request.url),
     path = url.pathname;
-  if (!/^\/api\/(?:comunidade(?:-admin)?(?:\/|$)|admin\/login$)/.test(path))
+  if (!/^\/api\/comunidade(?:-admin)?(?:\/|$)/.test(path))
     return new Response("Não encontrado", { status: 404 });
   let origin;
   try {

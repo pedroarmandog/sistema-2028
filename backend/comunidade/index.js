@@ -1,15 +1,26 @@
 "use strict";
 const path = require("node:path"),
   express = require("express");
-function mount(app, { ERP, env = process.env, portal, media, adminAuth } = {}) {
+function mount(
+  app,
+  { ERP, env = process.env, media, sendMail, adminAccounts } = {},
+) {
+  let sharedMedia;
+  const mediaService = () =>
+    (sharedMedia ??= {
+      store: require("../services/midias/armazenamento").criarArmazenamento(),
+      ler: (empresa, ref) =>
+        require("../services/midias").instancia().ler(empresa, ref),
+    });
   const service = require("./service").create({
     ERP,
-    portal: portal || (() => require("../services/clientePortal").instancia()),
-    media: media || (() => require("../services/midias").instancia()),
+    media: media || mediaService,
+    sendMail,
+    env,
   });
   const routes = require("./routes").routes(service, {
     env,
-    adminAuth: adminAuth || require("../middleware/authAdmin").authAdmin,
+    adminAccounts,
   });
   app.use("/api/comunidade", routes.router);
   app.use("/api/comunidade-admin", routes.admin);

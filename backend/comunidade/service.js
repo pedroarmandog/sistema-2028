@@ -28,10 +28,88 @@ const handle = (v) => {
     throw fail("O @ deve ter 3 a 30 letras, números ou _.");
   return v;
 };
-function create({ ERP, portal, media, now = () => new Date() }) {
+function create({
+  ERP,
+  media,
+  sendMail,
+  env = process.env,
+  cost = 12,
+  now = () => new Date(),
+}) {
   const db = ERP.sequelize,
-    m = models(db),
-    getPortal = () => (typeof portal === "function" ? portal() : portal);
+    m = models(db);
+  const defaults = {
+    rules:
+      "Respeite pessoas e animais. Não publique dados privados, violência, spam ou conteúdo sem autorização.",
+    interests: ["Passeios", "Cuidados", "Adoção", "Cachorros", "Gatos"],
+    reportReasons: [
+      "Spam",
+      "Assédio",
+      "Conteúdo impróprio",
+      "Golpe ou fraude",
+      "Violência contra animais",
+      "Dados pessoais",
+      "Outros",
+    ],
+    maxPostImages: 6,
+    maxImageMB: 8,
+    maxPostText: 3000,
+    postsPerHour: 30,
+    info: "",
+    groupsEnabled: true,
+    eventsEnabled: true,
+  };
+  let configCache,
+    configAt = 0;
+  async function settings() {
+    if (configCache && Date.now() - configAt < 5000) return configCache;
+    const row = await m.Setting.findByPk("platform");
+    configCache = { ...defaults, ...(row?.value || {}) };
+    configAt = Date.now();
+    return configCache;
+  }
+  function invalidateSettings() {
+    configCache = null;
+  }
+  async function ensureActive(user) {
+    if (!user) throw fail("Conta indisponível.", 401);
+    if (
+      user.state === "suspended" &&
+      user.suspended_until &&
+      new Date(user.suspended_until) <= now()
+    ) {
+      await user.update({ state: "active", suspended_until: null });
+      await audit("system", "suspension_expired", user.id);
+    }
+    if (user.state !== "active")
+      throw fail(
+        user.state === "blocked"
+          ? "Conta bloqueada. Procure o suporte da plataforma."
+          : "Conta suspensa ou indisponível.",
+        403,
+      );
+  }
+  async function track(user) {
+    const day = new Date(+now() - 3 * 3600000).toISOString().slice(0, 10);
+    if (
+      user.last_active_at &&
+      +now() - new Date(user.last_active_at) < 5 * 60000 &&
+      new Date(+new Date(user.last_active_at) - 3 * 3600000)
+        .toISOString()
+        .slice(0, 10) === day
+    )
+      return;
+    await m.Activity.findOrCreate({
+      where: { user_id: user.id, day },
+      defaults: { id: uuid() },
+    });
+    if (
+      !user.last_active_at ||
+      +now() - new Date(user.last_active_at) > 5 * 60000
+    )
+      await user.update({ last_active_at: now() });
+  }
+
   async function audit(actor, action, target, details = {}, transaction) {
     await m.Audit.create(
       {
@@ -44,102 +122,34 @@ function create({ ERP, portal, media, now = () => new Date() }) {
       { transaction },
     );
   }
-  async function validLinks(userId) {
-    const links = await m.Link.findAll({
-        where: { user_id: userId, enabled: true },
-      }),
-      valid = [];
-    for (const link of links) {
-      const company = await m.Company.findByPk(link.empresa_id);
-      if (!company?.enabled) continue;
-      const cfg = await getPortal().m.Config.findByPk(link.empresa_id);
-      if (!cfg?.ativo) continue;
-      const account = await getPortal().auth.m.Conta.findByPk(link.conta_id);
-      if (!account?.ativo || account.versao !== link.portal_version) continue;
-      const enterprise = await ERP.Empresa.findByPk(link.empresa_id);
-      if (
-        !enterprise ||
-        enterprise.ativo === false ||
-        enterprise.ativa === false
-      )
-        continue;
-      const client = await ERP.Cliente.findOne({
-        where: { id: account.cliente_id, empresa_id: link.empresa_id },
-      });
-      if (client && client.ativo !== false) valid.push({ link, account });
-    }
-    return valid;
-  }
-  async function prove(input) {
-    let token;
-    const p = getPortal();
-    await p.auth.login(input, {
-      cookie(_, v) {
-        token = v;
-      },
-    });
-    try {
-      return await p.auth.contexto(token);
-    } finally {
-      await p.auth.logout(
-        { cookies: { pethub_cliente: token } },
-        { clearCookie() {} },
-      );
-    }
-  }
-  async function login(input) {
-    const tutor = await prove(input),
-      company = await m.Company.findByPk(tutor.empresaId);
-    if (!company?.enabled)
-      throw fail("Este estabelecimento ainda não liberou a Comunidade.", 403);
-    const session = await db.transaction(async (transaction) => {
-      const link = await m.Link.findByPk(tutor.contaId, {
-        transaction,
-        lock: transaction.LOCK.UPDATE,
-      });
-      if (!link?.enabled)
-        throw fail("Peça a liberação do seu acesso ao PetHub.", 403);
-      let user = link.user_id
-        ? await m.User.findByPk(link.user_id, { transaction })
-        : null;
-      if (!user) {
-        user = await m.User.create({ id: uuid() }, { transaction });
-      }
-      if (user.state !== "active")
-        throw fail("Seu acesso à Comunidade está suspenso.", 403);
-      await link.update(
-        { user_id: user.id, portal_version: tutor.conta.versao },
-        { transaction },
-      );
-      const raw = crypto.randomBytes(32).toString("base64url");
-      await m.Session.create(
-        {
-          id: hash(raw),
-          user_id: user.id,
-          expires_at: new Date(+now() + 30 * 86400000),
-        },
-        { transaction },
-      );
-      return { raw, user };
-    });
-    return session;
-  }
   async function context(raw) {
     if (typeof raw !== "string" || raw.length > 100)
       throw fail("Entre para continuar.", 401);
-    const s = await m.Session.findByPk(hash(raw));
-    if (!s || new Date(s.expires_at) <= now())
-      throw fail("Sua sessão expirou. Entre novamente.", 401);
-    const user = await m.User.findByPk(s.user_id);
-    if (user?.state !== "active") throw fail("Acesso indisponível.", 403);
-    const links = await validLinks(user.id);
-    if (!links.length)
-      throw fail("Sua liberação de acesso não está ativa.", 403);
+    const session = await m.Session.findByPk(hash(raw));
+    if (!session || new Date(session.expires_at) <= now())
+      throw fail("Sessão expirada. Entre novamente.", 401);
+    const user = await m.User.findByPk(session.user_id);
+    await ensureActive(user);
+    if (!user.email)
+      throw Object.assign(
+        fail(
+          "Atualize sua conta social anterior para o cadastro público.",
+          401,
+        ),
+        { code: "LEGACY_UPGRADE_REQUIRED" },
+      );
+    if (!user.verified_at)
+      throw Object.assign(fail("Confirme seu e-mail antes de acessar.", 403), {
+        code: "EMAIL_UNVERIFIED",
+      });
+    if (session.auth_version !== user.auth_version)
+      throw fail("Sessão encerrada. Entre novamente.", 401);
+    await track(user);
     const profiles = await m.Profile.findAll({
       where: { user_id: user.id, state: "active" },
       order: [["createdAt", "ASC"]],
     });
-    return { user, links, profiles, session: s, csrf: hash("csrf:" + raw) };
+    return { user, profiles, session, csrf: hash("csrf:" + raw) };
   }
   const ownProfile = (c, id) => {
     const p = c.profiles.find((p) => p.id === id);
@@ -160,63 +170,20 @@ function create({ ERP, portal, media, now = () => new Date() }) {
     cover: p.cover_id ? "/api/comunidade/media/" + p.cover_id : null,
   });
   async function self(c) {
-    const pets = [];
-    for (const { link, account } of c.links) {
-      const rows = await ERP.Pet.findAll({
-        where: { empresa_id: link.empresa_id, cliente_id: account.cliente_id },
-      });
-      pets.push(
-        ...rows
-          .filter((p) => p.ativo !== false)
-          .map((p) => ({
-            id: String(p.id),
-            company: String(link.empresa_id),
-            name: p.nome,
-            species: p.especie,
-            linked: c.profiles.some(
-              (q) =>
-                String(q.pet_id) === String(p.id) &&
-                String(q.source_company) === String(link.empresa_id),
-            ),
-          })),
-      );
-    }
+    const cfg = await settings();
     return {
       user: {
         id: c.user.id,
-        role: c.user.role,
-        canEvents: c.user.can_events,
+        role: "member",
+        canEvents: cfg.eventsEnabled,
         consented: !!c.user.consent_at,
+        emailVerified: !!c.user.verified_at,
+        onboarded: !!c.user.onboarded_at,
       },
       profiles: c.profiles.map(profileDTO),
-      pets,
+      platform: cfg,
       csrf: c.csrf,
     };
-  }
-  async function linkAccount(c, input) {
-    const tutor = await prove(input);
-    await db.transaction(async (transaction) => {
-      const company = await m.Company.findByPk(tutor.empresaId, {
-          transaction,
-        }),
-        link = await m.Link.findByPk(tutor.contaId, {
-          transaction,
-          lock: transaction.LOCK.UPDATE,
-        });
-      if (!company?.enabled || !link?.enabled)
-        throw fail("Este vínculo não tem liberação.", 403);
-      if (link.user_id && link.user_id !== c.user.id)
-        throw fail(
-          "Essa identidade já está vinculada a outra conta social.",
-          409,
-        );
-      await link.update(
-        { user_id: c.user.id, portal_version: tutor.conta.versao },
-        { transaction },
-      );
-      await audit(c.user.id, "link_account", link.conta_id, {}, transaction);
-    });
-    return { ok: true };
   }
   async function ownedMedia(c, id) {
     if (!id) return null;
@@ -247,28 +214,22 @@ function create({ ERP, portal, media, now = () => new Date() }) {
         throw fail(
           "Confirme que tem 18 anos ou mais e autorize os dados públicos escolhidos.",
         );
-      values.kind = b.pet_id ? "pet" : "tutor";
+      if (b.pet_id || b.company)
+        throw fail(
+          "Cadastre o pet diretamente na Comunidade, sem vínculo com empresa.",
+        );
+      values.kind = b.kind === "pet" ? "pet" : "tutor";
       if (values.kind === "tutor") values.tutor_owner = c.user.id;
       if (values.kind === "tutor" && c.profiles.some((p) => p.kind === "tutor"))
         throw fail("Sua conta já tem um perfil de tutor.", 409);
-      if (b.pet_id) {
-        const link = c.links.find(
-          (x) => String(x.link.empresa_id) === String(b.company),
-        );
-        if (!link) throw fail("Pet indisponível.", 403);
-        const pet = await ERP.Pet.findOne({
-          where: {
-            id: b.pet_id,
-            empresa_id: link.link.empresa_id,
-            cliente_id: link.account.cliente_id,
-          },
-        });
-        if (!pet || pet.ativo === false) throw fail("Pet indisponível.", 403);
-        values.pet_id = pet.id;
-        values.source_company = link.link.empresa_id;
-        values.species = text(b.species, 60);
+      if (values.kind === "pet") {
+        values.species = text(b.species, 60, true);
         values.breed = text(b.breed, 80);
       }
+    }
+    if (editing?.kind === "pet") {
+      values.species = text(b.species ?? editing.species, 60, true);
+      values.breed = text(b.breed ?? editing.breed, 80);
     }
     const p = await db.transaction(async (transaction) => {
       let result;
@@ -302,7 +263,9 @@ function create({ ERP, portal, media, now = () => new Date() }) {
   async function scope(c) {
     const blocks = await blocked(c),
       suspended = await m.User.findAll({
-        where: { state: { [Op.ne]: "active" } },
+        where: {
+          [Op.or]: [{ state: { [Op.ne]: "active" } }, { verified_at: null }],
+        },
         attributes: ["id"],
       }),
       b = [...blocks, ...suspended.map((x) => x.id)];
@@ -313,8 +276,13 @@ function create({ ERP, portal, media, now = () => new Date() }) {
       where: { state: { [Op.ne]: "active" } },
       attributes: ["id"],
     });
+    const hiddenGroups = await m.Group.findAll({
+      where: { state: { [Op.ne]: "active" } },
+      attributes: ["id"],
+    });
     return {
       b,
+      g: hiddenGroups.map((g) => g.id),
       hidden: hidden.map((p) => p.id),
       following: follows.map((x) => x.to_id),
       own: c.profiles.map((p) => p.id),
@@ -323,9 +291,19 @@ function create({ ERP, portal, media, now = () => new Date() }) {
   function audience(c, s) {
     return {
       state: "active",
-      ...(s.hidden?.length
-        ? { [Op.and]: [{ profile_id: { [Op.notIn]: s.hidden } }] }
-        : {}),
+      [Op.and]: [
+        ...(s.hidden?.length ? [{ profile_id: { [Op.notIn]: s.hidden } }] : []),
+        ...(s.g?.length
+          ? [
+              {
+                [Op.or]: [
+                  { group_id: null },
+                  { group_id: { [Op.notIn]: s.g } },
+                ],
+              },
+            ]
+          : []),
+      ],
       ...(s.b.length ? { user_id: { [Op.notIn]: s.b } } : {}),
       [Op.or]: [
         { visibility: "publico" },
@@ -459,6 +437,7 @@ function create({ ERP, portal, media, now = () => new Date() }) {
     if (q.kind === "momento")
       where.profile_id = { [Op.in]: [...s.following, ...s.own] };
     if (q.profile) where.profile_id = key(q.profile);
+    if (q.group) where.group_id = key(q.group);
     if (q.filter === "seguindo") where.profile_id = { [Op.in]: s.following };
     if (q.saved === "1") {
       const saves = await m.Save.findAll({ where: { user_id: c.user.id } });
@@ -474,10 +453,34 @@ function create({ ERP, portal, media, now = () => new Date() }) {
   async function publish(c, b) {
     if (!c.user.consent_at)
       throw fail("Conclua seu perfil e consentimento.", 403);
+    const cfg = await settings();
+    const recent = await m.Post.count({
+      where: {
+        user_id: c.user.id,
+        createdAt: { [Op.gte]: new Date(+now() - 3600000) },
+      },
+    });
+    if (recent >= cfg.postsPerHour)
+      throw fail(
+        "Limite de publicações por hora atingido. Aguarde um pouco.",
+        429,
+      );
+    if (b.group_id) {
+      const group = await m.Group.findOne({
+        where: { id: key(b.group_id), state: "active" },
+      });
+      if (
+        !group ||
+        !(await m.Member.count({
+          where: { group_id: group.id, user_id: c.user.id },
+        }))
+      )
+        throw fail("Entre na comunidade antes de publicar.", 403);
+    }
     const p = ownProfile(c, key(b.profile_id)),
-      content = text(b.text, 3000),
+      content = text(b.text, cfg.maxPostText),
       mediaIds = Array.isArray(b.media) ? [...new Set(b.media)] : [];
-    if (mediaIds.length > 6 || (!content && !mediaIds.length))
+    if (mediaIds.length > cfg.maxPostImages || (!content && !mediaIds.length))
       throw fail("Adicione uma legenda ou uma foto.");
     const kind = b.kind === "momento" ? "momento" : "post";
     if (kind === "momento" && mediaIds.length !== 1)
@@ -496,6 +499,7 @@ function create({ ERP, portal, media, now = () => new Date() }) {
         {
           id: uuid(),
           profile_id: p.id,
+          group_id: b.group_id || null,
           user_id: c.user.id,
           text: content,
           kind,
@@ -596,6 +600,15 @@ function create({ ERP, portal, media, now = () => new Date() }) {
   async function comment(c, id, b) {
     const post = await visiblePost(c, id),
       author = ownProfile(c, key(b.profile_id));
+    if (
+      (await m.Comment.count({
+        where: {
+          user_id: c.user.id,
+          createdAt: { [Op.gte]: new Date(+now() - 3600000) },
+        },
+      })) >= 100
+    )
+      throw fail("Limite de comentários por hora atingido.", 429);
     if (b.parent_id) {
       const parent = await m.Comment.findOne({
         where: { id: key(b.parent_id), post_id: post.id, state: "active" },
@@ -650,7 +663,17 @@ function create({ ERP, portal, media, now = () => new Date() }) {
   }
   async function upload(c, file) {
     if (!c.user.consent_at) throw fail("Conclua o consentimento.", 403);
-    if (!file || file.buffer.length > 8 * 1024 * 1024)
+    const cfg = await settings();
+    if (
+      (await m.Media.count({
+        where: {
+          user_id: c.user.id,
+          createdAt: { [Op.gte]: new Date(+now() - 3600000) },
+        },
+      })) >= 50
+    )
+      throw fail("Limite de uploads por hora atingido.", 429);
+    if (!file || file.buffer.length > cfg.maxImageMB * 1024 * 1024)
       throw fail("Envie uma foto de até 8 MB.");
     const sharp = require("sharp"),
       metadata = await sharp(file.buffer, { limitInputPixels: 25000000 })
@@ -673,15 +696,14 @@ function create({ ERP, portal, media, now = () => new Date() }) {
         .webp({ quality: 85 })
         .toBuffer(),
       size = await sharp(bytes).metadata(),
-      company = c.links[0].link.empresa_id;
-    const saved = await media().salvar(Number(company), bytes, "community", {
-      publico: false,
-    });
+      digest = hash(bytes),
+      reference = "community/users/" + c.user.id + "/" + digest + ".webp";
+    await media().store.gravar(reference, bytes, "image/webp", digest);
     const row = await m.Media.create({
       id: uuid(),
       user_id: c.user.id,
-      empresa_id: company,
-      reference: saved.url,
+      empresa_id: 0,
+      reference,
       mime: "image/webp",
       width: size.width,
       height: size.height,
@@ -717,15 +739,12 @@ function create({ ERP, portal, media, now = () => new Date() }) {
       }
     }
     if (!allowed) throw fail("Foto indisponível.", 404);
-    return media().ler(Number(row.empresa_id), row.reference);
+    return readStored(row);
   }
   async function remove(c, kind, id) {
     const model = kind === "post" ? m.Post : m.Comment,
       row = await model.findByPk(key(id));
-    if (
-      !row ||
-      (row.user_id !== c.user.id && !["moderator"].includes(c.user.role))
-    )
+    if (!row || row.user_id !== c.user.id)
       throw fail("Conteúdo indisponível.", 403);
     await db.transaction(async (transaction) => {
       await row.update({ state: "removed" }, { transaction });
@@ -742,22 +761,52 @@ function create({ ERP, portal, media, now = () => new Date() }) {
     return { ok: true };
   }
   async function report(c, b) {
-    if (!["post", "profile", "comment", "event"].includes(b.kind))
-      throw fail("Tipo inválido.");
     const map = {
       post: m.Post,
       profile: m.Profile,
       comment: m.Comment,
       event: m.Event,
+      group: m.Group,
     };
-    if (!(await map[b.kind].findByPk(key(b.target_id))))
+    const model = map[b.kind];
+    if (!model)
+      throw fail("Tipo de conteúdo ainda não disponível para denúncia.");
+    const row = await model.findByPk(key(b.target_id));
+    if (!row) throw fail("Conteúdo indisponível.", 404);
+    if (b.kind === "post") await visiblePost(c, row.id);
+    if (b.kind === "comment") await visiblePost(c, row.post_id);
+    if (b.kind === "profile") await profile(c, row.id);
+    if (
+      ["event", "group"].includes(b.kind) &&
+      (await scope(c)).b.includes(row.user_id)
+    )
       throw fail("Conteúdo indisponível.", 404);
+    const recent = await m.Report.count({
+      where: {
+        user_id: c.user.id,
+        createdAt: { [Op.gte]: new Date(+now() - 3600000) },
+      },
+    });
+    if (recent >= 20)
+      throw fail("Limite de denúncias atingido. Aguarde um pouco.", 429);
+    const snapshot = {
+      name: row.name || row.title || "",
+      text: row.text || row.bio || row.description || "",
+      kind: row.kind || b.kind,
+      state: row.state,
+    };
+    if (b.kind === "post")
+      snapshot.media = (
+        await m.PostMedia.findAll({ where: { post_id: row.id } })
+      ).map((x) => x.media_id);
     await m.Report.create({
       id: uuid(),
       user_id: c.user.id,
+      target_user: row.user_id,
       kind: b.kind,
-      target_id: b.target_id,
+      target_id: row.id,
       reason: text(b.reason, 1000, true),
+      snapshot,
     });
     return { ok: true };
   }
@@ -781,19 +830,32 @@ function create({ ERP, portal, media, now = () => new Date() }) {
   async function adminMedia(id) {
     const row = await m.Media.findByPk(key(id));
     if (!row) throw fail("Foto indisponível.", 404);
+    return readStored(row);
+  }
+  async function readStored(row) {
+    if (row.reference.startsWith("community/users/"))
+      return { bytes: await media().store.ler(row.reference), tipo: row.mime };
     return media().ler(Number(row.empresa_id), row.reference);
   }
+  const auth = require("./auth").auth(
+    { m, db, now, uuid, hash, fail, text, ensureActive },
+    { sendMail: sendMail || require("./mail").mailer(env).send, env, cost },
+  );
   return {
     adminMedia,
     m,
     db,
     ERP,
     now,
-    portal: getPortal,
-    login,
+    auth,
+    login: auth.login,
+    ensureActive,
+    settings,
+    invalidateSettings,
+    defaults,
+    hash,
     context,
     self,
-    linkAccount,
     saveProfile,
     feed,
     publish,

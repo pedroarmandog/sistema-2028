@@ -1,0 +1,72 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> pethub-comunidade@0.2.0 test
+> node scripts/test.cjs
+
+✔ dashboard distingue cadastros, verificados e atividade real; não conta quem só registrou (316.565753ms)
+✔ participantes inclui todas as contas e filtros; resposta nunca expõe hash de senha (215.914668ms)
+✔ denúncia preserva snapshot, estados e decisão; painel atualiza contador após resolver (163.186992ms)
+✔ suspensão registra motivo, invalida sessão e impede login; reativação exige novo login (144.701055ms)
+✔ bloqueio e exclusão moderados são auditados; histórico e ERP permanecem preservados (120.038015ms)
+✔ gráficos usam registros reais de usuários e interações; retorno deriva de dias distintos (129.12018ms)
+✔ comunidades públicas e eventos usam só identidade social; moderação remove da descoberta (110.108529ms)
+✔ configurações salvam limites e regras sem aceitar segredos; backend impõe limite real (99.727414ms)
+✔ papel legado de moderador público não concede APIs administrativas ou remoção alheia (101.237816ms)
+✔ cadastro público independente cria conta sem empresa, hash seguro e envio real pelo adaptador (303.06411ms)
+✔ e-mail e @ duplicados são recusados; campos obrigatórios, termos e confirmação são validados (185.353799ms)
+✔ confirmação consome token uma vez; expiração não libera a conta (180.020303ms)
+✔ usuário verificado acessa feed e cadastra pet sem consultar ERP (120.58078ms)
+✔ recuperação usa token único, troca senha e revoga todas as sessões anteriores (121.313119ms)
+✔ reenvio respeita limite e não confirma a conta sozinho (117.814808ms)
+✔ falha no envio não simula e-mail entregue e não verifica cadastro (99.537028ms)
+✔ cadastros novos não recebem papel administrativo nem precisam de pet (100.067544ms)
+✔ contas não verificadas não aparecem na descoberta nem passam por contexto com sessão forjada no laboratório (94.816732ms)
+✔ alterar senha pública não altera a autenticação nem encerra sessões do PetHub Cliente (128.180809ms)
+✔ unicidade de e-mail e nome de usuário também é imposta pelo banco (87.778957ms)
+✔ DOM: boas-vindas não exige loja, login abre feed real e não grava token em localStorage (201.404625ms)
+✔ DOM: navegação para hashtag abre Explorar com termo; editor publica com CSRF e perfil selecionado (65.423116ms)
+✔ DOM: erro de curtida desfaz atualização otimista; texto de usuário é escapado (31.870805ms)
+✔ DOM: seleção de tema persiste preferência e sair retorna ao login (37.079054ms)
+✔ DOM: administração renderiza formulário na página correta (46.304879ms)
+✔ DOM: criar conta mostra cadastro independente e envia consentimentos sem empresa (43.801506ms)
+✔ DOM: confirmação consome link por POST explícito e retira token da URL (33.790948ms)
+✔ DOM: painel administrativo apresenta navegação operacional e indicadores reais da resposta (44.731933ms)
+✔ DOM: sessão social antiga recebe atualização de conta independente, sem página de erro genérica (20.762869ms)
+✔ HTTP: conta pública entra com e-mail/senha, sem código de loja e com cookie próprio (546.427414ms)
+✔ HTTP: cadastro envia token pelo adaptador, não no JSON, e exige verificação (240.015499ms)
+✔ HTTP: escritas protegidas exigem CSRF mesmo com cookie válido (187.600542ms)
+✔ HTTP: login independente aceita HTTPS do próprio Render atrás de proxy HTTP (186.509654ms)
+✔ HTTP: rejeita outra origem, downgrade em produção e cabeçalhos encaminhados falsos (181.644321ms)
+✔ HTTP: usuário comum e antigo JWT sem sessão administrativa não acessam APIs privadas (193.976374ms)
+✔ HTTP: administrador autorizado obtém cookie separado; logout revoga sessão no servidor (196.532631ms)
+✔ HTTP: conta administrativa do ERP fora da allowlist não vira administradora da Comunidade (187.724258ms)
+✔ HTTP: moderador acessa denúncias, mas não configurações, lista de e-mails ou bloqueio permanente (200.065585ms)
+✔ HTTP: pausa pública não fecha a administração nem outras rotas do ERP (187.259329ms)
+✔ HTTP: pedido de exclusão encerra sessão social sem apagar dados ERP (184.965015ms)
+✔ HTTP: orienta migração ausente sem vazar SQL ou credenciais (162.929265ms)
+✔ HTTP: fluxo completo cadastra, confirma, entra, cria pet e publica sem empresa (213.580724ms)
+✔ instalador preserva app existente, insere antes do CORS e é idempotente (166.118062ms)
+✔ instalador não modifica app com ponto de integração desconhecido (141.788477ms)
+✔ PWA nunca intercepta API/escritas e manifest respeita base; HTML admin usa #app (4.130351ms)
+✔ adaptador de e-mail envia para API configurada, usa fragmento e chave de idempotência (1.982196ms)
+✔ e-mail sem credenciais ou com falha do provedor nunca retorna sucesso fictício (0.963797ms)
+✔ migração 002 preserva usuários, perfis, posts e mídia do esquema 001 sem alterar ERP (234.632689ms)
+✔ sessão social legada pode atualizar identidade sem login no ERP e preserva perfil (212.795535ms)
+✔ migração vazia gera versões 001 e 002, rollback vazio é possível e não apaga tabelas ERP (128.089382ms)
+✔ proxy de domínio preserva cookie/CSRF/JSON e não encaminha endpoints do ERP (11.461446ms)
+✔ proxy recusa origem de destino ausente ou sem HTTPS (2.703649ms)
+✔ idempotência da publicação e curtida; seguidores e privados respeitam audiência (433.967716ms)
+✔ comentário e resposta reais; não aceita resposta em post diferente; moderação oculta (139.933828ms)
+✔ upload valida bytes, reencoda foto e não expõe referência privada; mídia privada exige audiência (430.247041ms)
+✔ bloqueio bilateral oculta perfis, feed e fotos; expiração de Momento é no servidor (124.945803ms)
+✔ paginação composta não repete linhas com data igual e valida cursor (114.887192ms)
+✔ eventos respeitam configuração da plataforma, sem liberação individual; presença é idempotente e cancelamento é auditado (103.777774ms)
+✔ sessão social expira no servidor mesmo com cookie ainda presente (86.70842ms)
+ℹ tests 59
+ℹ suites 0
+ℹ pass 59
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3237.043686

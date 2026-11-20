@@ -27,6 +27,7 @@ export async function api(path, { method = "GET", body, signal } = {}) {
     if (!r.ok)
       throw Object.assign(Error(data.erro || "Não foi possível concluir."), {
         status: r.status,
+        code: data.codigo,
       });
     return data;
   } catch (e) {

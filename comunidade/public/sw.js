@@ -1,5 +1,5 @@
 /* Isolated shell only. Never cache sessions, JSON, user photos, HTML or writes. */
-const VERSION = "community-static-v1";
+const VERSION = "community-static-v2";
 self.addEventListener("install", (event) =>
   event.waitUntil(
     caches

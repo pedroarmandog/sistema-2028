@@ -1,114 +1,150 @@
-# Arquitetura e contrato inicial
+# Arquitetura 0.2
 
-## Limites do módulo
+## Fronteiras e preservação
 
-```
-sistema-2028/
-  backend/comunidade/     rotas, serviço, modelos, migração, instalação e pré-verificação
-  comunidade/            frontend Vite independente e saída dist
-  tests/comunidade/      serviços, HTTP, DOM, instalação e migração
-  docs/comunidade/       documentação desta entrega
-```
+O módulo permanece em `backend/comunidade`, usa a conexão Sequelize existente e é montado por uma chamada no `backend/app.js`. O frontend Vite continua em `comunidade/`, com entradas `index.html` e `admin.html`. Não há outro servidor, ORM ou banco.
 
-A API continua no Express existente. As rotas novas são montadas antes dos middlewares globais do ERP, com CORS, cookie, JSON, autorização e CSRF próprios. O frontend usa rotas hash para evitar dependência de fallback SPA. O build tem entradas separadas para o aplicativo e a administração.
+As contas públicas usam somente tabelas sociais. O serviço público recebe a conexão de banco e pode ser executado sem modelos Empresa, Cliente ou Pet — cenário exercitado pelos testes. O adaptador de armazenamento reaproveita a infraestrutura técnica do R2, com namespace próprio por usuário.
 
-O login comprova a conta no serviço de autenticação do PetHub Cliente, captura internamente a sessão temporária e a revoga após a prova. Depois emite um identificador opaco social aleatório de 256 bits. O banco guarda somente seu SHA-256. O cookie é HttpOnly, Secure em produção, Path `/api/comunidade`; expiração de 30 dias. O token do ERP não é reutilizado no frontend social.
+O cadastro administrativo existente da plataforma é reutilizado apenas para verificar as credenciais dos administradores explicitamente autorizados por ID. Ele não concede acesso automaticamente a empresas nem a usuários públicos. O aplicativo público não usa essa autenticação.
 
-Cada solicitação autenticada verifica sessão, estado da conta social e pelo menos um vínculo válido com empresa/portal/cliente ativos e conta liberada. Mudança da versão da senha invalida esse vínculo até um novo login. Se houver outro vínculo válido comprovado, a identidade social continua acessível por ele. Nenhuma relação com outra empresa é criada por comparação de dados pessoais.
+## Autenticação pública
 
-As publicações são globais entre contas liberadas. A empresa de origem é usada para confirmar a posse do pet e para o armazenamento, não como filtro que separa o feed por pet shop. O perfil público só recebe campos escolhidos no onboarding/editor.
+- E-mail normalizado em minúsculas, único no banco; @ único entre perfis.
+- Senhas com bcrypt, custo 12 em produção e limite de 72 bytes para evitar truncamento silencioso; mínimo de dez caracteres.
+- Cadastro cria usuário e perfil de tutor na mesma transação. Aceite e versão da política são registrados.
+- Verificação/recuperação com token aleatório de 256 bits; somente SHA-256 no banco. Validade de 24h/1h, respectivamente; consumo transacional com bloqueio de linha e uso único.
+- Tokens ficam no fragmento dos links, são retirados da URL pelo frontend e só são consumidos por POST explícito. Nenhum token é retornado por APIs de cadastro/recuperação ou impresso em logs.
+- Login exige conta ativa e e-mail confirmado. Usuários não verificados não aparecem na descoberta de terceiros.
+- Sessão opaca de 256 bits; somente hash armazenado. Cookie `pethub_community`, HttpOnly, Secure em produção, Path `/api/comunidade`, 30 dias. CSRF separado nas escritas.
+- Redefinição de senha incrementa a versão de autenticação, encerra sessões e invalida outros tokens de recuperação pendentes. Suspensão/bloqueio/exclusão também encerram sessões.
+- As sessões e senhas do ERP/Cliente não são consultadas nem modificadas por esses fluxos.
 
-Curtidas e salvos pertencem à conta social e não são multiplicados quando ela alterna entre seus perfis. A ação de seguir é entre perfis. Comentários e novas publicações carregam explicitamente o perfil autor; as notificações de curtida também respeitam o perfil ativo informado.
+A conta é criada automaticamente e fica pendente somente de confirmação do próprio e-mail. Não há aprovação administrativa.
 
-## Tabelas adicionadas
+## Administração
 
-Todas têm prefixo `community_`, PKs próprias e timestamps. IDs sociais são UUIDs; empresa/pet mantêm apenas referências escalares ao ERP. As chaves estrangeiras entre tabelas sociais usam RESTRICT e não apagam dados em cascata.
+Cookie `pethub_community_admin`, HttpOnly, Secure em produção, Path `/api/comunidade-admin`, validade de 12h. O hash da sessão é armazenado em tabela própria. Logout é uma revogação no servidor. O browser mantém apenas CSRF/dados mínimos em memória, sem JWT ou token em localStorage.
 
-| Tabela | Finalidade e restrições principais |
+Papéis vêm das variáveis `COMMUNITY_PLATFORM_ADMIN_IDS` e `COMMUNITY_PLATFORM_MODERATOR_IDS`, não do cadastro público nem do campo legado de papel social. A conta administrativa é revalidada como ativa a cada solicitação.
+
+| Recurso | Administrador geral | Moderador |
+|---|---|---|
+| Visão geral agregada | Sim | Sim |
+| Lista de e-mails/participantes e detalhes | Sim | Não |
+| Estatísticas detalhadas e configurações | Sim | Não |
+| Denúncias e conteúdo para análise | Sim | Sim |
+| Ocultar/remover conteúdo | Sim | Sim |
+| Restaurar conteúdo | Sim | Não |
+| Advertir / suspender | Sim; suspensão até um ano | Via denúncia, até sete dias |
+| Bloquear permanentemente / iniciar exclusão | Sim | Não |
+| Reverter bloqueio anterior | Sim | Não |
+
+As decisões pedem motivo e confirmação na interface. Sanções, invalidação de sessões, estado da denúncia e auditoria são persistidos transacionalmente. Denúncias já encerradas não reaplicam sanções por repetição da mesma decisão; podem ser reabertas explicitamente para análise. Não há endpoint para editar ou apagar a auditoria.
+
+## Tabelas
+
+A migração `002` adiciona campos e tabelas, sem apagar ou renomear registros anteriores.
+
+| Tabela/grupo | Conteúdo |
 |---|---|
-| `community_migrations` | Versão de migração `001` |
-| `community_users` | Identidade global, estado, papel, permissão de evento, consentimento |
-| `community_companies` | Liberação por empresa; começa desativada |
-| `community_links` | Liberação por conta do portal, identidade global e versão da senha |
-| `community_sessions` | Hash do token e validade |
-| `community_profiles` | Perfis públicos; @ único, tutor único por usuário, vínculo empresa/pet único |
-| `community_media` | Proprietário, referência privada, MIME, dimensões e tamanho |
-| `community_posts` | Autor, texto, audiência, expiração e chave de idempotência única por usuário |
-| `community_postmedia` | Ordem das imagens e unicidade por publicação/mídia |
-| `community_likes` | Uma curtida por conta/publicação |
-| `community_saves` | Um salvo por conta/publicação |
-| `community_comments` | Comentário/resposta, autor e estado |
-| `community_commentlikes` | Reserva de esquema para evolução; curtida de comentário ainda não exposta |
-| `community_follows` | Seguidor e seguido únicos por par de perfis |
-| `community_views` | Registro único de visualização por conta/Momento |
-| `community_notifications` | Caixa interna de notificações e leitura |
-| `community_blocks` | Bloqueio por conta, aplicado nos dois sentidos para exibição |
-| `community_reports` | Denúncia, motivo, destino e fila aberta/resolvida |
-| `community_audit` | Autor da decisão, ação, destino e detalhes |
-| `community_events` | Encontro, organizador, cidade, local público e estado |
-| `community_rsvp` | Presença única por conta/evento |
-| `community_privacy` | Solicitações de exclusão pendentes |
+| `community_users` | E-mail, hash de senha, verificação, versão de autenticação, consentimento, onboarding, atividade e estado |
+| `community_profiles` | Perfis públicos de tutores/pets; @ e tutor por conta únicos |
+| `community_sessions` | Sessões públicas e versão da autenticação |
+| `community_challenges` | Hash de token, finalidade, expiração e consumo |
+| `community_authlimits` | Buckets de tentativas com identidade em hash e expiração |
+| `community_mail` | Histórico técnico de envio aceito/falha, sem token ou corpo da mensagem |
+| `community_activity` | Uma linha por usuário/dia de Brasília, para métricas |
+| `community_adminsessions` | Sessões administrativas separadas |
+| `community_groups`, `community_members` | Comunidades públicas, responsável e associação única por participante |
+| `community_reports` | Denúncia, responsável, snapshot, prioridade, estado e decisão |
+| `community_sanctions` | Advertência/suspensão/bloqueio/reativação/exclusão, motivo e administrador |
+| `community_settings` | Regras e opções operacionais não secretas |
+| `community_posts`, `community_postmedia`, `community_media` | Posts/Momentos, imagens ordenadas e referências privadas |
+| `community_likes`, `community_saves`, `community_follows` | Interações idempotentes por par |
+| `community_comments`, `community_views`, `community_notifications` | Comentários, visualizações e notificações internas |
+| `community_events`, `community_rsvp` | Eventos e presenças únicas |
+| `community_blocks`, `community_privacy`, `community_audit` | Bloqueio, solicitações de exclusão e auditoria |
+| `community_migrations` | Versões 001/002 |
 
-Campos de avatar/capa e destinos polimórficos de notificações/denúncias são validados no serviço; não possuem FK polimórfica. As referências a contas e pets antigos do ERP também são verificadas no serviço para evitar migração das tabelas operacionais.
+`community_companies`, `community_links`, referências antigas de pets e o campo `role` de usuários permanecem somente para preservar dados anteriores. Não participam da autorização pública. `community_commentlikes` é reserva da implementação anterior e não representa curtida de comentário já operacional.
 
-A paginação usa `(createdAt DESC, id DESC)`, sem OFFSET. Há índices para perfil, feed, notificações, comentários, vínculos, denúncias, eventos e pares únicos. Os nomes explícitos são curtos para evitar o problema de identificador longo no TiDB/MySQL.
+O campo legado de empresa na mídia não é usado para os novos arquivos. Mantém-se o valor 0 como marcador técnico em tabelas antigas NOT NULL, sem criar ou consultar uma empresa fictícia. O proprietário e a autorização vêm de `user_id` e da audiência social.
 
-## Endpoints do aplicativo
+As FKs existentes entre tabelas sociais são preservadas. Identificadores de denúncias e notificações são polimórficos e validados pelo serviço. Novos índices cobrem atividade, estado, datas, proprietários de mídia, consultas de denúncia e séries administrativas. Não há alteração de tabelas operacionais do ERP.
 
-Prefixo `/api/comunidade`. `GET` usa cookie; `POST`, `PUT` e `DELETE`, exceto login, também exigem `X-Community-CSRF` obtido em `/session`. Não use JWT do gestor nessas rotas.
+## APIs públicas não autenticadas
 
-| Métodos e caminho | Função |
+Prefixo `/api/comunidade`:
+
+- `GET /public-config`: regras, categorias e opções públicas não secretas.
+- `POST /auth/register`: nome, @, e-mail, senha/confirmação, termos e maioridade.
+- `POST /auth/verify`, `/auth/resend`, `/auth/forgot`, `/auth/reset`.
+- `POST /login`: e-mail e senha próprios da Comunidade.
+- `GET /auth/legacy`, `POST /auth/upgrade`: migração de identidade quando ainda existe uma sessão social legada válida; upgrade exige CSRF dessa sessão.
+
+## APIs públicas autenticadas
+
+Preservadas: `/session`, `/logout`, `/profiles`, `/feed`, `/posts`, curtidas/salvos/comentários, `/explore`, `/notifications`, `/reports`, `/blocks`, `/media`, `/events`/presença e `/privacy`.
+
+Adicionadas:
+
+- `POST /onboarding/finish`.
+- `GET/POST /groups`.
+- `PUT/DELETE /groups/:id/membership`.
+- `GET /feed?group=UUID`; publicação em grupo exige participação e `group_id`.
+
+Não há `/accounts/link`, login por `loja` ou endpoint público de liberação. A criação de pet usa `kind=pet`, nome, @ e espécie, sem `pet_id`/empresa. Configurações da plataforma podem pausar a criação de grupos/eventos para todos; não é autorização manual de pessoas.
+
+## APIs administrativas
+
+Prefixo `/api/comunidade-admin`:
+
+| Endpoint | Uso |
 |---|---|
-| `POST /login`, `POST /logout`, `GET /session` | Sessão social e perfis próprios |
-| `POST /accounts/link` | Provar e vincular outra conta liberada |
-| `POST /profiles`, `PUT /profiles/:id`, `GET /profiles/:id` | Criar, editar e consultar perfil público |
-| `PUT/DELETE /profiles/:id/follow` | Seguir ou retirar perfil seguidor informado |
-| `PUT/DELETE /profiles/:id/block`, `GET /blocks` | Bloquear, desbloquear e gerenciar bloqueios |
-| `GET /feed` | Cursor `after`, `limit` até 30, `profile`, `saved=1`, `q`, `filter=seguindo`, `kind=momento` |
-| `POST /posts`, `GET/DELETE /posts/:id` | Publicar, consultar e remover conteúdo |
-| `PUT/DELETE /posts/:id/like` | Curtir/retirar curtida |
-| `PUT/DELETE /posts/:id/save` | Salvar/retirar salvo |
-| `GET/POST /posts/:id/comments`, `DELETE /comments/:id` | Comentários e respostas |
-| `PUT /posts/:id/view` | Registrar visualização de conteúdo autorizado |
-| `GET /explore` | Busca paginada de perfis |
-| `GET /notifications`, `PUT /notifications/read` | Caixa interna e leitura |
-| `POST /reports` | Enviar denúncia |
-| `POST /media`, `GET /media/:id` | Upload multipart de uma foto e leitura autorizada |
-| `GET/POST /events`, `PUT/DELETE /events/:id` | Listar, criar, editar e cancelar encontro |
-| `PUT/DELETE /events/:id/rsvp` | Confirmar/retirar presença |
-| `GET /privacy/export`, `POST /privacy/delete` | Exportação inicial e pedido de exclusão |
+| `POST /login`, `GET /session`, `POST /logout` | Sessão administrativa própria |
+| `GET /overview` | Indicadores agregados reais |
+| `GET /stats?days=7/30/90/365` | Crescimento, atividade, interações e retorno |
+| `GET /participants`, `GET /participants/:id` | Todos os usuários sociais, filtros e detalhes |
+| `POST /participants/:id/action` | Ação justificada sobre a conta |
+| `GET /reports`, `GET /reports/:id` | Fila, conteúdo, snapshot e histórico |
+| `POST /reports/:id/decision` | Analisar, rejeitar, resolver, ocultar, remover, advertir, suspender ou bloquear |
+| `GET /contents/post/group/event` | Consulta paginada de conteúdos |
+| `GET /contents/post/:id/comments` | Comentários para análise administrativa |
+| `POST /moderate` | Mudança de estado com motivo, sem editar texto arbitrariamente |
+| `GET /media/:id` | Mídia para revisão, protegida pela sessão administrativa |
+| `GET /moderation`, `GET /audit` | Sanções, pressão de autenticação, falhas de e-mail e auditoria |
+| `GET/PUT /settings` | Configurações operacionais, somente administrador geral |
 
-## Endpoints administrativos
+Os antigos endpoints de liberação de empresa/conta não compõem mais o painel. A administração pública não é feita por APIs do ERP.
 
-Prefixo `/api/comunidade-admin`. Exigem autenticação `authAdmin` existente e ID em `COMMUNITY_PLATFORM_ADMIN_IDS`. O frontend administrativo mantém esse token apenas em memória e exige novo login após fechar/recarregar a página.
+## Métricas e desempenho
 
-| Métodos e caminho | Função |
-|---|---|
-| `GET /companies`, `PUT /companies/:id` | Listar e liberar empresas |
-| `GET /accounts/:company`, `PUT /accounts/:id` | Liberar contas do tutor |
-| `GET /users`, `PUT /users/:id` | Suspensão, papel e permissão de eventos |
-| `GET /reports`, `GET /reports/:id/content` | Fila e revisão do conteúdo denunciado |
-| `GET /media/:id` | Foto para revisão administrativa; também autenticada |
-| `POST /moderate` | Ocultar conteúdo com motivo e auditoria |
-| `GET /audit` | Últimas 100 decisões |
+Dia operacional e séries: Brasília. O ORM inspecionado usa UTC para persistência; agregações MySQL/TiDB convertem para dias em UTC−3. Isso precisa ser conferido caso sua implantação tenha alterado o timezone do ORM.
 
-As listas administrativas têm limites iniciais (200 empresas/contas; 100 usuários/denúncias/decisões). Paginação e filtros avançados desse painel ficam para a próxima evolução.
+Ativo: conta verificada que acessou um recurso autenticado aceito no aplicativo naquele dia. Apenas registrar, confirmar e-mail ou navegar no painel administrativo não conta como uso social. A primeira atividade do dia gera um registro único; a última atividade é atualizada no máximo a cada cinco minutos.
 
-## Upload e persistência
+A dashboard usa cache curto de 15 segundos por processo, invalidado por alterações relevantes. Consultas de séries agrupam no banco e retornam no máximo 365 dias. Listas usam cursor composto por data e ID, até 30 registros por página. Índices foram adicionados para os filtros de data/atividade.
 
-Aceita JPEG, PNG e WebP estáticos, até 8 MB por requisição e seis imagens por publicação. O MIME informado pelo navegador não é considerado prova: `sharp` decodifica o arquivo, recusa outros formatos/animações, limita a 25 milhões de pixels, remove metadados na reencodificação e reduz a até 1800×1800. Há no máximo dois uploads em processamento simultâneo neste processo da API. O armazenamento é feito pelo serviço existente no módulo `community`, privado.
+Retorno significa uso em dois ou mais dias no período. Não é análise de coorte. Contagens históricas de curtidas/seguidores/presenças usam registros ainda existentes; retiradas anteriores não têm um log separado de eventos. Publicações populares são classificadas por curtidas, com comentários apresentados à parte.
 
-O cliente recebe apenas `/api/comunidade/media/UUID`, nunca chave do bucket ou credenciais. A leitura confere proprietário, perfil público ou publicação visível. Conteúdo expirado, removido, privado ou bloqueado não autoriza leitura para terceiros. O administrador autorizado possui rota própria para revisão.
+Antes de tráfego nacional elevado, é necessário testar carga no TiDB/Render e evoluir agregações, busca textual e limites distribuídos. Não existe presença online em tempo real nem números simulados.
 
-Não há disco local como armazenamento definitivo do módulo novo. A permanência após deploy depende de o serviço de mídia permanente compartilhado estar instalado e configurado no ambiente real. Não foi realizado teste contra o bucket de produção nesta entrega.
+## Mídia e privacidade
 
-## Segurança, carga e operação
+As imagens novas são reencodificadas em WebP, até 1800×1800, com limite de pixels e até 8 MB de entrada. O bucket permanece privado. O browser recebe URLs de leitura autorizada da API, não a chave do objeto nem credenciais.
 
-- CORS com origens exatas, CSRF nas escritas, cookies separados, respostas privadas sem cache, conteúdo textual escapado na interface e verificação de propriedade no backend.
-- Limitador inicial de 120 requisições/minuto por IP/base de rota, em memória; a autenticação reaproveita também a proteção de tentativas do portal existente. Em múltiplos processos, o limitador deverá evoluir para uma camada distribuída.
-- Paginação limitada, consultas agrupadas de interações do feed, imagens lazy, importação de telas por demanda e apenas uma consulta periódica leve de notificações enquanto visível.
-- A relação social não adiciona conexões Sequelize próprias: usa o pool existente. Busca textual inicial usa LIKE e precisa evoluir para indexação específica antes de grande volume.
-- Exportação inclui inicialmente perfis, posts e comentários; arquivo de mídias, interações e portabilidade completa ainda precisam ser estendidos.
-- A conta excluída é desativada/ocultada e gera solicitação pendente. Limpeza física, retenção e atendimento das solicitações são responsabilidades operacionais ainda não automatizadas.
+Arquivos anteriores continuam legíveis após autorização social usando a referência antiga. Não é necessário reimportar ou publicar imagens privadas do ERP.
 
-A flag permite interromper o acesso social. Não substitui monitoramento, backup, política completa de privacidade, revisão de segurança independente ou teste de carga.
+Denúncias guardam snapshot e referências para análise, e remoção é lógica. Exclusão de conta gera solicitação, oculta o conteúdo e revoga acesso. Eliminação física de objetos, expiração de backups, limpeza de Momentos vencidos e atendimento completo de portabilidade dependem da política/processo de retenção ainda não automatizados.
+
+## Limites operacionais
+
+- Até 240 requisições/minuto por IP por router neste processo; não é um limite global distribuído.
+- Limites de cadastro/login/recuperação por hash de identidade e janela de 15 minutos no banco.
+- Cadastro, reenvio e recuperação por e-mail com limites específicos; rotas públicas também limitam IP.
+- Até cinco comunidades por conta, dez eventos ativos e 20 denúncias por hora.
+- Limites configuráveis para posts/fotos/texto; até 100 comentários e 50 uploads por conta/hora.
+- Até dois uploads simultâneos neste processo, sem ocupar indefinidamente a API com arquivos grandes.
+
+Pressão de autenticação é exibida como buckets com várias tentativas, não como prova de ataque. Expirados são limpos periodicamente. MFA, análise antifraude, filas de e-mail e indicadores avançados de retenção permanecem pendentes.

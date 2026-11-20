@@ -1,13 +1,22 @@
-PETHUB COMUNIDADE — v0.1.0
+PETHUB COMUNIDADE 0.2 — CADASTRO PÚBLICO E ADMINISTRAÇÃO
 
-Extraia as pastas deste pacote na raiz do sistema-2028.
+Agora cada pessoa cria a própria conta com nome, @, e-mail e senha.
+Confirmação de e-mail é obrigatória. Não há código de loja, empresa ou liberação manual.
+O painel /comunidade/admin.html continua privado e serve para métricas, participantes, denúncias e moderação.
 
-Comece por docs/comunidade/INSTALACAO.md.
+ANTES DO DEPLOY
+1. Extraia as pastas na raiz do sistema-2028, substituindo o módulo/frontend antigos.
+2. Leia docs/comunidade/INSTALACAO.md.
+3. No Render, configure:
+   COMMUNITY_RESEND_API_KEY = sua chave privada do provedor
+   COMMUNITY_MAIL_FROM = remetente de domínio verificado
+   COMMUNITY_PUBLIC_URL = https://pethub-api-wdna.onrender.com/comunidade/
+4. Mantenha COMMUNITY_ENABLED=true e os IDs administrativos autorizados já configurados.
+5. No pre-deploy, preserve seus preparadores e execute node backend/comunidade/migrate.js ao final. Esta versão aplica a migração 002.
+6. Envie tudo ao GitHub e faça novo deploy. O build e o start atuais podem ser mantidos conforme o guia.
 
-O pacote adiciona um módulo e frontend independentes. Não substitui seu app.js antigo por outro arquivo. O instalador acrescenta a montagem ao app.js atual com backup.
+Sem configurar envio de e-mail, os cadastros ficam pendentes. Não há verificação automática fictícia.
 
-É a primeira entrega funcional por fases: fundação + rede social principal, Momentos de foto e eventos básicos. Grupos, vídeo, chat e push social ainda não estão implementados.
+59 testes locais passaram e os builds passaram. E-mail, TiDB/R2 de produção e experiência em celular real ainda exigem homologação.
 
-30 testes passaram e o build de produção passou. TiDB/R2 de produção e aparência em navegador/celular real ainda exigem homologação. A pré-verificação aponta dependências compartilhadas ausentes na cópia local.
-
-Não copie credenciais para o frontend. Mantenha COMMUNITY_ENABLED=false até concluir a instalação e a homologação.
+Vídeos, chat e push social continuam pendentes, conforme o estágio anterior. Não foram apresentados como recursos prontos.

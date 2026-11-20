@@ -104,7 +104,7 @@ function bindCards(container, posts) {
 }
 export function report(kind, id) {
   const dlg = modal(
-    `<h2>O que aconteceu?</h2><p>Explique o motivo para a equipe de moderação.</p><form><label>Motivo<textarea name="reason" maxlength="1000" required></textarea></label><button class="primary">Enviar denúncia</button><p class="form-error" role="alert"></p></form>`,
+    `<h2>O que aconteceu?</h2><p>Explique o motivo para a equipe de moderação.</p><form><label>Categoria<select name="category">${(state.me.platform?.reportReasons || ["Outros"]).map((r) => `<option>${esc(r)}</option>`).join("")}</select></label><label>Motivo<textarea name="reason" maxlength="1000" required></textarea></label><button class="primary">Enviar denúncia</button><p class="form-error" role="alert"></p></form>`,
   );
   dlg.querySelector("form").onsubmit = async (e) => {
     e.preventDefault();
@@ -116,7 +116,10 @@ export function report(kind, id) {
         body: {
           kind,
           target_id: id,
-          reason: new FormData(e.target).get("reason"),
+          reason:
+            (new FormData(e.target).get("category") || "Outros") +
+            ": " +
+            new FormData(e.target).get("reason"),
         },
       });
       dlg.close();
@@ -358,7 +361,7 @@ export async function detail(container, id) {
   container.innerHTML = `<a class="back-link" href="#/inicio">${icon("back", 18)} Voltar ao feed</a><div id="single-post">${card(item)}</div>`;
   bindCards(container.querySelector("#single-post"), [item]);
 }
-export function editor(kind = "post") {
+export function editor(kind = "post", groupId = null) {
   const moment = kind === "momento",
     draftKey = crypto.randomUUID(),
     files = [],
@@ -444,7 +447,13 @@ export function editor(kind = "post") {
           );
         media.push(uploaded.get(f.file).id);
       }
-      const body = { ...fields, media, idempotency: draftKey, kind };
+      const body = {
+        ...fields,
+        media,
+        idempotency: draftKey,
+        kind,
+        ...(groupId ? { group_id: groupId } : {}),
+      };
       await api("/posts", { method: "POST", body });
       state.cache.clear();
       dlg.close();
@@ -481,8 +490,12 @@ function stories(items, index = 0) {
     }
     const p = items[index];
     remaining = 8000;
-    holder.innerHTML = `<div class="story-progress">${items.map((_, i) => `<i class="${i < index ? "complete" : i === index ? "current" : ""}"></i>`).join("")}</div><a class="story-author" href="#/p/${p.author.id}">${avatar(p.author, BASE)}<span>${esc(p.author.name)}<small>${ago(p.createdAt)}</small></span></a><img class="story-photo" src="${BASE + p.media[0].url}" alt="Momento de ${esc(p.author.name)}"><p class="story-caption" style="color:${p.color || "#ffffff"}">${esc(p.text)}</p><button class="story-prev" aria-label="Momento anterior"></button><button class="story-next" aria-label="Próximo Momento"></button>`;
+    holder.innerHTML = `<div class="story-progress">${items.map((_, i) => `<i class="${i < index ? "complete" : i === index ? "current" : ""}"></i>`).join("")}</div><a class="story-author" href="#/p/${p.author.id}">${avatar(p.author, BASE)}<span>${esc(p.author.name)}<small>${ago(p.createdAt)}</small></span></a><button class="icon-btn story-report" aria-label="Denunciar Momento">${icon("flag", 18)}</button><img class="story-photo" src="${BASE + p.media[0].url}" alt="Momento de ${esc(p.author.name)}"><p class="story-caption" style="color:${p.color || "#ffffff"}">${esc(p.text)}</p><button class="story-prev" aria-label="Momento anterior"></button><button class="story-next" aria-label="Próximo Momento"></button>`;
     holder.querySelector("a").onclick = () => dlg.close();
+    holder.querySelector(".story-report").onclick = () => {
+      clearTimeout(timer);
+      report("post", p.id);
+    };
     holder.querySelector(".story-prev").onclick = () => {
       index--;
       show();

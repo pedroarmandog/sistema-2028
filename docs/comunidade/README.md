@@ -1,67 +1,44 @@
-# PetHub Comunidade — primeira entrega funcional, 0.1.0
+# PetHub Comunidade 0.2 — cadastro público e operação administrativa
 
-Esta entrega inicia a implementação por fases solicitada no documento. Inclui a fundação, o núcleo social, Momentos de foto e eventos básicos. Não representa a conclusão das cinco fases.
+Esta versão substitui a dependência de pet shops por contas públicas próprias e transforma o painel existente em uma central de operação. Mantém a mesma API Express, conexão Sequelize/TiDB, pasta `comunidade/` e endereço `/comunidade/admin.html`.
 
-## O que já foi implementado
+## Aplicativo público
 
-- Frontend independente em `comunidade/`, com Vite e JavaScript modular; CSS restrito ao novo aplicativo. Telas de boas-vindas, login, onboarding, feed, exploração, perfis, editor, eventos, configurações e administração.
-- Layout mobile com navegação flutuante; desktop com barra lateral, feed central e coluna de descoberta. Manrope local, fotos grandes, paleta laranja/marinho, tema claro/escuro/automático e modais centralizados.
-- Login pelas credenciais já existentes do PetHub Cliente, com sessão social própria em cookie HttpOnly. Nenhum token de autenticação vai ao localStorage.
-- Liberação inicial fechada: a plataforma deve habilitar a empresa e a conta de tutor. Revogação, suspensão, desativação do portal e mudança de versão da senha são verificadas pelo backend.
-- Perfil público do tutor e perfis opcionais dos seus pets existentes, com consentimento expresso e declaração de maioridade. Nenhum prontuário, documento, telefone ou endereço do ERP é publicado automaticamente.
-- Rede global entre participantes liberados de diferentes empresas. Vínculo de outro estabelecimento mediante comprovação de credenciais; nunca há união automática por nome, telefone ou e-mail.
-- Publicações de texto e até seis fotos; carrossel, ampliação, legenda, hashtag e visibilidade Comunidade/seguidores/só eu. Upload com progresso, validação dos bytes e reencodificação de imagem. Publicação com chave de idempotência para reenvio sem duplicar.
-- Feed paginado com cursor e rolagem incremental, seguidores, curtidas, retirada de curtida, comentários/respostas, salvos e compartilhamento de link. Atualização otimista da curtida é revertida quando a API falha.
-- Explorar com busca por nome, @, espécie, interesse, cidade e texto/hashtag; mais resultados por cursor. Os chips são termos de busca, não rankings editoriais ou recomendações por IA.
-- Momentos de uma foto e legenda, com duração de 24 horas validada no servidor, visualizador, navegação anterior/próximo, pausa ao pressionar e registro de visualização. A faixa mostra perfis seguidos e os próprios.
-- Eventos em locais públicos: criação mediante permissão da plataforma, edição, cancelamento, busca por cidade e confirmação/retirada de presença. Cancelamento notifica participantes e fica auditado.
-- Notificações internas de curtidas, comentários, seguidores e atualização de eventos. Consulta no acesso às páginas e a cada 45 segundos quando o app está visível; sem modificar notificações do ERP.
-- Denúncias, bloqueio bilateral, desbloqueio, suspensão, remoção administrativa e trilha de auditoria. Administração própria em `admin.html`, com allowlist de administradores da plataforma.
-- Exportação inicial de perfis/publicações/comentários sociais e solicitação de exclusão. A solicitação encerra sessões e oculta o conteúdo imediatamente; a eliminação física de arquivos e backups permanece uma operação pendente da plataforma.
-- PWA com manifest, ícones, escopo isolado e tela offline. O service worker não guarda respostas autenticadas, fotos de usuários ou escritas.
+- Cadastro gratuito por nome, @ único, e-mail único, senha e confirmação, termos e declaração de maioridade.
+- E-mail com token aleatório, expiração, uso único e reenvio. A confirmação depende de ação POST explícita: um scanner de links não confirma contas por GET.
+- Login somente com e-mail e senha da Comunidade, recuperação de senha e revogação de sessões após redefinição. Não há código de loja, convite de pet shop ou aprovação manual.
+- Conta não verificada não acessa feed, upload, comentários ou outros recursos protegidos. Perfis de contas não verificadas não entram na descoberta de outros usuários.
+- Onboarding opcional para foto, biografia, interesses e perfil; é possível continuar sem ter pet. Pets são cadastrados diretamente como perfis sociais, sem criar registros no ERP.
+- Publicações, fotos, curtidas, comentários/respostas, seguidores, salvos, busca, bloqueios e Momentos de foto por 24h preservados.
+- Comunidades temáticas públicas básicas: criar, buscar, participar/sair e publicar histórias no grupo. Criador permanece responsável. Posts de grupos ocultados deixam de ser servidos no feed.
+- Eventos e presença preservados; usuários públicos verificados podem criar eventos, sujeitos aos limites e configurações da plataforma.
+- Notificações internas e PWA preservados; sessões, worker e caches isolados dos outros aplicativos.
 
-O feed e os perfis não têm participantes, contadores ou publicações fictícias. A fotografia de boas-vindas é ilustrativa e não entra no feed.
+## Administração privada
 
-## Inspeção e integrações
+Nove seções: Visão geral, Participantes, Publicações, Denúncias, Comunidades, Eventos, Moderação, Estatísticas e Configurações.
 
-A inspeção foi feita sobre os arquivos locais disponíveis do `sistema-2028`, reunidos das entregas anteriores. Não houve acesso ao estado atual da branch main no GitHub nem ao servidor ou banco de produção. Alguns arquivos auxiliares do armazenamento compartilhado não estão presentes nessa cópia local; não foram inventados ou substituídos. A pré-verificação identifica essas dependências no seu checkout real.
+- Indicadores de cadastros, verificados/pendentes, ativos 7/30 dias, cadastros hoje/mês/semana, pets, posts, comentários de hoje, Momentos, grupos, eventos e sanções.
+- Atividade definida por requisição autenticada aceita no aplicativo, registrada no máximo uma vez por conta/dia de Brasília. Última atividade é atualizada com intervalo mínimo de cinco minutos. Não há indicador fictício de pessoas online.
+- Gráficos por 7/30/90/365 dias, com legendas interativas, pontos com valores e tabela acessível. Séries de cadastros, ativos, posts, curtidas, comentários, Momentos, seguidores e participações. Retorno observado em dois ou mais dias; não é retenção por coorte.
+- Participantes com busca por nome/@/e-mail, filtros de status, verificação, atividade e datas, paginação e detalhes com perfis, posts públicos, denúncias e sanções.
+- Denúncias com snapshot textual e referências das mídias, estados pendente/em análise/resolvida/rejeitada, revisão e decisão justificada. Advertência, suspensão temporária, bloqueio e ocultação ficam auditados.
+- Suspensão/bloqueio/exclusão encerram as sessões da conta. Reativação permite um novo login. Suspensões temporárias vencidas são encerradas automaticamente quando a conta tenta autenticar.
+- Administração de posts, Momentos, grupos e eventos com filtros, estado e motivo obrigatório; sem edição arbitrária de texto ou dados pessoais.
+- Configurações de regras, mensagens, interesses, motivos de denúncia, limites de fotos/texto/publicações e pausa de criação de grupos/eventos. Segredos não são editáveis no painel.
+- Sessão administrativa própria em cookie HttpOnly, validade de 12 horas e logout revogado no banco. Não usa a sessão pública nem exige guardar JWT no browser.
+- Papéis explícitos por allowlist: administrador geral e moderador. Moderador não consulta a lista de e-mails, estatísticas detalhadas ou configurações; pode analisar denúncias e suspender por até sete dias, sem bloqueio permanente ou restauração de conteúdo.
 
-A base observada utiliza Node/Express, Sequelize e modelos ERP existentes, autenticação própria do PetHub Cliente e o serviço `services/midias` para armazenamento permanente. O módulo reaproveita essas interfaces. Não cria servidor adicional nem troca de ORM. O frontend é compilado separadamente e pode ser servido pelo Express existente ou em domínio próprio.
+## O que permanece pendente
 
-| Parte existente | Integração |
-|---|---|
-| `backend/models` | Reutiliza a conexão Sequelize e consulta Empresa, Cliente e Pet |
-| `services/clientePortal/auth` | Valida a senha, o vínculo e a conta; sessão de prova temporária é revogada sem encerrar as sessões anteriores do tutor |
-| `services/midias` | Salva fotos no armazenamento privado existente e lê pelo servidor após autorização social |
-| `middleware/authAdmin` | Valida o administrador da plataforma; allowlist extra obrigatória para este módulo |
-| `backend/app.js` | Somente uma chamada `mount`, inserida pelo instalador antes do CORS e da injeção de scripts do ERP |
+Vídeos, chat privado, push social, menções/convites, destaques/reação em Momentos, mapas, perfis oficiais e análises avançadas continuam fora do estágio implementado anteriormente; não foram removidos de um módulo operacional nem apresentados como prontos. Grupos são públicos e básicos: não há aprovação de membros ou grupos privados.
 
-WhatsApp, fiscal, agenda e os estilos do ERP não foram alterados. Não houve teste integral desses módulos em produção; os testes desta entrega verificam as interfaces afetadas e preservação de dados ERP no laboratório.
+MFA administrativo, detecção avançada de fraude, exportação completa de mídia/interações, limpeza física automática, política de retenção definitiva e fluxo de comprovação de idade não estão implementados. As regras e o aceite são funcionais, mas não substituem publicar a política completa e canais de atendimento da plataforma.
 
-## Instalação no repositório existente
+O envio real de e-mail exige configurar o provedor. Sem configuração, a conta permanece não verificada e a interface informa que a mensagem não foi enviada. O app nunca confirma automaticamente e-mails para contornar essa pendência.
 
-1. Extraia o ZIP na raiz do seu `sistema-2028`, preservando as pastas. Ele contém apenas o módulo novo, o frontend, os testes e a documentação. Não substitui seu `backend/app.js` ou seu package.json da raiz por versões antigas.
-2. Confira o guia `INSTALACAO.md`. Instale as dependências ausentes, execute a pré-verificação, a migração e o instalador.
-3. Mantenha `COMMUNITY_ENABLED=false` até concluir a homologação. Depois habilite a flag e libere as primeiras contas no painel administrativo.
+## Instalar
 
-Os arquivos compilados em `comunidade/dist` acompanham o pacote para acesso em `/comunidade/`. Refaça o build se mudar o caminho base ou o endereço da API.
+Consulte `INSTALACAO.md`. A migração `002` é incremental e preserva a `001`, os registros sociais anteriores e as tabelas do ERP. Não utiliza reset ou `sync({alter:true})`.
 
-## Arquivos criados e alterações
-
-Criados: `backend/comunidade/`, `comunidade/`, `tests/comunidade/`, `tests/helpers/community-fixture.js` e `docs/comunidade/`. O adaptador SQLite de laboratório é incluído em `tests/helpers/whatsappSqlite.js` para testes reproduzíveis.
-
-Arquivos existentes do ERP que o instalador modifica: apenas `backend/app.js`, acrescentando a chamada de montagem e criando `backend/app.js.before-community`. Os demais modelos/controladores/rotas/serviços do ERP não são substituídos neste pacote. Dependências ausentes devem ser adicionadas ao package.json/lock atuais com npm, conforme o guia.
-
-Não execute `force`, reset de banco nem migrações destrutivas para instalar esta entrega.
-
-## Limites e próxima fase
-
-- “Para você” e “Recentes” usam a mesma ordem cronológica inicial. Não há recomendação personalizada nem ranking de relevância.
-- Momentos ainda não têm vídeo, stickers, áudio, destaques, reações ou lista visual de espectadores. Um Momento possui somente uma foto e legenda.
-- Comunidades temáticas, chat, diário, conquistas, perfis oficiais de pet shops, menções com notificação, mapas, geolocalização, campanhas e push social ainda não estão implementados.
-- A administração revisa denúncias e pode ocultar o conteúdo. Gestão de recursos, apelações, restauração, automação antispam, painel dedicado a moderadores e eliminação física de dados permanecem para evolução.
-- Declaração de maioridade não é verificação documental de idade. A política exibida é inicial; a plataforma precisa publicar seus termos, política completa e processo de atendimento de privacidade antes de abrir o serviço ao público.
-- Não há tarefa automática que apague arquivos de Momentos vencidos. Eles deixam de ser visíveis no servidor após 24 horas; retenção e limpeza física precisam de política própria, incluindo mídias compartilhadas e backups.
-- Banco e storage reais, instalação em Android/iOS, cookies no domínio final, acessibilidade completa e desempenho sob carga precisam de homologação. O Chromium deste ambiente não iniciou; os testes de interface executados foram de DOM, sem validação visual por screenshot.
-
-Detalhes de tabelas e endpoints: `ARQUITETURA.md`. Comandos e domínio: `INSTALACAO.md`. Evidências e limitações dos testes: `VALIDACAO.md`.
+A cópia local disponível continua sendo a versão reunida das entregas anteriores, não uma consulta à branch atual no GitHub. Não houve deploy ou acesso ao banco de produção. A pré-verificação identifica os arquivos técnicos compartilhados ausentes nessa cópia.

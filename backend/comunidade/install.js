@@ -4,7 +4,7 @@ const fs = require("node:fs"),
   path = require("node:path");
 const file = path.join(__dirname, "../app.js"),
   source = fs.readFileSync(file, "utf8");
-if (source.includes("require('./comunidade').mount")) {
+if (/require\(["']\.\/comunidade["']\)\.mount\s*\(/.test(source)) {
   console.log("Comunidade já integrada.");
   process.exit(0);
 }

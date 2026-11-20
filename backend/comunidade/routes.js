@@ -5,7 +5,7 @@ const express = require("express"),
   crypto = require("node:crypto"),
   { Op } = require("sequelize");
 const { hash } = require("./service");
-function routes(s, { env = process.env, adminAuth } = {}) {
+function routes(s, { env = process.env, adminAccounts } = {}) {
   const r = express.Router(),
     a = express.Router(),
     events = require("./events")(s),
@@ -60,7 +60,10 @@ function routes(s, { env = process.env, adminAuth } = {}) {
     res.set("Cache-Control", "private, no-store");
     res.set("X-Content-Type-Options", "nosniff");
     if (req.method === "OPTIONS") return res.sendStatus(204);
-    if (env.COMMUNITY_ENABLED !== "true")
+    if (
+      env.COMMUNITY_ENABLED !== "true" &&
+      !req.baseUrl.endsWith("/comunidade-admin")
+    )
       return res.status(503).json({
         erro: "A Comunidade ainda não está habilitada. Configure COMMUNITY_ENABLED=true na API.",
         codigo: "COMMUNITY_DISABLED",
@@ -69,9 +72,7 @@ function routes(s, { env = process.env, adminAuth } = {}) {
   };
   for (const router of [r, a]) {
     router.use(guard, cookies(), express.json({ limit: "256kb" }));
-    router.use(
-      require("../middleware/rateLimit")({ windowMs: 60000, max: 120 }),
-    );
+    router.use(require("./limits").limiter(env));
   }
   const csrf = (req, c) => {
     if (!["GET", "HEAD"].includes(req.method)) {
@@ -83,10 +84,51 @@ function routes(s, { env = process.env, adminAuth } = {}) {
         throw fail("Atualize o aplicativo para confirmar sua sessão.", 403);
     }
   };
+  const adminCookie = {
+    ...cookie,
+    path: "/api/comunidade-admin",
+    maxAge: 12 * 3600000,
+  };
+  const publicAuth = (name) =>
+    wrap(async (req) => {
+      await s.auth.limited(
+        "public-ip-" + name,
+        require("./limits").requestIP(req, env),
+        name === "login" ? 40 : 12,
+      );
+      return s.auth[name](req.body || {});
+    });
+  r.get(
+    "/public-config",
+    wrap(() => s.settings()),
+  );
+  for (const name of ["register", "verify", "resend", "forgot", "reset"])
+    r.post("/auth/" + name, publicAuth(name));
+  r.get(
+    "/auth/legacy",
+    wrap((req) =>
+      s.auth
+        .legacy(req.cookies.pethub_community)
+        .then((v) => ({ csrf: v.csrf })),
+    ),
+  );
+  r.post(
+    "/auth/upgrade",
+    wrap(async (req) => {
+      const legacy = await s.auth.legacy(req.cookies.pethub_community);
+      csrf(req, legacy);
+      return s.auth.upgrade(req.cookies.pethub_community, req.body);
+    }),
+  );
   r.post(
     "/login",
     wrap(async (req, res) => {
-      const v = await s.login(req.body);
+      await s.auth.limited(
+        "login-ip",
+        require("./limits").requestIP(req, env),
+        40,
+      );
+      const v = await s.login(req.body || {});
       res.cookie("pethub_community", v.raw, cookie);
       return { ok: true };
     }),
@@ -111,10 +153,6 @@ function routes(s, { env = process.env, adminAuth } = {}) {
       res.clearCookie("pethub_community", { ...cookie, maxAge: undefined });
       return { ok: true };
     }),
-  );
-  r.post(
-    "/accounts/link",
-    wrap((req) => s.linkAccount(req.community, req.body)),
   );
   r.post(
     "/profiles",
@@ -420,196 +458,146 @@ function routes(s, { env = process.env, adminAuth } = {}) {
       };
     }),
   );
-  // This is platform administration, never an ERP shop manager permission.
-  a.use((req, res, next) => {
-    if (!env.JWT_SECRET)
-      return res
-        .status(503)
-        .json({ erro: "Autenticação administrativa indisponível." });
-    adminAuth(req, res, next);
+  const groups = require("./groups")(s);
+  r.post(
+    "/onboarding/finish",
+    wrap(async (req) => {
+      await req.community.user.update({ onboarded_at: s.now() });
+      return { ok: true };
+    }),
+  );
+  r.get(
+    "/groups",
+    wrap((req) => groups.list(req.community, req.query)),
+  );
+  r.post(
+    "/groups",
+    wrap((req) => groups.create(req.community, req.body)),
+  );
+  r.put(
+    "/groups/:id/membership",
+    wrap((req) => groups.join(req.community, req.params.id, true)),
+  );
+  r.delete(
+    "/groups/:id/membership",
+    wrap((req) => groups.join(req.community, req.params.id, false)),
+  );
+  // Administration has its own opaque server session and explicit platform roles.
+  const adminAuth = require("./admin-auth")(s, { env, adminAccounts }),
+    admin = require("./admin")(s);
+  a.post(
+    "/login",
+    wrap(async (req, res) => {
+      const v = await adminAuth.login(
+        req.body || {},
+        require("./limits").requestIP(req, env),
+      );
+      res.cookie("pethub_community_admin", v.raw, adminCookie);
+      return { ok: true, csrf: v.csrf, role: v.role };
+    }),
+  );
+  a.use(async (req, res, next) => {
+    try {
+      req.communityAdmin = await adminAuth.context(
+        req.cookies.pethub_community_admin,
+      );
+      csrf(req, req.communityAdmin);
+      next();
+    } catch (e) {
+      next(e);
+    }
   });
-  a.use((req, res, next) => {
-    const allowed = (env.COMMUNITY_PLATFORM_ADMIN_IDS || "")
-      .split(",")
-      .map((v) => v.trim());
-    if (!req.adminId || !allowed.includes(String(req.adminId)))
-      return res
-        .status(403)
-        .json({ erro: "Administrador da plataforma não autorizado." });
-    next();
-  });
+  const onlyAdmin = (req, res, next) =>
+    req.communityAdmin.role === "admin"
+      ? next()
+      : res
+          .status(403)
+          .json({ erro: "Recurso exclusivo do administrador geral." });
   a.get(
-    "/companies",
-    wrap(async () => {
-      const companies = await s.ERP.Empresa.findAll({
-          attributes: ["id", "nome"],
-          limit: 200,
-        }),
-        grants = await m.Company.findAll();
-      return companies.map((c) => ({
-        id: c.id,
-        name: c.nome,
-        enabled: !!grants.find((g) => String(g.empresa_id) === String(c.id))
-          ?.enabled,
-      }));
-    }),
+    "/session",
+    wrap((req) => ({
+      id: req.communityAdmin.id,
+      name: req.communityAdmin.name,
+      role: req.communityAdmin.role,
+      csrf: req.communityAdmin.csrf,
+    })),
   );
-  a.put(
-    "/companies/:id",
-    wrap(async (req) => {
-      const id = Number(req.params.id);
-      if (
-        !Number.isSafeInteger(id) ||
-        !(await s.ERP.Empresa.findByPk(id)) ||
-        typeof req.body.enabled !== "boolean"
-      )
-        throw fail("Empresa inválida.");
-      await s.db.transaction(async (transaction) => {
-        await m.Company.upsert(
-          { empresa_id: id, enabled: req.body.enabled },
-          { transaction },
-        );
-        await s.audit(
-          req.adminId,
-          "company_access",
-          id,
-          { enabled: req.body.enabled },
-          transaction,
-        );
+  a.post(
+    "/logout",
+    wrap(async (req, res) => {
+      await m.AdminSession.destroy({
+        where: { id: req.communityAdmin.session.id },
+      });
+      res.clearCookie("pethub_community_admin", {
+        ...adminCookie,
+        maxAge: undefined,
       });
       return { ok: true };
     }),
   );
   a.get(
-    "/accounts/:company",
-    wrap(async (req) => {
-      const rows = await s.portal().auth.m.Conta.findAll({
-          where: { empresa_id: Number(req.params.company) },
-          attributes: ["id", "cliente_id", "email", "ativo"],
-          limit: 200,
-        }),
-        grants = await m.Link.findAll({
-          where: { empresa_id: Number(req.params.company) },
-        });
-      return rows.map((c) => ({
-        id: c.id,
-        email: c.email,
-        clientId: c.cliente_id,
-        enabled: !!grants.find((g) => g.conta_id === c.id)?.enabled,
-      }));
-    }),
-  );
-  a.put(
-    "/accounts/:id",
-    wrap(async (req) => {
-      const p = s.portal(),
-        account = await p.auth.m.Conta.findByPk(key(req.params.id));
-      if (!account || typeof req.body.enabled !== "boolean")
-        throw fail("Conta inválida.");
-      const [row] = await m.Link.findOrCreate({
-        where: { conta_id: account.id },
-        defaults: { empresa_id: account.empresa_id, enabled: false },
-      });
-      await s.db.transaction(async (transaction) => {
-        await row.update({ enabled: req.body.enabled }, { transaction });
-        await s.audit(
-          req.adminId,
-          "account_access",
-          row.conta_id,
-          { enabled: req.body.enabled },
-          transaction,
-        );
-      });
-      return { ok: true };
-    }),
+    "/overview",
+    wrap(() => admin.totals()),
   );
   a.get(
-    "/users",
-    wrap(async () => {
-      const users = await m.User.findAll({
-          limit: 100,
-          order: [["createdAt", "DESC"]],
-        }),
-        profiles = await m.Profile.findAll({ where: { kind: "tutor" } });
-      return users.map((u) => ({
-        id: u.id,
-        state: u.state,
-        role: u.role,
-        canEvents: u.can_events,
-        name:
-          profiles.find((p) => p.user_id === u.id)?.name ||
-          "Onboarding pendente",
-      }));
-    }),
+    "/stats",
+    onlyAdmin,
+    wrap((req) => admin.stats(req.query)),
   );
-  a.put(
-    "/users/:id",
-    wrap(async (req) => {
-      const user = await m.User.findByPk(key(req.params.id));
-      if (!user || user.state === "deleted")
-        throw fail("Conta indisponível.", 404);
-      const b = req.body;
-      if (
-        !["active", "suspended"].includes(b.state) ||
-        !["member", "moderator"].includes(b.role) ||
-        typeof b.canEvents !== "boolean"
-      )
-        throw fail("Estado inválido.");
-      await s.db.transaction(async (transaction) => {
-        await user.update(
-          { state: b.state, role: b.role, can_events: b.canEvents },
-          { transaction },
-        );
-        await s.audit(
-          req.adminId,
-          "user_access",
-          user.id,
-          { state: b.state, role: b.role, canEvents: b.canEvents },
-          transaction,
-        );
-      });
-      return { ok: true };
-    }),
+  a.get(
+    "/participants",
+    onlyAdmin,
+    wrap((req) => admin.participants(req.query)),
+  );
+  a.get(
+    "/participants/:id",
+    onlyAdmin,
+    wrap((req) => admin.participant(req.params.id)),
+  );
+  a.post(
+    "/participants/:id/action",
+    onlyAdmin,
+    wrap((req) => admin.sanction(req.communityAdmin, req.params.id, req.body)),
   );
   a.get(
     "/reports",
-    wrap(async () =>
-      m.Report.findAll({
-        where: { state: "open" },
-        limit: 100,
-        order: [["createdAt", "ASC"]],
-      }),
-    ),
+    wrap((req) => admin.reports(req.query)),
   );
   a.get(
-    "/reports/:id/content",
-    wrap(async (req) => {
-      const report = await m.Report.findByPk(key(req.params.id));
-      if (!report) throw fail("Denúncia indisponível.", 404);
-      const model = {
-          post: m.Post,
-          comment: m.Comment,
-          profile: m.Profile,
-          event: m.Event,
-        }[report.kind],
-        row = await model.findByPk(report.target_id);
-      if (!row) throw fail("Conteúdo indisponível.", 404);
-      const item = {
-        id: row.id,
-        kind: report.kind,
-        state: row.state,
-        text: row.text || row.bio || row.description || "",
-        name: row.name || row.title || "",
-        createdAt: row.createdAt,
-      };
-      if (report.kind === "post")
-        item.media = (
-          await m.PostMedia.findAll({
-            where: { post_id: row.id },
-            order: [["position", "ASC"]],
-          })
-        ).map((r) => r.media_id);
-      return item;
+    "/reports/:id",
+    wrap((req) => admin.reportDetail(req.params.id)),
+  );
+  a.post(
+    "/reports/:id/decision",
+    wrap((req) => {
+      const b = req.body;
+      if (
+        req.communityAdmin.role === "moderator" &&
+        (["block"].includes(b.action) ||
+          (b.action === "suspend" &&
+            new Date(b.until) > +s.now() + 7 * 86400000))
+      )
+        throw fail("Ação exclusiva do administrador geral.", 403);
+      return admin.decide(req.communityAdmin, req.params.id, b);
+    }),
+  );
+  a.get(
+    "/contents/post/:id/comments",
+    wrap((req) => admin.comments(req.params.id, req.query)),
+  );
+  a.get(
+    "/contents/:kind",
+    wrap((req) => admin.contents(req.params.kind, req.query)),
+  );
+  a.post(
+    "/moderate",
+    wrap((req) => {
+      if (
+        req.communityAdmin.role === "moderator" &&
+        req.body.state === "active"
+      )
+        throw fail("Restauração exclusiva do administrador geral.", 403);
+      return admin.moderate(req.communityAdmin, req.body);
     }),
   );
   a.get(
@@ -619,43 +607,41 @@ function routes(s, { env = process.env, adminAuth } = {}) {
       res.type(file.tipo).send(file.bytes);
     }),
   );
-  a.post(
-    "/moderate",
-    wrap(async (req) => {
-      const map = {
-          post: m.Post,
-          comment: m.Comment,
-          profile: m.Profile,
-          event: m.Event,
-        },
-        model = map[req.body.kind];
-      if (!model) throw fail("Tipo inválido.");
-      const row = await model.findByPk(key(req.body.id));
-      if (!row) throw fail("Conteúdo indisponível.", 404);
-      const reason = text(req.body.reason, 1000, true);
-      await s.db.transaction(async (transaction) => {
-        await row.update({ state: "removed" }, { transaction });
-        await m.Report.update(
-          { state: "resolved" },
-          { where: { target_id: row.id }, transaction },
-        );
-        await s.audit(
-          req.adminId,
-          "moderate_" + req.body.kind,
-          row.id,
-          { reason },
-          transaction,
-        );
-      });
-      return { ok: true };
-    }),
+  a.get(
+    "/moderation",
+    wrap((req) => admin.moderation(req.query)),
   );
   a.get(
     "/audit",
-    wrap(async () =>
-      m.Audit.findAll({ order: [["createdAt", "DESC"]], limit: 100 }),
+    wrap((req) =>
+      s
+        .page(m.Audit, {}, req.query)
+        .then((r) => ({ items: r.rows, next: r.next })),
     ),
   );
+  a.get(
+    "/settings",
+    onlyAdmin,
+    wrap(() => s.settings()),
+  );
+  a.put(
+    "/settings",
+    onlyAdmin,
+    wrap((req) => admin.saveSettings(req.communityAdmin, req.body)),
+  );
+  // Mutations invalidate this process's dashboard cache; DB remains source of truth.
+  for (const model of [
+    m.User,
+    m.Post,
+    m.Report,
+    m.Profile,
+    m.Event,
+    m.Group,
+    m.Activity,
+    m.Comment,
+  ])
+    for (const hook of ["afterCreate", "afterUpdate", "afterDestroy"])
+      model.addHook(hook, "community-admin-cache", () => admin.invalidate());
   function errors(e, req, res, next) {
     if (res.headersSent) return next(e);
     if (e.name === "SequelizeUniqueConstraintError")
@@ -665,13 +651,14 @@ function routes(s, { env = process.env, adminAuth } = {}) {
     const dbCode = e.original?.code || e.parent?.code;
     if (dbCode === "ER_NO_SUCH_TABLE" || e.original?.errno === 1146)
       return res.status(503).json({
-        erro: "A estrutura do aplicativo ainda não foi preparada. Execute a migração da Comunidade e confirme a instalação do PetHub Cliente.",
+        erro: "A estrutura da Comunidade ainda não foi preparada. Execute backend/comunidade/migrate.js para aplicar a migração 002.",
         codigo: "COMMUNITY_MIGRATION_REQUIRED",
       });
     res.status(e.status || 503).json({
       erro: e.status
         ? e.message
         : "Não foi possível concluir agora. Tente novamente.",
+      ...(e.code ? { codigo: e.code } : {}),
     });
   }
   r.use(errors);

@@ -32,8 +32,8 @@ module.exports = function events(s) {
     };
   }
   async function save(c, b, id) {
-    if (!c.user.can_events)
-      throw fail("A criação de eventos precisa de liberação.", 403);
+    if (!(await s.settings()).eventsEnabled)
+      throw fail("A criação de eventos está pausada pela plataforma.", 403);
     let row;
     if (id) {
       row = await m.Event.findOne({
@@ -41,6 +41,13 @@ module.exports = function events(s) {
       });
       if (!row) throw fail("Evento indisponível.", 404);
     }
+    if (
+      !id &&
+      (await m.Event.count({
+        where: { user_id: c.user.id, state: "active" },
+      })) >= 10
+    )
+      throw fail("Limite de dez eventos ativos por conta.");
     const p = s.ownProfile(c, key(b.profile_id)),
       date = new Date(b.startsAt);
     if (

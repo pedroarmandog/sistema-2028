@@ -1,4 +1,7 @@
 "use strict";
+try {
+  require("dotenv").config({ quiet: true });
+} catch {}
 // Read-only dependency inspection. Does not connect to the DB or print credentials.
 const fs = require("node:fs"),
   path = require("node:path");
@@ -9,7 +12,6 @@ for (const name of [
   "cookie-parser",
   "multer",
   "bcryptjs",
-  "jsonwebtoken",
   "sharp",
 ]) {
   try {
@@ -23,12 +25,8 @@ for (const name of [
   }
 }
 for (const name of [
-  "../services/clientePortal/auth.js",
-  "../services/clientePortal/modelos.js",
   "../services/midias/index.js",
   "../services/midias/armazenamento.js",
-  "../services/midias/validar.js",
-  "../middleware/authAdmin.js",
   "../models/index.js",
   "../../comunidade/dist/index.html",
 ]) {
@@ -53,4 +51,13 @@ if (errors) {
 } else
   console.log(
     "Dependências locais encontradas. A migração e o armazenamento ainda devem ser verificados no ambiente de homologação.",
+  );
+
+if (
+  !process.env.COMMUNITY_RESEND_API_KEY ||
+  !process.env.COMMUNITY_MAIL_FROM ||
+  !process.env.COMMUNITY_PUBLIC_URL
+)
+  console.warn(
+    "PENDENTE: configure COMMUNITY_RESEND_API_KEY, COMMUNITY_MAIL_FROM e COMMUNITY_PUBLIC_URL para o envio real de confirmação/recuperação. Nenhum valor secreto foi exibido.",
   );

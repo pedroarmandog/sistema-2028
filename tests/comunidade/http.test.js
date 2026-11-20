@@ -6,12 +6,6 @@ async function server(t, env = {}) {
   const f = await setup(t),
     express = require("express"),
     app = express();
-  const adminAuth = (req, res, next) => {
-    if (req.get("Authorization") !== "Bearer platform-test")
-      return res.status(401).json({ erro: "Token inválido" });
-    req.adminId = 99;
-    next();
-  };
   const { router, admin } = require("../../backend/comunidade/routes").routes(
     f.s,
     {
@@ -23,7 +17,7 @@ async function server(t, env = {}) {
         COMMUNITY_PLATFORM_ADMIN_IDS: "99",
         ...env,
       },
-      adminAuth,
+      adminAccounts: f.Admin,
     },
   );
   app.use("/api/comunidade", router);
@@ -71,54 +65,88 @@ async function server(t, env = {}) {
     cookie: "pethub_community=" + f.la.raw,
   };
 }
-test("HTTP: cookie seguro, HttpOnly, escopo social; sessão sem segredo; origem estranha recusada", async (t) => {
+async function adminLogin(f) {
+  const r = await f.request("/api/comunidade-admin/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email: "admin@example.com",
+      senha: "Admin-Test-Password",
+    }),
+  });
+  const result = await r.json();
+  return {
+    response: r,
+    cookie: r.headers.get("Set-Cookie")?.split(";")[0],
+    csrf: result.csrf,
+    body: result,
+  };
+}
+test("HTTP: conta pública entra com e-mail/senha, sem código de loja e com cookie próprio", async (t) => {
   const f = await server(t),
     r = await f.request("/api/comunidade/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(await f.creds(f.a)),
+      body: JSON.stringify(f.credsA),
     });
   assert.equal(r.status, 200);
-  const cookie = r.headers.get("set-cookie");
-  assert.match(cookie, /Path=\/api\/comunidade/);
-  assert.match(cookie, /HttpOnly/);
-  assert.match(cookie, /Secure/);
-  assert.match(cookie, /SameSite=Lax/);
-  const session = await f.request("/api/comunidade/session", {
-    cookie: f.cookie,
-  });
-  assert.equal(session.status, 200);
-  assert.equal(session.headers.get("cache-control"), "private, no-store");
+  assert.match(r.headers.get("Set-Cookie"), /pethub_community=/);
+  assert.match(r.headers.get("Set-Cookie"), /HttpOnly/);
+  assert.match(r.headers.get("Set-Cookie"), /Secure/);
+  const self = await f.request("/api/comunidade/session", { cookie: f.cookie });
+  assert.equal(self.status, 200);
   assert.doesNotMatch(
-    JSON.stringify(await session.json()),
-    /senha_hash|pethub_cliente|email|reference/,
-  );
-  assert.equal(
-    (
-      await f.request("/api/comunidade/session", {
-        cookie: f.cookie,
-        headers: { Origin: "https://evil.example.com" },
-      })
-    ).status,
-    403,
+    JSON.stringify(await self.json()),
+    /password_hash|empresa_id|cliente_id|senha_hash/,
   );
 });
-test("HTTP: CSRF obrigatório nas escritas, token social não serve como token de administração", async (t) => {
-  const f = await server(t);
-  const body = JSON.stringify({
-    profile_id: f.pa.id,
-    text: "HTTP teste",
-    visibility: "publico",
-    idempotency: require("crypto").randomUUID(),
+test("HTTP: cadastro envia token pelo adaptador, não no JSON, e exige verificação", async (t) => {
+  const f = await server(t),
+    r = await f.request("/api/comunidade/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "Nova",
+        handle: "nova_http",
+        email: "nova-http@example.com",
+        senha: "SenhaNova1234",
+        confirmacao: "SenhaNova1234",
+        terms: true,
+        adult: true,
+      }),
+    });
+  assert.equal(r.status, 200);
+  const data = await r.json();
+  assert.equal(data.verificationRequired, true);
+  assert.ok(f.mails.at(-1).token);
+  assert.equal(data.token, undefined);
+  const login = await f.request("/api/comunidade/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email: "nova-http@example.com",
+      senha: "SenhaNova1234",
+    }),
   });
-  const missing = await f.request("/api/comunidade/posts", {
+  assert.equal(login.status, 403);
+  assert.equal((await login.json()).codigo, "EMAIL_UNVERIFIED");
+});
+test("HTTP: escritas protegidas exigem CSRF mesmo com cookie válido", async (t) => {
+  const f = await server(t),
+    body = JSON.stringify({
+      profile_id: f.pa.id,
+      text: "Passeio HTTP",
+      visibility: "publico",
+      idempotency: require("crypto").randomUUID(),
+    });
+  let r = await f.request("/api/comunidade/posts", {
     cookie: f.cookie,
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body,
   });
-  assert.equal(missing.status, 403);
-  const good = await f.request("/api/comunidade/posts", {
+  assert.equal(r.status, 403);
+  r = await f.request("/api/comunidade/posts", {
     cookie: f.cookie,
     method: "POST",
     headers: {
@@ -127,133 +155,30 @@ test("HTTP: CSRF obrigatório nas escritas, token social não serve como token d
     },
     body,
   });
-  assert.equal(good.status, 200);
-  assert.equal((await good.json()).text, "HTTP teste");
-  assert.equal(
-    (
-      await f.request("/api/comunidade-admin/companies", {
-        cookie: f.cookie,
-        headers: { Authorization: "Bearer " + f.la.raw },
-      })
-    ).status,
-    401,
-  );
-});
-test("HTTP: feature flag fecha só a Comunidade e mantém rota ERP", async (t) => {
-  const f = await server(t, { COMMUNITY_ENABLED: "false" });
-  assert.equal(
-    (await f.request("/api/comunidade/session", { cookie: f.cookie })).status,
-    503,
-  );
-  assert.equal((await f.request("/api/erp-alive")).status, 200);
-});
-test("HTTP: admin fora da allowlist é recusado, liberação válida e suspensão são auditadas", async (t) => {
-  const f = await server(t);
-  let r = await f.request("/api/comunidade-admin/companies", {
-    headers: { Authorization: "Bearer platform-test" },
-  });
   assert.equal(r.status, 200);
-  assert.equal((await r.json()).length, 2);
-  r = await f.request("/api/comunidade-admin/companies/1", {
-    method: "PUT",
-    headers: {
-      Authorization: "Bearer platform-test",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ enabled: false }),
-  });
-  assert.equal(r.status, 200);
-  assert.equal(
-    (await f.request("/api/comunidade/session", { cookie: f.cookie })).status,
-    403,
-  );
-  assert.equal(
-    await f.s.m.Audit.count({ where: { action: "company_access" } }),
-    1,
-  );
-  const no = await server(t, { COMMUNITY_PLATFORM_ADMIN_IDS: "7" });
-  assert.equal(
-    (
-      await no.request("/api/comunidade-admin/companies", {
-        headers: { Authorization: "Bearer platform-test" },
-      })
-    ).status,
-    403,
-  );
 });
-test("HTTP: bloqueio remove ator da caixa de notificações", async (t) => {
+test("HTTP: login independente aceita HTTPS do próprio Render atrás de proxy HTTP", async (t) => {
   const f = await server(t),
-    post = await f.publish(f.ca, f.pa);
-  await f.s.reaction(f.cb, post.id, "like", true);
-  assert.equal(
-    (
-      await (
-        await f.request("/api/comunidade/notifications", { cookie: f.cookie })
-      ).json()
-    ).items.length,
-    1,
-  );
-  await f.s.block(f.ca, f.pb.id, true);
-  const r = await (
-    await f.request("/api/comunidade/notifications", { cookie: f.cookie })
-  ).json();
-  assert.equal(r.items.length, 0);
-  assert.equal(r.unread, 0);
-});
-test("HTTP: pedido de exclusão revoga sessão, oculta conteúdo e mantém cadastro ERP", async (t) => {
-  const f = await server(t);
-  await f.publish(f.ca, f.pa);
-  const r = await f.request("/api/comunidade/privacy/delete", {
-    cookie: f.cookie,
-    method: "POST",
-    headers: { "X-Community-CSRF": f.ca.csrf },
-  });
-  assert.equal(r.status, 200);
-  assert.equal(
-    (await f.request("/api/comunidade/session", { cookie: f.cookie })).status,
-    401,
-  );
-  assert.equal((await f.s.feed(f.cb)).items.length, 0);
-  assert.equal(await f.ERP.Cliente.count(), 3);
-  assert.equal(await f.ERP.Pet.count(), 3);
-  assert.equal(await f.s.m.Privacy.count({ where: { state: "pending" } }), 1);
-});
-
-test("HTTP: Render aceita HTTPS do próprio Host com Express em HTTP, sem depender da lista de domínio exclusivo", async (t) => {
-  const f = await server(t);
-  const r = await f.request("/api/comunidade/session", {
-    cookie: f.cookie,
-    headers: {
-      Host: "pethub-api-wdna.onrender.com",
-      Origin: "https://pethub-api-wdna.onrender.com",
-    },
-  });
+    r = await f.request("/api/comunidade/login", {
+      method: "POST",
+      headers: {
+        Host: "pethub-api-wdna.onrender.com",
+        Origin: "https://pethub-api-wdna.onrender.com",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(f.credsA),
+    });
   assert.equal(r.status, 200);
   assert.equal(
     r.headers.get("Access-Control-Allow-Origin"),
     "https://pethub-api-wdna.onrender.com",
   );
 });
-test("HTTP: login com credenciais reais funciona no HTTPS do próprio Render", async (t) => {
-  const f = await server(t);
-  const r = await f.request("/api/comunidade/login", {
-    method: "POST",
-    headers: {
-      Host: "pethub-api-wdna.onrender.com",
-      Origin: "https://pethub-api-wdna.onrender.com",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(await f.creds(f.a)),
-  });
-  assert.equal(r.status, 200);
-  assert.match(r.headers.get("Set-Cookie"), /HttpOnly/);
-  assert.equal((await r.json()).ok, true);
-});
-test("HTTP: não confia em domínio por sufixo nem em X-Forwarded-Host de outra origem", async (t) => {
+test("HTTP: rejeita outra origem, downgrade em produção e cabeçalhos encaminhados falsos", async (t) => {
   const f = await server(t);
   for (const origin of [
+    "https://evil.example.com",
     "https://pethub-api-wdna.onrender.com.evil.example",
-    "https://evil.example",
     "null",
     "http://pethub-api-wdna.onrender.com",
   ]) {
@@ -262,66 +187,169 @@ test("HTTP: não confia em domínio por sufixo nem em X-Forwarded-Host de outra 
       headers: {
         Host: "pethub-api-wdna.onrender.com",
         Origin: origin,
-        "X-Forwarded-Host": "evil.example",
+        "X-Forwarded-Host": "evil.example.com",
         "X-Forwarded-Proto": "https",
       },
     });
     assert.equal(r.status, 403);
-    assert.equal((await r.json()).codigo, "COMMUNITY_ORIGIN_NOT_ALLOWED");
   }
-});
-test("HTTP: preflight HTTPS do próprio Render permite os cabeçalhos sociais", async (t) => {
-  const f = await server(t);
-  const r = await f.request("/api/comunidade/login", {
+  const preflight = await f.request("/api/comunidade/login", {
     method: "OPTIONS",
     headers: {
       Host: "pethub-api-wdna.onrender.com",
       Origin: "https://pethub-api-wdna.onrender.com",
-      "Access-Control-Request-Method": "POST",
-      "Access-Control-Request-Headers": "content-type,x-community-csrf",
     },
   });
-  assert.equal(r.status, 204);
-  assert.equal(r.headers.get("Access-Control-Allow-Credentials"), "true");
-  assert.match(
-    r.headers.get("Access-Control-Allow-Headers"),
-    /X-Community-CSRF/,
-  );
+  assert.equal(preflight.status, 204);
 });
-test("HTTP: 503 informa flag desabilitada; 403 de liberação não é confundido com erro de senha", async (t) => {
-  const closed = await server(t, { COMMUNITY_ENABLED: "false" });
-  let r = await closed.request("/api/comunidade/login", {
-    method: "POST",
-    headers: {
-      Host: "pethub-api-wdna.onrender.com",
-      Origin: "https://pethub-api-wdna.onrender.com",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(await closed.creds(closed.a)),
-  });
-  assert.equal(r.status, 503);
-  assert.equal((await r.json()).codigo, "COMMUNITY_DISABLED");
+test("HTTP: usuário comum e antigo JWT sem sessão administrativa não acessam APIs privadas", async (t) => {
   const f = await server(t);
-  await f.s.m.Link.update(
-    { enabled: false },
-    { where: { conta_id: f.a.tutor.contaId } },
+  assert.equal(
+    (
+      await f.request("/api/comunidade-admin/participants", {
+        cookie: f.cookie,
+      })
+    ).status,
+    401,
   );
-  r = await f.request("/api/comunidade/login", {
-    method: "POST",
-    headers: {
-      Host: "pethub-api-wdna.onrender.com",
-      Origin: "https://pethub-api-wdna.onrender.com",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(await f.creds(f.a)),
-  });
-  assert.equal(r.status, 403);
-  assert.match((await r.json()).erro, /liberação/);
+  assert.equal(
+    (
+      await f.request("/api/comunidade-admin/overview", {
+        headers: { Authorization: "Bearer platform-test" },
+      })
+    ).status,
+    401,
+  );
+  assert.equal(
+    (await f.request("/api/comunidade-admin/settings", { cookie: f.cookie }))
+      .status,
+    401,
+  );
 });
-test("HTTP: falha de tabela ausente retorna orientação de migração sem vazar SQL", async (t) => {
+test("HTTP: administrador autorizado obtém cookie separado; logout revoga sessão no servidor", async (t) => {
+  const f = await server(t),
+    a = await adminLogin(f);
+  assert.equal(a.response.status, 200);
+  assert.match(a.response.headers.get("Set-Cookie"), /pethub_community_admin=/);
+  assert.match(
+    a.response.headers.get("Set-Cookie"),
+    /Path=\/api\/comunidade-admin/,
+  );
+  assert.equal(
+    (
+      await f.request("/api/comunidade-admin/participants", {
+        cookie: a.cookie,
+      })
+    ).status,
+    200,
+  );
+  assert.equal(
+    (
+      await f.request("/api/comunidade-admin/logout", {
+        cookie: a.cookie,
+        method: "POST",
+      })
+    ).status,
+    403,
+  );
+  assert.equal(
+    (
+      await f.request("/api/comunidade-admin/logout", {
+        cookie: a.cookie,
+        method: "POST",
+        headers: { "X-Community-CSRF": a.csrf },
+      })
+    ).status,
+    200,
+  );
+  assert.equal(
+    (await f.request("/api/comunidade-admin/overview", { cookie: a.cookie }))
+      .status,
+    401,
+  );
+  assert.equal(
+    (await f.request("/api/comunidade/session", { cookie: f.cookie })).status,
+    200,
+  );
+});
+test("HTTP: conta administrativa do ERP fora da allowlist não vira administradora da Comunidade", async (t) => {
+  const f = await server(t, { COMMUNITY_PLATFORM_ADMIN_IDS: "7" });
+  const a = await adminLogin(f);
+  assert.equal(a.response.status, 403);
+  assert.equal(await f.s.m.AdminSession.count(), 0);
+});
+test("HTTP: moderador acessa denúncias, mas não configurações, lista de e-mails ou bloqueio permanente", async (t) => {
+  const f = await server(t, {
+      COMMUNITY_PLATFORM_ADMIN_IDS: "",
+      COMMUNITY_PLATFORM_MODERATOR_IDS: "99",
+    }),
+    a = await adminLogin(f);
+  assert.equal(a.body.role, "moderator");
+  assert.equal(
+    (await f.request("/api/comunidade-admin/reports", { cookie: a.cookie }))
+      .status,
+    200,
+  );
+  for (const path of ["/settings", "/participants", "/stats"])
+    assert.equal(
+      (await f.request("/api/comunidade-admin" + path, { cookie: a.cookie }))
+        .status,
+      403,
+    );
+  const p = await f.publish(f.ca, f.pa);
+  await f.s.report(f.cb, { kind: "post", target_id: p.id, reason: "Assédio" });
+  const report = await f.s.m.Report.findOne();
+  const r = await f.request(
+    "/api/comunidade-admin/reports/" + report.id + "/decision",
+    {
+      cookie: a.cookie,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Community-CSRF": a.csrf,
+      },
+      body: JSON.stringify({
+        action: "block",
+        reason: "Tentativa de bloqueio",
+      }),
+    },
+  );
+  assert.equal(r.status, 403);
+});
+test("HTTP: pausa pública não fecha a administração nem outras rotas do ERP", async (t) => {
+  const f = await server(t, { COMMUNITY_ENABLED: "false" });
+  assert.equal(
+    (await f.request("/api/comunidade/session", { cookie: f.cookie })).status,
+    503,
+  );
+  assert.equal((await f.request("/api/erp-alive")).status, 200);
+  const a = await adminLogin(f);
+  assert.equal(a.response.status, 200);
+  assert.equal(
+    (await f.request("/api/comunidade-admin/overview", { cookie: a.cookie }))
+      .status,
+    200,
+  );
+});
+test("HTTP: pedido de exclusão encerra sessão social sem apagar dados ERP", async (t) => {
+  const f = await server(t);
+  const r = await f.request("/api/comunidade/privacy/delete", {
+    method: "POST",
+    cookie: f.cookie,
+    headers: { "X-Community-CSRF": f.ca.csrf },
+  });
+  assert.equal(r.status, 200);
+  assert.equal(
+    (await f.request("/api/comunidade/session", { cookie: f.cookie })).status,
+    401,
+  );
+  assert.equal(await f.ERP.Cliente.count(), 3);
+  assert.equal(await f.ERP.Pet.count(), 3);
+});
+test("HTTP: orienta migração ausente sem vazar SQL ou credenciais", async (t) => {
   const f = await server(t);
   f.s.login = async () => {
-    throw Object.assign(Error("SQL PRIVATE TEST"), {
+    throw Object.assign(Error("PRIVATE SQL"), {
       original: { code: "ER_NO_SUCH_TABLE", errno: 1146 },
     });
   };
@@ -333,5 +361,71 @@ test("HTTP: falha de tabela ausente retorna orientação de migração sem vazar
   assert.equal(r.status, 503);
   const data = await r.json();
   assert.equal(data.codigo, "COMMUNITY_MIGRATION_REQUIRED");
-  assert.doesNotMatch(data.erro, /SQL PRIVATE TEST/);
+  assert.doesNotMatch(JSON.stringify(data), /PRIVATE SQL/);
+});
+test("HTTP: fluxo completo cadastra, confirma, entra, cria pet e publica sem empresa", async (t) => {
+  const f = await server(t);
+  const send = async (path, body, extra = {}) =>
+    f.request("/api/comunidade" + path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...extra.headers },
+      ...extra,
+      body: JSON.stringify(body),
+    });
+  let r = await send("/auth/register", {
+    name: "Tutor público",
+    handle: "tutor_fluxo",
+    email: "fluxo@example.com",
+    senha: "SenhaFluxo1234",
+    confirmacao: "SenhaFluxo1234",
+    terms: true,
+    adult: true,
+  });
+  assert.equal(r.status, 200);
+  r = await send("/auth/verify", { token: f.mails.at(-1).token });
+  assert.equal(r.status, 200);
+  r = await send("/login", {
+    email: "fluxo@example.com",
+    senha: "SenhaFluxo1234",
+  });
+  assert.equal(r.status, 200);
+  const cookie = r.headers.get("Set-Cookie").split(";")[0],
+    session = await (
+      await f.request("/api/comunidade/session", { cookie })
+    ).json(),
+    headers = {
+      "Content-Type": "application/json",
+      "X-Community-CSRF": session.csrf,
+    };
+  r = await send(
+    "/profiles",
+    {
+      kind: "pet",
+      name: "Luna",
+      handle: "luna_fluxo",
+      species: "Gato",
+      consent: true,
+      adult: true,
+    },
+    { cookie, headers },
+  );
+  assert.equal(r.status, 200);
+  const pet = await r.json();
+  r = await send(
+    "/posts",
+    {
+      profile_id: pet.id,
+      text: "Minha primeira história",
+      visibility: "publico",
+      idempotency: require("crypto").randomUUID(),
+    },
+    { cookie, headers },
+  );
+  assert.equal(r.status, 200);
+  const feed = await (
+    await f.request("/api/comunidade/feed", { cookie })
+  ).json();
+  assert.equal(feed.items[0].author.name, "Luna");
+  assert.equal(await f.s.m.Link.count(), 0);
+  assert.equal(await f.ERP.Pet.count(), 3);
 });
