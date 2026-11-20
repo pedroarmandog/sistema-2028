@@ -1,44 +1,13 @@
-✔ preferência persiste por empresa, sessão/dispositivo e valida entradas/autorizações (101.165858ms)
-✔ servidor valida centavos, estoque acumulado, vínculos e soma dos pagamentos (23.277181ms)
-✔ quantidade fracionada e preço com separador de milhar não quebram cálculo ou validação (523.421438ms)
-✔ desconto individual por percentual não altera preço bruto nem é duplicado no blur (443.045777ms)
-✔ cliente sem telefone pode ser pesquisado e vinculado no classico (476.194456ms)
-✔ cliente sem telefone pode ser pesquisado e vinculado no rapido (469.624993ms)
-✔ busca de clientes aceita array e ignora resposta antiga; não inventa clientes se API falhar (413.264932ms)
-✔ carregamento esconde conteúdo desde o HTML e só revela o layout confirmado (457.153179ms)
-✔ erro de preferência não revela o clássico; nova tentativa aplica escolha da empresa (469.826284ms)
-✔ preferência clássico libera somente o clássico e remove estado de carregamento (375.31016ms)
-✔ troca mantém o mesmo carrinho, cliente, profissional e campos; clássico é padrão (402.952505ms)
-✔ leitor repetido incrementa, impede estoque acumulado e preserva quantidades fracionadas (597.650927ms)
-✔ atalhos, totais com descontos/acréscimo e seletores reais do layout (392.693719ms)
-✔ dinheiro/troco e F8 duplo usam uma venda e uma baixa de estoque (745.269799ms)
-✔ múltiplo recusa falta e aceita soma exata sem enviar venda parcial (747.500177ms)
-✔ seletor salva no servidor e muda sem descartar a venda; ESC pede confirmação (542.526311ms)
-✔ fechado bloqueia pagamento e falha de catálogo não introduz produtos de exemplo (414.043565ms)
-✔ busca seleciona primeiro resultado, setas mantêm foco e Enter confirma só destaque (544.629486ms)
-✔ botão fica antes do suporte inclusive montagem tardia; sem linha antiga (421.138508ms)
-✔ miniaturas reutilizam nome de arquivo, URL persistente e data URL; fallback e atualização no carrinho (394.724243ms)
-✔ Enter na quantidade confirma sem duplicar e retorna à busca; render não rouba foco de cliente/modal (476.165557ms)
-✔ Enter no pagamento adiciona valor uma vez e F8 conclui pelo fluxo original (1023.26941ms)
-✔ sem desconto, quantidade >1, frações e centavos seguem a regra compartilhada (23.925752ms)
-✔ desconto de item, geral percentual e em reais são discriminados sem duplicar (0.992464ms)
-✔ legado combinado ou geral isolado é distinguido pelos valores persistidos (0.93071ms)
-✔ total líquido não vira total pago: parcial, desconto integral e JSON histórico (0.829238ms)
-✔ formas mistas, parcelas, recebido e troco são lidos sem virar receita extra (1.783143ms)
-✔ reimpressão usa snapshot: preço, código, nome e unidade do produto não vêm do cadastro atual (1.920671ms)
-✔ Brasília explícita independe de TZ do servidor e respeita virada de data (1.049118ms)
-✔ PDF real contém valores/descontos corretos e pagina descrições longas sem corte horizontal (348.601531ms)
-✔ logo persistente é lida com empresa autenticada e payload antigo não substitui cadastro (62.2452ms)
-✔ remover logo usa PetHub imediatamente, sem cache nem imagem antiga de outra empresa (63.290293ms)
-✔ nomes antigos, data URLs, JPEG, WebP e SVG são normalizados sem distorção (135.475491ms)
-✔ PDFKit gera cupom e A4 reais com logo dentro da área reservada (60.779539ms)
-Fri, 20 Nov 2026 22:15:00 GMT router deprecated handlers that are Promise-like are deprecated, use a native Promise instead at ui-test-runtime/node_modules/router/lib/route.js:163:13
-✔ rotas reais de comprovante e faturamento incorporam logo da empresa e rejeitam documento cruzado (246.45333ms)
-ℹ tests 35
+✔ busca SQL não depende de collation e mantém produtos zerados da empresa (39.38374ms)
+✔ autocomplete mostra todos os resultados e preserva estoque zero em entradas (583.969867ms)
+✔ autocomplete mostra todos os resultados e preserva estoque zero em saidas (487.533997ms)
+✔ entrada permite produto zerado; saída bloqueia zerado e quantidade acumulada acima do saldo (1565.653638ms)
+✔ saída revalida estoque antes da finalização de um rascunho (475.145619ms)
+ℹ tests 5
 ℹ suites 0
-ℹ pass 35
+ℹ pass 5
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 10778.466454
+ℹ duration_ms 3649.949893

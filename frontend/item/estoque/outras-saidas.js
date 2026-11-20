@@ -1595,7 +1595,7 @@ function updateMaisFiltrosButtonIcon(btn, isOpen) {
     "chevron-icon fas " + (isOpen ? "fa-chevron-up" : "fa-chevron-down");
 }
 
-function adicionarItem() {
+async function adicionarItem() {
   // exigir que tipo de entrada esteja selecionado antes de adicionar
   const tipoEntradaEl = document.getElementById("tipoEntrada");
   if (!tipoEntradaEl || !String(tipoEntradaEl.value || "").trim()) {
@@ -1616,9 +1616,25 @@ function adicionarItem() {
     return;
   }
 
-  const quantidade = parseInt(quantidadeInput.value) || 1;
+  if (!selectedProduto || selectedProduto.id == null) { alert('Selecione um produto dos resultados da pesquisa.'); return; }
+  const quantidade = Number(String(quantidadeInput.value).replace(',', '.'));
+  if (!Number.isFinite(quantidade) || quantidade <= 0) { alert('Informe uma quantidade maior que zero.'); return; }
   const custo =
     parseFloat((custoInput.value || "0").toString().replace(",", ".")) || 0;
+
+  // Revalidar o saldo atual, incluindo todas as linhas do mesmo produto no rascunho.
+  const produtoId = String(selectedProduto.id), produtoNome = produtoInput.value;
+  try {
+    const resposta = await fetch('/api/itens/' + encodeURIComponent(produtoId), { credentials: 'include' });
+    if (!resposta.ok) throw new Error('Não foi possível consultar o estoque atual.');
+    const dado = await resposta.json(), atual = dado.produto || dado.item || dado;
+    if (String(atual.id) !== produtoId) throw new Error('Produto não encontrado.');
+    if (!selectedProduto || String(selectedProduto.id) !== produtoId || produtoInput.value !== produtoNome) return;
+    const saldoAtual = Number(atual.estoqueAtual ?? atual.estoque ?? 0) || 0;
+    const reservado = itensAdicionados.filter(i => String(i.id) === produtoId).reduce((n,i) => n + Number(i.quantidade || 0), 0);
+    selectedProduto.estoqueAtual = saldoAtual; estoqueInput.value = String(saldoAtual);
+    if (quantidade + reservado > saldoAtual + 1e-9) { alert('Estoque insuficiente para saída. Disponível: ' + Math.max(0, saldoAtual - reservado).toLocaleString('pt-BR')); return; }
+  } catch (e) { alert(e.message); return; }
 
   const novoItem = {
     id: selectedProduto && selectedProduto.id ? selectedProduto.id : Date.now(),
@@ -1652,6 +1668,7 @@ function adicionarItem() {
   estoqueInput.value = "";
   custoInput.value = "0,00";
   quantidadeInput.value = "1";
+  selectedProduto = null;
 
   console.log("✅ Item adicionado:", novoItem);
   // salvar rascunho no servidor (situação: Pendente)
@@ -2031,6 +2048,18 @@ async function finalizarEntrada() {
     }
     return;
   }
+
+  // Não finalizar um rascunho cujo estoque tenha mudado desde a inclusão.
+  try {
+    const quantidades = new Map();
+    itensAdicionados.forEach(i => quantidades.set(String(i.id), (quantidades.get(String(i.id)) || 0) + Number(i.quantidade || 0)));
+    for (const [id, quantidade] of quantidades) {
+      const response = await fetch('/api/itens/' + encodeURIComponent(id), { credentials: 'include' });
+      if (!response.ok) throw new Error('Não foi possível validar o estoque da saída.');
+      const dado = await response.json(), produto = dado.produto || dado.item || dado;
+      if (String(produto.id) !== id || quantidade > Number(produto.estoqueAtual ?? produto.estoque ?? 0) + 1e-9) throw new Error('Estoque insuficiente para finalizar a saída de ' + (produto.nome || id));
+    }
+  } catch(e) { alert(e.message); return; }
 
   // Persistir no servidor marcando como Finalizado
   (async () => {
@@ -3266,7 +3295,8 @@ function debounce(fn, wait) {
 
 function setupProdutoAutocomplete() {
   const input = document.getElementById("produtoItem");
-  if (!input) return;
+  if (!input || input.dataset.estoqueAutocomplete === '1') return;
+  input.dataset.estoqueAutocomplete = '1';
   const container = input.parentElement;
   if (container)
     container.style.position = container.style.position || "relative";
@@ -3283,21 +3313,18 @@ function setupProdutoAutocomplete() {
 
   // flag to avoid immediate reopen when an item is clicked
   let ignoreNextInputClick = false;
+  let buscaVersao = 0;
 
   async function fetchItems(q) {
-    try {
-      const res = await fetch("/api/itens?q=" + encodeURIComponent(q));
-      if (!res.ok) return [];
-      const data = await res.json();
-      return Array.isArray(data) ? data : [];
-    } catch (e) {
-      console.warn("Erro buscar itens", e);
-      return [];
-    }
+    const res = await fetch('/api/itens?q=' + encodeURIComponent(q), { credentials: 'include' });
+    if (!res.ok) throw new Error('Não foi possível carregar os produtos. Tente novamente.');
+    const data = await res.json();
+    if (!Array.isArray(data)) throw new Error('A API não retornou uma lista de produtos.');
+    return data;
   }
 
   const doSearch = debounce(async function () {
-    const q = input.value.trim();
+    const q = input.value.trim(), versao = ++buscaVersao;
     if (!q) {
       dropdown.innerHTML = "";
       dropdown.classList.remove("show");
@@ -3308,7 +3335,10 @@ function setupProdutoAutocomplete() {
     // garantir visibilidade
     dropdown.style.display = "block";
     dropdown.classList.add("show");
-    const items = await fetchItems(q);
+    let items;
+    try { items = await fetchItems(q); }
+    catch (e) { if (versao === buscaVersao) dropdown.textContent = e.message; return; }
+    if (versao !== buscaVersao || input.value.trim() !== q) return;
     dropdown.innerHTML = "";
     if (!items || items.length === 0) {
       dropdown.innerHTML = '<div class="item">Nenhum resultado</div>';
@@ -3320,13 +3350,17 @@ function setupProdutoAutocomplete() {
       const nome = it.nome || it.descricao || it.name || "";
       const codigo = it.codigo || it.id || "";
       el.innerHTML = `<div style="font-weight:600">${escapeHtml(nome)}</div><div style="font-size:12px;color:#666">${escapeHtml(String(codigo))}</div>`;
+      const estoque = Number(it.estoqueAtual ?? it.estoque ?? 0) || 0;
+      const saldo = document.createElement('div'); saldo.style.fontSize = '12px';
+      saldo.textContent = 'Estoque: ' + estoque.toLocaleString('pt-BR') + (estoque <= 0 ? ' · indisponível para saída' : '');
+      el.appendChild(saldo);
       el.addEventListener("click", function (e) {
         e.stopPropagation();
         selectedProduto = {
           id: it.id || it.codigo || it.ID || null,
           nome: nome,
           codigo: codigo,
-          estoqueAtual: it.estoqueAtual || it.estoque || null,
+          estoqueAtual: Number(it.estoqueAtual ?? it.estoque ?? 0) || 0,
         };
         input.value = nome;
         const estoqueInput = document.getElementById("estoqueItem");
@@ -3362,6 +3396,7 @@ function setupProdutoAutocomplete() {
 
   input.addEventListener("input", function (e) {
     selectedProduto = null;
+    buscaVersao++;
     doSearch();
   });
   input.addEventListener("click", function (e) {
@@ -3375,6 +3410,7 @@ function setupProdutoAutocomplete() {
   });
   document.addEventListener("click", function (e) {
     if (!container.contains(e.target)) {
+      buscaVersao++;
       dropdown.classList.remove("show");
       dropdown.style.display = "none";
     }

@@ -1630,7 +1630,9 @@ function adicionarItem() {
     return;
   }
 
-  const quantidade = parseInt(quantidadeInput.value) || 1;
+  if (!selectedProduto || selectedProduto.id == null) { alert('Selecione um produto dos resultados da pesquisa.'); return; }
+  const quantidade = Number(String(quantidadeInput.value).replace(',', '.'));
+  if (!Number.isFinite(quantidade) || quantidade <= 0) { alert('Informe uma quantidade maior que zero.'); return; }
   const custo =
     parseFloat((custoInput.value || "0").toString().replace(",", ".")) || 0;
 
@@ -1666,6 +1668,7 @@ function adicionarItem() {
   estoqueInput.value = "";
   custoInput.value = "0,00";
   quantidadeInput.value = "1";
+  selectedProduto = null;
 
   console.log("✅ Item adicionado:", novoItem);
   // salvar rascunho no servidor (situação: Pendente)
@@ -3329,7 +3332,8 @@ function debounce(fn, wait) {
 
 function setupProdutoAutocomplete() {
   const input = document.getElementById("produtoItem");
-  if (!input) return;
+  if (!input || input.dataset.estoqueAutocomplete === '1') return;
+  input.dataset.estoqueAutocomplete = '1';
   const container = input.parentElement;
   if (container)
     container.style.position = container.style.position || "relative";
@@ -3346,21 +3350,18 @@ function setupProdutoAutocomplete() {
 
   // flag to avoid immediate reopen when an item is clicked
   let ignoreNextInputClick = false;
+  let buscaVersao = 0;
 
   async function fetchItems(q) {
-    try {
-      const res = await fetch("/api/itens?q=" + encodeURIComponent(q));
-      if (!res.ok) return [];
-      const data = await res.json();
-      return Array.isArray(data) ? data : [];
-    } catch (e) {
-      console.warn("Erro buscar itens", e);
-      return [];
-    }
+    const res = await fetch('/api/itens?q=' + encodeURIComponent(q), { credentials: 'include' });
+    if (!res.ok) throw new Error('Não foi possível carregar os produtos. Tente novamente.');
+    const data = await res.json();
+    if (!Array.isArray(data)) throw new Error('A API não retornou uma lista de produtos.');
+    return data;
   }
 
   const doSearch = debounce(async function () {
-    const q = input.value.trim();
+    const q = input.value.trim(), versao = ++buscaVersao;
     if (!q) {
       dropdown.innerHTML = "";
       dropdown.classList.remove("show");
@@ -3371,7 +3372,10 @@ function setupProdutoAutocomplete() {
     // garantir visibilidade
     dropdown.style.display = "block";
     dropdown.classList.add("show");
-    const items = await fetchItems(q);
+    let items;
+    try { items = await fetchItems(q); }
+    catch (e) { if (versao === buscaVersao) dropdown.textContent = e.message; return; }
+    if (versao !== buscaVersao || input.value.trim() !== q) return;
     dropdown.innerHTML = "";
     if (!items || items.length === 0) {
       dropdown.innerHTML = '<div class="item">Nenhum resultado</div>';
@@ -3383,13 +3387,17 @@ function setupProdutoAutocomplete() {
       const nome = it.nome || it.descricao || it.name || "";
       const codigo = it.codigo || it.id || "";
       el.innerHTML = `<div style="font-weight:600">${escapeHtml(nome)}</div><div style="font-size:12px;color:#666">${escapeHtml(String(codigo))}</div>`;
+      const estoque = Number(it.estoqueAtual ?? it.estoque ?? 0) || 0;
+      const saldo = document.createElement('div'); saldo.style.fontSize = '12px';
+      saldo.textContent = 'Estoque: ' + estoque.toLocaleString('pt-BR');
+      el.appendChild(saldo);
       el.addEventListener("click", function (e) {
         e.stopPropagation();
         selectedProduto = {
           id: it.id || it.codigo || it.ID || null,
           nome: nome,
           codigo: codigo,
-          estoqueAtual: it.estoqueAtual || it.estoque || null,
+          estoqueAtual: Number(it.estoqueAtual ?? it.estoque ?? 0) || 0,
         };
         input.value = nome;
         const estoqueInput = document.getElementById("estoqueItem");
@@ -3425,6 +3433,7 @@ function setupProdutoAutocomplete() {
 
   input.addEventListener("input", function (e) {
     selectedProduto = null;
+    buscaVersao++;
     doSearch();
   });
   input.addEventListener("click", function (e) {
@@ -3438,6 +3447,7 @@ function setupProdutoAutocomplete() {
   });
   document.addEventListener("click", function (e) {
     if (!container.contains(e.target)) {
+      buscaVersao++;
       dropdown.classList.remove("show");
       dropdown.style.display = "none";
     }

@@ -1,2210 +1,519 @@
---- /dev/null
-+++ b/frontend/components/venda-calculos.js
-@@ -0,0 +1,75 @@
-+/* Cálculos compartilhados pelo caixa e pela leitura de comprovantes. Sem acesso a cadastros. */
-+(function (root, factory) {
-+  if (typeof module === "object" && module.exports) module.exports = factory();
-+  else root.PetHubCalculos = factory();
-+})(typeof window === "object" ? window : globalThis, function () {
-+  "use strict";
-+  function decimal(valor) {
-+    let s = String(valor ?? 0)
-+      .trim()
-+      .replace(/R\$|\s/g, "");
-+    if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
-+    if (/e/i.test(s)) s = Number(s).toFixed(8);
-+    if (!/^-?\d*(\.\d*)?$/.test(s) || !/\d/.test(s))
-+      throw Error("Valor numérico inválido.");
-+    const negativo = s.startsWith("-");
-+    s = s.replace("-", "");
-+    const [a, b = ""] = s.split(".");
-+    return { n: BigInt((a || "0") + b), d: 10n ** BigInt(b.length), negativo };
-+  }
-+  function arredondar(n, d) {
-+    return (n + d / 2n) / d;
-+  }
-+  function centavos(v) {
-+    const x = decimal(v);
-+    const n = Number(arredondar(x.n * 100n, x.d));
-+    if (!Number.isSafeInteger(n)) throw Error("Valor fora do limite.");
-+    return x.negativo ? -n : n;
-+  }
-+  function multiplicar(centavos, quantidade) {
-+    const q = decimal(quantidade);
-+    const n = Number(arredondar(BigInt(Math.abs(centavos)) * q.n, q.d));
-+    return centavos < 0 !== q.negativo ? -n : n;
-+  }
-+  function percentual(base, p) {
-+    const x = decimal(p);
-+    return (
-+      Number(arredondar(BigInt(Math.abs(base)) * x.n, x.d * 100n)) *
-+      (x.negativo ? -1 : 1)
-+    );
-+  }
-+  function calcularItem(qtd, unitario, desconto = 0) {
-+    const bruto = multiplicar(centavos(unitario), qtd),
-+      desc = percentual(bruto, desconto);
-+    return {
-+      totalBruto: bruto / 100,
-+      descontoValor: desc / 100,
-+      totalFinal: (bruto - desc) / 100,
-+    };
-+  }
-+  function calcularTotais(itens, c = {}) {
-+    const bruto = itens.reduce((n, i) => n + centavos(i.totalBruto), 0),
-+      liquido = itens.reduce((n, i) => n + centavos(i.totalFinal), 0);
-+    const acrescimo =
-+      Number(c.acrescimoPercent) > 0
-+        ? percentual(liquido, c.acrescimoPercent)
-+        : centavos(c.acrescimoValor || 0);
-+    const descontoGeral =
-+      Number(c.descontoPercent) > 0
-+        ? percentual(liquido, c.descontoPercent)
-+        : centavos(c.descontoValor || 0);
-+    const arredondamento = centavos(c.arredondamento || 0),
-+      final = Math.max(0, liquido + acrescimo - descontoGeral + arredondamento);
-+    return {
-+      versaoCalculo: 2,
-+      bruto: bruto / 100,
-+      descontoItens: (bruto - liquido) / 100,
-+      descontoGeral: descontoGeral / 100,
-+      desconto: (bruto - liquido + descontoGeral) / 100,
-+      acrescimo: acrescimo / 100,
-+      arredondamento: arredondamento / 100,
-+      final: final / 100,
-+    };
-+  }
-+  return { centavos, multiplicar, percentual, calcularItem, calcularTotais };
-+});
---- a/frontend/atendimento/nova-venda.js
-+++ b/frontend/atendimento/nova-venda.js
-@@ -564,14 +564,10 @@
-   // Função para calcular total do item (global para ser acessível)
-   window.calcularTotalItem = function () {
-     const qtd = parseFloat(quantidade.value) || 0;
--    const valor = parseFloat(valorUnitario.value.replace(",", ".")) || 0;
--    const desc = parseFloat(descontoPercent.value) || 0;
--
--    let total = qtd * valor;
--
--    if (desc > 0) {
--      total = total - (total * desc) / 100;
+--- a/backend/routes/itemRoutes.js
++++ b/backend/routes/itemRoutes.js
+@@ -57,14 +57,8 @@
+     // Construir condições dinamicamente para suportar combinações
+     const andConditions = [];
+ 
+-    if (q) {
+-      andConditions.push({
+-        [Op.or]: [
+-          { nome: { [Op.like]: `%${q}%` } },
+-          { codigo: { [Op.like]: `%${q}%` } },
+-        ],
+-      });
 -    }
-+    const valor = window.PetHubCalculos.centavos(valorUnitario.value || 0) / 100;
-+    const desc = parseFloat(descontoPercent.value.replace(",", ".")) || 0;
-+
-+    const total = window.PetHubCalculos.calcularItem(qtd, valor, desc).totalFinal;
++    const busca = require('../services/buscaItens').condicaoBuscaItens(q);
++    if (busca) andConditions.push(busca);
  
-     totalValue.textContent = total.toLocaleString("pt-BR", {
-       minimumFractionDigits: 2,
-@@ -590,8 +586,8 @@
-   // Função para adicionar item à lista
-   async function adicionarItem() {
-     const qtd = parseFloat(quantidade.value) || 0;
--    const valor = parseFloat(valorUnitario.value.replace(",", ".")) || 0;
--    const desc = parseFloat(descontoPercent.value) || 0;
-+    const valor = window.PetHubCalculos.centavos(valorUnitario.value || 0) / 100;
-+    const desc = parseFloat(descontoPercent.value.replace(",", ".")) || 0;
-     const produtoNome = document.getElementById("pesquisarProduto").value;
- 
-     console.log("➕ Tentando adicionar item:", {
-@@ -601,7 +597,7 @@
-       produtoNome,
-     });
- 
--    if (qtd <= 0 || valor <= 0) {
-+    if (qtd <= 0 || valor <= 0 || desc < 0 || desc > 100) {
-       mostrarNotificacao(
-         "error",
-         "Por favor, informe quantidade e valor válidos.",
-@@ -659,7 +655,7 @@
-       }
-     }
- 
--    const totalBruto = qtd * valor;
-+    const totalBruto = window.PetHubCalculos.calcularItem(qtd, valor, desc).totalBruto;
-     const totalFinal = calcularTotalItem();
- 
-     const item = {
-@@ -715,8 +711,7 @@
-         mostrarNotificacao('warning', 'Quantidade não disponível no estoque.'); return false;
-       }
-       item.quantidade = qtd;
--      item.totalBruto = qtd * item.valorUnitario;
--      item.totalFinal = Number((item.totalBruto * (1 - item.desconto / 100)).toFixed(2));
-+      Object.assign(item, window.PetHubCalculos.calcularItem(qtd, item.valorUnitario, item.desconto));
-       renderizarItens(); atualizarTotaisGerais(); return true;
-     },
-     remover: id => window.removerItem(id),
-@@ -826,7 +821,7 @@
-     });
-     valorUnitario.addEventListener("blur", function () {
-       // Formatar valor ao sair do campo
--      const valor = parseFloat(this.value.replace(",", ".")) || 0;
-+      const valor = window.PetHubCalculos.centavos(this.value || 0) / 100;
-       this.value = valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
-     });
-   }
-@@ -869,148 +864,18 @@
-   console.log("✅ Event listeners de Enter configurados");
- 
-   // Função para calcular porcentagem de desconto baseada no valor original vs atual
--  function calcularPorcentagemDesconto() {
--    const produtoNome = document
--      .getElementById("pesquisarProduto")
--      .value.trim();
--    if (!produtoNome) return;
--
--    const produtosSistema = carregarProdutosDoSistema();
--    const produtoEncontrado = produtosSistema.find(
--      (p) => p.nome.toLowerCase() === produtoNome.toLowerCase(),
--    );
--
--    if (produtoEncontrado) {
--      const precoOriginal = produtoEncontrado.preco;
--      const valorAtual =
--        parseFloat(
--          document.getElementById("valorUnitario").value.replace(",", "."),
--        ) || 0;
--
--      if (precoOriginal > 0 && valorAtual > 0 && valorAtual !== precoOriginal) {
--        // Calcular porcentagem de diferença
--        const percentual = ((precoOriginal - valorAtual) / precoOriginal) * 100;
--
--        // Atualizar campo de porcentagem automaticamente
--        document.getElementById("descontoPercent").value =
--          Math.abs(percentual).toFixed(2);
--
--        // Mostrar indicador visual se é desconto ou acréscimo
--        const descontoField = document.getElementById("descontoPercent");
--        if (percentual > 0) {
--          // É desconto (valor atual menor que original)
--          descontoField.style.color = "#28a745"; // Verde para desconto
--          descontoField.title = `Desconto de ${percentual.toFixed(2)}% em relação ao preço original (R$ ${precoOriginal.toFixed(2)})`;
--        } else {
--          // É acréscimo (valor atual maior que original)
--          descontoField.style.color = "#ffc107"; // Amarelo para acréscimo
--          descontoField.title = `Acréscimo de ${Math.abs(percentual).toFixed(2)}% em relação ao preço original (R$ ${precoOriginal.toFixed(2)})`;
--        }
--
--        // Atualizar total
--        calcularTotalItem();
--
--        console.log(
--          `📊 Preço original: R$ ${precoOriginal.toFixed(2)} | Preço atual: R$ ${valorAtual.toFixed(2)} | Diferença: ${percentual.toFixed(2)}%`,
--        );
--      } else {
--        // Limpar porcentagem se valores forem iguais
--        document.getElementById("descontoPercent").value = "";
--        document.getElementById("descontoPercent").style.color = "";
--        document.getElementById("descontoPercent").title = "";
--      }
--    }
--  }
--
--  // Função para calcular valor final quando porcentagem for aplicada
--  function calcularValorFinalComDesconto() {
--    const produtoNome = document
--      .getElementById("pesquisarProduto")
--      .value.trim();
--    const percentualDesconto =
--      parseFloat(document.getElementById("descontoPercent").value) || 0;
--
--    if (!produtoNome || percentualDesconto === 0) return;
--
--    const produtosSistema = carregarProdutosDoSistema();
--    const produtoEncontrado = produtosSistema.find(
--      (p) => p.nome.toLowerCase() === produtoNome.toLowerCase(),
--    );
--
--    if (produtoEncontrado) {
--      const precoOriginal = produtoEncontrado.preco;
--
--      // Calcular novo valor com desconto/acréscimo aplicado
--      let valorFinal;
--      const descontoField = document.getElementById("descontoPercent");
--
--      // Verificar se é desconto ou acréscimo baseado na cor do campo
--      if (
--        descontoField.style.color === "rgb(40, 167, 69)" ||
--        !descontoField.style.color
--      ) {
--        // Verde = desconto ou campo neutro = assumir desconto
--        valorFinal = precoOriginal - (precoOriginal * percentualDesconto) / 100;
--      } else {
--        // Amarelo = acréscimo
--        valorFinal = precoOriginal + (precoOriginal * percentualDesconto) / 100;
--      }
--
--      // Garantir que valor final seja positivo
--      valorFinal = Math.max(0, valorFinal);
--
--      // Atualizar campo valor unitário
--      document.getElementById("valorUnitario").value =
--        valorFinal.toLocaleString("pt-BR", {
--          minimumFractionDigits: 2,
--          maximumFractionDigits: 2,
--        });
--
--      // Atualizar total
--      calcularTotalItem();
--
--      // Feedback visual no campo de desconto
--      descontoField.style.backgroundColor = "#f0f8f0";
--      setTimeout(() => {
--        descontoField.style.backgroundColor = "";
--      }, 1000);
--
--      console.log(
--        `💰 ${percentualDesconto}% aplicado | Preço original: R$ ${precoOriginal.toFixed(2)} | Valor final: R$ ${valorFinal.toFixed(2)}`,
--      );
--    } else {
--      // Se produto não encontrado, aplicar desconto no valor atual
--      const valorAtual =
--        parseFloat(
--          document.getElementById("valorUnitario").value.replace(",", "."),
--        ) || 0;
--      if (valorAtual > 0) {
--        const valorComDesconto =
--          valorAtual - (valorAtual * percentualDesconto) / 100;
--        const valorFinal = Math.max(0, valorComDesconto);
--
--        document.getElementById("valorUnitario").value =
--          valorFinal.toLocaleString("pt-BR", {
--            minimumFractionDigits: 2,
--            maximumFractionDigits: 2,
--          });
--
--        calcularTotalItem();
--        console.log(
--          `💰 Desconto aplicado no valor atual: ${percentualDesconto}% | R$ ${valorAtual.toFixed(2)} → R$ ${valorFinal.toFixed(2)}`,
--        );
--      }
--    }
--  }
--
--  // Função para validar estoque em tempo real
--  function validarEstoqueEmTempoReal() {
-+  function calcularPorcentagemDesconto() { calcularTotalItem(); }
-+  // O preço unitário é bruto. O percentual é aplicado uma única vez ao total do item.
-+  function calcularValorFinalComDesconto() { calcularTotalItem(); }
-+
-+  async function validarEstoqueEmTempoReal() {
-     const qtd = parseFloat(document.getElementById("quantidade").value) || 0;
-     const produtoNome = document.getElementById("pesquisarProduto").value;
- 
-     if (!produtoNome.trim() || qtd === 0) return;
- 
--    const produtosSistema = carregarProdutosDoSistema();
-+    const produtosSistema = await carregarProdutosDoSistema();
-+    if (document.getElementById("pesquisarProduto").value !== produtoNome || Number(document.getElementById("quantidade").value) !== qtd) return;
-     const produtoEncontrado = produtosSistema.find(
-       (p) => p.nome === produtoNome,
-     );
-@@ -1019,7 +884,7 @@
-       const estoqueDisponivel = produtoEncontrado.estoqueAtual || 0;
-       const quantidadeField = document.getElementById("quantidade");
- 
--      if (qtd > estoqueDisponivel) {
-+      if (qtd > estoqueDisponivel && !produtoEncontrado.permiteEstoqueNegativo) {
-         // Destacar campo em vermelho
-         quantidadeField.style.borderColor = "#dc3545";
-         quantidadeField.style.backgroundColor = "#fff5f5";
-@@ -1168,7 +1033,7 @@
-             valorUnitario: parseFloat(item.valorUnitario || item.preco || 0),
-             desconto: parseFloat(item.desconto || 0),
-             totalBruto: parseFloat(item.totalBruto || 0),
--            totalFinal: parseFloat(item.totalFinal || item.total || 0),
-+            totalFinal: parseFloat(item.totalFinal ?? item.total ?? 0),
-           });
-         });
-         renderizarItens();
-@@ -1952,7 +1817,7 @@
-         itens: [...itensVenda],
-         totais: { ...totais },
-         pagamentos: [],
--        totalPago: totais.final || 0,
-+        totalPago: 0,
-         status: "pendente",
-       };
-       const vendaCriada = await ApiClient.criarVenda(dadosPendente);
-@@ -2177,15 +2042,15 @@
-       return;
-     }
- 
--    const acrescimoPercent = parseFloat(acrescimoPercentInput.value) || 0;
-+    const acrescimoPercent = parseFloat(acrescimoPercentInput.value.replace(",", ".")) || 0;
-     const acrescimoValor =
--      parseFloat(acrescimoValorInput.value.replace(",", ".")) || 0;
-+      window.PetHubCalculos.centavos(acrescimoValorInput.value || 0) / 100;
-     const descontoGeralPercent =
--      parseFloat(descontoGeralPercentInput.value) || 0;
-+      parseFloat(descontoGeralPercentInput.value.replace(",", ".")) || 0;
-     const descontoGeralValor =
--      parseFloat(descontoGeralValorInput.value.replace(",", ".")) || 0;
-+      window.PetHubCalculos.centavos(descontoGeralValorInput.value || 0) / 100;
-     const arredondamentoValor =
--      parseFloat(arredondamentoInput.value.replace(",", ".")) || 0;
-+      window.PetHubCalculos.centavos(arredondamentoInput.value || 0) / 100;
- 
-     console.log("📊 Valores dos campos:", {
-       acrescimoPercent,
-@@ -2195,50 +2060,10 @@
-       arredondamentoValor,
-     });
- 
--    // Calcular total bruto dos itens
--    const brutoOriginal = itensVenda.reduce((n,i) => n + i.totalBruto, 0);
--    const totalBruto = itensVenda.reduce((n,i) => n + i.totalFinal, 0);
--    console.log("💰 Total bruto calculado:", totalBruto);
--
--    // Aplicar acréscimos
--    let valorAcrescimo = 0;
--    if (acrescimoPercent > 0) {
--      valorAcrescimo = totalBruto * (acrescimoPercent / 100);
--      console.log("📈 Acréscimo %:", acrescimoPercent, "% =", valorAcrescimo);
--    } else if (acrescimoValor > 0) {
--      valorAcrescimo = acrescimoValor;
--      console.log("📈 Acréscimo R$:", valorAcrescimo);
--    }
--
--    // Aplicar descontos
--    let valorDesconto = 0;
--    if (descontoGeralPercent > 0) {
--      valorDesconto = totalBruto * (descontoGeralPercent / 100);
--      console.log("📉 Desconto %:", descontoGeralPercent, "% =", valorDesconto);
--    } else if (descontoGeralValor > 0) {
--      valorDesconto = descontoGeralValor;
--      console.log("📉 Desconto R$:", valorDesconto);
--    }
--
--    // Calcular total final
--    let totalFinal =
--      totalBruto + valorAcrescimo - valorDesconto + arredondamentoValor;
--
--    // Garantir que não seja negativo
--    if (totalFinal < 0) {
--      totalFinal = 0;
--    }
--
--    console.log("🎯 RESULTADO FINAL:", {
--      totalBruto,
--      valorAcrescimo,
--      valorDesconto,
--      arredondamentoValor,
--      totalFinal,
--    });
--
--    // Atualizar elementos na tela
--    totais = { bruto: Number(brutoOriginal.toFixed(2)), desconto: Number((brutoOriginal - totalBruto + valorDesconto).toFixed(2)), acrescimo: Number(valorAcrescimo.toFixed(2)), arredondamento: arredondamentoValor, final: Number(totalFinal.toFixed(2)) };
-+    totais = window.PetHubCalculos.calcularTotais(itensVenda, {
-+      acrescimoPercent, acrescimoValor, descontoPercent: descontoGeralPercent,
-+      descontoValor: descontoGeralValor, arredondamento: arredondamentoValor,
-+    });
-     atualizarElementosTotais(totais.bruto, totais.desconto, totais.acrescimo, totais.final);
-     document.dispatchEvent(new Event('pethub:venda-atualizada'));
-   } catch (error) {
-@@ -2394,7 +2219,7 @@
-             valorUnitario: valor,
-             desconto: s.desconto || 0,
-             totalBruto: totalBruto,
--            totalFinal: parseFloat(s.totalFinal || s.total || totalBruto),
-+            totalFinal: parseFloat(s.totalFinal ?? s.total ?? totalBruto),
-           };
-         });
-       }
---- a/frontend/atendimento/nova-venda.html
-+++ b/frontend/atendimento/nova-venda.html
-@@ -1362,7 +1362,8 @@
-     <!-- API Client -->
-     <script src="../api/api-client.js"></script>
-     <!-- Script do menu (copiar para sua página) -->
--    <script src="./nova-venda.js?v=20261120-clientes4"></script>
-+    <script src="../components/venda-calculos.js?v=20261120-auditoria1"></script>
-+    <script src="./nova-venda.js?v=20261120-auditoria5"></script>
-     <script src="./caixa-rapido.js?v=20261120-loading3"></script>
-     <!-- Script global do calendário (copia do dashboard) -->
-     <script src="../novo-atendimento-global.js"></script>
---- a/frontend/agendamento-detalhes.html
-+++ b/frontend/agendamento-detalhes.html
-@@ -1704,7 +1704,8 @@
-     <!-- Script do menu (copiar para sua página) -->
-     <!-- Modal de pagamento (reutilizado de nova-venda) -->
-     <script src="./api/api-client.js"></script>
--    <script src="../atendimento/nova-venda.js"></script>
-+    <script src="/components/venda-calculos.js?v=20261120-auditoria1"></script>
-+    <script src="/atendimento/nova-venda.js?v=20261120-auditoria5"></script>
-     <script src="./agendamento-detalhes.js"></script>
-     <!-- Script global do calendário (copia do dashboard) -->
-     <script src="../novo-atendimento-global.js"></script>
---- a/backend/routes/vendaRoutes.js
-+++ b/backend/routes/vendaRoutes.js
-@@ -18,380 +18,14 @@
- router.get("/:id/comprovante", async (req, res) => {
+     if (agrupamento) {
+       andConditions.push({ agrupamento: agrupamento });
+@@ -361,7 +355,7 @@
+ router.get("/:id", async (req, res) => {
    try {
-     const { id } = req.params;
--    const PDFDocument = require("pdfkit");
--
-     const venda = await Venda.findOne({ where: { id, empresa_id: req.user.empresaId } });
--    if (!venda) return res.status(404).json({ erro: "Venda não encontrada" });
--
--    // Buscar cliente para exibir nome e endereço no comprovante
--    let clienteObj = null;
--    if (venda.clienteId) {
--      try {
--        clienteObj = await Cliente.findByPk(venda.clienteId, {
--          attributes: [
--            "id",
--            "nome",
--            "endereco",
--            "numero",
--            "complemento",
--            "bairro",
--            "cidade",
--            "estado",
--            "cep",
--          ],
--        });
--      } catch (_) {}
--    }
--
--    const identidadePDF = await carregarIdentidade(req, { empresaId: venda.empresa_id });
--    const mmToPt = (mm) => (mm * 72) / 25.4;
--    const RECEIPT_MM = 72;
--    const receiptWidth = Math.round(mmToPt(RECEIPT_MM));
--    const receiptHeight = Math.round(mmToPt(400));
--    const smallMargin = Math.round(mmToPt(2));
--
--    const doc = new PDFDocument({
--      size: [receiptWidth, receiptHeight],
--      margins: {
--        top: smallMargin,
--        bottom: smallMargin,
--        left: smallMargin,
--        right: smallMargin,
--      },
--    });
--
--    res.setHeader("Content-Type", "application/pdf");
--    res.setHeader(
--      "Content-Disposition",
--      `inline; filename=comprovante-venda-${id}.pdf`,
--    );
--    doc.pipe(res);
--
--    const left = doc.page.margins.left;
--    const right = doc.page.width - doc.page.margins.right;
--    const pageWidth = doc.page.width;
--    const contentWidth = right - left;
--    const lineHeight = 12;
--
--    // Identidade atual do cadastro, incluindo objetos persistidos fora do disco local.
--    const empresa = identidadePDF.empresa;
--    const logoTop = smallMargin + 4;
--    const logoAltura = 64;
--    const logoLargura = Math.min(contentWidth * 0.7, 100);
--    const logoRendered = desenharLogo(doc, identidadePDF.logoBuffer, { x: (pageWidth - logoLargura) / 2, y: logoTop, largura: logoLargura, altura: logoAltura });
--    var y = logoTop + (logoRendered ? logoAltura + 6 : 0);
--
--    if (!logoRendered) {
--      // tentar ainda exibir a logo padrão como texto se imagem não encontrada
--      doc
--        .fillColor("#000")
--        .fontSize(18)
--        .font("Helvetica-Bold")
--        .text("PETHUB", { align: "center" });
--      var y = doc.y + 6;
--    }
--
--    // Razão social e contato
--    if (empresa && empresa.razaoSocial) {
--      doc
--        .fontSize(10)
--        .font("Helvetica-Bold")
--        .fillColor("#000")
--        .text(String(empresa.razaoSocial), left, y, {
--          width: contentWidth,
--          align: "center",
--        });
--      y += lineHeight + 2;
--    }
--    if (empresa && empresa.telefone) {
--      doc
--        .fontSize(8)
--        .font("Helvetica")
--        .fillColor("#000")
--        .text(`Contato: ${empresa.telefone}`, left, y, {
--          width: contentWidth,
--          align: "center",
--        });
--      y += lineHeight;
--    }
--
--    // 1ª Via
--    doc
--      .fontSize(8)
--      .font("Helvetica")
--      .text("1ª Via", left, y, { width: contentWidth, align: "right" });
--    y += lineHeight + 4;
--
--    // Nº venda e emissão
--    const dataEmissao = venda.data
--      ? new Date(venda.data).toLocaleDateString("pt-BR") +
--        " " +
--        new Date(venda.data).toLocaleTimeString("pt-BR", {
--          hour: "2-digit",
--          minute: "2-digit",
--        })
--      : new Date().toLocaleDateString("pt-BR");
--    doc.fontSize(9).font("Helvetica-Bold").fillColor("#000");
--    doc.text(`Venda: ${venda.id}`, left, y);
--    doc.font("Helvetica").fontSize(8).text(`Emissão: ${dataEmissao}`, left, y, {
--      width: contentWidth,
--      align: "right",
--    });
--    y += lineHeight + 6;
--
--    // --- Cliente ---
--    const nomeCliente = (clienteObj && clienteObj.nome) || venda.cliente || "";
--    if (nomeCliente) {
--      doc.fontSize(8).font("Helvetica-Bold").fillColor("#000");
--      doc.text(`Cliente: ${nomeCliente}`, left, y, { width: contentWidth });
--      y += lineHeight + 2;
--    }
--    if (clienteObj) {
--      const partesEndereco = [
--        clienteObj.endereco,
--        clienteObj.numero,
--        clienteObj.complemento,
--        clienteObj.bairro,
--        clienteObj.cidade && clienteObj.estado
--          ? `${clienteObj.cidade} - ${clienteObj.estado}`
--          : clienteObj.cidade || clienteObj.estado || null,
--        clienteObj.cep,
--      ].filter(Boolean);
--      if (partesEndereco.length > 0) {
--        doc.fontSize(7).font("Helvetica").fillColor("#555");
--        doc.text(partesEndereco.join(", "), left, y, { width: contentWidth });
--        doc.fillColor("#000");
--        y += lineHeight + 2;
--      }
--    }
--    if (nomeCliente || clienteObj) y += 4;
--
--    // --- Produto/Serviço ---
--    // Linha pontilhada
--    doc.save();
--    doc.lineWidth(0.5);
--    doc.dash(2, { space: 3 });
--    doc.moveTo(left, y).lineTo(right, y).stroke();
--    doc.undash();
--    doc.restore();
--    y += 6;
--
--    doc
--      .fontSize(9)
--      .font("Helvetica-Bold")
--      .fillColor("#000")
--      .text("Produto/Serviço", left, y, {
--        width: contentWidth,
--        align: "center",
--      });
--    y += lineHeight + 4;
--
--    // Cabeçalho tabela
--    doc.fontSize(7).font("Helvetica-Bold");
--    doc.text("Cód.", left, y, { width: 22 });
--    doc.text("Desc.", left + 22, y, { width: 40 });
--    doc.text("Qtd.", left + 62, y, { width: 20, align: "center" });
--    doc.text("Unid.", left + 82, y, { width: 22, align: "center" });
--    doc.text("Vlr Unit.", left + 104, y, { width: 30, align: "right" });
--    doc.text("Desc%", left + 134, y, { width: 26, align: "right" });
--    const totalColX = left + 160;
--    doc.text("Total", totalColX, y, { width: 32, align: "right" });
--    y += lineHeight + 2;
--
--    doc.save();
--    doc.lineWidth(0.3);
--    doc.moveTo(left, y).lineTo(right, y).stroke();
--    doc.restore();
--    y += 4;
--
--    // Itens
--    const itens = Array.isArray(venda.itens) ? venda.itens : [];
--    let totalBruto = 0;
--    let totalDescontoItens = 0;
--    let totalQuantidade = 0;
--
--    doc.font("Helvetica").fontSize(7).fillColor("#000");
--    for (const item of itens) {
--      const prod = item.produto || {};
--      const codigo = prod.id || "-";
--      const nome = prod.nome || item.nome || item.descricao || "-";
--      const qtd = parseFloat(item.quantidade || item.qtd || 1);
--      const unitario = parseFloat(item.valorUnitario || item.preco || 0);
--      const desconto = parseFloat(item.desconto || 0);
--      const bruto = qtd * unitario;
--      const total = parseFloat(
--        item.totalFinal || item.total || bruto - (bruto * desconto) / 100,
--      );
--
--      totalBruto += bruto;
--      totalDescontoItens += bruto - total;
--      totalQuantidade += qtd;
--
--      if (y > doc.page.height - 100) {
--        doc.addPage();
--        y = smallMargin + 10;
--      }
--
--      // Linha do item: código - nome em uma linha, valores abaixo
--      doc.font("Helvetica").fontSize(7);
--      doc.text(`${codigo} - ${nome}`, left, y, { width: contentWidth - 50 });
--      doc.text(`${qtd} KG x R$`, left, y + lineHeight, { width: 80 });
--      doc.text(`${unitario.toFixed(2)}`, left + 50, y + lineHeight, {
--        width: 40,
--      });
--      doc.text(`- ${desconto.toFixed(2)}%`, left + 90, y + lineHeight, {
--        width: 40,
--      });
--      doc.font("Helvetica-Bold").text(`R$ ${total.toFixed(2)}`, left, y, {
--        width: contentWidth,
--        align: "right",
--      });
--      doc.font("Helvetica");
--      y += lineHeight * 2 + 4;
--    }
--
--    // --- EM CASO DE DEVOLUÇÃO ---
--    y += 4;
--    doc.save();
--    doc.lineWidth(0.5);
--    doc.dash(2, { space: 3 });
--    doc.moveTo(left, y).lineTo(right, y).stroke();
--    doc.undash();
--    doc.restore();
--    y += 6;
--
--    doc
--      .fontSize(7)
--      .font("Helvetica-Bold")
--      .text("EM CASO DE DEVOLUCAO APRESENTAR ESTE DOCUMENTO.", left, y, {
--        width: contentWidth,
--        align: "center",
--      });
--    y += lineHeight + 6;
--
--    // --- Formas de Pagamento ---
--    doc.save();
--    doc.lineWidth(0.5);
--    doc.dash(2, { space: 3 });
--    doc.moveTo(left, y).lineTo(right, y).stroke();
--    doc.undash();
--    doc.restore();
--    y += 6;
--
--    doc
--      .fontSize(9)
--      .font("Helvetica-Bold")
--      .text("Formas de Pagamento", left, y, {
--        width: contentWidth,
--        align: "center",
--      });
--    y += lineHeight + 4;
--
--    let pagamentosRaw = venda.pagamentos;
--    if (typeof pagamentosRaw === "string") {
--      try {
--        pagamentosRaw = JSON.parse(pagamentosRaw);
--      } catch (_) {
--        pagamentosRaw = [];
--      }
--    }
--    const pagamentos = Array.isArray(pagamentosRaw) ? pagamentosRaw : [];
--    const formaLabel = (f) => {
--      if (!f) return "";
--      const map = {
--        dinheiro: "Dinheiro",
--        debito: "Débito",
--        credito: "Crédito",
--        pix: "PIX",
--        crediario: "Crediário",
--        cheque: "Cheque",
--        haver: "Haver",
--      };
--      return map[String(f).toLowerCase()] || String(f);
--    };
--
--    doc.font("Helvetica").fontSize(8);
--    for (const p of pagamentos) {
--      const label = formaLabel(p.forma || p.tipo || "");
--      const valor = p.valor != null ? `R$ ${Number(p.valor).toFixed(2)}` : "";
--      doc.text(label, left + 4, y, { width: contentWidth - 8 });
--      if (valor)
--        doc.text(valor, left + 4, y, {
--          width: contentWidth - 8,
--          align: "right",
--        });
--      y += lineHeight + 2;
--    }
--
--    y += 6;
--
--    // --- Totais ---
--    doc.save();
--    doc.lineWidth(0.5);
--    doc.dash(2, { space: 3 });
--    doc.moveTo(left, y).lineTo(right, y).stroke();
--    doc.undash();
--    doc.restore();
--    y += 6;
--
--    doc
--      .fontSize(9)
--      .font("Helvetica-Bold")
--      .text("Totais", left, y, { width: contentWidth, align: "center" });
--    y += lineHeight + 4;
--
--    const totalPago = parseFloat(venda.totalPago) || 0;
--    const totaisVenda = venda.totais || {};
--    const descontoGeral = parseFloat(totaisVenda.desconto || 0);
--    const totalDos = totalBruto - totalDescontoItens;
--    const totalLiquido = totalPago > 0 ? totalPago : totalDos - descontoGeral;
--
--    doc.font("Helvetica").fontSize(8);
--    const printTotalLine = (label, value) => {
--      doc.text(label, left + 4, y, { width: contentWidth - 8 });
--      doc.text(value, left + 4, y, { width: contentWidth - 8, align: "right" });
--      y += lineHeight + 1;
--    };
--
--    printTotalLine("Total Quantidade:", totalQuantidade.toFixed(2));
--    printTotalLine("Total Bruto:", `R$ ${totalBruto.toFixed(2)}`);
--    printTotalLine(
--      "(-) Desconto Itens:",
--      `R$ ${totalDescontoItens.toFixed(2)}`,
--    );
--    printTotalLine("Total dos:", `R$ ${totalDos.toFixed(2)}`);
--    printTotalLine("(-) Desconto:", `R$ ${descontoGeral.toFixed(2)}`);
--    doc.font("Helvetica-Bold").fontSize(9);
--    printTotalLine("Total Líquido:", `R$ ${totalLiquido.toFixed(2)}`);
--
--    // --- Assinatura ---
--    y += 30;
--    if (y > doc.page.height - 40) {
--      doc.addPage();
--      y = smallMargin + 20;
--    }
--    const sigLeft = left + 12;
--    const sigRight = right - 12;
--    doc.moveTo(sigLeft, y).lineTo(sigRight, y).stroke();
--    y += 6;
--    doc
--      .fontSize(9)
--      .font("Helvetica")
--      .text("Assinatura", sigLeft, y, {
--        width: sigRight - sigLeft,
--        align: "center",
--      });
--
--    // Linha pontilhada final
--    y += 20;
--    doc.save();
--    doc.lineWidth(0.5);
--    doc.dash(2, { space: 3 });
--    doc.moveTo(left, y).lineTo(right, y).stroke();
--    doc.undash();
--    doc.restore();
--
--    doc.end();
-+    if (!venda) return res.status(404).json({ erro: 'Venda não encontrada' });
-+    const identidade = await carregarIdentidade(req, { empresaId: venda.empresa_id });
-+    let cliente = null;
-+    if (venda.clienteId) cliente = await Cliente.findOne({ where: { id: venda.clienteId, empresa_id: req.user.empresaId } }).catch(() => null);
-+    const bytes = await require('../services/comprovanteVendaPDF').gerarComprovanteVenda({ venda, empresa: identidade.empresa, logoBuffer: identidade.logoBuffer, cliente });
-+    res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `inline; filename=comprovante-venda-${id}.pdf`, 'Cache-Control': 'no-store' });
-+    res.send(bytes);
-   } catch (error) {
-     console.error("Erro ao gerar comprovante de venda:", error);
-     res.status(500).json({ erro: "Erro ao gerar comprovante de venda" });
---- a/backend/services/validarVendaCaixa.js
-+++ b/backend/services/validarVendaCaixa.js
-@@ -1,7 +1,8 @@
- "use strict";
- // Validação de entrada das duas interfaces. A gravação continua no vendaController.
- function criarValidador({ Produto, Cliente, Profissional, Caixa }) {
--  const cents = (n) => Math.round(Number(n) * 100);
-+  const calc = require('../../frontend/components/venda-calculos');
-+  const cents = calc.centavos;
-   const numero = (n) => typeof n === "number" && Number.isFinite(n);
-   return async (req, res, next) => {
-     if (req.body?.origemInterface !== "caixa-compartilhado") return next();
-@@ -34,8 +35,8 @@
-           i.desconto > 100
-         )
-           return fail("Quantidade, preço ou desconto inválido.");
--        const totalBruto = i.quantidade * i.valorUnitario,
--          totalFinal = totalBruto * (1 - i.desconto / 100);
-+        const esperado = calc.calcularItem(i.quantidade, i.valorUnitario, i.desconto);
-+        const totalBruto = esperado.totalBruto, totalFinal = esperado.totalFinal;
-         if (
-           !numero(i.totalBruto) ||
-           !numero(i.totalFinal) ||
+     const id = String(req.params.id);
+-    const produto = await Produto.findByPk(id);
++    const produto = await Produto.findOne({ where: { id, empresa_id: req.user.empresaId } });
+     if (!produto)
+       return res.status(404).json({ error: "Produto não encontrado" });
+     res.json(produto);
 --- /dev/null
-+++ b/backend/services/comprovanteVendaDados.js
-@@ -0,0 +1,200 @@
++++ b/backend/services/buscaItens.js
+@@ -0,0 +1,15 @@
 +"use strict";
-+const calc = require("../../frontend/components/venda-calculos");
-+const existe = (v) => v !== undefined && v !== null && v !== "";
-+function json(v, padrao) {
-+  if (typeof v === "string") {
-+    try {
-+      return JSON.parse(v);
-+    } catch {
-+      return padrao;
-+    }
-+  }
-+  return v ?? padrao;
-+}
-+function numero(v, padrao = 0) {
-+  if (!existe(v)) return padrao;
-+  const n =
-+    typeof v === "string"
-+      ? Number(
-+          v.replace(/R\$|\s/g, "").includes(",")
-+            ? v.replace(/R\$|\s|\./g, "").replace(",", ".")
-+            : v,
-+        )
-+      : Number(v);
-+  return Number.isFinite(n) ? n : padrao;
-+}
-+function moeda(v) {
-+  return numero(v).toLocaleString("pt-BR", {
-+    style: "currency",
-+    currency: "BRL",
-+  });
-+}
-+function quantidade(v) {
-+  return numero(v).toLocaleString("pt-BR", { maximumFractionDigits: 6 });
-+}
-+function dataBrasilia(valor) {
-+  if (!valor) return "Não informada";
-+  let v = valor;
-+  // Strings SQL sem offset seguem o UTC padrão do Sequelize/MySQL deste projeto.
-+  if (
-+    typeof v === "string" &&
-+    /^\d{4}-\d\d-\d\d[ T]\d\d:\d\d(?::\d\d(?:\.\d+)?)?$/.test(v)
-+  )
-+    v = v.replace(" ", "T") + "Z";
-+  const d = new Date(v);
-+  if (!Number.isFinite(d.getTime())) return "Não informada";
-+  return new Intl.DateTimeFormat("pt-BR", {
-+    timeZone: "America/Sao_Paulo",
-+    dateStyle: "short",
-+    timeStyle: "short",
-+    hourCycle: "h23",
-+  })
-+    .format(d)
-+    .replace(",", "");
-+}
-+function resumirVenda(venda) {
-+  const avisos = [],
-+    raws = json(venda.itens, []),
-+    t = json(venda.totais, {});
-+  const itens = (Array.isArray(raws) ? raws : []).map((i) => {
-+    const p = typeof i.produto === "object" && i.produto ? i.produto : {};
-+    const qtd = numero(i.quantidade ?? i.qtd, 1),
-+      unitario = numero(i.valorUnitario ?? i.preco ?? i.unitario ?? p.preco),
-+      desconto = numero(i.desconto ?? i.descontoPercent);
-+    const estimado = calc.calcularItem(qtd, unitario, desconto);
-+    const bruto = calc.centavos(i.totalBruto ?? estimado.totalBruto),
-+      liquido = calc.centavos(i.totalFinal ?? i.total ?? estimado.totalFinal);
-+    return {
-+      codigo: String(p.codigo ?? i.codigo ?? p.id ?? i.produtoId ?? "-"),
-+      nome: String(
-+        p.nome ??
-+          i.nome ??
-+          i.descricao ??
-+          (typeof i.produto === "string" ? i.produto : "Item"),
-+      ),
-+      unidade: String(
-+        i.unidade ??
-+          p.unidade ??
-+          (/servi/i.test(p.tipo || i.tipo || "") ? "SERV" : "UN"),
-+      ),
-+      quantidade: qtd,
-+      unitario,
-+      descontoPercent: desconto,
-+      bruto,
-+      desconto: bruto - liquido,
-+      total: liquido,
-+    };
-+  });
-+  const bruto = itens.reduce((n, i) => n + i.bruto, 0),
-+    descontoItens = itens.reduce((n, i) => n + i.desconto, 0),
-+    itensLiquidos = bruto - descontoItens;
-+  const acrescimo = calc.centavos(t.acrescimo ?? 0),
-+    arredondamento = calc.centavos(t.arredondamento ?? 0);
-+  const descontoLegado = calc.centavos(t.desconto ?? 0);
-+  const finalRegistrado = existe(t.final ?? t.totalFinal ?? t.total)
-+    ? calc.centavos(t.final ?? t.totalFinal ?? t.total)
-+    : null;
-+  let geral;
-+  if (existe(t.descontoGeral)) geral = calc.centavos(t.descontoGeral);
-+  else if (t.versaoCalculo === 2)
-+    geral = Math.max(0, descontoLegado - descontoItens);
-+  else if (
-+    finalRegistrado !== null &&
-+    Math.abs(
-+      bruto - descontoLegado + acrescimo + arredondamento - finalRegistrado,
-+    ) <= 1
-+  )
-+    geral = Math.max(0, descontoLegado - descontoItens);
-+  else if (
-+    finalRegistrado !== null &&
-+    Math.abs(
-+      itensLiquidos -
-+        descontoLegado +
-+        acrescimo +
-+        arredondamento -
-+        finalRegistrado,
-+    ) <= 1
-+  )
-+    geral = descontoLegado;
-+  else if (
-+    finalRegistrado === null &&
-+    existe(t.bruto) &&
-+    descontoLegado >= descontoItens
-+  ) {
-+    geral = Math.max(0, descontoLegado - descontoItens);
-+    avisos.push(
-+      "Total consolidado ausente; utilizado o resumo dos itens registrados.",
-+    );
-+  } else {
-+    geral = descontoLegado;
-+    if (descontoItens && descontoLegado)
-+      avisos.push("Descontos históricos sem discriminação suficiente.");
-+  }
-+  const calculado = itensLiquidos - geral + acrescimo + arredondamento,
-+    final = finalRegistrado ?? Math.max(0, calculado);
-+  if (finalRegistrado !== null && Math.abs(final - calculado) > 1)
-+    avisos.push(
-+      "Totais registrados diferem da soma dos itens. Nenhum dado histórico foi alterado.",
-+    );
-+  const formas = {
-+    dinheiro: "Dinheiro",
-+    credito: "Cartão de crédito",
-+    debito: "Cartão de débito",
-+    pix: "PIX",
-+    crediario: "Crediário",
-+    cheque: "Cheque",
-+    haver: "Haver",
-+  };
-+  const pagamentoRaw = json(venda.pagamentos, []);
-+  const pagamentos = (Array.isArray(pagamentoRaw) ? pagamentoRaw : []).map(
-+    (p) => {
-+      const forma = String(p.forma ?? p.tipo ?? "Não informada").toLowerCase();
-+      return {
-+        nome: formas[forma] || forma,
-+        valor: calc.centavos(p.valor ?? 0),
-+        recebido: existe(p.recebido) ? calc.centavos(p.recebido) : null,
-+        troco: existe(p.troco) ? calc.centavos(p.troco) : 0,
-+        parcelas: numero(p.parcelas),
-+      };
-+    },
-+  );
-+  const totalPago = pagamentos.length
-+    ? pagamentos.reduce((n, p) => n + p.valor, 0)
-+    : calc.centavos(venda.totalPago ?? 0);
-+  const troco = pagamentos.reduce((n, p) => n + p.troco, 0),
-+    recebido = pagamentos.some((p) => p.recebido !== null)
-+      ? pagamentos.reduce((n, p) => n + (p.recebido ?? p.valor), 0)
-+      : totalPago;
-+  const excesso = Math.max(0, totalPago - final);
-+  if (excesso > 0 && troco === 0)
-+    avisos.push(
-+      "Pagamento registrado acima do total; o histórico não discrimina troco.",
-+    );
++const { Op, fn, col, where } = require("sequelize");
++// Não depende da collation do banco (incluindo comparações binárias do TiDB).
++function condicaoBuscaItens(termo) {
++  const q = String(termo ?? "")
++    .trim()
++    .toLocaleLowerCase("pt-BR");
++  if (!q) return null;
 +  return {
-+    id: venda.id,
-+    data: dataBrasilia(venda.data),
-+    itens,
-+    bruto,
-+    descontoItens,
-+    descontoGeral: geral,
-+    descontoTotal: descontoItens + geral,
-+    itensLiquidos,
-+    acrescimo,
-+    arredondamento,
-+    final,
-+    totalQuantidade: itens.reduce((n, i) => n + i.quantidade, 0),
-+    pagamentos,
-+    totalPago,
-+    recebido,
-+    troco,
-+    saldo: Math.max(0, final - totalPago),
-+    excesso,
-+    cliente:
-+      typeof venda.cliente === "string"
-+        ? venda.cliente
-+        : venda.cliente?.nome || "",
-+    operador: t.operador?.nome || venda.operadorNome || null,
-+    avisos,
++    [Op.or]: ["nome", "codigo", "id", "codigoBarras"].map((campo) =>
++      where(fn("LOWER", col(campo)), { [Op.like]: "%" + q + "%" }),
++    ),
 +  };
 +}
-+module.exports = { resumirVenda, dataBrasilia, moeda, quantidade };
---- /dev/null
-+++ b/backend/services/comprovanteVendaPDF.js
-@@ -0,0 +1,177 @@
-+"use strict";
-+const PDFDocument = require("pdfkit");
-+const { resumirVenda, moeda, quantidade } = require("./comprovanteVendaDados");
-+const { desenharLogo } = require("./identidadeEmpresaPDF");
-+function gerarComprovanteVenda({ venda, empresa, logoBuffer, cliente }) {
-+  const r = resumirVenda(venda),
-+    doc = new PDFDocument({
-+      size: [204, 1134],
-+      margins: { left: 7, right: 7, top: 8, bottom: 14 },
-+    }),
-+    chunks = [];
-+  const result = new Promise((resolve, reject) => {
-+    doc.on("data", (b) => chunks.push(b));
-+    doc.on("end", () => resolve(Buffer.concat(chunks)));
-+    doc.on("error", reject);
-+  });
-+  const left = 7,
-+    width = 190,
-+    bottom = 1110;
-+  let y = 10;
-+  const ensure = (h) => {
-+    if (y + h > bottom) {
-+      doc.addPage();
-+      y = 12;
-+    }
-+  };
-+  function text(
-+    s,
-+    { size = 8, bold = false, align = "left", color = "#000" } = {},
-+  ) {
-+    doc
-+      .font(bold ? "Helvetica-Bold" : "Helvetica")
-+      .fontSize(size)
-+      .fillColor(color);
-+    const h = doc.heightOfString(String(s), { width, align });
-+    ensure(h + 4);
-+    doc.text(String(s), left, y, { width, align });
-+    y += h + 4;
-+  }
-+  function line(label, value, { bold = false } = {}) {
-+    doc
-+      .font(bold ? "Helvetica-Bold" : "Helvetica")
-+      .fontSize(7.5)
-+      .fillColor("#000");
-+    const valueWidth = Math.max(65, Math.min(90, doc.widthOfString(value) + 3)),
-+      labelWidth = width - valueWidth - 3;
-+    const h = Math.max(
-+      doc.heightOfString(label, { width: labelWidth }),
-+      doc.heightOfString(value, { width: valueWidth }),
-+    );
-+    ensure(h + 5);
-+    doc.text(label, left, y, { width: labelWidth });
-+    doc.text(value, left + width - valueWidth, y, {
-+      width: valueWidth,
-+      align: "right",
-+    });
-+    y += h + 5;
-+  }
-+  function rule() {
-+    ensure(10);
-+    doc
-+      .save()
-+      .lineWidth(0.4)
-+      .dash(2, { space: 3 })
-+      .moveTo(left, y + 2)
-+      .lineTo(left + width, y + 2)
-+      .stroke()
-+      .undash()
-+      .restore();
-+    y += 10;
-+  }
++module.exports = { condicaoBuscaItens };
+--- a/frontend/item/estoque/outras-entradas.js
++++ b/frontend/item/estoque/outras-entradas.js
+@@ -1630,7 +1630,9 @@
+     return;
+   }
+ 
+-  const quantidade = parseInt(quantidadeInput.value) || 1;
++  if (!selectedProduto || selectedProduto.id == null) { alert('Selecione um produto dos resultados da pesquisa.'); return; }
++  const quantidade = Number(String(quantidadeInput.value).replace(',', '.'));
++  if (!Number.isFinite(quantidade) || quantidade <= 0) { alert('Informe uma quantidade maior que zero.'); return; }
+   const custo =
+     parseFloat((custoInput.value || "0").toString().replace(",", ".")) || 0;
+ 
+@@ -1666,6 +1668,7 @@
+   estoqueInput.value = "";
+   custoInput.value = "0,00";
+   quantidadeInput.value = "1";
++  selectedProduto = null;
+ 
+   console.log("✅ Item adicionado:", novoItem);
+   // salvar rascunho no servidor (situação: Pendente)
+@@ -3329,7 +3332,8 @@
+ 
+ function setupProdutoAutocomplete() {
+   const input = document.getElementById("produtoItem");
+-  if (!input) return;
++  if (!input || input.dataset.estoqueAutocomplete === '1') return;
++  input.dataset.estoqueAutocomplete = '1';
+   const container = input.parentElement;
+   if (container)
+     container.style.position = container.style.position || "relative";
+@@ -3346,21 +3350,18 @@
+ 
+   // flag to avoid immediate reopen when an item is clicked
+   let ignoreNextInputClick = false;
++  let buscaVersao = 0;
+ 
+   async function fetchItems(q) {
+-    try {
+-      const res = await fetch("/api/itens?q=" + encodeURIComponent(q));
+-      if (!res.ok) return [];
+-      const data = await res.json();
+-      return Array.isArray(data) ? data : [];
+-    } catch (e) {
+-      console.warn("Erro buscar itens", e);
+-      return [];
+-    }
++    const res = await fetch('/api/itens?q=' + encodeURIComponent(q), { credentials: 'include' });
++    if (!res.ok) throw new Error('Não foi possível carregar os produtos. Tente novamente.');
++    const data = await res.json();
++    if (!Array.isArray(data)) throw new Error('A API não retornou uma lista de produtos.');
++    return data;
+   }
+ 
+   const doSearch = debounce(async function () {
+-    const q = input.value.trim();
++    const q = input.value.trim(), versao = ++buscaVersao;
+     if (!q) {
+       dropdown.innerHTML = "";
+       dropdown.classList.remove("show");
+@@ -3371,7 +3372,10 @@
+     // garantir visibilidade
+     dropdown.style.display = "block";
+     dropdown.classList.add("show");
+-    const items = await fetchItems(q);
++    let items;
++    try { items = await fetchItems(q); }
++    catch (e) { if (versao === buscaVersao) dropdown.textContent = e.message; return; }
++    if (versao !== buscaVersao || input.value.trim() !== q) return;
+     dropdown.innerHTML = "";
+     if (!items || items.length === 0) {
+       dropdown.innerHTML = '<div class="item">Nenhum resultado</div>';
+@@ -3383,13 +3387,17 @@
+       const nome = it.nome || it.descricao || it.name || "";
+       const codigo = it.codigo || it.id || "";
+       el.innerHTML = `<div style="font-weight:600">${escapeHtml(nome)}</div><div style="font-size:12px;color:#666">${escapeHtml(String(codigo))}</div>`;
++      const estoque = Number(it.estoqueAtual ?? it.estoque ?? 0) || 0;
++      const saldo = document.createElement('div'); saldo.style.fontSize = '12px';
++      saldo.textContent = 'Estoque: ' + estoque.toLocaleString('pt-BR');
++      el.appendChild(saldo);
+       el.addEventListener("click", function (e) {
+         e.stopPropagation();
+         selectedProduto = {
+           id: it.id || it.codigo || it.ID || null,
+           nome: nome,
+           codigo: codigo,
+-          estoqueAtual: it.estoqueAtual || it.estoque || null,
++          estoqueAtual: Number(it.estoqueAtual ?? it.estoque ?? 0) || 0,
+         };
+         input.value = nome;
+         const estoqueInput = document.getElementById("estoqueItem");
+@@ -3425,6 +3433,7 @@
+ 
+   input.addEventListener("input", function (e) {
+     selectedProduto = null;
++    buscaVersao++;
+     doSearch();
+   });
+   input.addEventListener("click", function (e) {
+@@ -3438,6 +3447,7 @@
+   });
+   document.addEventListener("click", function (e) {
+     if (!container.contains(e.target)) {
++      buscaVersao++;
+       dropdown.classList.remove("show");
+       dropdown.style.display = "none";
+     }
+--- a/frontend/item/estoque/outras-entradas.html
++++ b/frontend/item/estoque/outras-entradas.html
+@@ -912,7 +912,7 @@
+     </div>
+ 
+   <!-- Script do menu (copiar para sua página) -->
+-  <script src="./outras-entradas.js"></script>
++  <script src="./outras-entradas.js?v=20261120-busca-estoque1"></script>
+   <!-- Script global do calendário (copia do dashboard) -->
+   <script src="../novo-atendimento-global.js"></script>
+     
+--- a/frontend/item/estoque/outras-saidas.js
++++ b/frontend/item/estoque/outras-saidas.js
+@@ -1595,7 +1595,7 @@
+     "chevron-icon fas " + (isOpen ? "fa-chevron-up" : "fa-chevron-down");
+ }
+ 
+-function adicionarItem() {
++async function adicionarItem() {
+   // exigir que tipo de entrada esteja selecionado antes de adicionar
+   const tipoEntradaEl = document.getElementById("tipoEntrada");
+   if (!tipoEntradaEl || !String(tipoEntradaEl.value || "").trim()) {
+@@ -1616,9 +1616,25 @@
+     return;
+   }
+ 
+-  const quantidade = parseInt(quantidadeInput.value) || 1;
++  if (!selectedProduto || selectedProduto.id == null) { alert('Selecione um produto dos resultados da pesquisa.'); return; }
++  const quantidade = Number(String(quantidadeInput.value).replace(',', '.'));
++  if (!Number.isFinite(quantidade) || quantidade <= 0) { alert('Informe uma quantidade maior que zero.'); return; }
+   const custo =
+     parseFloat((custoInput.value || "0").toString().replace(",", ".")) || 0;
++
++  // Revalidar o saldo atual, incluindo todas as linhas do mesmo produto no rascunho.
++  const produtoId = String(selectedProduto.id), produtoNome = produtoInput.value;
 +  try {
-+    if (desenharLogo(doc, logoBuffer, { x: 52, y, largura: 100, altura: 64 }))
-+      y += 70;
-+    else text("PETHUB", { bold: true, size: 15, align: "center" });
-+    const nome =
-+      empresa.nomeFantasia || empresa.nome || empresa.razaoSocial || "Empresa";
-+    text(nome, { bold: true, size: 10, align: "center" });
-+    if (empresa.razaoSocial && empresa.razaoSocial !== nome)
-+      text(empresa.razaoSocial, { size: 8, align: "center" });
-+    if (empresa.telefone)
-+      text("Contato: " + empresa.telefone, { size: 7, align: "center" });
-+    const endereco =
-+      typeof empresa.endereco === "string"
-+        ? empresa.endereco
-+        : empresa.endereco &&
-+          [
-+            empresa.endereco.logradouro || empresa.endereco.endereco,
-+            empresa.endereco.numero,
-+            empresa.endereco.bairro,
-+            empresa.endereco.cidade,
-+            empresa.endereco.estado,
-+            empresa.endereco.cep,
-+          ]
-+            .filter(Boolean)
-+            .join(", ");
-+    if (endereco && empresa.exibirEnderecoComprovante !== false)
-+      text(endereco, { size: 7, align: "center" });
-+    line("Venda", String(r.id), { bold: true });
-+    text("Data da venda: " + r.data + " (Brasília)", { size: 7 });
-+    const nomeCliente = r.cliente || cliente?.nome;
-+    if (nomeCliente) text("Cliente: " + nomeCliente, { size: 8 });
-+    if (r.operador) text("Operador: " + r.operador, { size: 7 });
-+    rule();
-+    text("Produtos / Serviços", { bold: true, size: 9, align: "center" });
-+    for (const item of r.itens) {
-+      doc.font("Helvetica-Bold").fontSize(8);
-+      const h = doc.heightOfString(item.codigo + " - " + item.nome, { width });
-+      ensure(h + 65);
-+      text(item.codigo + " - " + item.nome, { bold: true, size: 8 });
-+      line(
-+        `${quantidade(item.quantidade)} ${item.unidade} × ${moeda(item.unitario)}`,
-+        moeda(item.bruto / 100),
-+      );
-+      if (item.desconto !== 0 || item.descontoPercent !== 0)
-+        line(
-+          "Desconto do item" +
-+            (item.descontoPercent
-+              ? " (" + quantidade(item.descontoPercent) + "%)"
-+              : ""),
-+          moeda(item.desconto / 100),
-+        );
-+      line("Total do item", moeda(item.total / 100), { bold: true });
-+      y += 3;
-+    }
-+    rule();
-+    text("Formas de pagamento", { bold: true, size: 9, align: "center" });
-+    if (!r.pagamentos.length) text("Nenhum pagamento registrado.", { size: 7 });
-+    for (const p of r.pagamentos) {
-+      line(
-+        p.nome + (p.parcelas > 1 ? " · " + p.parcelas + "x" : ""),
-+        moeda(p.valor / 100),
-+      );
-+      if (p.recebido !== null) {
-+        line("Valor recebido", moeda(p.recebido / 100));
-+        line("Troco", moeda(p.troco / 100));
-+      }
-+    }
-+    rule();
-+    text("Totais", { bold: true, size: 9, align: "center" });
-+    line("Quantidade total", quantidade(r.totalQuantidade));
-+    line("Total bruto", moeda(r.bruto / 100));
-+    line("(-) Descontos dos itens", moeda(r.descontoItens / 100));
-+    line("Subtotal dos itens", moeda(r.itensLiquidos / 100));
-+    line("(-) Desconto geral", moeda(r.descontoGeral / 100));
-+    line("Total de descontos", moeda(r.descontoTotal / 100));
-+    if (r.acrescimo) line("(+) Acréscimos", moeda(r.acrescimo / 100));
-+    if (r.arredondamento) line("Arredondamento", moeda(r.arredondamento / 100));
-+    line("Total líquido da venda", moeda(r.final / 100), { bold: true });
-+    line("Total pago registrado", moeda(r.totalPago / 100));
-+    if (r.saldo) line("Saldo a pagar", moeda(r.saldo / 100), { bold: true });
-+    if (r.excesso) line("Valor acima do total", moeda(r.excesso / 100));
-+    if (r.avisos.length) {
-+      rule();
-+      for (const a of r.avisos) text(a, { size: 6.5, color: "#555" });
-+    }
-+    rule();
-+    text("Em caso de devolução, apresente este documento.", {
-+      size: 7,
-+      align: "center",
-+    });
-+    ensure(50);
-+    y += 20;
-+    doc
-+      .moveTo(left + 12, y)
-+      .lineTo(left + width - 12, y)
-+      .stroke();
-+    y += 5;
-+    text("Assinatura", { size: 8, align: "center" });
-+    doc.end();
-+  } catch (e) {
-+    doc.destroy();
-+    throw e;
-+  }
-+  return result;
-+}
-+module.exports = { gerarComprovanteVenda };
---- /dev/null
-+++ b/tests/comprovante-venda.test.js
-@@ -0,0 +1,201 @@
-+"use strict";
-+const { test } = require("node:test"),
-+  assert = require("node:assert/strict");
-+const calc = require("../frontend/components/venda-calculos");
-+const {
-+  resumirVenda,
-+  dataBrasilia,
-+} = require("../backend/services/comprovanteVendaDados");
-+const {
-+  gerarComprovanteVenda,
-+} = require("../backend/services/comprovanteVendaPDF");
-+const item = (q = 1, u = 100, d = 0) => ({
-+  produto: {
-+    id: "p1",
-+    codigo: "001",
-+    nome: "Ração",
-+    unidade: "UN",
-+    preco: 999,
-+  },
-+  quantidade: q,
-+  valorUnitario: u,
-+  desconto: d,
-+  ...calc.calcularItem(q, u, d),
-+});
-+function venda(itens = [item()], cond = {}, pags) {
-+  const totais = calc.calcularTotais(itens, cond);
-+  return {
-+    id: 10,
-+    empresa_id: 1,
-+    data: new Date("2026-11-20T22:01:00Z"),
-+    cliente: "Karol",
-+    itens,
-+    totais,
-+    pagamentos: pags ?? [{ forma: "pix", valor: totais.final }],
-+    totalPago: totais.final,
-+  };
-+}
-+test("sem desconto, quantidade >1, frações e centavos seguem a regra compartilhada", () => {
-+  for (const [q, u, d, esperado] of [
-+    [1, 100, 0, 100],
-+    [2, 100, 10, 180],
-+    [1.25, 19.99, 10, 22.49],
-+    [3, 0.1, 0, 0.3],
-+    [1, 1.005, 0, 1.01],
-+  ]) {
-+    const v = venda([item(q, u, d)]),
-+      r = resumirVenda(v);
-+    assert.equal(r.final, calc.centavos(esperado));
-+    assert.equal(r.itens[0].total, r.final);
-+    assert.equal(r.avisos.length, 0);
-+  }
-+});
-+test("desconto de item, geral percentual e em reais são discriminados sem duplicar", () => {
-+  const i = item(1, 100, 10);
-+  for (const cond of [{ descontoPercent: 10 }, { descontoValor: 9 }]) {
-+    const r = resumirVenda(venda([i], cond));
-+    assert.equal(r.bruto, 10000);
-+    assert.equal(r.descontoItens, 1000);
-+    assert.equal(r.descontoGeral, 900);
-+    assert.equal(r.descontoTotal, 1900);
-+    assert.equal(r.final, 8100);
-+  }
-+  const r = resumirVenda(
-+    venda([i], { descontoValor: 10, acrescimoValor: 5, arredondamento: -0.01 }),
-+  );
-+  assert.equal(r.final, 8499);
-+  assert.equal(r.acrescimo, 500);
-+  assert.equal(r.arredondamento, -1);
-+});
-+test("legado combinado ou geral isolado é distinguido pelos valores persistidos", () => {
-+  const v = venda([item(1, 100, 10)]);
-+  v.totais = { bruto: 100, desconto: 10, final: 90 };
-+  let r = resumirVenda(v);
-+  assert.equal(r.descontoGeral, 0);
-+  assert.equal(r.final, 9000);
-+  v.totais = { bruto: 100, desconto: 5, final: 85 };
-+  r = resumirVenda(v);
-+  assert.equal(r.descontoGeral, 500);
-+  assert.equal(r.final, 8500);
-+  v.totais = { bruto: 100, desconto: 20, final: 80 };
-+  r = resumirVenda(v);
-+  assert.equal(r.descontoGeral, 1000);
-+  assert.equal(r.final, 8000);
-+});
-+test("total líquido não vira total pago: parcial, desconto integral e JSON histórico", () => {
-+  const v = venda([item()]);
-+  v.pagamentos = [{ forma: "dinheiro", valor: 30 }];
-+  v.totalPago = 30;
-+  let r = resumirVenda(v);
-+  assert.equal(r.final, 10000);
-+  assert.equal(r.totalPago, 3000);
-+  assert.equal(r.saldo, 7000);
-+  const zero = venda([item(1, 100, 100)]);
-+  zero.itens = JSON.stringify(zero.itens);
-+  zero.totais = JSON.stringify(zero.totais);
-+  zero.pagamentos = "[]";
-+  zero.totalPago = 0;
-+  r = resumirVenda(zero);
-+  assert.equal(r.final, 0);
-+  assert.equal(r.itens[0].total, 0);
-+  assert.equal(r.descontoItens, 10000);
-+});
-+test("formas mistas, parcelas, recebido e troco são lidos sem virar receita extra", () => {
-+  const v = venda([item()], {}, [
-+    { forma: "dinheiro", valor: 40, recebido: 50, troco: 10 },
-+    { forma: "credito", valor: 30, parcelas: 2 },
-+    { forma: "pix", valor: 30 },
-+  ]);
-+  const r = resumirVenda(v);
-+  assert.equal(r.totalPago, 10000);
-+  assert.equal(r.recebido, 11000);
-+  assert.equal(r.troco, 1000);
-+  assert.equal(r.saldo, 0);
-+  assert.equal(r.pagamentos[1].nome, "Cartão de crédito");
-+  assert.equal(r.pagamentos[1].parcelas, 2);
-+  for (const forma of [
-+    "dinheiro",
-+    "pix",
-+    "credito",
-+    "debito",
-+    "crediario",
-+    "haver",
-+    "cheque",
-+  ])
-+    assert.equal(
-+      resumirVenda(venda([item()], {}, [{ forma, valor: 100 }])).pagamentos
-+        .length,
-+      1,
-+    );
-+});
-+test("reimpressão usa snapshot: preço, código, nome e unidade do produto não vêm do cadastro atual", () => {
-+  const v = venda([
-+    item(2, 25, 0),
-+    { ...item(1, 50), produto: { id: "s", nome: "Banho", tipo: "servico" } },
-+  ]);
-+  const antes = JSON.stringify(v);
-+  v.itens[0].produto.preco = 400;
-+  const r = resumirVenda(v);
-+  assert.equal(r.itens[0].unitario, 25);
-+  assert.equal(r.itens[0].codigo, "001");
-+  assert.equal(r.itens[0].unidade, "UN");
-+  assert.equal(r.itens[1].unidade, "SERV");
-+  assert.equal(r.final, 10000);
-+  const frozen = JSON.parse(antes);
-+  Object.freeze(frozen);
-+  assert.deepEqual(resumirVenda(frozen), resumirVenda(frozen));
-+  assert.equal(JSON.stringify(frozen), antes);
-+});
-+test("Brasília explícita independe de TZ do servidor e respeita virada de data", () => {
-+  const old = process.env.TZ;
++    const resposta = await fetch('/api/itens/' + encodeURIComponent(produtoId), { credentials: 'include' });
++    if (!resposta.ok) throw new Error('Não foi possível consultar o estoque atual.');
++    const dado = await resposta.json(), atual = dado.produto || dado.item || dado;
++    if (String(atual.id) !== produtoId) throw new Error('Produto não encontrado.');
++    if (!selectedProduto || String(selectedProduto.id) !== produtoId || produtoInput.value !== produtoNome) return;
++    const saldoAtual = Number(atual.estoqueAtual ?? atual.estoque ?? 0) || 0;
++    const reservado = itensAdicionados.filter(i => String(i.id) === produtoId).reduce((n,i) => n + Number(i.quantidade || 0), 0);
++    selectedProduto.estoqueAtual = saldoAtual; estoqueInput.value = String(saldoAtual);
++    if (quantidade + reservado > saldoAtual + 1e-9) { alert('Estoque insuficiente para saída. Disponível: ' + Math.max(0, saldoAtual - reservado).toLocaleString('pt-BR')); return; }
++  } catch (e) { alert(e.message); return; }
+ 
+   const novoItem = {
+     id: selectedProduto && selectedProduto.id ? selectedProduto.id : Date.now(),
+@@ -1652,6 +1668,7 @@
+   estoqueInput.value = "";
+   custoInput.value = "0,00";
+   quantidadeInput.value = "1";
++  selectedProduto = null;
+ 
+   console.log("✅ Item adicionado:", novoItem);
+   // salvar rascunho no servidor (situação: Pendente)
+@@ -2031,6 +2048,18 @@
+     }
+     return;
+   }
++
++  // Não finalizar um rascunho cujo estoque tenha mudado desde a inclusão.
 +  try {
-+    for (const zone of ["UTC", "America/Los_Angeles", "Asia/Tokyo"]) {
-+      process.env.TZ = zone;
-+      assert.equal(dataBrasilia("2026-11-20T22:01:00Z"), "20/11/2026 19:01");
-+      assert.equal(dataBrasilia("2026-11-21T00:30:00Z"), "20/11/2026 21:30");
-+      assert.equal(dataBrasilia("2026-11-20 22:01:00"), "20/11/2026 19:01");
++    const quantidades = new Map();
++    itensAdicionados.forEach(i => quantidades.set(String(i.id), (quantidades.get(String(i.id)) || 0) + Number(i.quantidade || 0)));
++    for (const [id, quantidade] of quantidades) {
++      const response = await fetch('/api/itens/' + encodeURIComponent(id), { credentials: 'include' });
++      if (!response.ok) throw new Error('Não foi possível validar o estoque da saída.');
++      const dado = await response.json(), produto = dado.produto || dado.item || dado;
++      if (String(produto.id) !== id || quantidade > Number(produto.estoqueAtual ?? produto.estoque ?? 0) + 1e-9) throw new Error('Estoque insuficiente para finalizar a saída de ' + (produto.nome || id));
 +    }
-+  } finally {
-+    if (old === undefined) delete process.env.TZ;
-+    else process.env.TZ = old;
-+  }
-+});
-+test("PDF real contém valores/descontos corretos e pagina descrições longas sem corte horizontal", async () => {
-+  const { execFileSync } = require("node:child_process");
-+  const itens = Array.from({ length: 55 }, (_, n) => ({
-+    ...item(1, 10, n % 2 ? 10 : 0),
-+    produto: {
-+      codigo: String(n + 1),
-+      nome: "Produto com descrição longa e cuidados especiais ".repeat(5),
-+      unidade: "UN",
-+    },
-+  }));
-+  const v = venda(itens, { descontoValor: 5 });
-+  const pdf = await gerarComprovanteVenda({
-+    venda: v,
-+    empresa: { nome: "Empresa A", telefone: "31999999999" },
-+  });
-+  const result = JSON.parse(
-+    execFileSync(
-+      "python3",
-+      [
-+        "-c",
-+        `import sys,json,fitz
-+d=fitz.open(stream=sys.stdin.buffer.read(),filetype='pdf')
-+text=' '.join(p.get_text() for p in d)
-+bad=[]
-+for p in d:
-+ for word in p.get_text('words'):
-+  if word[0]<-0.5 or word[2]>p.rect.width+0.5 or word[3]>p.rect.height+0.5:bad.append(word[4])
-+print(json.dumps({'pages':len(d),'text':text,'bad':bad}))`,
-+      ],
-+      { input: pdf, maxBuffer: 2 * 1024 * 1024 },
-+    ).toString(),
-+  );
-+  assert(result.pages > 1);
-+  assert.match(result.text, /Brasília/);
-+  assert.match(result.text, /19:01/);
-+  assert.match(result.text, /Desconto geral/);
-+  assert.match(result.text, /Total líquido da venda/);
-+  assert.equal(result.bad.length, 0);
-+});
++  } catch(e) { alert(e.message); return; }
+ 
+   // Persistir no servidor marcando como Finalizado
+   (async () => {
+@@ -3266,7 +3295,8 @@
+ 
+ function setupProdutoAutocomplete() {
+   const input = document.getElementById("produtoItem");
+-  if (!input) return;
++  if (!input || input.dataset.estoqueAutocomplete === '1') return;
++  input.dataset.estoqueAutocomplete = '1';
+   const container = input.parentElement;
+   if (container)
+     container.style.position = container.style.position || "relative";
+@@ -3283,21 +3313,18 @@
+ 
+   // flag to avoid immediate reopen when an item is clicked
+   let ignoreNextInputClick = false;
++  let buscaVersao = 0;
+ 
+   async function fetchItems(q) {
+-    try {
+-      const res = await fetch("/api/itens?q=" + encodeURIComponent(q));
+-      if (!res.ok) return [];
+-      const data = await res.json();
+-      return Array.isArray(data) ? data : [];
+-    } catch (e) {
+-      console.warn("Erro buscar itens", e);
+-      return [];
+-    }
++    const res = await fetch('/api/itens?q=' + encodeURIComponent(q), { credentials: 'include' });
++    if (!res.ok) throw new Error('Não foi possível carregar os produtos. Tente novamente.');
++    const data = await res.json();
++    if (!Array.isArray(data)) throw new Error('A API não retornou uma lista de produtos.');
++    return data;
+   }
+ 
+   const doSearch = debounce(async function () {
+-    const q = input.value.trim();
++    const q = input.value.trim(), versao = ++buscaVersao;
+     if (!q) {
+       dropdown.innerHTML = "";
+       dropdown.classList.remove("show");
+@@ -3308,7 +3335,10 @@
+     // garantir visibilidade
+     dropdown.style.display = "block";
+     dropdown.classList.add("show");
+-    const items = await fetchItems(q);
++    let items;
++    try { items = await fetchItems(q); }
++    catch (e) { if (versao === buscaVersao) dropdown.textContent = e.message; return; }
++    if (versao !== buscaVersao || input.value.trim() !== q) return;
+     dropdown.innerHTML = "";
+     if (!items || items.length === 0) {
+       dropdown.innerHTML = '<div class="item">Nenhum resultado</div>';
+@@ -3320,13 +3350,17 @@
+       const nome = it.nome || it.descricao || it.name || "";
+       const codigo = it.codigo || it.id || "";
+       el.innerHTML = `<div style="font-weight:600">${escapeHtml(nome)}</div><div style="font-size:12px;color:#666">${escapeHtml(String(codigo))}</div>`;
++      const estoque = Number(it.estoqueAtual ?? it.estoque ?? 0) || 0;
++      const saldo = document.createElement('div'); saldo.style.fontSize = '12px';
++      saldo.textContent = 'Estoque: ' + estoque.toLocaleString('pt-BR') + (estoque <= 0 ? ' · indisponível para saída' : '');
++      el.appendChild(saldo);
+       el.addEventListener("click", function (e) {
+         e.stopPropagation();
+         selectedProduto = {
+           id: it.id || it.codigo || it.ID || null,
+           nome: nome,
+           codigo: codigo,
+-          estoqueAtual: it.estoqueAtual || it.estoque || null,
++          estoqueAtual: Number(it.estoqueAtual ?? it.estoque ?? 0) || 0,
+         };
+         input.value = nome;
+         const estoqueInput = document.getElementById("estoqueItem");
+@@ -3362,6 +3396,7 @@
+ 
+   input.addEventListener("input", function (e) {
+     selectedProduto = null;
++    buscaVersao++;
+     doSearch();
+   });
+   input.addEventListener("click", function (e) {
+@@ -3375,6 +3410,7 @@
+   });
+   document.addEventListener("click", function (e) {
+     if (!container.contains(e.target)) {
++      buscaVersao++;
+       dropdown.classList.remove("show");
+       dropdown.style.display = "none";
+     }
+--- a/frontend/item/estoque/outras-saidas.html
++++ b/frontend/item/estoque/outras-saidas.html
+@@ -912,7 +912,7 @@
+     </div>
+ 
+   <!-- Script do menu (copiar para sua página) -->
+-  <script src="./outras-saidas.js"></script>
++  <script src="./outras-saidas.js?v=20261120-busca-estoque1"></script>
+   <!-- Script global do calendário (copia do dashboard) -->
+   <script src="../novo-atendimento-global.js"></script>
+   
 --- /dev/null
-+++ b/tests/caixa-rapido.test.js
-@@ -0,0 +1,485 @@
++++ b/tests/estoque-busca.test.js
+@@ -0,0 +1,190 @@
 +"use strict";
 +const { test } = require("node:test"),
 +  assert = require("node:assert/strict"),
-+  fs = require("fs"),
-+  path = require("path"),
++  fs = require("node:fs"),
++  path = require("node:path");
++const { Sequelize, DataTypes: D } = require("sequelize"),
 +  { JSDOM, VirtualConsole } = require("jsdom");
-+const base = path.join(__dirname, "../frontend/atendimento/");
++const { condicaoBuscaItens } = require("../backend/services/buscaItens");
 +const wait = (ms = 30) => new Promise((r) => setTimeout(r, ms));
-+test('quantidade fracionada e preço com separador de milhar não quebram cálculo ou validação',async t=>{
-+ const a=await app(t,'classico');await a.w.selecionarProduto('p3');
-+ const qty=a.d.querySelector('#quantidade'),unit=a.d.querySelector('#valorUnitario');qty.value='0.5';qty.dispatchEvent(new a.w.Event('input',{bubbles:true}));
-+ unit.value='1.234,56';unit.dispatchEvent(new a.w.Event('input',{bubbles:true}));unit.dispatchEvent(new a.w.Event('blur'));await wait(50);
-+ assert.equal(unit.value,'1.234,56');assert.match(a.d.querySelector('.total-value').textContent,/617,28/);assert.equal(a.errors.length,0);
-+});
-+test('desconto individual por percentual não altera preço bruto nem é duplicado no blur',async t=>{
-+ const a=await app(t,'classico');await a.w.selecionarProduto('p1');
-+ const discount=a.d.querySelector('#descontoPercent');discount.value='10';discount.dispatchEvent(new a.w.Event('input',{bubbles:true}));discount.dispatchEvent(new a.w.Event('blur'));
-+ assert.equal(a.d.querySelector('#valorUnitario').value,'12.50');
-+ a.click('#adicionarItem');await wait(50);const item=a.w.PetHubVenda.dados().itens[0];assert.equal(item.valorUnitario,12.5);assert.equal(item.desconto,10);assert.equal(item.totalBruto,12.5);assert.equal(item.totalFinal,11.25);
-+ const geral=a.d.querySelector('#descontoGeralValor');geral.value='1,25';geral.dispatchEvent(new a.w.Event('input',{bubbles:true}));const totals=a.w.PetHubVenda.dados().totais;assert.equal(totals.descontoItens,1.25);assert.equal(totals.descontoGeral,1.25);assert.equal(totals.final,10);assert.equal(a.errors.length,0);
-+});
-+for (const visual of ['classico','rapido']) test(`cliente sem telefone pode ser pesquisado e vinculado no ${visual}`, async t => {
-+  const a=await app(t,visual),requests=[];
-+  await a.w.PetHubVenda.adicionar(a.products[0]);
-+  a.w.fetch=async url=>{requests.push(String(url));return {ok:true,status:200,json:async()=>String(url).includes('/caixas/aberto')?{aberto:true}:{success:true,clientes:[{id:'120001',nome:'Karol',telefone:null,email:null},{id:2,nome:null,telefone:1234},{id:3,nome:'Ana',telefone:null}]}}};
-+  const input=a.d.querySelector('#pesquisarCliente');input.value='karol';await a.w.buscarClientes('karol');
-+  assert.equal(a.d.querySelectorAll('.cliente-item').length,1);assert.match(a.d.querySelector('.cliente-item').textContent,/Karol/);
-+  a.click('.cliente-item');await wait();assert.equal(a.w.PetHubVenda.dados().cliente.id,'120001');assert.equal(a.w.PetHubVenda.dados().cliente.telefone,'');
-+  assert.equal(requests.filter(url=>url.includes('/clientes')).length,1);assert(requests.some(url=>url.includes('search=karol')));
-+  assert.equal(a.w.PetHubVenda.dados().itens.length,1);assert.doesNotMatch(a.d.querySelector('#clienteSelecionado').textContent,/undefined|null/);
-+  await a.w.PetHubVenda.finalizar();const pending=a.calls.find(c=>c.kind==='create');assert.equal(pending.b.clienteId,'120001');assert.equal(pending.b.cliente,'Karol');assert.equal(a.errors.length,0);
-+});
-+test('busca de clientes aceita array e ignora resposta antiga; não inventa clientes se API falhar',async t=>{
-+ const a=await app(t);let old;
-+ a.w.fetch=async url=>String(url).includes('search=karol')?await new Promise(r=>old=r):{ok:true,json:async()=>[{id:'ana',nome:'Ana',telefone:null}]};
-+ const input=a.d.querySelector('#pesquisarCliente');input.value='karol';const first=a.w.buscarClientes('karol');input.value='ana';await a.w.buscarClientes('ana');old({ok:true,json:async()=>({success:true,clientes:[{id:1,nome:'Karol'}]})});await first;
-+ assert.equal(a.d.querySelectorAll('.cliente-item').length,1);assert.match(a.d.querySelector('.cliente-item').textContent,/Ana/);
-+ a.key('Enter',input);await wait();assert.equal(a.w.PetHubVenda.dados().cliente.id,'ana');
-+ a.w.removerClienteSelecionado();a.w.fetch=async()=>({ok:false,status:503});input.value='joao';await a.w.buscarClientes('joao');assert.equal(a.d.querySelectorAll('.cliente-item').length,0);assert.match(a.d.querySelector('#clientesDropdown').textContent,/Não foi possível/);assert.equal(a.w.PetHubVenda.dados().cliente,null);assert.equal(a.errors.length,0);
-+});
-+test("carregamento esconde conteúdo desde o HTML e só revela o layout confirmado", async (t) => {
-+  let resolve;
-+  const deferred = new Promise((r) => (resolve = r));
-+  const a = await app(t, "rapido", {
-+    readPreference: () => deferred,
-+    beforeScripts(w, d) {
-+      assert(d.documentElement.classList.contains("qr-booting"));
-+      assert(d.querySelector("#qr-sale-content").hasAttribute("inert"));
-+      assert.match(
-+        d.querySelector("#qr-boot-critical").textContent,
-+        /html\.qr-booting #qr-sale-content\s*\{\s*display: none !important/,
-+      );
-+    },
++test("busca SQL não depende de collation e mantém produtos zerados da empresa", async (t) => {
++  const db = new Sequelize({
++    dialect: "sqlite",
++    storage: ":memory:",
++    logging: false,
++    dialectModule: require("./helpers/sqlite-caixa"),
 +  });
-+  assert(a.d.documentElement.classList.contains("qr-booting"));
-+  assert.equal(
-+    a.d.querySelector("#qr-sale-content").getAttribute("aria-busy"),
-+    "true",
-+  );
-+  assert(a.d.querySelector("#qr-layout-toggle").disabled);
-+  resolve({ layout: "rapido" });
-+  await wait(70);
-+  assert(!a.d.documentElement.classList.contains("qr-booting"));
-+  assert(!a.d.querySelector("#qr-sale-content").hasAttribute("inert"));
-+  assert(a.d.querySelector(".nova-venda-layout").hidden);
-+  assert(!a.d.querySelector("#qr-shell").hidden);
-+  assert.equal(a.d.activeElement.id, "pesquisarProduto");
-+  assert.equal(a.errors.length, 0);
-+});
-+test("erro de preferência não revela o clássico; nova tentativa aplica escolha da empresa", async (t) => {
-+  let attempts = 0;
-+  const a = await app(t, "rapido", {
-+    readPreference: async () => {
-+      attempts++;
-+      if (attempts === 1) throw Error("offline");
-+      return { layout: "rapido" };
-+    },
++  t.after(() => db.close());
++  const Produto = db.define("Produto", {
++    id: { type: D.STRING, primaryKey: true },
++    nome: D.STRING,
++    codigo: D.STRING,
++    codigoBarras: D.STRING,
++    estoqueAtual: D.INTEGER,
++    empresa_id: D.INTEGER,
 +  });
-+  assert(a.d.documentElement.classList.contains("qr-booting"));
-+  assert(!a.d.querySelector("#qr-boot-error").hidden);
-+  a.click("#qr-boot-retry");
-+  await wait(70);
-+  assert.equal(attempts, 2);
-+  assert(!a.d.documentElement.classList.contains("qr-booting"));
-+  assert.equal(a.w.PetHubCaixa.layout, "rapido");
-+  assert.equal(a.errors.length, 0);
++  await db.sync();
++  await db.query("PRAGMA case_sensitive_like = ON");
++  await Produto.bulkCreate([
++    { id: "1", nome: "Banho", empresa_id: 1, estoqueAtual: 0 },
++    {
++      id: "2",
++      nome: "HOT CAT PEIXE 20KG",
++      codigo: "ABC",
++      codigoBarras: "789001",
++      empresa_id: 1,
++      estoqueAtual: 5,
++    },
++    { id: "3", nome: "MAGNUS 15KG", empresa_id: 1, estoqueAtual: 0 },
++    { id: "4", nome: "RACAO OUTRA EMPRESA", empresa_id: 2, estoqueAtual: 9 },
++  ]);
++  const find = (q) =>
++    Produto.findAll({ where: { empresa_id: 1, ...condicaoBuscaItens(q) } });
++  assert.equal((await find("a")).length, 3);
++  assert.equal((await find("HOT cat")).length, 1);
++  assert.equal((await find("abc"))[0].id, "2");
++  assert.equal((await find("789001"))[0].id, "2");
++  assert.equal((await find("3"))[0].estoqueAtual, 0);
 +});
-+test("preferência clássico libera somente o clássico e remove estado de carregamento", async (t) => {
-+  const a = await app(t, "classico");
-+  assert(!a.d.documentElement.classList.contains("qr-booting"));
-+  assert(!a.d.querySelector(".nova-venda-layout").hidden);
-+  assert(a.d.querySelector("#qr-shell").hidden);
-+  assert.equal(
-+    a.d.querySelector("#qr-sale-content").getAttribute("aria-busy"),
-+    "false",
-+  );
-+});
-+async function app(t, preferred = "rapido", options = {}) {
-+  const errors = [],
-+    calls = [],
-+    vc = new VirtualConsole();
++async function tela(t, tipo) {
++  const file = path.join(__dirname, "../frontend/item/estoque/outras-" + tipo),
++    errors = [],
++    alerts = [],
++    calls = [];
++  const vc = new VirtualConsole();
 +  vc.on("jsdomError", (e) => errors.push(e.message));
-+  const dom = new JSDOM(fs.readFileSync(base + "nova-venda.html", "utf8"), {
-+    url: "https://pethub.test/atendimento/nova-venda.html",
-+    runScripts: "outside-only",
-+    pretendToBeVisual: true,
-+    virtualConsole: vc,
-+  });
-+  const w = dom.window,
++  const dom = new JSDOM(fs.readFileSync(file + ".html", "utf8"), {
++      url: "https://pethub.test/item/estoque/outras-" + tipo + ".html",
++      runScripts: "outside-only",
++      pretendToBeVisual: true,
++      virtualConsole: vc,
++    }),
++    w = dom.window,
 +    d = w.document;
 +  t.after(() => w.close());
-+  w.confirmar = async () => true;
++  w.alert = (m) => alerts.push(m);
 +  w.confirm = () => true;
-+  w.alert = () => {};
 +  w.scrollTo = () => {};
-+  w.HTMLElement.prototype.scrollIntoView = () => {};
-+  w.HTMLDialogElement.prototype.showModal = function () {
-+    this.open = true;
-+  };
-+  w.HTMLDialogElement.prototype.close = function () {
-+    this.open = false;
-+    this.dispatchEvent(new w.Event("close"));
-+  };
-+  const products = [
++  const produtos = [
 +    {
-+      id: "p1",
-+      nome: "Ração",
-+      preco: 12.5,
-+      estoqueAtual: 3,
-+      tipo: "produto",
-+      codigoBarras: "789001",
++      id: "2",
++      nome: "HOT CAT PEIXE 20KG",
++      codigo: "HOT",
++      estoqueAtual: 2,
++      custoBase: 10,
 +    },
-+    { id: "p2", nome: "Banho", preco: 50, estoqueAtual: 0, tipo: "servico" },
-+    { id: "p3", nome: "Granel", preco: 10, estoqueAtual: 2.5, tipo: "produto" },
++    { id: "3", nome: "MAGNUS 15KG", estoqueAtual: 0, custoBase: 5 },
++    { id: "1", nome: "Banho", estoqueAtual: 0, custoBase: 5 },
 +  ];
-+  w.fetch = async (url, opt = {}) => ({
-+    ok: true,
-+    json: async () =>
-+      String(url).includes("/caixas/aberto") ? { aberto: true } : [],
-+  });
-+  w.ApiClient = {
-+    getProdutos: async () => products,
-+    request: async (p, o = {}) => {
-+      calls.push({ p, ...o });
-+      if (p === "/caixas/aberto") return { aberto: true };
-+      if (
-+        p === "/vendas/preferencias/layout-caixa" &&
-+        !o.method &&
-+        options.readPreference
-+      )
-+        return options.readPreference();
-+      if (o.method === "PUT") {
-+        preferred = JSON.parse(o.body).layout;
-+        return { layout: preferred };
-+      }
-+      return { layout: preferred };
-+    },
-+    criarVenda: async (b) => {
-+      calls.push({ kind: "create", b: JSON.parse(JSON.stringify(b)) });
-+      await wait();
-+      return { id: 88 };
-+    },
-+    atualizarVenda: async (id, b) => {
-+      calls.push({ kind: "update", id, b: JSON.parse(JSON.stringify(b)) });
-+      await wait(40);
-+      return { id };
-+    },
-+    atualizarEstoque: async (...args) => calls.push({ kind: "stock", args }),
++  w.fetch = async (url, op = {}) => {
++    calls.push({ url: String(url), ...op });
++    let data = [];
++    if (String(url).includes("/api/itens?q=")) {
++      const q = new URL(url, "https://pethub.test").searchParams
++        .get("q")
++        .toLowerCase();
++      data = produtos.filter((p) => p.nome.toLowerCase().includes(q));
++    } else if (String(url).startsWith("/api/itens/"))
++      data = produtos.find(
++        (p) => String(p.id) === String(url).split("/").at(-1),
++      );
++    else if (op.method === "POST" || op.method === "PUT")
++      data = { ...JSON.parse(op.body || "{}"), id: 10 };
++    return {
++      ok: true,
++      json: async () => data,
++      text: async () => "",
++      status: 200,
++    };
 +  };
-+  options.beforeScripts?.(w, d);
-+  w.eval(fs.readFileSync(path.join(base, "../components/venda-calculos.js"), "utf8"));
-+  w.eval(fs.readFileSync(base + "nova-venda.js", "utf8"));
-+  w.eval(fs.readFileSync(base + "caixa-rapido.js", "utf8"));
-+  await wait(350);
-+  w.mostrarNotificacao = (type, message) =>
-+    calls.push({ kind: "notice", type, message });
++  w.eval(fs.readFileSync(file + ".js", "utf8"));
++  await wait(80);
++  d.querySelector("#tipoEntrada").value = "AJUSTE";
 +  return {
 +    w,
 +    d,
 +    errors,
++    alerts,
 +    calls,
-+    products,
-+    click: (s) => d.querySelector(s).click(),
-+    key: (key, node = d) =>
-+      node.dispatchEvent(
-+        new w.KeyboardEvent("keydown", {
-+          key,
-+          bubbles: true,
-+          cancelable: true,
-+        }),
-+      ),
-+  };
-+}
-+test("troca mantém o mesmo carrinho, cliente, profissional e campos; clássico é padrão", async (t) => {
-+  const a = await app(t, "classico");
-+  assert.equal(a.w.PetHubCaixa.layout, "classico");
-+  await a.w.PetHubVenda.adicionar(a.products[0]);
-+  a.d.querySelector("#observacoes").value = "Manter";
-+  const original = a.d.querySelector("#pesquisarCliente");
-+  original.value = "Ana";
-+  a.d.querySelector("#pesquisarProfissional").value = "João";
-+  a.w.PetHubCaixa.aplicar("rapido");
-+  assert.equal(a.d.querySelector("#qr-customer #pesquisarCliente"), original);
-+  assert.equal(a.w.PetHubVenda.dados().itens.length, 1);
-+  a.w.PetHubCaixa.aplicar("classico");
-+  assert.equal(
-+    a.d.querySelector(".resumo-section #pesquisarCliente"),
-+    original,
-+  );
-+  assert.equal(original.value, "Ana");
-+  assert.equal(a.d.querySelector("#observacoes").value, "Manter");
-+  assert.equal(a.d.querySelector("#pesquisarProfissional").value, "João");
-+  assert.equal(a.d.querySelectorAll("#pesquisarCliente").length, 1);
-+  assert.equal(a.errors.length, 0);
-+});
-+test("leitor repetido incrementa, impede estoque acumulado e preserva quantidades fracionadas", async (t) => {
-+  const a = await app(t),
-+    input = a.d.querySelector("#pesquisarProduto");
-+  for (let n = 0; n < 4; n++) {
-+    input.value = "789001";
-+    a.key("Enter", input);
-+  }
-+  await wait(200);
-+  assert.equal(a.w.PetHubVenda.dados().itens.length, 1);
-+  assert.equal(a.w.PetHubVenda.dados().itens[0].quantidade, 3);
-+  assert.equal(a.w.PetHubVenda.dados().totais.final, 37.5);
-+  assert.equal(a.d.activeElement, input);
-+  await a.w.PetHubVenda.adicionar(a.products[2], 0.5);
-+  assert.equal(a.w.PetHubVenda.dados().totais.final, 42.5);
-+  const id = a.w.PetHubVenda.dados().itens[1].id;
-+  assert.equal(await a.w.PetHubVenda.quantidade(id, 2.6), false);
-+  assert.equal(await a.w.PetHubVenda.quantidade(id, 1.25), true);
-+  assert.equal(a.w.PetHubVenda.dados().totais.final, 50);
-+  assert.equal(a.errors.length, 0);
-+});
-+test("atalhos, totais com descontos/acréscimo e seletores reais do layout", async (t) => {
-+  const a = await app(t);
-+  await a.w.PetHubVenda.adicionar(a.products[0]);
-+  a.key("F2");
-+  assert.equal(a.d.activeElement.id, "pesquisarProduto");
-+  a.key("F4");
-+  assert.equal(a.d.activeElement.id, "pesquisarCliente");
-+  a.key("F6");
-+  assert.equal(a.d.activeElement.id, "descontoGeralValor");
-+  const discount = a.d.querySelector("#descontoGeralValor");
-+  discount.value = "2,50";
-+  discount.dispatchEvent(new a.w.Event("input", { bubbles: true }));
-+  assert.equal(a.w.PetHubVenda.dados().totais.final, 10);
-+  const fee = a.d.querySelector("#acrescimoValor");
-+  fee.value = "1,00";
-+  fee.dispatchEvent(new a.w.Event("input", { bubbles: true }));
-+  assert.equal(a.w.PetHubVenda.dados().totais.final, 11);
-+  a.key("F3");
-+  assert.equal(
-+    a.d.activeElement.getAttribute("aria-label"),
-+    "Quantidade de Ração",
-+  );
-+  a.click("#qr-layout-toggle");
-+  assert(a.d.querySelector("dialog[open]"));
-+  assert.match(a.d.querySelector("dialog").textContent, /Em uso/);
-+  a.d.querySelector("dialog").close();
-+  assert.equal(a.errors.length, 0);
-+});
-+test("dinheiro/troco e F8 duplo usam uma venda e uma baixa de estoque", async (t) => {
-+  const a = await app(t);
-+  await a.w.PetHubVenda.adicionar(a.products[0]);
-+  a.d.querySelector("#observacoes").value = "Pedido balcão";
-+  a.key("F7");
-+  a.key("F7");
-+  await wait(100);
-+  assert.equal(a.calls.filter((c) => c.kind === "create").length, 1);
-+  assert(a.d.querySelector("#modalPagamento"));
-+  a.click("[data-forma=dinheiro]");
-+  const input = a.d.querySelector("#valor-dinheiro");
-+  input.value = "20";
-+  input.dispatchEvent(new a.w.Event("input", { bubbles: true }));
-+  assert.match(a.d.querySelector("#qr-change").textContent, /7,50/);
-+  a.key("F8");
-+  a.key("F8");
-+  await wait(180);
-+  assert.equal(a.calls.filter((c) => c.kind === "update").length, 1);
-+  assert.equal(a.calls.filter((c) => c.kind === "stock").length, 1);
-+  const sale = a.calls.find((c) => c.kind === "update").b;
-+  assert.equal(sale.pagamentos[0].valor, 12.5);
-+  assert.equal(sale.pagamentos[0].troco, 7.5);
-+  assert.equal(sale.totalPago, 12.5);
-+  assert.equal(sale.observacoes, "Pedido balcão");
-+  assert.equal(a.w.PetHubVenda.dados().itens.length, 0);
-+  assert.equal(a.errors.length, 0);
-+});
-+test("múltiplo recusa falta e aceita soma exata sem enviar venda parcial", async (t) => {
-+  const a = await app(t);
-+  await a.w.PetHubVenda.adicionar(a.products[1]);
-+  a.key("F7");
-+  await wait(100);
-+  a.click("[data-forma=pix]");
-+  a.d.querySelector("#valor-pix").value = "20";
-+  a.d.querySelector("#chave-pix").value = "loja@example.test";
-+  a.click("#adicionarPagamento");
-+  await wait();
-+  a.key("F8");
-+  await wait();
-+  assert.equal(a.calls.filter((c) => c.kind === "update").length, 0);
-+  a.click("[data-forma=debito]");
-+  a.d.querySelector("#valor-debito").value = "30";
-+  a.click("#adicionarPagamento");
-+  await wait();
-+  a.key("F8");
-+  await wait(150);
-+  assert.equal(a.calls.filter((c) => c.kind === "update").length, 1);
-+  assert.equal(a.calls.find((c) => c.kind === "update").b.totalPago, 50);
-+  assert.equal(a.calls.filter((c) => c.kind === "stock").length, 0);
-+  assert.equal(a.errors.length, 0);
-+});
-+test("seletor salva no servidor e muda sem descartar a venda; ESC pede confirmação", async (t) => {
-+  const a = await app(t);
-+  await a.w.PetHubVenda.adicionar(a.products[0]);
-+  a.click("#qr-layout-toggle");
-+  a.d.querySelector(".qr-layout-cards article button").click();
-+  await wait(80);
-+  assert.equal(a.w.PetHubCaixa.layout, "classico");
-+  assert.equal(a.w.PetHubVenda.dados().itens.length, 1);
-+  assert.equal(a.calls.filter((c) => c.method === "PUT").length, 1);
-+  assert.deepEqual(JSON.parse(a.calls.find((c) => c.method === "PUT").body), {
-+    layout: "classico",
-+  });
-+  a.w.PetHubCaixa.aplicar("rapido");
-+  a.w.confirmar = async () => false;
-+  a.key("Escape");
-+  await wait();
-+  assert.equal(a.w.PetHubVenda.dados().itens.length, 1);
-+  a.w.confirmar = async () => true;
-+  a.key("Escape");
-+  await wait();
-+  assert.equal(a.w.PetHubVenda.dados().itens.length, 0);
-+  assert.equal(a.errors.length, 0);
-+});
-+test("fechado bloqueia pagamento e falha de catálogo não introduz produtos de exemplo", async (t) => {
-+  const a = await app(t);
-+  await a.w.PetHubVenda.adicionar(a.products[0]);
-+  a.w.fetch = async () => ({ ok: true, json: async () => ({ aberto: false }) });
-+  a.key("F7");
-+  await wait();
-+  assert.equal(a.d.querySelector("#modalPagamento"), null);
-+  assert.equal(a.calls.filter((c) => c.kind === "create").length, 0);
-+  a.w.ApiClient.getProdutos = async () => {
-+    throw Error("offline");
-+  };
-+  await a.w.PetHubCaixa.catalogo();
-+  assert.equal(a.d.querySelectorAll("#qr-products button").length, 0);
-+  assert.equal(a.w.PetHubVenda.dados().itens.length, 1);
-+  assert.equal(a.errors.length, 0);
-+});
-+test("busca seleciona primeiro resultado, setas mantêm foco e Enter confirma só destaque", async (t) => {
-+  const a = await app(t),
-+    input = a.d.querySelector("#pesquisarProduto");
-+  assert.equal(a.d.activeElement, input);
-+  input.value = "a";
-+  input.dispatchEvent(new a.w.Event("input", { bubbles: true }));
-+  assert.equal(input.getAttribute("aria-expanded"), "true");
-+  let cards = [...a.d.querySelectorAll("#qr-products button")];
-+  assert.equal(cards[0].getAttribute("aria-selected"), "true");
-+  a.d.querySelector("#qr-products").getBoundingClientRect = () => ({
-+    top: 0,
-+    bottom: 100,
-+  });
-+  cards[1].getBoundingClientRect = () => ({ top: 120, bottom: 180 });
-+  a.key("ArrowDown", input);
-+  assert.equal(a.d.querySelector("#qr-products").scrollTop, 80);
-+  assert.equal(a.d.activeElement, input);
-+  assert.equal(cards[1].getAttribute("aria-selected"), "true");
-+  a.key("ArrowUp", input);
-+  assert.equal(cards[0].getAttribute("aria-selected"), "true");
-+  a.key("ArrowDown", input);
-+  a.key("Enter", input);
-+  a.key("Enter", input);
-+  await wait(120);
-+  assert.equal(a.w.PetHubVenda.dados().itens.length, 1);
-+  assert.equal(a.w.PetHubVenda.dados().itens[0].produto.id, "p2");
-+  assert.equal(input.value, "");
-+  assert.equal(a.d.activeElement, input);
-+  input.value = "nenhum-resultado";
-+  input.dispatchEvent(new a.w.Event("input", { bubbles: true }));
-+  a.key("Enter", input);
-+  await wait();
-+  assert.equal(a.w.PetHubVenda.dados().itens.length, 1);
-+  a.key("Escape", input);
-+  assert.equal(input.getAttribute("aria-expanded"), "false");
-+  assert.equal(a.w.PetHubVenda.dados().itens.length, 1);
-+  assert.equal(a.errors.length, 0);
-+});
-+test("botão fica antes do suporte inclusive montagem tardia; sem linha antiga", async (t) => {
-+  const a = await app(t, "classico"),
-+    header = a.d.querySelector(".header-right");
-+  const support = a.d.createElement("button");
-+  support.id = "hcHeaderBtn";
-+  header.prepend(support);
-+  await wait();
-+  assert.equal(support.previousElementSibling.id, "qr-layout-toggle");
-+  assert.equal(a.d.querySelector(".qr-toolbar"), null);
-+  assert.equal(a.d.querySelectorAll("#qr-layout-toggle").length, 1);
-+  a.w.PetHubCaixa.aplicar("rapido");
-+  assert.equal(support.previousElementSibling.id, "qr-layout-toggle");
-+  assert.equal(a.errors.length, 0);
-+});
-+test("miniaturas reutilizam nome de arquivo, URL persistente e data URL; fallback e atualização no carrinho", async (t) => {
-+  const a = await app(t);
-+  a.products[0].imagem = "embalagem hot cat.webp";
-+  a.products[1].imagem = "/uploads/servicos/banho.webp";
-+  a.products[2].imagem = "data:image/png;base64,aGVsbG8=";
-+  await a.w.PetHubCaixa.catalogo();
-+  const pics = [...a.d.querySelectorAll("#qr-products img")];
-+  assert.equal(pics.length, 3);
-+  assert.equal(
-+    pics[0].src,
-+    "https://pethub.test/uploads/embalagem%20hot%20cat.webp",
-+  );
-+  assert.equal(pics[1].src, "https://pethub.test/uploads/servicos/banho.webp");
-+  assert.equal(pics[0].loading, "lazy");
-+  await a.w.PetHubVenda.adicionar(a.products[0]);
-+  assert.equal(a.d.querySelector("#qr-cart img").src, pics[0].src);
-+  const input = a.d.querySelector("#pesquisarProduto");
-+  input.value = "Ração";
-+  input.dispatchEvent(new a.w.Event("input", { bubbles: true }));
-+  assert.equal(a.d.querySelector("#qr-products img").src, pics[0].src);
-+  a.products[0].imagem = "/uploads/itens/nova-foto.webp";
-+  await a.w.PetHubCaixa.catalogo();
-+  assert.match(a.d.querySelector("#qr-cart img").src, /nova-foto.webp$/);
-+  a.d.querySelector("#qr-cart img").dispatchEvent(new a.w.Event("error"));
-+  assert(a.d.querySelector("#qr-cart .qr-product-icon"));
-+  a.products[0].imagem = "javascript:alert(1)";
-+  delete a.products[1].imagem;
-+  await a.w.PetHubCaixa.catalogo();
-+  assert.equal(a.d.querySelector("#qr-products img"), null);
-+  assert.equal(a.errors.length, 0);
-+});
-+test("Enter na quantidade confirma sem duplicar e retorna à busca; render não rouba foco de cliente/modal", async (t) => {
-+  const a = await app(t);
-+  await a.w.PetHubVenda.adicionar(a.products[0]);
-+  a.key("F3");
-+  const qty = a.d.activeElement;
-+  qty.value = "2";
-+  a.key("Enter", qty);
-+  await wait(80);
-+  assert.equal(a.w.PetHubVenda.dados().itens[0].quantidade, 2);
-+  assert.equal(a.d.activeElement.id, "pesquisarProduto");
-+  const cliente = a.d.querySelector("#pesquisarCliente");
-+  cliente.focus();
-+  await a.w.PetHubCaixa.catalogo();
-+  assert.equal(a.d.activeElement, cliente);
-+  const dialog = a.d.createElement("dialog");
-+  a.d.body.append(dialog);
-+  dialog.showModal();
-+  const field = a.d.createElement("input");
-+  dialog.append(field);
-+  field.focus();
-+  await a.w.PetHubCaixa.catalogo();
-+  assert.equal(a.d.activeElement, field);
-+  dialog.close();
-+  assert.equal(a.errors.length, 0);
-+});
-+test("Enter no pagamento adiciona valor uma vez e F8 conclui pelo fluxo original", async (t) => {
-+  const a = await app(t);
-+  await a.w.PetHubVenda.adicionar(a.products[0]);
-+  a.key("F7");
-+  await wait(100);
-+  a.click("[data-forma=dinheiro]");
-+  const field = a.d.querySelector("#valor-dinheiro");
-+  field.focus();
-+  field.value = "20";
-+  a.key("Enter", field);
-+  await wait();
-+  assert(a.d.querySelector("#modalPagamento"));
-+  assert.notEqual(a.d.activeElement.id, "pesquisarProduto");
-+  a.key("F8");
-+  await wait(150);
-+  const saved = a.calls.filter((c) => c.kind === "update");
-+  assert.equal(saved.length, 1);
-+  assert.equal(saved[0].b.pagamentos.length, 1);
-+  assert.equal(saved[0].b.totalPago, 12.5);
-+  a.d.querySelector("#modalVendaFinalizada").remove();
-+  await wait(350);
-+  assert.equal(a.d.activeElement.id, "pesquisarProduto");
-+  assert.equal(a.errors.length, 0);
-+});
---- /dev/null
-+++ b/tests/pdf-logo-empresa.test.js
-@@ -0,0 +1,280 @@
-+"use strict";
-+const { test } = require("node:test"),
-+  assert = require("node:assert/strict");
-+const fs = require("node:fs/promises"),
-+  path = require("node:path"),
-+  os = require("node:os");
-+const sharp = require("sharp"),
-+  PDFDocument = require("pdfkit");
-+const {
-+  criarServico,
-+  desenharLogo,
-+} = require("../backend/services/identidadeEmpresaPDF");
-+async function fixture(t) {
-+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "pethub-pdf-logo-"));
-+  t.after(() => fs.rm(dir, { recursive: true, force: true }));
-+  await fs.mkdir(path.join(dir, "frontend/fivecon"), { recursive: true });
-+  const image = (color, w = 300, h = 120) =>
-+    sharp({ create: { width: w, height: h, channels: 4, background: color } })
-+      .png()
-+      .toBuffer();
-+  const red = await image("#ff0000"),
-+    blue = await image("#0000ff"),
-+    fallback = await image("#ffaa33");
-+  await fs.writeFile(
-+    path.join(dir, "frontend/fivecon/Design sem nome (17).png"),
-+    fallback,
-+  );
-+  const companies = new Map([
-+      [1, { id: 1, nome: "Empresa A", logo: "/uploads/empresas/a.webp" }],
-+      [2, { id: 2, nome: "Empresa B", logo: "/uploads/empresas/b.webp" }],
-+    ]),
-+    calls = [];
-+  const service = criarServico({
-+    diretorio: dir,
-+    Empresa: { findByPk: async (id) => companies.get(id) },
-+    lerMidia: async (emp, ref) => {
-+      calls.push({ emp, ref });
-+      if (emp === 1 && ref.endsWith("a.webp")) return { bytes: red };
-+      if (emp === 2 && ref.endsWith("b.webp")) return { bytes: blue };
-+      throw Object.assign(Error("Arquivo não autorizado"), { status: 403 });
++    produtos,
++    async buscar(q) {
++      const input = d.querySelector("#produtoItem");
++      input.value = q;
++      input.dispatchEvent(new w.Event("input", { bubbles: true }));
++      await wait(330);
 +    },
-+    log: { warn() {} },
-+  });
-+  return { dir, service, companies, calls, red, blue, fallback, image };
++    selecionar(i) {
++      d.querySelectorAll(".produto-select-dropdown .item")[i].click();
++    },
++  };
 +}
-+async function rgb(bytes) {
-+  const { data } = await sharp(bytes)
-+    .extract({ left: 320, top: 200, width: 1, height: 1 })
-+    .removeAlpha()
-+    .raw()
-+    .toBuffer({ resolveWithObject: true });
-+  return [...data];
-+}
-+test("logo persistente é lida com empresa autenticada e payload antigo não substitui cadastro", async (t) => {
-+  const f = await fixture(t);
-+  const a = await f.service.carregarIdentidade({
-+    user: { empresaId: 1 },
-+    body: { companyLogo: f.blue.toString("base64"), empresaId: 2 },
-+    query: { empresaId: 2 },
-+  });
-+  assert.equal(a.origem, "empresa");
-+  assert.deepEqual(await rgb(a.logoBuffer), [255, 0, 0]);
-+  assert.deepEqual(f.calls, [{ emp: 1, ref: "/uploads/empresas/a.webp" }]);
-+  const b = await f.service.carregarIdentidade({ user: { empresaId: 2 } });
-+  assert.deepEqual(await rgb(b.logoBuffer), [0, 0, 255]);
-+  await assert.rejects(
-+    () =>
-+      f.service.carregarIdentidade(
-+        { user: { empresaId: 1 } },
-+        { empresaId: 2 },
-+      ),
-+    { status: 403 },
-+  );
-+  await assert.rejects(
-+    () => f.service.carregarIdentidade({ query: { empresaId: 1 } }),
-+    { status: 401 },
-+  );
-+});
-+test("remover logo usa PetHub imediatamente, sem cache nem imagem antiga de outra empresa", async (t) => {
-+  const f = await fixture(t);
-+  await f.service.carregarIdentidade({ user: { empresaId: 1 } });
-+  f.companies.get(1).logo = null;
-+  const a = await f.service.carregarIdentidade({
-+    user: { empresaId: 1 },
-+    body: { companyLogo: f.red.toString("base64") },
-+  });
-+  assert.equal(a.origem, "padrao");
-+  assert.deepEqual(await rgb(a.logoBuffer), [255, 170, 51]);
-+  f.companies.get(1).logo = "/uploads/empresas/b.webp";
-+  const invalid = await f.service.carregarIdentidade({
-+    user: { empresaId: 1 },
-+  });
-+  assert.notDeepEqual(await rgb(invalid.logoBuffer), [0, 0, 255]);
-+});
-+test("nomes antigos, data URLs, JPEG, WebP e SVG são normalizados sem distorção", async (t) => {
-+  const f = await fixture(t);
-+  await fs.mkdir(path.join(f.dir, "uploads"), { recursive: true });
-+  await fs.writeFile(path.join(f.dir, "uploads", "logo.png"), f.red);
-+  const local = criarServico({
-+    Empresa: { findByPk: async () => f.companies.get(1) },
-+    diretorio: f.dir,
-+    log: { warn() {} },
-+  });
-+  for (const ref of [
-+    "logo.png",
-+    "/uploads/logo.png",
-+    "data:image/png;base64," + f.red.toString("base64"),
-+  ]) {
-+    f.companies.get(1).logo = ref;
-+    const a = await local.carregarIdentidade({ user: { empresaId: 1 } });
-+    assert.deepEqual(await rgb(a.logoBuffer), [255, 0, 0]);
-+  }
-+  for (const format of ["webp", "jpeg"]) {
-+    const img = await sharp(f.red).toFormat(format).toBuffer();
-+    f.companies.get(1).logo =
-+      "data:image/" + format + ";base64," + img.toString("base64");
-+    const a = await local.carregarIdentidade({ user: { empresaId: 1 } });
-+    assert.equal((await sharp(a.logoBuffer).metadata()).format, "png");
-+  }
-+  const svg = Buffer.from(
-+    '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="200"><rect width="100" height="200" fill="red"/></svg>',
-+  );
-+  f.companies.get(1).logo =
-+    "data:image/svg+xml;base64," + svg.toString("base64");
-+  const a = await local.carregarIdentidade({ user: { empresaId: 1 } });
-+  const { info } = await sharp(a.logoBuffer)
-+    .trim()
-+    .toBuffer({ resolveWithObject: true });
-+  assert(Math.abs(info.width / info.height - 0.5) < 0.02);
-+});
-+test("PDFKit gera cupom e A4 reais com logo dentro da área reservada", async (t) => {
-+  const f = await fixture(t),
-+    a = await f.service.carregarIdentidade({ user: { empresaId: 1 } });
-+  for (const width of [204, 595]) {
-+    const doc = new PDFDocument({ size: [width, 842], margin: 8 }),
-+      chunks = [];
-+    const result = new Promise((resolve, reject) => {
-+      doc.on("data", (b) => chunks.push(b));
-+      doc.on("end", () => resolve(Buffer.concat(chunks)));
-+      doc.on("error", reject);
-+    });
++for (const tipo of ["entradas", "saidas"])
++  test(`autocomplete mostra todos os resultados e preserva estoque zero em ${tipo}`, async (t) => {
++    const a = await tela(t, tipo);
++    await a.buscar("a");
 +    assert.equal(
-+      desenharLogo(doc, a.logoBuffer, {
-+        x: (width - 90) / 2,
-+        y: 10,
-+        largura: 90,
-+        altura: 64,
-+      }),
-+      true,
++      a.d.querySelectorAll(".produto-select-dropdown .item").length,
++      3,
 +    );
-+    doc.text("Empresa A", 8, 82, { width: width - 16, align: "center" });
-+    doc.end();
-+    const pdf = await result;
-+    assert.equal(pdf.subarray(0, 5).toString(), "%PDF-");
-+    assert(pdf.includes(Buffer.from("/Subtype /Image")));
-+  }
-+});
-+test("rotas reais de comprovante e faturamento incorporam logo da empresa e rejeitam documento cruzado", async (t) => {
-+  const f = await fixture(t),
-+    express = require("express"),
-+    vm = require("node:vm"),
-+    syncfs = require("node:fs");
-+  const helper = require("../backend/services/identidadeEmpresaPDF"),
-+    records = [];
-+  const authUser = (req, res, next) => {
-+    const emp = Number(req.get("x-company"));
-+    if (!emp) return res.sendStatus(401);
-+    req.user = { empresaId: emp, id: 1 };
-+    next();
-+  };
-+  const Venda = {
-+    findOne: async ({ where }) =>
-+      Number(where.id) === 10 && Number(where.empresa_id) === 1
-+        ? {
-+            id: 10,
-+            empresa_id: 1,
-+            itens: [],
-+            pagamentos: [],
-+            totais: {},
-+            data: new Date(),
-+          }
-+        : null,
-+    findAll: async () => [],
-+  };
-+  const models = {
-+    Venda,
-+    Empresa: { findByPk: async (id) => f.companies.get(Number(id)) },
-+    Cliente: { findByPk: async () => null },
-+    Produto: { findAll: async () => [] },
-+  };
-+  function load(name) {
-+    const filename = path.join(__dirname, "../backend/routes", name),
-+      module = { exports: {} };
-+    const customRequire = (p) => {
-+      if (p === '../services/comprovanteVendaPDF') return require('../backend/services/comprovanteVendaPDF');
-+      if (p === "../services/identidadeEmpresaPDF")
-+        return {
-+          ...helper,
-+          carregarIdentidade: async (req, op) => {
-+            const r = await f.service.carregarIdentidade(req, op);
-+            records.push({ emp: req.user.empresaId, origem: r.origem });
-+            return r;
-+          },
-+        };
-+      if (p === "../models") return models;
-+      if (p === "../models/Venda") return { Venda };
-+      if (p === "../models/Produto") return models.Produto;
-+      if (p === "../models/Cliente")
-+        return { Cliente: models.Cliente, sequelize: {} };
-+      if (p === "../models/Agendamento") return { Agendamento: {} };
-+      if (p === "../models/Pet") return {};
-+      if (p === "../middleware/authUser") return { authUser };
-+      if (p === "../middleware/exigePermissao")
-+        return { exigePermissao: () => (req, res, next) => next() };
-+      if (p === "../services/layoutCaixa")
-+        return { criarRouter: () => express.Router() };
-+      if (p === "../services/validarVendaCaixa")
-+        return { criarValidador: () => (req, res, next) => next() };
-+      if (p === "../controllers/vendaController")
-+        return new Proxy({}, { get: () => (req, res) => res.sendStatus(204) });
-+      return require(p);
-+    };
-+    vm.runInNewContext(
-+      syncfs.readFileSync(filename, "utf8"),
-+      {
-+        require: customRequire,
-+        module,
-+        exports: module.exports,
-+        __dirname: path.dirname(filename),
-+        Buffer,
-+        console,
-+        setTimeout,
-+        clearTimeout,
-+        process,
-+      },
-+      { filename },
++    assert.match(
++      a.d.querySelector(".produto-select-dropdown").textContent,
++      /Estoque: 0/,
 +    );
-+    return module.exports;
-+  }
-+  const app = express();
-+  app.use(express.json());
-+  app.use("/vendas", load("vendaRoutes.js"));
-+  app.use("/relatorios", load("relatoriosRoutes.js"));
-+  const server = app.listen(0, "127.0.0.1");
-+  await new Promise((r) => server.once("listening", r));
-+  t.after(() => new Promise((r) => server.close(r)));
-+  const base = `http://127.0.0.1:${server.address().port}`;
-+  assert.equal(
-+    (
-+      await fetch(base + "/vendas/10/comprovante", {
-+        headers: { "x-company": "2" },
-+      })
-+    ).status,
-+    404,
-+  );
-+  assert.equal((await fetch(base + "/vendas/10/comprovante")).status, 401);
-+  for (const url of [
-+    "/vendas/10/comprovante",
-+    "/relatorios/venda-no-periodo/pdf",
-+  ]) {
-+    const res = await fetch(base + url, { headers: { "x-company": "1" } });
-+    assert.equal(res.status, 200);
-+    assert.match(res.headers.get("content-type"), /application\/pdf/);
-+    const pdf = Buffer.from(await res.arrayBuffer());
-+    assert(pdf.includes(Buffer.from("/Subtype /Image")));
-+    assert.equal(pdf.subarray(0, 5).toString(), "%PDF-");
-+  }
-+  f.companies.get(1).logo = null;
-+  const faturamento = await fetch(base + '/relatorios/faturamento/pdf', {
-+    method: 'POST', headers: { 'x-company': '1', 'content-type': 'application/json' },
-+    body: JSON.stringify({ companyLogo: 'data:image/png;base64,' + f.blue.toString('base64') }),
++    a.selecionar(1);
++    assert.equal(a.d.querySelector("#estoqueItem").value, "0");
++    assert.equal(a.errors.length, 0);
 +  });
-+  assert.equal(faturamento.status, 200);
-+  assert(Buffer.from(await faturamento.arrayBuffer()).includes(Buffer.from('/Subtype /Image')));
-+  assert.deepEqual(records, [
-+    { emp: 1, origem: "empresa" },
-+    { emp: 1, origem: "empresa" },
-+    { emp: 1, origem: "padrao" },
-+  ]);
++test("entrada permite produto zerado; saída bloqueia zerado e quantidade acumulada acima do saldo", async (t) => {
++  const e = await tela(t, "entradas");
++  await e.buscar("MAGNUS");
++  e.selecionar(0);
++  e.d.querySelector("#quantidadeItem").value = "3";
++  await e.w.adicionarItem();
++  assert.equal(
++    e.d.querySelectorAll("#itensTableBody .added-item-row").length,
++    1,
++  );
++  const s = await tela(t, "saidas");
++  await s.buscar("MAGNUS");
++  s.selecionar(0);
++  await s.w.adicionarItem();
++  assert.equal(
++    s.d.querySelectorAll("#itensTableBody .added-item-row").length,
++    0,
++  );
++  assert(s.alerts.some((m) => /insuficiente/i.test(m)));
++  await s.buscar("HOT");
++  s.selecionar(0);
++  s.d.querySelector("#quantidadeItem").value = "2";
++  await s.w.adicionarItem();
++  assert.equal(
++    s.d.querySelectorAll("#itensTableBody .added-item-row").length,
++    1,
++  );
++  await s.buscar("HOT");
++  s.selecionar(0);
++  await s.w.adicionarItem();
++  assert.equal(
++    s.d.querySelectorAll("#itensTableBody .added-item-row").length,
++    1,
++  );
++  assert.equal(s.errors.length, 0);
++  assert.equal(e.errors.length, 0);
++});
++test("saída revalida estoque antes da finalização de um rascunho", async (t) => {
++  const s = await tela(t, "saidas");
++  await s.buscar("HOT");
++  s.selecionar(0);
++  await s.w.adicionarItem();
++  await wait();
++  s.produtos[0].estoqueAtual = 0;
++  await s.w.finalizarEntrada();
++  assert(s.alerts.some((m) => /insuficiente para finalizar/i.test(m)));
++  assert.equal(
++    s.calls.filter(
++      (c) => c.body && JSON.parse(c.body).situacao === "Finalizado",
++    ).length,
++    0,
++  );
++  assert.equal(s.errors.length, 0);
 +});

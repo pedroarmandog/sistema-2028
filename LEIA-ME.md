@@ -1,26 +1,56 @@
-# PetHub — Auditoria do comprovante de venda
+# PetHub — Pesquisa de produtos em entradas e saídas
 
 ## Instalação
 
-Este pacote atualiza os ajustes anteriores de caixa, clientes e logo nos PDFs. Faça backup dos arquivos correspondentes.
+1. Faça backup dos arquivos correspondentes e aplique as pastas `backend` e `frontend` deste pacote na raiz do projeto, mantendo os caminhos.
+2. Inclua o novo `backend/services/buscaItens.js` junto da rota `itemRoutes.js`.
+3. Faça deploy/reinicie a API e recarregue as telas de entradas/saídas. Os HTMLs apontam para JS com versão nova para evitar cache.
 
-1. Aplique TODOS os arquivos de `backend` e `frontend`, mantendo seus caminhos. Inclua o novo `frontend/components/venda-calculos.js`: o caixa e o backend utilizam esse mesmo módulo. Não envie somente os dois arquivos de Nova Venda.
-2. Faça deploy/reinicie o serviço e recarregue Nova Venda. O HTML está versionado para evitar scripts antigos em cache. O HTML de agendamento-detalhes também carrega o módulo compartilhado antes do pagamento.
-3. Gere novamente o comprovante. PDFs já baixados não mudam.
+Não exige migração, variável ou dependência nova de produção. Os ajustes anteriores de caixa, clientes e comprovantes não são substituídos por este pacote.
 
-Não é necessária migração, comando SQL, nova variável de ambiente nem alteração de dependências de produção. O pacote reutiliza PDFKit e o serviço de logo com sharp do ajuste anterior. Não substitua package.json/lock por versões antigas.
+Se seus arquivos tiverem alterações próprias mais recentes, revise/aplique `ALTERACOES.patch` para preservar essas mudanças.
 
-Se há mudanças mais recentes próprias nesses arquivos, revise/aplique `ALTERACOES.patch`, preservando suas alterações. Não remova o serviço de identidade `backend/services/identidadeEmpresaPDF.js` entregue anteriormente.
+## Causa e correções
 
-## Resultado
+A API pesquisava `nome LIKE '%texto%'` e `codigo LIKE '%texto%'` dependendo da collation do banco. Em comparação sensível à caixa, pesquisar `a` encontra “Banho”, mas não nomes inteiramente em maiúsculas. Isso corresponde ao comportamento mostrado na captura.
 
-- Horário explícito de Brasília (`America/Sao_Paulo`), usando a data registrada da venda. Não depende do TZ do Render e não altera timestamps no banco.
-- Quantidade/unidade/código/descrição/preço e descontos retirados do snapshot salvo nos itens. Não consulta preço atual do produto para reimprimir.
-- Desconto individual separado do geral. O preço unitário bruto não é rebaixado e depois descontado de novo.
-- Total líquido da venda independente do valor pago. Pagamentos parciais exibem saldo; dinheiro detalha recebido/troco quando registrado.
-- Valores monetários com cálculo decimal e arredondamento em centavos compartilhado entre caixa e validação do backend.
-- Logo e empresa continuam seguindo o cadastro e o isolamento do ajuste anterior. Comprovante permanece no formato de cupom.
+Agora a consulta normaliza os campos com LOWER, sem depender da collation. Nome, código, ID e código de barras são pesquisados. O filtro de empresa autenticada permanece e não existe filtro que exclua estoque zero. A mesma rota atende as outras telas que pesquisam produtos, inclusive a entrada manual em Compras.
 
-Veja `AUDITORIA.md` para detalhes dos problemas, decisões, arquivos, testes e limitações. `TESTES.txt` contém o resultado real: **35 testes passaram**.
+Nos autocompletes de Outras Entradas e Outras Saídas:
 
-Após publicar, confira uma venda real com desconto no item + desconto geral, compare o total do caixa com o PDF e valide a data/hora registrada. Não foram acessados seu Render, banco TiDB ou armazenamento R2 nesta auditoria.
+- lista todos os resultados retornados, com saldo visível;
+- preserva estoque `0` em vez de convertê-lo para nulo;
+- impede duplicar listeners ao configurar o modal novamente;
+- ignora respostas atrasadas de uma pesquisa anterior;
+- informa falha da API sem confundi-la com catálogo vazio;
+- exige selecionar um cadastro real, sem criar um ID fictício a partir do nome digitado.
+
+**Entrada:** produto com estoque zero pode ser incluído normalmente.
+
+**Saída:** produto com estoque zero aparece e pode ser identificado/selecionado, mas sua inclusão é bloqueada. A inclusão consulta o estoque atual e considera todas as linhas daquele produto já no rascunho; não permite exceder o saldo. Antes de finalizar, o formulário consulta novamente o saldo para impedir saída se o estoque tiver mudado. As consultas de produto por ID ficam restritas à empresa autenticada.
+
+A regra de bloqueio nesta tela de saída não muda a configuração global de estoque negativo utilizada por outras operações do sistema.
+
+## Validação
+
+**5 testes passaram**, conforme `TESTES.txt`:
+
+1. Consulta Sequelize real em SQLite com `case_sensitive_like=ON`: encontra maiúsculas/minúsculas, código, ID e código de barras, incluindo estoque zero, sem misturar empresa.
+2. Autocomplete de entrada apresenta todos os produtos e mantém zero.
+3. Autocomplete de saída apresenta todos os produtos e mantém zero.
+4. Entrada com produto zerado permitida; saída zerada e quantidade acumulada superior ao saldo bloqueadas.
+5. Rascunho de saída não é enviado como finalizado quando o estoque caiu para zero desde a inclusão.
+
+Foram executados os scripts reais das telas em JSDOM com API simulada. Os arquivos alterados passaram pela verificação de sintaxe. Não foram acessados Render/TiDB nem feitos lançamentos reais no seu estoque.
+
+Para repetir os testes de desenvolvimento com as dependências dos testes anteriores:
+
+```sh
+node --test --test-force-exit tests/estoque-busca.test.js
+```
+
+## Escopo
+
+A correção atua na consulta e na inclusão/finalização pelos formulários existentes; não cria um novo mecanismo de estoque nem reescreve os endpoints manuais de movimentação em backend/app.js. Os controles do formulário não transformam a gravação legada em uma transação atômica entre vários terminais. A política de concorrência do servidor permanece na arquitetura existente.
+
+A API mantém o limite atual de até 1.000 resultados por consulta; refine o nome/código em catálogos muito grandes. Após publicar, pesquise “a”, “HOT CAT”, “MAGNUS” e um código, e teste um produto zerado nas duas telas.
