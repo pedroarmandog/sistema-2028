@@ -1564,97 +1564,26 @@ function fetchWithTimeout(resource, options = {}, timeout = 4000) {
   return fetch(resource, finalOpts).finally(() => clearTimeout(id));
 }
 
-// Função para carregar clientes da API real (modelo copiado de clientes.js)
-async function carregarClientesDoSistema() {
-  console.log("🔍 INÍCIO carregarClientesDoSistema (nova-venda)...");
-
-  try {
-    console.log("📡 Fazendo fetch para API de clientes...");
-    // Usar fetch com timeout e tentar localhost como preferência, depois fallback
-    let response = null;
-    try {
-      response = await fetchWithTimeout("/api/clientes", {}, 3000);
-    } catch (err) {
-      console.warn(
-        "⚠️ Fallback para rota relativa por timeout/erro",
-        err && err.message,
-      );
-      try {
-        response = await fetchWithTimeout("/api/clientes", {}, 2500);
-      } catch (err2) {
-        throw err2;
-      }
-    }
-
-    console.log("📡 Response status:", response && response.status);
-    if (!response || !response.ok) {
-      throw new Error(
-        `HTTP error! status: ${response ? response.status : "no-response"}`,
-      );
-    }
-
-    const data = await response.json();
-    console.log("📄 Dados recebidos da API:", data);
-
-    // A API retorna {success: true, clientes: [...]}
-    if (data.success && Array.isArray(data.clientes)) {
-      console.log("🎯 Clientes carregados da API:", data.clientes.length);
-      return data.clientes;
-    } else {
-      console.error("❌ Formato de resposta inválido:", data);
-      throw new Error("Formato de resposta inválido");
-    }
-  } catch (error) {
-    console.error("❌ Erro ao carregar clientes da API:", error);
-
-    // Fallback para dados mock apenas em caso de erro
-    console.log("🔄 Usando dados mock como fallback...");
-    const clientesMock = [
-      {
-        id: 1,
-        codigo: "001",
-        nome: "João Silva",
-        telefone: "(11) 99999-8888",
-        email: "joao@email.com",
-        endereco: "Rua A, 123",
-      },
-      {
-        id: 2,
-        codigo: "002",
-        nome: "Maria Santos",
-        telefone: "(11) 88888-7777",
-        email: "maria@email.com",
-        endereco: "Av. B, 456",
-      },
-      {
-        id: 3,
-        codigo: "003",
-        nome: "Pedro Costa",
-        telefone: "(11) 77777-6666",
-        email: "pedro@email.com",
-        endereco: "Rua C, 789",
-      },
-      {
-        id: 4,
-        codigo: "004",
-        nome: "Ana Oliveira",
-        telefone: "(11) 66666-5555",
-        email: "ana@email.com",
-        endereco: "Av. D, 321",
-      },
-      {
-        id: 5,
-        codigo: "005",
-        nome: "Carlos Souza",
-        telefone: "(11) 55555-4444",
-        email: "carlos@email.com",
-        endereco: "Rua E, 654",
-      },
-    ];
-    console.log("📋 Usando dados mock de clientes:", clientesMock.length);
-    return clientesMock;
-  }
-} // Função para carregar profissionais do sistema via API real
+// Clientes da API autenticada; nunca substitui por cadastros fictícios.
+const clientesCaixa = new Map();
+let buscaClienteVersao = 0, resultadosClientes = [], clienteResultadoAtivo = 0;
+function normalizarClienteCaixa(c) {
+  if (!c || c.id == null) return null;
+  return { ...c, nome: String(c.nome ?? ''), telefone: String(c.telefone ?? ''), email: String(c.email ?? ''), cpf: String(c.cpf ?? ''), codigo: String(c.codigo ?? c.id) };
+}
+async function requisitarClientesCaixa(caminho) {
+  const base = String(window.__API_BASE__ || '/api').replace(/\/$/, '');
+  const response = await fetchWithTimeout(base + caminho, { credentials: 'include', headers: { Accept: 'application/json' } }, 15000);
+  if (!response.ok) throw new Error(response.status === 401 ? 'Sessão expirada. Entre novamente.' : 'Não foi possível carregar os clientes. Tente novamente.');
+  return response.json();
+}
+async function carregarClientesDoSistema(termo = '') {
+  const data = await requisitarClientesCaixa('/clientes?limit=1000&search=' + encodeURIComponent(String(termo).trim()));
+  const lista = Array.isArray(data) ? data : Array.isArray(data?.clientes) ? data.clientes : null;
+  if (!lista || data?.success === false) throw new Error('A API não retornou uma lista válida de clientes.');
+  return lista.map(normalizarClienteCaixa).filter(Boolean);
+}
+// Função para carregar profissionais do sistema via API real
 async function carregarProfissionaisDoSistema() {
   try {
     let response;
@@ -1683,63 +1612,56 @@ async function carregarProfissionaisDoSistema() {
 }
 
 // Função para filtrar e exibir clientes
-async function buscarClientes(termo) {
-  const dropdown = document.getElementById("clientesDropdown");
-
-  if (!termo.trim()) {
-    dropdown.style.display = "none";
-    return;
+function destacarClienteCaixa(indice) {
+  clienteResultadoAtivo = Math.max(0, Math.min(resultadosClientes.length - 1, indice));
+  const dropdown = document.getElementById('clientesDropdown');
+  dropdown.querySelectorAll('.cliente-item').forEach((node, i) => {
+    node.setAttribute('aria-selected', String(i === clienteResultadoAtivo));
+    node.style.background = i === clienteResultadoAtivo ? '#fff0dd' : '';
+  });
+  const ativo = dropdown.children[clienteResultadoAtivo];
+  if (ativo?.classList.contains('cliente-item')) {
+    document.getElementById('pesquisarCliente').setAttribute('aria-activedescendant', ativo.id);
+    if (ativo.offsetTop < dropdown.scrollTop) dropdown.scrollTop = ativo.offsetTop;
+    else if (ativo.offsetTop + ativo.offsetHeight > dropdown.scrollTop + dropdown.clientHeight) dropdown.scrollTop = ativo.offsetTop + ativo.offsetHeight - dropdown.clientHeight;
   }
-
-  // Mostrar loading
-  dropdown.innerHTML = '<div class="loading">Carregando clientes...</div>';
-  dropdown.style.display = "block";
-
+}
+function fecharClientesCaixa() {
+  buscaClienteVersao++;
+  resultadosClientes = [];
+  document.getElementById('clientesDropdown').style.display = 'none';
+  const input = document.getElementById('pesquisarCliente');
+  input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant');
+}
+async function buscarClientes(termo) {
+  const dropdown = document.getElementById('clientesDropdown'), input = document.getElementById('pesquisarCliente');
+  const versao = ++buscaClienteVersao, texto = String(termo ?? '').trim();
+  resultadosClientes = [];
+  if (!texto || (clienteSelecionado && input.value === clienteSelecionado.nome)) { fecharClientesCaixa(); return; }
+  dropdown.textContent = 'Carregando clientes…'; dropdown.style.display = 'block'; input.setAttribute('aria-expanded', 'true');
   try {
-    // Carregar clientes
-    const clientes = await carregarClientesDoSistema();
-    console.log(
-      "🔍 Buscando clientes com termo:",
-      termo,
-      "Total:",
-      clientes.length,
-    );
-
-    // Filtrar clientes
-    const clientesFiltrados = clientes.filter(
-      (cliente) =>
-        cliente.nome.toLowerCase().includes(termo.toLowerCase()) ||
-        cliente.telefone.includes(termo) ||
-        String(cliente.codigo).includes(termo) ||
-        (cliente.email &&
-          cliente.email.toLowerCase().includes(termo.toLowerCase())),
-    );
-
-    console.log("📋 Clientes filtrados:", clientesFiltrados.length);
-
-    // Renderizar dropdown
-    if (clientesFiltrados.length > 0) {
-      dropdown.innerHTML = clientesFiltrados
-        .map(
-          (cliente) => `
-                <div class="cliente-item" onclick="selecionarCliente(${cliente.id})">
-                    <span class="nome">${cliente.nome}</span>
-                    <span class="detalhes">${cliente.telefone} • Cód: ${cliente.codigo}</span>
-                </div>
-            `,
-        )
-        .join("");
-      dropdown.style.display = "block";
-    } else {
-      dropdown.innerHTML =
-        '<div class="no-results">Nenhum cliente encontrado</div>';
-      dropdown.style.display = "block";
-    }
+    const clientes = await carregarClientesDoSistema(texto);
+    if (versao !== buscaClienteVersao) return;
+    const norm = v => String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const termoNormal = norm(texto), numeros = texto.replace(/\D/g, '');
+    resultadosClientes = clientes.filter(c => [c.nome,c.codigo,c.email,c.cpf,c.telefone].some(v => norm(v).includes(termoNormal)) || (numeros && c.telefone.replace(/\D/g, '').includes(numeros)));
+    dropdown.replaceChildren();
+    if (!resultadosClientes.length) { dropdown.textContent = 'Nenhum cliente encontrado'; return; }
+    resultadosClientes.forEach((cliente, indice) => {
+      clientesCaixa.set(String(cliente.id), cliente);
+      const node = document.createElement('div'); node.className = 'cliente-item'; node.id = 'cliente-caixa-' + indice;
+      node.setAttribute('role', 'option'); node.tabIndex = 0;
+      const nome = document.createElement('span'); nome.className = 'nome'; nome.textContent = cliente.nome || 'Cliente sem nome';
+      const detalhes = document.createElement('span'); detalhes.className = 'detalhes'; detalhes.textContent = [cliente.telefone, 'Cód: ' + cliente.codigo].filter(Boolean).join(' • ');
+      node.append(nome, detalhes); node.addEventListener('click', () => selecionarCliente(cliente.id));
+      node.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); selecionarCliente(cliente.id); } });
+      dropdown.append(node);
+    });
+    destacarClienteCaixa(0);
   } catch (error) {
-    console.error("❌ Erro ao buscar clientes:", error);
-    dropdown.innerHTML =
-      '<div class="no-results">Erro ao carregar clientes</div>';
-    dropdown.style.display = "block";
+    if (versao !== buscaClienteVersao) return;
+    dropdown.textContent = error.message || 'Erro ao carregar clientes. Tente novamente.';
+    dropdown.style.display = 'block';
   }
 }
 
@@ -1811,35 +1733,21 @@ async function buscarProfissionais(termo) {
 // Função para selecionar um cliente
 async function selecionarCliente(clienteId) {
   try {
-    const clientes = await carregarClientesDoSistema();
-    const cliente = clientes.find((c) => c.id === clienteId);
-
-    if (cliente) {
-      clienteSelecionado = cliente;
-
-      // Atualizar campo de pesquisa
-      const inputCliente = document.getElementById("pesquisarCliente");
-      inputCliente.value = cliente.nome;
-
-      // Mostrar cliente selecionado
-      const clienteSelecionadoDiv =
-        document.getElementById("clienteSelecionado");
-      clienteSelecionadoDiv.querySelector(".cliente-nome").textContent =
-        cliente.nome;
-      clienteSelecionadoDiv.querySelector(".cliente-detalhes").textContent =
-        `${cliente.telefone} • Cód: ${cliente.codigo}`;
-      clienteSelecionadoDiv.style.display = "flex";
-
-      // Ocultar dropdown
-      document.getElementById("clientesDropdown").style.display = "none";
-
-      console.log("✅ Cliente selecionado:", cliente);
-    } else {
-      console.error("❌ Cliente não encontrado:", clienteId);
+    let cliente = clientesCaixa.get(String(clienteId));
+    if (!cliente) {
+      const resposta = await requisitarClientesCaixa('/clientes/' + encodeURIComponent(clienteId));
+      cliente = normalizarClienteCaixa(resposta?.cliente || resposta);
     }
-  } catch (error) {
-    console.error("❌ Erro ao selecionar cliente:", error);
-  }
+    if (!cliente || String(cliente.id) !== String(clienteId)) throw new Error('Cliente não encontrado.');
+    clienteSelecionado = cliente;
+    document.getElementById('pesquisarCliente').value = cliente.nome;
+    const display = document.getElementById('clienteSelecionado');
+    display.querySelector('.cliente-nome').textContent = cliente.nome;
+    display.querySelector('.cliente-detalhes').textContent = [cliente.telefone, 'Cód: ' + cliente.codigo].filter(Boolean).join(' • ');
+    display.style.display = 'flex';
+    fecharClientesCaixa();
+    document.dispatchEvent(new Event('pethub:venda-atualizada'));
+  } catch (error) { mostrarNotificacao('error', error.message || 'Não foi possível selecionar o cliente.'); }
 }
 
 // Função para selecionar um profissional
@@ -1881,6 +1789,7 @@ async function selecionarProfissional(profissionalCodigo) {
 // Função para remover cliente selecionado
 function removerClienteSelecionado() {
   clienteSelecionado = null;
+  fecharClientesCaixa();
   __safeSetValue("pesquisarCliente", "");
   document.getElementById("clienteSelecionado").style.display = "none";
   console.log("🗑️ Cliente removido da venda");
@@ -1900,35 +1809,27 @@ function configurarBuscaClientesProfissionais() {
   const inputProfissional = document.getElementById("pesquisarProfissional");
 
   if (inputCliente) {
-    console.log("✅ Configurando busca de clientes");
-
-    // Evento de digitação para clientes
-    inputCliente.addEventListener(
-      "input",
-      debounce(async function () {
-        const termo = this.value;
-        console.log("🔍 Digitando termo cliente:", termo);
-        await buscarClientes(termo);
-
-        // Se limpar o campo, remover seleção
-        if (!termo.trim() && clienteSelecionado) {
-          removerClienteSelecionado();
-        }
-      }, 300),
-    );
-
-    // Evento de foco
-    inputCliente.addEventListener("focus", async function () {
-      if (this.value && !clienteSelecionado) {
-        await buscarClientes(this.value);
-      }
+    let agendado;
+    inputCliente.setAttribute('role', 'combobox'); inputCliente.setAttribute('aria-controls', 'clientesDropdown'); inputCliente.setAttribute('aria-expanded', 'false');
+    document.getElementById('clientesDropdown').setAttribute('role', 'listbox');
+    inputCliente.addEventListener('input', () => {
+      clearTimeout(agendado); fecharClientesCaixa();
+      clienteSelecionado = null; document.getElementById('clienteSelecionado').style.display = 'none';
+      if (inputCliente.value.trim()) agendado = setTimeout(() => buscarClientes(inputCliente.value), 300);
     });
-
-    // Evento de clique para mostrar dropdown se há valor
-    inputCliente.addEventListener("click", async function () {
-      if (this.value.length >= 1) {
-        await buscarClientes(this.value);
+    inputCliente.addEventListener('focus', () => { if (inputCliente.value.trim() && !clienteSelecionado) buscarClientes(inputCliente.value); });
+    window.addEventListener('keydown', e => {
+      if (e.target === inputCliente && e.key === 'Escape' && document.getElementById('clientesDropdown').style.display !== 'none') {
+        e.preventDefault(); e.stopImmediatePropagation(); clearTimeout(agendado); fecharClientesCaixa();
       }
+    }, true);
+    inputCliente.addEventListener('keydown', e => {
+      const aberto = document.getElementById('clientesDropdown').style.display !== 'none';
+      if (!aberto || !['ArrowDown','ArrowUp','Enter','Escape'].includes(e.key)) return;
+      e.preventDefault(); e.stopPropagation();
+      if (e.key === 'Escape') { clearTimeout(agendado); fecharClientesCaixa(); }
+      else if (e.key === 'Enter') { if (!e.repeat && resultadosClientes[clienteResultadoAtivo]) selecionarCliente(resultadosClientes[clienteResultadoAtivo].id); }
+      else destacarClienteCaixa(clienteResultadoAtivo + (e.key === 'ArrowDown' ? 1 : -1));
     });
   }
 
@@ -1975,7 +1876,7 @@ function configurarBuscaClientesProfissionais() {
     const searchProfissional = document.querySelector(".search-profissional");
 
     if (searchCliente && !searchCliente.contains(e.target)) {
-      clientesDropdown.style.display = "none";
+      fecharClientesCaixa();
     }
 
     if (searchProfissional && !searchProfissional.contains(e.target)) {

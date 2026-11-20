@@ -6,6 +6,25 @@ const { test } = require("node:test"),
   { JSDOM, VirtualConsole } = require("jsdom");
 const base = path.join(__dirname, "../frontend/atendimento/");
 const wait = (ms = 30) => new Promise((r) => setTimeout(r, ms));
+for (const visual of ['classico','rapido']) test(`cliente sem telefone pode ser pesquisado e vinculado no ${visual}`, async t => {
+  const a=await app(t,visual),requests=[];
+  await a.w.PetHubVenda.adicionar(a.products[0]);
+  a.w.fetch=async url=>{requests.push(String(url));return {ok:true,status:200,json:async()=>String(url).includes('/caixas/aberto')?{aberto:true}:{success:true,clientes:[{id:'120001',nome:'Karol',telefone:null,email:null},{id:2,nome:null,telefone:1234},{id:3,nome:'Ana',telefone:null}]}}};
+  const input=a.d.querySelector('#pesquisarCliente');input.value='karol';await a.w.buscarClientes('karol');
+  assert.equal(a.d.querySelectorAll('.cliente-item').length,1);assert.match(a.d.querySelector('.cliente-item').textContent,/Karol/);
+  a.click('.cliente-item');await wait();assert.equal(a.w.PetHubVenda.dados().cliente.id,'120001');assert.equal(a.w.PetHubVenda.dados().cliente.telefone,'');
+  assert.equal(requests.filter(url=>url.includes('/clientes')).length,1);assert(requests.some(url=>url.includes('search=karol')));
+  assert.equal(a.w.PetHubVenda.dados().itens.length,1);assert.doesNotMatch(a.d.querySelector('#clienteSelecionado').textContent,/undefined|null/);
+  await a.w.PetHubVenda.finalizar();const pending=a.calls.find(c=>c.kind==='create');assert.equal(pending.b.clienteId,'120001');assert.equal(pending.b.cliente,'Karol');assert.equal(a.errors.length,0);
+});
+test('busca de clientes aceita array e ignora resposta antiga; não inventa clientes se API falhar',async t=>{
+ const a=await app(t);let old;
+ a.w.fetch=async url=>String(url).includes('search=karol')?await new Promise(r=>old=r):{ok:true,json:async()=>[{id:'ana',nome:'Ana',telefone:null}]};
+ const input=a.d.querySelector('#pesquisarCliente');input.value='karol';const first=a.w.buscarClientes('karol');input.value='ana';await a.w.buscarClientes('ana');old({ok:true,json:async()=>({success:true,clientes:[{id:1,nome:'Karol'}]})});await first;
+ assert.equal(a.d.querySelectorAll('.cliente-item').length,1);assert.match(a.d.querySelector('.cliente-item').textContent,/Ana/);
+ a.key('Enter',input);await wait();assert.equal(a.w.PetHubVenda.dados().cliente.id,'ana');
+ a.w.removerClienteSelecionado();a.w.fetch=async()=>({ok:false,status:503});input.value='joao';await a.w.buscarClientes('joao');assert.equal(a.d.querySelectorAll('.cliente-item').length,0);assert.match(a.d.querySelector('#clientesDropdown').textContent,/Não foi possível/);assert.equal(a.w.PetHubVenda.dados().cliente,null);assert.equal(a.errors.length,0);
+});
 test("carregamento esconde conteúdo desde o HTML e só revela o layout confirmado", async (t) => {
   let resolve;
   const deferred = new Promise((r) => (resolve = r));

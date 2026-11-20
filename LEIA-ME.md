@@ -1,51 +1,35 @@
-# PetHub — Logo cadastrada da empresa nos PDFs
+# PetHub — Cliente na Nova Venda / Caixa
 
 ## Aplicar
 
-1. Faça backup dos arquivos correspondentes e aplique o conteúdo de `backend` e `frontend` preservando os caminhos. Este pacote pressupõe os ajustes anteriores do PetHub já instalados. Não substitua o projeto inteiro nem volte os arquivos do caixa a versões anteriores.
-2. Confira as dependências de produção:
+1. Faça backup e substitua **nova-venda.js e nova-venda.html** dentro de `frontend/atendimento`, mantendo os caminhos.
+2. Faça deploy e recarregue Nova Venda. O HTML usa `nova-venda.js?v=20261120-clientes4` para evitar cache da versão anterior.
+3. Não há alteração de backend, migração, dependência ou variável nova.
 
-```sh
-node backend/scripts/verificar-logos-pdf.js
-```
+Se sua página HTML tiver mudanças adicionais próprias, preserve-as e atualize somente a versão do script. `ALTERACOES.patch` mostra as alterações em relação à versão anterior.
 
-A normalização de WebP/SVG/JPEG para PNG usa **sharp**, também utilizada no armazenamento de imagens. Se ainda não estiver nas dependências de produção do seu projeto, execute LOCALMENTE e envie package.json + package-lock.json atualizados:
+## O que foi corrigido
 
-```sh
-npm install sharp --save
-```
+A busca acessava diretamente `cliente.nome.toLowerCase()` e `cliente.telefone.includes()`. Um telefone nulo/ausente (ou nome ausente) interrompia o filtro da lista inteira, mostrando “Erro ao carregar clientes”.
 
-Não coloque sharp somente em devDependencies, pois `npm ci --omit=dev` não a instala. PDFKit já é dependência do ERP. O pacote não inclui cópias antigas do package.json/lock para não sobrescrever dependências mais recentes.
-3. Faça deploy/reinicie a API e recarregue a tela. O comando de build que já usa pode ser mantido depois de atualizar as dependências. Não há migração de banco, nova variável ou novo upload.
-4. Gere novamente o PDF: documentos já baixados não mudam retroativamente.
-
-Se estes arquivos tiverem recebido outras alterações próprias, revise/aplique `ALTERACOES.patch` em vez de substituir sua versão integral.
-
-## Correção principal
-
-O comprovante de venda consulta a empresa autenticada e vinculada à venda, e lê o campo `empresa.logo` pelo serviço de mídia persistente da própria empresa. Não tenta procurar somente um arquivo no disco local do Render. Compatibilidade com PNG/JPEG/WebP/SVG, data URL, base64 e caminhos antigos de uploads.
-
-A imagem é normalizada em PNG com proporção preservada e área transparente, depois desenhada dentro de uma caixa limitada à largura/altura do documento. No cupom, o início do conteúdo considera a altura reservada para a logo. Evita distorção ou sobreposição com nome e contato.
-
-Sem logo cadastrada — inclusive após remover no cadastro — usa o asset padrão do PetHub existente no projeto. Não usa logo de outra empresa, o primeiro cadastro ativo ou uma imagem antiga enviada pelo frontend. Cada PDF consulta o cadastro atual; não há cache por empresa que mantenha a logo removida.
-
-Também foram tratados: comprovantes de orçamento e atendimento; prontuário A4 (que já referenciava o serviço de identidade); relatórios de venda no período, faturamento, comissão, atendimentos, produtos, entradas, fornecedores e demonstrativo de resultados. O DANFE local de notas autorizadas recebe a identidade no cabeçalho sem alterar dados da nota. PDFs de documentos de terceiros/importados mantêm seus dados de origem; etiquetas e códigos de barras não recebem uma logo adicional.
-
-Os PDFs gerados no navegador para fornecedor/recebíveis passam a obter o PNG atual em `GET /api/empresas/logo-pdf`, autenticado e sem cache. Não precisa enviar a logo novamente e a tela não escolhe a empresa por query/body.
-
-## Isolamento e armazenamento
-
-- Identificador da empresa vem de `req.user.empresaId`; vínculo do documento precisa coincidir. O comprovante de venda/orçamento faz busca pelo ID e pela empresa.
-- Referências de `/uploads` são lidas pela instância de mídia com a empresa correspondente, inclusive quando o objeto está no R2.
-- Não baixa URLs arbitrárias nem permite caminhos fora de uploads. Referências locais antigas são suportadas sem procurar pelo basename de outro arquivo.
-- Mantém o armazenamento de logos existente. Arquivo cadastrado mas perdido/corrompido gera aviso no log e usa fallback; o pacote não consegue recuperar bytes já excluídos. Reenvie a logo em Empresa se o objeto persistente não existir.
+- Campos opcionais são normalizados sem exceção; códigos ausentes usam o ID do cadastro.
+- Seleção compara IDs normalizados e preserva o ID real no payload da venda.
+- Busca consulta a API autenticada com `search` e `limit`, em vez de tentar encontrar tudo somente nos primeiros 100 clientes. Mantém o isolamento por empresa já aplicado no backend.
+- Aceita tanto `{success:true,clientes:[...]}` quanto um array de clientes da API. Respostas fora de ordem são ignoradas.
+- A seleção reaproveita o cadastro encontrado na busca, sem refazer uma listagem e perder o cliente selecionado. Quando necessário, consulta o cadastro pelo ID.
+- Removidos os nomes fictícios que eram usados como fallback quando a API falhava.
+- Resultados usam texto seguro, sem HTML/onclick montado com o nome ou o ID do cliente. Pode selecionar com clique ou setas/Enter; ESC fecha a busca de cliente sem descartar a venda.
+- Digitar outro nome invalida o vínculo anterior; limpar/remover cliente continua permitido. Cliente permanece opcional no fluxo original.
+- Carrinho, preferências de layout, carregador inicial, imagens, modais e demais melhorias anteriores preservados nos dois visuais.
 
 ## Testes
 
-**5 testes automatizados passaram**, com múltiplas verificações de formatos, proporção, logo padrão após remoção, separação entre empresas e rejeição de documento cruzado. Foram gerados PDFs reais com PDFKit (cupom e A4) e exercitadas as rotas reais de comprovante, venda no período e faturamento em HTTP, com cadastros/mídias simulados. O teste de faturamento confirma que uma imagem antiga no payload não substitui o padrão após a remoção da logo.
+**20 testes automatizados passaram**. Incluem busca/seleção de cliente sem telefone nos dois visuais, ID em texto, cliente mantido no pedido enviado, resposta em array, descarte de resposta atrasada, falha da API sem inserir clientes fictícios e regressões anteriores de caixa.
 
-Todos os JavaScripts alterados passaram pela verificação de sintaxe. Resultado em `TESTES.txt`. Os testes não acessaram o TiDB, R2 ou Render real; após publicar, confira uma venda da sua empresa, gere um relatório e teste a remoção/troca da logo.
+Resultado em `TESTES.txt`. Os scripts reais foram executados em JSDOM com API simulada; os testes anteriores de backend usam SQLite em memória. Não foi acessado o Render ou seu banco de produção. Após deploy, busque Karol, selecione e confirme que o cliente aparece na venda.
+
+O teste atualizado está incluído para seu ambiente de desenvolvimento:
 
 ```sh
-node --test --test-force-exit tests/pdf-logo-empresa.test.js
+node --test --test-force-exit tests/caixa-layout.test.js tests/caixa-rapido.test.js
 ```
