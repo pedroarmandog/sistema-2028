@@ -1,7 +1,4 @@
-Substitua os dois arquivos em frontend/pets, mantendo os caminhos. Publique e atualize a página com Ctrl+Shift+R.
+Substitua os arquivos frontend/pets/pet-details.html e frontend/components/cliente-portal-erp.css pelos arquivos deste pacote. Publique e atualize com Ctrl+Shift+R.
 
-Ao adicionar um pet a partir do perfil do cliente, o responsável é buscado diretamente por ID e o campo fica desabilitado, mantendo o vínculo ao salvar e ao limpar o formulário. Se o responsável não puder ser carregado, o envio fica bloqueado. O cadastro aberto diretamente pelo menu de pets mantém a seleção normal do cliente. A edição de pets mantém o comportamento anterior.
-
-Não há alteração no banco nem nos arquivos do backend. A autorização por empresa continua sendo a dos endpoints atuais. O bloqueio solicitado é aplicado à interface e ao coletor do formulário; não representa uma nova permissão de servidor para troca de responsável.
-
-Validação local com DOM: resposta demorada, seleção bloqueada, envio do ID correto, limpeza do formulário, cadastro direto e cliente inacessível. Não houve deploy nem teste com a conta real.
+O painel Dados do PetHub Cliente passa a ficar na mesma área de conteúdo do perfil principal, com largura máxima de 1200 px e margens automáticas. O alinhamento acompanha o espaço disponível e o menu recolhido, sem deslocamento fixo para a esquerda. Não há alterações nas funções ou nos dados do pet.
+Verificada localmente a posição do painel na estrutura HTML. Sem validação visual no sistema publicado.
