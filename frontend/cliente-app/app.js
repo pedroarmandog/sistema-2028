@@ -21,17 +21,23 @@
     let marcaKey='',marcaSeq=0;
     function marcaEmpresa(info){
         const link=$('.marca');if(!link)return;
-        const nome=String(info?.nome||''),slug=info?.slug||loja,url=info?.logoUrl||'',key=slug+'|'+nome+'|'+url;
+        const slug=info?.slug||loja,url=info?.logoUrl||'',key=slug+'|'+Boolean(info?.logo)+'|'+url;
         if(marcaKey===key)return;marcaKey=key;const seq=++marcaSeq;
         link.href='/cliente-app/app.html'+(slug?'?loja='+encodeURIComponent(slug):'');
-        const label=document.createElement('span');label.className='marca-nome';label.textContent=nome||'PetHub Cliente';
-        link.replaceChildren(label);link.setAttribute('aria-label',nome?'Página inicial de '+nome:'PetHub Cliente');
-        if(!info?.logo||!url)return;
+        link.setAttribute('aria-label','Página inicial do estabelecimento');
+        link.setAttribute('aria-busy','true');
+        const loader=document.createElement('span');loader.className='marca-loader';
+        loader.setAttribute('role','status');loader.setAttribute('aria-label','Carregando logo do estabelecimento');
+        link.replaceChildren(loader);
+        const finish=()=>{if(seq!==marcaSeq)return;loader.remove();link.setAttribute('aria-busy','false');};
+        if(!info)return;
+        if(!info.logo||!url){finish();return;}
         // Somente endpoints locais de logo, nunca uma URL de imagem vinda do cadastro.
-        if(!/^\/api\/cliente-app\/loja\/(?:logo|[a-f0-9-]{36}\/logo)(?:\?v=[a-f0-9]+)?$/i.test(url))return;
-        const img=document.createElement('img');img.className='marca-logo-empresa';img.width=113;img.height=77;img.alt='Logo de '+nome;img.hidden=true;
-        img.onload=()=>{if(seq!==marcaSeq)return;label.hidden=true;img.hidden=false;};
-        img.onerror=()=>{if(seq!==marcaSeq)return;img.remove();label.hidden=false;marcaKey='';};
+        if(!/^\/api\/cliente-app\/loja\/(?:logo|[a-f0-9-]{36}\/logo)(?:\?v=[a-f0-9]+)?$/i.test(url)){finish();return;}
+        const img=document.createElement('img');img.className='marca-logo-empresa';img.width=113;img.height=77;
+        img.alt='Logo do estabelecimento';img.hidden=true;
+        img.onload=()=>{if(seq!==marcaSeq)return;finish();img.hidden=false;};
+        img.onerror=()=>{if(seq!==marcaSeq)return;img.remove();finish();marcaKey='';};
         link.prepend(img);img.src=url;
     }
     function atualizarLoja(slug) {

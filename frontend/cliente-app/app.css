@@ -4,3 +4,9 @@
 
 .marca{min-width:0;max-width:calc(100% - 68px);min-height:77px}.marca-conteudo{display:flex;align-items:center;gap:9px}.marca img.marca-logo-empresa{display:block;width:113px;height:77px;max-width:100%;object-fit:contain;object-position:left center;border-radius:0;background:transparent;flex-shrink:0}.marca-nome{font-size:20px;line-height:1.2;letter-spacing:-.4px;overflow-wrap:anywhere;max-width:270px}
 @media(max-width:380px){.marca-nome{font-size:18px}}
+
+/* No visible company name or default brand while its logo is loading. */
+.marca{display:flex;align-items:center;width:113px;min-height:77px}
+.marca-loader{display:block;flex:none;width:24px;height:24px;box-sizing:border-box;border:3px solid var(--line,#e2e8ef);border-top-color:var(--orange,#ffaa33);border-radius:50%;animation:marca-loading .8s linear infinite}
+@keyframes marca-loading{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.marca-loader{animation:none;border-top-color:var(--orange,#ffaa33)}}
