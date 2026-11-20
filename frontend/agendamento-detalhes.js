@@ -8131,6 +8131,8 @@ document.addEventListener("DOMContentLoaded", function () {
               if (profHidden && ag.profissionalId)
                 profHidden.value = ag.profissionalId;
 
+              const taxi = document.getElementById("taxidogGlobal");
+              if (taxi) taxi.checked = ag.taxidog === true || ag.taxidog === 1;
               const obs = document.getElementById("observacoesGlobal");
               if (obs) obs.value = ag.observacoes || "";
 
@@ -8954,6 +8956,8 @@ async function salvarTaxidog(valor) {
       window.agendamentoAtual = agendamentoAtual;
     } catch (e) {}
     renderizarTaxidog(agendamentoAtual);
+    window.notificarTaxidog?.();
+    window.dispatchEvent(new CustomEvent('agendamento-updated', {detail: {id: agendamentoAtual.id, taxidog: valor}}));
     console.log("✅ Taxidog salvo:", valor ? "Sim" : "Não");
   } catch (e) {
     console.error("Erro salvando taxidog:", e);

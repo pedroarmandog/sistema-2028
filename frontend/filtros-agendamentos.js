@@ -237,7 +237,7 @@ function criarHTMLAgendamentoTabela(agendamento) {
             <div class="agendamento-columns">
                 <div class="agendamento-horario">${agendamento.horario}</div>
                 <div class="agendamento-pet-cliente">
-                    <strong>${agendamento.petNome}</strong><br>
+                    <strong>${agendamento.petNome}${window.taxidogIcone?.(agendamento) || ""}</strong><br>
                     <small>${agendamento.clienteNome}</small>
                 </div>
                 <div class="agendamento-detalhes">${agendamento.servico}</div>

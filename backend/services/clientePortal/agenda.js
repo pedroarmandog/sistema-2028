@@ -18,7 +18,7 @@ async function serializar(ERP, empresaId, work) {
     try { return await atual; }
     finally { if (filas.get(chave) === atual) filas.delete(chave); }
 }
-function payload({ empresaId, petId, data, hora, servico, servicos, observacoes = '', profissional = '', valor = 0 }) { return { empresa_id: empresaId, petId, dataAgendamento: V.instante(data, hora), horario: hora, servico, servicos: Array.isArray(servicos) ? servicos : [{ nome: servico, valor }], observacoes, profissional, valor, status: 'agendado' }; }
+function payload({ empresaId, petId, data, hora, servico, servicos, observacoes = '', profissional = '', valor = 0, taxidog = false }) { return { empresa_id: empresaId, petId, dataAgendamento: V.instante(data, hora), horario: hora, taxidog: require('../taxidog').normalizarTaxidog(taxidog), servico, servicos: Array.isArray(servicos) ? servicos : [{ nome: servico, valor }], observacoes, profissional, valor, status: 'agendado' }; }
 function validarRegras(r) {
     V.chaves(r, ['dias', 'inicio', 'fim', 'intervalo', 'capacidade', 'duracaoPadrao', 'antecedencia', 'horizonte', 'feriados', 'bloqueios', 'servicos']);
     const inicio = V.hora(r.inicio), fim = V.hora(r.fim);

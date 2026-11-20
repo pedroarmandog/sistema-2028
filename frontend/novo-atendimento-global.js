@@ -1,3 +1,27 @@
+
+window.taxidogIcone = function(ag) {
+  return ag && (ag.taxidog === true || ag.taxidog === 1 || ag.taxidog === '1')
+    ? '<i class="fas fa-shuttle-van pethub-taxidog-icon" role="img" aria-label="Táxi Dog ativado para este agendamento" title="Táxi Dog ativado para este agendamento"></i>' : '';
+};
+window.notificarTaxidog = function() {
+  window.dispatchEvent(new CustomEvent('pethub-taxidog-updated'));
+  try { localStorage.setItem('pethub-taxidog-updated', String(Date.now())); } catch (_) {}
+};
+if (!document.getElementById('pethub-taxidog-estilos')) {
+  const style = document.createElement('style'); style.id = 'pethub-taxidog-estilos';
+  style.textContent = `
+  .pethub-taxidog-label{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;font-weight:600;color:#333}
+  .pethub-taxidog-toggle{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer;font-size:12px;font-weight:500;margin:0}
+  .pethub-taxidog-toggle input{appearance:none;-webkit-appearance:none;position:relative;flex:none;width:34px!important;height:18px!important;padding:0!important;margin:0!important;border:0!important;border-radius:20px;background:#a8b1bc;cursor:pointer;transition:background .2s}
+  .pethub-taxidog-toggle input:before{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;background:white;border-radius:50%;transition:transform .2s}
+  .pethub-taxidog-toggle input:checked{background:#168449}
+  .pethub-taxidog-toggle input:checked:before{transform:translateX(16px)}
+  .pethub-taxidog-toggle input:focus-visible{outline:2px solid #007bff;outline-offset:3px}
+  .pethub-taxidog-icon{display:inline-block;font-size:.85em;line-height:1;margin-left:6px;color:#168449;vertical-align:baseline;animation:pethub-taxidog-mover 2s ease-in-out infinite}
+  @keyframes pethub-taxidog-mover{0%,100%{transform:translateX(0)}50%{transform:translateX(2px)}}
+  @media(prefers-reduced-motion:reduce){.pethub-taxidog-icon{animation:none}.pethub-taxidog-toggle input,.pethub-taxidog-toggle input:before{transition:none}}
+  `; document.head.appendChild(style);
+}
 ﻿// =============================================
 // SISTEMA GLOBAL DE NOVO ATENDIMENTO
 // Funciona em todas as páginas do sistema
@@ -238,7 +262,7 @@ function abrirNovoAgendamentoModal() {
                 </div>
                 
                 <div style="margin-bottom: 20px;">
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">Profissional</label>
+                    <div class="pethub-taxidog-label"><label for="profissionalGlobalInput">Profissional</label><label class="pethub-taxidog-toggle"><i class="fas fa-shuttle-van" aria-hidden="true"></i> Táxi Dog <input type="checkbox" role="switch" id="taxidogGlobal" aria-label="Táxi Dog"></label></div>
                     <div style="position: relative;">
                         <input type="text" id="profissionalGlobalInput" class="filter-select" placeholder="Selecione um profissional" autocomplete="off" 
                             style="width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 14px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); outline: none;"
@@ -566,6 +590,7 @@ function abrirNovoAgendamentoModal() {
             petId: petId || dados.petId || "",
             servico: dados.servicosNomes || dados.servico || "", // String concatenada dos serviços
             servicos: dados.servicos || [], // Array estruturado de serviços
+            taxidog: dados.taxidog === true,
             observacoes: dados.observacoes || "",
             profissional: dados.profissional || "",
             valor: dados.valorTotal || objAg.valor || 0,
@@ -635,6 +660,7 @@ function abrirNovoAgendamentoModal() {
           }
 
           const created = await resp.json();
+          window.notificarTaxidog();
           console.log(
             `🔁 Agendamento ${isEdicao ? "atualizado" : "criado"} via API:`,
             created,
@@ -745,7 +771,8 @@ function abrirNovoAgendamentoModal() {
           petId: petId,
           servico: dados.servicosNomes || dados.servico || "", // String concatenada dos serviços
           servicos: dados.servicos || [], // Array estruturado de serviços
-          observacoes: dados.observacoes || "",
+          taxidog: dados.taxidog === true,
+            observacoes: dados.observacoes || "",
           profissional: dados.profissional || "",
           valor: dados.valorTotal || (objAg && objAg.valor) ? objAg.valor : 0,
         };
@@ -791,6 +818,7 @@ function abrirNovoAgendamentoModal() {
         }
 
         const created = await response.json();
+        window.notificarTaxidog();
         console.log(
           `✅ Agendamento ${isEdicao ? "atualizado" : "salvo"} na API:`,
           created,
@@ -1216,6 +1244,7 @@ function coletarDadosFormulario() {
       (document.getElementById("profissionalGlobal") &&
         document.getElementById("profissionalGlobal").value) ||
       "",
+    taxidog: document.getElementById("taxidogGlobal")?.checked === true,
     observacoes: document.getElementById("observacoesGlobal").value,
     valorTotal: valorTotal,
   };
@@ -1277,6 +1306,7 @@ function criarObjetoAgendamento(dados) {
     profissional: dados.profissional || "",
     valor: valor,
     status: "agendado",
+    taxidog: dados.taxidog === true,
     statusTexto: "Agendado",
   };
 }
@@ -1319,7 +1349,7 @@ function adicionarAgendamentoAoDOM(agendamento) {
                 <div class="agendamento-columns">
                     <div class="agendamento-horario">${escapeHtmlUnsafe(agendamento.horario || "")}</div>
                     <div class="agendamento-pet-cliente">
-                        <strong>${escapeHtmlUnsafe(agendamento.petNome || "")}</strong><br>
+                        <strong>${escapeHtmlUnsafe(agendamento.petNome || "")}${window.taxidogIcone(agendamento)}</strong><br>
                         <small>${escapeHtmlUnsafe(agendamento.clienteNome || "")}</small>
                     </div>
                     <div class="agendamento-detalhes">${escapeHtmlUnsafe(agendamento.servico || "")}</div>
@@ -1451,7 +1481,7 @@ function carregarAgendamentosPersistidos() {
                         <div class="agendamento-columns">
                             <div class="agendamento-horario">${agendamento.horario}</div>
                             <div class="agendamento-pet-cliente">
-                                <strong>${agendamento.petNome}</strong><br>
+                                <strong>${agendamento.petNome}${window.taxidogIcone(agendamento)}</strong><br>
                                 <small>${agendamento.clienteNome}</small>
                             </div>
                             <div class="agendamento-detalhes">${agendamento.servico}</div>

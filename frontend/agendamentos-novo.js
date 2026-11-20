@@ -588,10 +588,15 @@ class AgendamentosManager {
   // Atualizar linha específica ao receber evento de agendamento atualizado
   setupUpdateListener() {
     try {
+      window.addEventListener('storage', e => {
+        if (e.key === 'pethub-taxidog-updated') this.loadAgendamentos();
+      });
+      window.addEventListener('focus', () => this.loadAgendamentos());
       window.addEventListener("agendamento-updated", (e) => {
         try {
           const d = e.detail || {};
           if (!d || !d.id) return;
+          if (Object.prototype.hasOwnProperty.call(d, 'taxidog')) { this.loadAgendamentos(); return; }
           const row = document.querySelector(
             `.agendamento-row[data-agendamento-id="${d.id}"]`,
           );
@@ -713,7 +718,7 @@ class AgendamentosManager {
                 <div class="agendamento-columns">
                     <div class="agendamento-horario">${this.formatTimeBR(agendamento.horario)}</div>
                     <div class="agendamento-pet-cliente">
-                        <strong>${agendamento.petNome}</strong><br>
+                        <strong>${agendamento.petNome}${window.taxidogIcone?.(agendamento) || ""}</strong><br>
                         <small>${agendamento.clienteNome}</small>
                     </div>
                     <div class="agendamento-detalhes">${agendamento.servico}
@@ -959,7 +964,7 @@ class AgendamentosManager {
                         <div class="agendamento-columns">
                             <div class="agendamento-horario">${this.formatTimeBR(agendamento.horario)}</div>
                             <div class="agendamento-pet-cliente">
-                                <strong>${agendamento.petNome}</strong><br>
+                                <strong>${agendamento.petNome}${window.taxidogIcone?.(agendamento) || ""}</strong><br>
                                 <small>${agendamento.clienteNome}</small>
                             </div>
                             <div class="agendamento-detalhes">${agendamento.servico}

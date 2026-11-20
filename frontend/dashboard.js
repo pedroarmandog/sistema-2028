@@ -209,13 +209,15 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
-  // Marketing usa o menu compartilhado, mas não exibe os indicadores do dashboard.
-  if (!document.getElementById("modalQRCode")) {
-    DashboardApp.init();
-    setInterval(() => {
-      if (!isRefreshing) DashboardApp.refreshAll();
-    }, 30000);
-  }
+  // Inicializar o DashboardApp
+  DashboardApp.init();
+
+  // Atualizar dados a cada 30 segundos (só se não estiver atualizando)
+  setInterval(() => {
+    if (!isRefreshing) {
+      DashboardApp.refreshAll();
+    }
+  }, 30000);
 
   // Garantir que submenus abram por clique (painel lateral) mesmo que a função de persistência não exista
   try {
@@ -630,7 +632,7 @@ const DashboardApp = {
       if (elT) elT.textContent = this.formatCurrency(data.ticketMedio || 0);
 
       const elC = document.getElementById("statClientes");
-      if (elC) elC.textContent = data.clientesMes ?? 0;
+      if (elC) elC.textContent = data.clientesMes || data.clientes || 0;
     } catch (err) {
       console.error("Erro ao carregar stats:", err);
     }
@@ -2552,4 +2554,14 @@ function escapeHtml(text) {
   }
   _ensureScript("/config/help-center-config.js", 0);
   _ensureScript("/components/global-help-center.js", 200);
+})();
+
+// Reutiliza o widget existente após alterações nesta aba ou em outra aba.
+(() => {
+  let timer;
+  const atualizar = () => { if (!document.getElementById('taxiDogContent') || document.hidden) return; clearTimeout(timer); timer = setTimeout(() => DashboardApp.loadTaxiDog(), 150); };
+  window.addEventListener('pethub-taxidog-updated', atualizar);
+  window.addEventListener('storage', e => { if (e.key === 'pethub-taxidog-updated') atualizar(); });
+  window.addEventListener('focus', atualizar);
+  document.addEventListener('visibilitychange', atualizar);
 })();

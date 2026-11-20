@@ -1,3 +1,4 @@
+const { normalizarTaxidog } = require("../services/taxidog");
 const {carregarIdentidade, desenharLogo}=require("../services/identidadeEmpresaPDF");
 const express = require("express");
 const router = express.Router();
@@ -96,6 +97,7 @@ router.get("/", async (req, res) => {
         "status",
         "dataAgendamento",
         "petId",
+        "taxidog",
       ],
       where: whereClause,
       include: [
@@ -130,6 +132,7 @@ router.get("/", async (req, res) => {
     // Formatando os dados para o frontend (usar aliases corretos em minúsculas)
     const agendamentosFormatted = agendamentos.map((agendamento) => ({
       id: agendamento.id,
+      taxidog: normalizarTaxidog(agendamento.taxidog),
       horario: agendamento.horario,
       petNome: agendamento.pet?.nome || "Pet não encontrado",
       clienteNome: agendamento.pet?.cliente?.nome || "Cliente não encontrado",
@@ -241,8 +244,10 @@ router.post("/", async (req, res) => {
       observacoes,
       profissional,
       valor,
+      taxidog,
     } = req.body;
 
+    const taxiAtivo = normalizarTaxidog(taxidog);
     // Validações básicas
     if (!data || !hora || !petId || !servico) {
       return res.status(400).json({
@@ -310,7 +315,7 @@ router.post("/", async (req, res) => {
     if(!petDono || (petDono.empresa_id && Number(petDono.empresa_id)!==Number(req.user.empresaId)))return res.status(404).json({error:'Pet não encontrado nesta empresa.'});
     const novoAgendamento = await require('../services/clientePortal/agenda').criarOficial(
       require('../models'),
-      require('../services/clientePortal/agenda').payload({empresaId:req.user.empresaId,petId,data,hora,servico,servicos,observacoes:observacoes||'',profissional:profissional||'',valor:valor||0})
+      require('../services/clientePortal/agenda').payload({empresaId:req.user.empresaId,petId,data,hora,servico,servicos,observacoes:observacoes||'',profissional:profissional||'',valor:valor||0,taxidog:taxiAtivo})
     );
 
     // Buscar o agendamento criado com os dados relacionados
@@ -326,6 +331,7 @@ router.post("/", async (req, res) => {
 
     const agendamentoFormatted = {
       id: agendamentoCriado.id,
+      taxidog: normalizarTaxidog(agendamentoCriado.taxidog),
       horario: agendamentoCriado.horario,
       petNome: agendamentoCriado.pet?.nome || "Pet não encontrado",
       clienteNome:
@@ -418,6 +424,7 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const { id } = req.params;
+    if (req.body.taxidog !== undefined) normalizarTaxidog(req.body.taxidog);
     const {
       data,
       hora,
@@ -446,6 +453,10 @@ router.put("/:id", async (req, res) => {
     const agendamento = await Agendamento.findOne({where:{id:id,empresa_id:req.user.empresaId}});
     if (!agendamento) {
       return res.status(404).json({ error: "Agendamento não encontrado" });
+    }
+
+    if (taxidog !== undefined && agendamento.status === 'concluido') {
+      return res.status(409).json({ error: 'Desfaça o checkout antes de alterar o Táxi Dog.' });
     }
 
     // Preparar dados para atualização
@@ -536,7 +547,7 @@ router.put("/:id", async (req, res) => {
     if (profissional !== undefined) updateData.profissional = profissional;
     if (valor !== undefined) updateData.valor = valor;
     if (status) updateData.status = status;
-    if (taxidog !== undefined) updateData.taxidog = taxidog;
+    if (taxidog !== undefined) updateData.taxidog = normalizarTaxidog(taxidog);
 
     await require('../services/clientePortal/agenda').atualizarOficial(require('../models'),agendamento,updateData);
     await require('../services/marketingScheduler').sincronizarAgendamento(agendamento,req.user.empresaId).catch(e=>console.warn('[Marketing] Replanejamento pendente:',e.message));

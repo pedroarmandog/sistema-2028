@@ -34,19 +34,15 @@ exports.produtosEstoqueBaixo = async (req, res) => {
   try {
     const empresaId = req.user?.empresaId;
     // Usar condição literal para comparar colunas diretamente no SQL
-    const condition = "((estoqueAtual = 0) OR (estoqueAtual < estoqueMinimo))";
+    const condition = "(estoqueAtual = 0) OR (estoqueAtual < estoqueMinimo)";
     const whereClause = { [Op.and]: [literal(condition)] };
-    if (!empresaId) {
-      return res.status(403).json({ error: "Empresa nao identificada. Contate o suporte." });
-    }
-    whereClause.empresa_id = empresaId;
-    whereClause[Op.and].push(literal("LOWER(TRIM(COALESCE(tipo, 'produto'))) IN ('produto', '')"));
+    if (empresaId) whereClause.empresa_id = empresaId;
     const cacheKey = `dashboard:produtosEstoqueBaixo:${empresaId || "all"}`;
     const cached = cache.get(cacheKey);
     if (cached) return res.json(cached);
 
     const produtos = await Produto.findAll({
-      attributes: ["id", "nome", "estoqueAtual", "estoqueMinimo", "estoqueIdeal"],
+      attributes: ["id", "nome", "estoqueAtual", "estoqueMinimo"],
       where: whereClause,
       order: [["estoqueAtual", "ASC"]],
       limit: 50,
@@ -57,7 +53,6 @@ exports.produtosEstoqueBaixo = async (req, res) => {
       nome: p.nome,
       estoqueAtual: p.estoqueAtual,
       estoqueMinimo: p.estoqueMinimo,
-      estoqueIdeal: p.estoqueIdeal,
     }));
     cache.set(cacheKey, result, 10); // cache 10s
     console.log(`Encontrados ${result.length} produtos com estoque baixo`);
@@ -71,14 +66,9 @@ exports.produtosEstoqueBaixo = async (req, res) => {
 exports.resumo = async (req, res) => {
   try {
     const empresaId = req.user?.empresaId;
-    if (!empresaId) {
-      return res.status(403).json({ error: "Empresa nao identificada. Contate o suporte." });
-    }
-    const periodo = require('../utils/periodoBrasilia').periodoMes();
-    const clientesMesAtual = await require('../services/clienteInteligencia').clientesNoMes(sequelize,empresaId,periodo);
-    const cacheKey = `dashboard:resumo:${empresaId}:${periodo.hoje}`;
+    const cacheKey = `dashboard:resumo:${empresaId || "all"}`;
     const cached = cache.get(cacheKey);
-    if (cached) return res.json({...cached,clientesMes:clientesMesAtual});
+    if (cached) return res.json(cached);
 
     const clientesTable = Cliente.getTableName
       ? Cliente.getTableName()
@@ -99,8 +89,20 @@ exports.resumo = async (req, res) => {
     const hojeStartStr = hojeStart.toISOString().slice(0, 19).replace("T", " ");
     const hojeNextStr = hojeNext.toISOString().slice(0, 19).replace("T", " ");
 
+    // Primeiro dia do mês (em Brasília) para contar clientes do mês
+    const hojeParts = dataBrasil.split("-");
+    const ano = parseInt(hojeParts[0], 10);
+    const mes = parseInt(hojeParts[1], 10);
+    const inicioMesStr = `${ano}-${String(mes).padStart(2, "0")}-01`;
+    // Range do mês (offset -03:00)
+    const mesStart = new Date(`${inicioMesStr}T00:00:00-03:00`);
+    const mesEnd = new Date(hojeNext); // até o final do dia de hoje
+    const mesStartStr = mesStart.toISOString().slice(0, 19).replace("T", " ");
+    const mesEndStr = mesEnd.toISOString().slice(0, 19).replace("T", " ");
+
     const sql = `SELECT
       (SELECT COUNT(*) FROM ${clientesTable} WHERE 1=1 ${empresaFilter}) AS clientes,
+      (SELECT COUNT(*) FROM ${clientesTable} WHERE createdAt >= :inicioMes AND createdAt < :hojeNext ${empresaFilter}) AS clientesMes,
       (SELECT COUNT(*) FROM ${agTable} WHERE dataAgendamento >= :hojeStart AND dataAgendamento < :hojeNext ${empresaFilter}) AS agendamentosHoje,
       (SELECT COUNT(*) FROM ${vendasTable} WHERE data >= :hojeStart AND data < :hojeNext AND status <> 'cancelado' ${empresaFilter}) AS vendasHoje,
       (SELECT COALESCE(SUM(COALESCE(
@@ -113,6 +115,7 @@ exports.resumo = async (req, res) => {
     const replacements = {
       hojeStart: hojeStartStr,
       hojeNext: hojeNextStr,
+      inicioMes: mesStartStr,
     };
     if (empresaId) replacements.empresaId = empresaId;
 
@@ -123,7 +126,7 @@ exports.resumo = async (req, res) => {
 
     const r = rows && rows[0] ? rows[0] : {};
     const clientes = Number(r.clientes || 0);
-    const clientesMes = clientesMesAtual;
+    const clientesMes = Number(r.clientesMes || 0);
     const agendamentosHoje = Number(r.agendamentosHoje || 0);
     const vendasHoje = Number(r.vendasHoje || 0);
     const vendasTotal = parseFloat(Number(r.vendasTotal || 0));
@@ -149,9 +152,6 @@ exports.resumo = async (req, res) => {
 exports.aniversariantes = async (req, res) => {
   try {
     const empresaId = req.user?.empresaId;
-    if (!empresaId) {
-      return res.status(403).json({ error: "Empresa nao identificada. Contate o suporte." });
-    }
     const cacheKey = `dashboard:aniversariantes:${empresaId || "all"}`;
     const cached = cache.get(cacheKey);
     if (cached) return res.json(cached);
@@ -187,7 +187,7 @@ exports.aniversariantes = async (req, res) => {
             ),
           ],
         },
-        { empresa_id: empresaId },
+        empresaId ? { empresa_id: empresaId } : {},
       ),
     });
 
@@ -227,7 +227,7 @@ exports.aniversariantes = async (req, res) => {
             ),
           ],
         },
-        { empresa_id: empresaId },
+        empresaId ? { empresa_id: empresaId } : {},
       ),
     });
 
@@ -255,9 +255,6 @@ exports.oportunidadesVenda = async (req, res) => {
     const dataLimite = new Date();
     dataLimite.setDate(dataLimite.getDate() - 90);
     const empresaId = req.user?.empresaId;
-    if (!empresaId) {
-      return res.status(403).json({ error: "Empresa nao identificada. Contate o suporte." });
-    }
     const cacheKey = `dashboard:oportunidadesVenda:${empresaId || "all"}`;
     const cached = cache.get(cacheKey);
     if (cached) return res.json(cached);
@@ -266,7 +263,7 @@ exports.oportunidadesVenda = async (req, res) => {
       attributes: ["id", "clienteId", "itens", "data"],
       where: Object.assign(
         { data: { [Op.gte]: dataLimite }, status: { [Op.ne]: "cancelado" } },
-        { empresa_id: empresaId },
+        empresaId ? { empresa_id: empresaId } : {},
       ),
       order: [["data", "DESC"]],
       limit: 100,
@@ -333,12 +330,8 @@ exports.oportunidadesVenda = async (req, res) => {
 exports.levaTraz = async (req, res) => {
   try {
     const empresaId = req.user?.empresaId;
-    if (!empresaId) {
-      return res.status(403).json({ error: "Empresa nao identificada. Contate o suporte." });
-    }
-    const cacheKey = `dashboard:levaTraz:${empresaId || "all"}`;
-    const cached = cache.get(cacheKey);
-    if (cached) return res.json(cached);
+    if (!empresaId) return res.status(403).json({ erro: "Empresa não identificada" });
+    res.set("Cache-Control", "private, no-store");
 
     const dataBrasil = getHojeBrasilStr();
 
@@ -363,7 +356,7 @@ exports.levaTraz = async (req, res) => {
         {
           dataAgendamento: { [Op.gte]: start, [Op.lt]: next },
         },
-        { empresa_id: empresaId },
+        empresaId ? { empresa_id: empresaId } : {},
       ),
       include: [
         {
@@ -392,20 +385,9 @@ exports.levaTraz = async (req, res) => {
       order: [["horario", "ASC"]],
     });
 
-    // Filtrar agendamentos com taxidog ativado OU que mencionam transporte nas observações
+    // Uma única fonte: a flag persistida do agendamento. Cancelados não são viagens do dia.
     const levaTrazList = agendamentos
-      .filter((ag) => {
-        if (ag.taxidog) return true;
-        const obs = (ag.observacoes || "").toLowerCase();
-        return (
-          obs.includes("leva") ||
-          obs.includes("traz") ||
-          obs.includes("buscar") ||
-          obs.includes("busca") ||
-          obs.includes("transporte") ||
-          obs.includes("entregar")
-        );
-      })
+      .filter((ag) => require('../services/taxidog').normalizarTaxidog(ag.taxidog) && ag.status !== 'cancelado')
       .map((ag) => {
         const obs = (ag.observacoes || "").toLowerCase();
         let tipo = "buscar";
@@ -437,6 +419,8 @@ exports.levaTraz = async (req, res) => {
           .join(" — ");
 
         return {
+          id: ag.id,
+          taxidog: true,
           horario: ag.horario || "Horário não definido",
           petNome: ag.pet?.nome || "Pet não identificado",
           clienteNome: ag.pet?.cliente?.nome || "Cliente não identificado",
@@ -466,7 +450,7 @@ exports.produtosVencimento = async (req, res) => {
       validade: { [Op.not]: null },
       estoqueAtual: { [Op.gt]: 0 },
     };
-    whereVenc.empresa_id = empresaId;
+    if (empresaId) whereVenc.empresa_id = empresaId;
     // Processar em batches para evitar carregar toda a tabela na memória
     const limitBatch = 2000;
     let offset = 0;
@@ -527,18 +511,22 @@ exports.produtosVencimento = async (req, res) => {
 exports.vendasHoje = async (req, res) => {
   try {
     const empresaId = req.user?.empresaId;
-    if (!empresaId) {
-      return res.status(403).json({ error: "Empresa nao identificada. Contate o suporte." });
-    }
     const dataBrasil = getHojeBrasilStr();
 
-    const sql = `SELECT COUNT(*) AS count FROM vendas WHERE DATE(data) = :dataBrasil AND status <> 'cancelado' AND empresa_id = :empresaId`;
-    const [rows] = await sequelize.query(sql, {
-      replacements: { dataBrasil, empresaId },
-      type: sequelize.QueryTypes.SELECT,
-    });
-    return res.json({ count: Number(rows?.count || 0) });
+    if (empresaId) {
+      const sql = `SELECT COUNT(*) AS count FROM vendas WHERE DATE(data) = :dataBrasil AND status <> 'cancelado' AND empresa_id = :empresaId`;
+      const [rows] = await sequelize.query(sql, {
+        replacements: { dataBrasil, empresaId },
+        type: sequelize.QueryTypes.SELECT,
+      });
+      return res.json({ count: Number(rows?.count || 0) });
+    }
 
+    const [rows] = await sequelize.query(
+      `SELECT COUNT(*) AS count FROM vendas WHERE DATE(data) = :dataBrasil AND status <> 'cancelado'`,
+      { replacements: { dataBrasil }, type: sequelize.QueryTypes.SELECT },
+    );
+    res.json({ count: Number(rows?.count || 0) });
   } catch (error) {
     return handleError(res, "Erro ao buscar contagem de vendas hoje", error);
   }
@@ -548,9 +536,6 @@ exports.vendasHoje = async (req, res) => {
 exports.ticketMedio = async (req, res) => {
   try {
     const empresaId = req.user?.empresaId;
-    if (!empresaId) {
-      return res.status(403).json({ error: "Empresa nao identificada. Contate o suporte." });
-    }
     const dataBrasil = getHojeBrasilStr();
     const vendasTable = Venda.getTableName ? Venda.getTableName() : "vendas";
 
@@ -621,7 +606,7 @@ exports.periodicos = async (req, res) => {
             model: Pet,
             as: "pet",
             attributes: ["id", "nome", "empresa_id"],
-            where: { empresa_id: empresaId },
+            where: empresaId ? { empresa_id: empresaId } : {},
             required: true,
             include: [
               { model: Cliente, as: "cliente", attributes: ["id", "nome"] },
