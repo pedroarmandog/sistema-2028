@@ -8,7 +8,15 @@ const path = require("path");
 const { authUser } = require("../middleware/authUser");
 
 // Todas as rotas de itens requerem autenticação (multi-tenant)
+// Mesmo contrato de sessão da leitura de mídias: <img> pode usar o cookie HttpOnly.
+router.use((req,res,next)=>{if(/^\/[^/]+\/imagem$/.test(req.path)&&!req.headers.authorization&&req.cookies?.pethub_token)req.headers.authorization='Bearer '+req.cookies.pethub_token;next();});
 router.use(authUser);
+router.use((req,res,next)=>req.user?.empresaId?next():res.status(403).json({error:'Empresa não identificada'}));
+router.get('/:id/imagem',async(req,res)=>{try{
+ const crypto=require('node:crypto'),r=await require('../services/produtoImagens').instancia().imagem(req.user.empresaId,String(req.params.id),req.query.versao||'miniatura');
+ const etag='"'+crypto.createHash('sha256').update(r.bytes).digest('hex')+'"';res.set('ETag',etag);res.set('Vary','Cookie, Authorization');res.set('Cache-Control',req.query.v?'private, max-age=31536000, immutable':'private, max-age=300');res.set('X-Content-Type-Options','nosniff');if(req.headers['if-none-match']===etag)return res.status(304).end();res.type(r.tipo||'image/webp');res.send(r.bytes);
+ }catch(e){console.warn('[Produto imagem]',req.user.empresaId,req.params.id,e.status||500,e.message);res.status(e.status||503).json({error:'Imagem não disponível.'});}});
+
 
 // arquivo para armazenar exclusões locais (bloqueio de itens que existem apenas no frontend)
 const blockedFilePath = path.join(
@@ -128,6 +136,7 @@ router.get("/", async (req, res) => {
       where,
       order: require("../services/buscaItens").ordemBuscaItens(q, Produto.sequelize),
       limit: Math.min(Math.max(parseInt(req.query.limit,10)||1000,1),1000),
+      offset: Math.max(0,parseInt(req.query.offset,10)||0),
     });
     try {
       console.log(`GET /api/itens - itens retornados: ${itens.length}`);
@@ -143,7 +152,7 @@ router.get("/", async (req, res) => {
     res.json(itens);
   } catch (error) {
     console.error("Erro ao listar produtos (DB):", error);
-    res.status(500).json({ error: "Erro interno do servidor" });
+    res.status(error.status||500).json({ error: error.status?error.message:"Erro interno do servidor" });
   }
 });
 
@@ -362,7 +371,7 @@ router.get("/:id", async (req, res) => {
     res.json(produto);
   } catch (error) {
     console.error("Erro ao obter produto:", error);
-    res.status(500).json({ error: "Erro interno do servidor" });
+    res.status(error.status||500).json({ error: error.status?error.message:"Erro interno do servidor" });
   }
 });
 
@@ -409,7 +418,7 @@ router.delete("/last-saved", async (req, res) => {
 router.post("/", async (req, res) => {
   try {
     const data = req.body || {};
-    console.debug("POST /api/itens - recebido payload:", data);
+    console.debug("POST /api/itens:", {nome:data.nome,possuiImagem:!!data.imagem});
     // validação mínima
     const nome =
       data.nome || data.nome === 0
@@ -508,9 +517,11 @@ router.post("/", async (req, res) => {
     try {
       console.log(
         "🔔 [DEBUG] Criando produto com payload:",
-        JSON.stringify(payload),
+        JSON.stringify({id:payload.id,nome:payload.nome,possuiImagem:!!payload.imagem}),
       );
     } catch (e) {}
+    delete payload.imagemVersoes;
+    if(payload.imagem)Object.assign(payload,await require('../services/produtoImagens').instancia().preparar(req.user.empresaId,payload.imagem));
     const novo = await Produto.create(payload);
     try {
       console.log("🔔 [DEBUG] Produto criado (DB) id=", String(novo.id));
@@ -530,7 +541,7 @@ router.post("/", async (req, res) => {
     console.error("Erro ao criar produto:", error);
     // retornar mensagem de erro quando possível para facilitar debug (não vazar stack)
     return res
-      .status(500)
+      .status(error.status||500)
       .json({ error: error.message || "Erro interno ao criar produto" });
   }
 });
@@ -580,11 +591,11 @@ router.put("/:id", async (req, res) => {
     try {
       console.log(
         "🔔 [DEBUG] PUT /api/itens/" + id + " - payload recebido:",
-        JSON.stringify(data),
+        JSON.stringify({id:data.id,nome:data.nome,possuiImagem:!!data.imagem}),
       );
     } catch (e) {}
 
-    const produto = await Produto.findByPk(id);
+    const produto = await Produto.findOne({where:{id,empresa_id:req.user.empresaId}});
     if (!produto)
       return res.status(404).json({ error: "Produto não encontrado" });
 
@@ -617,28 +628,10 @@ router.put("/:id", async (req, res) => {
       console.debug("Erro normalizando ativo no PUT:", e);
     }
 
-    // Processar imagem se enviada como base64
-    if (data.imagem && data.imagem.startsWith("data:image")) {
-      try {
-        const base64Data = data.imagem.replace(/^data:image\/\w+;base64,/, "");
-        const buffer = Buffer.from(base64Data, "base64");
-        const fileName = `produto_${id}_${Date.now()}.png`;
-        const uploadPath = path.join(__dirname, "../../uploads", fileName);
-
-        // Criar diretório se não existir
-        const uploadDir = path.join(__dirname, "../../uploads");
-        if (!fs.existsSync(uploadDir)) {
-          fs.mkdirSync(uploadDir, { recursive: true });
-        }
-
-        fs.writeFileSync(uploadPath, buffer);
-        data.imagem = fileName; // Salvar apenas o nome do arquivo
-        console.log(`✅ Imagem do produto salva: ${fileName}`);
-      } catch (imgError) {
-        console.error("❌ Erro ao processar imagem:", imgError);
-        // Continuar sem salvar imagem em caso de erro
-        delete data.imagem;
-      }
+    // Não aceitar versões/empresa arbitrárias do navegador.
+    delete data.imagemVersoes; delete data.empresa_id; delete data.id;
+    if(data.imagem!==undefined){
+      if(data.imagem!==produto.imagem||data.imagem===null){Object.assign(data,await require('../services/produtoImagens').instancia().preparar(req.user.empresaId,data.imagem));}
     }
 
     // Se o preço foi alterado pelo cliente, registrar timestamp em `ultimoPrecoAlterado`
@@ -696,7 +689,7 @@ router.put("/:id", async (req, res) => {
     res.json(produto);
   } catch (error) {
     console.error("Erro ao atualizar produto:", error);
-    res.status(500).json({ error: "Erro interno ao atualizar produto" });
+    res.status(error.status||500).json({ error: error.status?error.message:"Erro interno ao atualizar produto" });
   }
 });
 
@@ -751,7 +744,7 @@ router.put("/:id/estoque", async (req, res) => {
     });
   } catch (error) {
     console.error("Erro ao atualizar estoque:", error);
-    res.status(500).json({ error: "Erro interno do servidor" });
+    res.status(error.status||500).json({ error: error.status?error.message:"Erro interno do servidor" });
   }
 });
 
@@ -767,7 +760,7 @@ router.get("/:id/historico-estoque", async (req, res) => {
     res.json(historico);
   } catch (error) {
     console.error("Erro ao buscar histórico:", error);
-    res.status(500).json({ error: "Erro interno do servidor" });
+    res.status(error.status||500).json({ error: error.status?error.message:"Erro interno do servidor" });
   }
 });
 
@@ -782,7 +775,7 @@ router.delete("/:id", async (req, res) => {
     res.json({ success: true });
   } catch (error) {
     console.error("Erro ao deletar produto:", error);
-    res.status(500).json({ error: "Erro interno do servidor" });
+    res.status(error.status||500).json({ error: error.status?error.message:"Erro interno do servidor" });
   }
 });
 
@@ -799,7 +792,11 @@ router.post("/import", async (req, res) => {
         const id = p.id
           ? String(p.id)
           : String(Date.now()) + Math.floor(Math.random() * 1000);
-        const [registro, created] = await Produto.upsert({ ...p, id });
+        const existente = await Produto.findByPk(id);
+        if(existente && Number(existente.empresa_id)!==Number(req.user.empresaId))throw Object.assign(Error('ID de produto não disponível nesta empresa.'),{status:404});
+        const dados={...p,id,empresa_id:req.user.empresaId};delete dados.imagemVersoes;
+        if(dados.imagem!==undefined && dados.imagem!==existente?.imagem)Object.assign(dados,await require('../services/produtoImagens').instancia().preparar(req.user.empresaId,dados.imagem));
+        const [registro, created] = await Produto.upsert(dados);
         results.push({ id, created: !!created });
       } catch (err) {
         console.warn("Falha ao importar item:", p && p.id, err && err.message);
@@ -917,7 +914,7 @@ router.get("/validade-status", (req, res) => {
     res.json(resultados);
   } catch (error) {
     console.error("Erro ao calcular status de validade:", error);
-    res.status(500).json({ error: "Erro interno do servidor" });
+    res.status(error.status||500).json({ error: error.status?error.message:"Erro interno do servidor" });
   }
 });
 
@@ -930,7 +927,7 @@ router.post("/validade-status", (req, res) => {
     res.json(resultados);
   } catch (error) {
     console.error("Erro ao calcular status de validade (POST):", error);
-    res.status(500).json({ error: "Erro interno do servidor" });
+    res.status(error.status||500).json({ error: error.status?error.message:"Erro interno do servidor" });
   }
 });
 

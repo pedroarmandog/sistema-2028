@@ -4880,7 +4880,7 @@ async function salvarProduto(e) {
       textoContrato: document.getElementById("textoContrato")
         ? document.getElementById("textoContrato").innerHTML
         : "",
-      imagem: null,
+      imagem: produtoAtual?.imagem || undefined,
       ativo: produtoAtual && produtoAtual.ativo ? produtoAtual.ativo : "sim",
       createdAt:
         produtoAtual && produtoAtual.createdAt
@@ -4914,6 +4914,10 @@ async function salvarProduto(e) {
       natureza_operacao_iss: (dados.natureza_operacao_iss || "").toString(),
       cnae_servico: (dados.cnae_servico || "").toString(),
     };
+
+    const fotoArquivo = document.getElementById('produtoFotoArquivo')?.files?.[0];
+    if (fotoArquivo) item.imagem = await window.PetHubProdutoImagem.lerArquivo(fotoArquivo);
+    else if(!produtoAtual?.id) delete item.imagem;
 
     // Anexar lista completa de códigos de barras (frontend-only field); backend precisa suportar para persistir
     try {

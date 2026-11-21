@@ -982,9 +982,8 @@ async function loadMeusItensFromAPI() {
   try {
     console.log("[loadMeusItensFromAPI] Chamando ApiClient.getProdutos()...");
     // Carregar produtos excluindo explicitamente agrupamento de medicamentos
-    const produtos = await ApiClient.getProdutos({
-      excludeAgrupamento: "MEDICAMENTOS",
-    });
+    const produtos=[];
+    for(let offset=0;;offset+=1000){const batch=await ApiClient.getProdutos({excludeAgrupamento:"MEDICAMENTOS",limit:1000,offset});if(!Array.isArray(batch))throw Error("Resposta de catálogo inválida");produtos.push(...batch);if(batch.length<1000)break;}
     console.log("[loadMeusItensFromAPI] Resposta da API:", produtos);
 
     if (!Array.isArray(produtos)) {
@@ -2846,19 +2845,7 @@ function renderizarProdutos(categoria, filtrosAdicionais = {}) {
     return;
   }
 
-  // Renderizar cada produto
-  produtosFiltrados.forEach((produto, index) => {
-    try {
-      const card = criarCardProduto(produto);
-      grid.appendChild(card);
-    } catch (error) {
-      console.error(
-        `[renderizarProdutos] Erro ao criar card do produto ${index}:`,
-        error,
-        produto,
-      );
-    }
-  });
+  window.PetHubProdutoImagem.renderizarLista(grid, produtosFiltrados, criarCardProduto);
 
   console.log(`📦 ${produtosFiltrados.length} produtos renderizados no DOM`);
 }
@@ -2905,23 +2892,11 @@ function criarCardProduto(produto) {
   const badgeColor = categoryColors[produto.categoria] || "#f5f5f5";
 
   // Processar imagem
-  let imagemSrc = "";
-  if (produto.imagem) {
-    // Se for base64, usar diretamente
-    if (produto.imagem.startsWith("data:image")) {
-      imagemSrc = produto.imagem;
-    } else {
-      // Se for nome de arquivo, carregar do servidor
-      const API_BASE =
-        (window.__API_BASE__ && window.__API_BASE__.toString()) ||
-        window.location.origin;
-      imagemSrc = `${API_BASE}/uploads/${produto.imagem}`;
-    }
-  }
+  const imagemSrc = window.PetHubProdutoImagem.url(produto, "miniatura");
 
   card.innerHTML = `
         <div class="product-image">
-            ${imagemSrc ? `<img src="${imagemSrc}" alt="${produto.nome}">` : '<i class="fas fa-box"></i>'}
+            ${imagemSrc ? `<img data-produto-foto alt="" width="80" height="80">` : '<i class="fas fa-box"></i>'}
         </div>
         
         <div class="product-info">
@@ -3020,6 +2995,9 @@ function criarCardProduto(produto) {
   } catch (e) {
     console.debug("erro ao inserir badge validade", e);
   }
+
+  const foto = card.querySelector("[data-produto-foto]");
+  if (foto) window.PetHubProdutoImagem.aplicar(foto, produto, "miniatura");
 
   // Adicionar evento de clique (usar data-id do card para evitar possíveis conflitos de closure)
   card.addEventListener("click", function (e) {
@@ -3786,22 +3764,7 @@ function filtrarProdutosPorBusca(query) {
     return;
   }
 
-  // Renderizar cada produto filtrado
-  produtosFiltrados.forEach((produto, index) => {
-    try {
-      const card = criarCardProduto(produto);
-      grid.appendChild(card);
-
-      // Nota: o badge de validade já é adicionado dentro de `criarCardProduto`.
-      // Não inserir aqui para evitar duplicação quando usamos a busca.
-    } catch (error) {
-      console.error(
-        `[filtrarProdutosPorBusca] Erro ao criar card do produto ${index}:`,
-        error,
-        produto,
-      );
-    }
-  });
+  window.PetHubProdutoImagem.renderizarLista(grid, produtosFiltrados, criarCardProduto);
 
   console.log(`📦 ${produtosFiltrados.length} produtos renderizados no grid`);
 }

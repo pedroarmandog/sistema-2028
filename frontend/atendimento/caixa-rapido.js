@@ -95,6 +95,7 @@
     focus($("#pesquisarProduto"));
   }
   function imageSource(p) {
+    if (window.PetHubProdutoImagem && p.imagem) return window.PetHubProdutoImagem.url(p, "miniatura");
     const ref = [p.imagem_url, p.foto_url, p.imagem, p.foto, p.imagemUrl].find(
       (v) => typeof v === "string" && v.trim(),
     );

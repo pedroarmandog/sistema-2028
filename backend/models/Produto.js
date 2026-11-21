@@ -9,6 +9,7 @@ const Produto = sequelize.define(
       primaryKey: true,
       allowNull: false,
     },
+    imagemVersoes: { type: DataTypes.JSON, allowNull: true },
     nome: {
       type: DataTypes.STRING(512),
       allowNull: false,
@@ -350,5 +351,4 @@ const Produto = sequelize.define(
   },
 );
 
-require('../services/pushEventoService').registrarProduto(Produto);
 module.exports = Produto;

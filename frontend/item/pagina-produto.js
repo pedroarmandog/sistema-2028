@@ -376,7 +376,7 @@ function preencherDadosProduto(produto) {
       "productImagePlaceholderIcon",
     );
     if (produto.imagem) {
-      productImage.src = window.PetHubMidias?.url(produto.imagem) || (produto.imagem.startsWith("data:")?produto.imagem:"/uploads/"+produto.imagem.replace(/^\/?uploads\//,""));
+      window.PetHubProdutoImagem.aplicar(productImage, produto, "media");
       productImage.style.display = "block";
       if (productImagePlaceholderIcon)
         productImagePlaceholderIcon.style.display = "none";
@@ -2388,6 +2388,11 @@ function configurarImagemProduto() {
     const actions = document.getElementById("productImageActions");
     const btnAlterar = document.getElementById("productImageAlterar");
     const btnExcluir = document.getElementById("productImageExcluir");
+    if (actions && !document.getElementById('productImageAmpliar')) {
+      const ampliar=document.createElement('button');ampliar.type='button';ampliar.id='productImageAmpliar';ampliar.className='btn-header';ampliar.textContent='Ampliar';
+      ampliar.addEventListener('click',event=>{event.stopPropagation();if(produtoAtual?.imagem)window.open(window.PetHubProdutoImagem.url(produtoAtual,'ampliada'),'_blank','noopener');});actions.prepend(ampliar);
+    }
+
 
     console.log("🔍 Elementos encontrados:", {
       editBtn: !!editBtn,
@@ -2504,8 +2509,8 @@ function configurarImagemProduto() {
         }
       }
 
-      // Redimensionar e comprimir para 800x800 e tentar manter abaixo de ~120KB (aceita até 200KB)
-      resizeImageFile(f, 800, 800, 120)
+      // O servidor valida o conteúdo e gera as três versões no armazenamento persistente.
+      window.PetHubProdutoImagem.lerArquivo(f)
         .then((dataUrl) => {
           // Mostrar preview imediato enquanto a imagem persiste em background
           applyOptimisticPreview(dataUrl);
@@ -2516,29 +2521,18 @@ function configurarImagemProduto() {
               mostrarNotificacao("Erro ao salvar imagem", "error");
             // revert preview se falhar
             try {
-              window.__refreshProductImage?.(produtoAtual);
+              imgEl.style.display = "none";
+              if (box) box.classList.remove("has-image");
+              if (placeholder) placeholder.style.display = "block";
             } catch (e) {}
+            if (window.__refreshProductImage && produtoAtual?.imagem) window.__refreshProductImage(produtoAtual);
           });
           // after uploading, hide actions until user clicks pencil
           if (actions) actions.classList.remove("show");
         })
         .catch((err) => {
-          console.debug("resizeImageFile erro, fallback para original", err);
-          const reader = new FileReader();
-          reader.onload = function (evt) {
-            const data = evt.target.result;
-            applyOptimisticPreview(data);
-            setImagemProduto(data).catch((err) => {
-              console.error("Falha ao salvar imagem (fallback):", err);
-              mostrarNotificacao &&
-                mostrarNotificacao("Erro ao salvar imagem", "error");
-              try {
-                window.__refreshProductImage?.(produtoAtual);
-              } catch (e) {}
-            });
-            if (actions) actions.classList.remove("show");
-          };
-          reader.readAsDataURL(f);
+          mostrarNotificacao(err.message || 'Não foi possível ler a imagem.', 'error');
+          if (window.__refreshProductImage && produtoAtual?.imagem) window.__refreshProductImage(produtoAtual);
         });
     });
 
@@ -2578,16 +2572,7 @@ function configurarImagemProduto() {
       try {
         if (!box) return;
         if (prod && prod.imagem) {
-          // Se for base64, usar diretamente (preview temporário)
-          if (prod.imagem.startsWith("data:image")) {
-            imgEl.src = prod.imagem;
-          } else {
-            // Se for nome de arquivo, carregar do servidor
-            const API_BASE =
-              (window.__API_BASE__ && window.__API_BASE__.toString()) ||
-              window.location.origin;
-            imgEl.src = window.PetHubMidias?.url(prod.imagem) || `${API_BASE}/uploads/${prod.imagem.replace(/^\/?uploads\//,"")}`;
-          }
+          window.PetHubProdutoImagem.aplicar(imgEl, prod, "media");
           imgEl.style.display = "block";
           imgEl.style.cursor = "pointer";
           box.classList.add("has-image");
@@ -2627,10 +2612,9 @@ async function setImagemProduto(dataUrl) {
     }
 
     // Salvar imagem via API (backend vai processar e salvar arquivo)
-    const salvo = await ApiClient.atualizarProduto(produtoAtual.id, {imagem:dataUrl});
-
-    // Atualizar preview local
+    const salvo = await ApiClient.atualizarProduto(produtoAtual.id, { imagem: dataUrl });
     produtoAtual.imagem = salvo.imagem;
+    produtoAtual.imagemVersoes = salvo.imagemVersoes;
 
     // atualizar UI
     try {
@@ -2641,7 +2625,6 @@ async function setImagemProduto(dataUrl) {
   } catch (err) {
     console.error("setImagemProduto erro", err);
     showToast("Erro ao salvar imagem: " + err.message, "error");
-    window.__refreshProductImage?.(produtoAtual);
     throw err;
   }
 }
