@@ -1,11 +1,35 @@
-PETHUB CLIENTE — NOME DO ESTABELECIMENTO
+CORREÇÃO — CLIENTES / PRODUTO NÃO ENCONTRADO
+21/11/2026
 
-Copie as pastas backend e frontend deste pacote sobre o projeto já atualizado com o redesign, preservando os caminhos. Publique e reabra o app; no navegador use Ctrl+Shift+R.
+APLICAÇÃO
+1. Faça backup dos arquivos de mesmo nome no projeto.
+2. Copie backend/ e frontend/ deste pacote para as pastas correspondentes do projeto, substituindo os cinco arquivos. Mantenha as demais correções já aplicadas.
+3. Publique a alteração e reinicie o backend no Render. Apenas atualizar o JavaScript não corrige a resposta de clientes.
+4. Reabra as telas e use Ctrl+F5 para descartar o JavaScript anterior.
+Não executar SQL, apagar registros, reimportar cadastros ou alterar empresa_id.
 
-As rotas de loja pública e de sessão usam a mesma função de identificação da empresa, sempre pelo registro da empresa da sessão/slug correto. Os campos de nome fantasia são priorizados quando existentes, com suporte ao campo nome usado pelo cadastro atual e à razão social. O marcador antigo Pet Cria não é usado como nome substituto. Se nenhum nome válido existir, aparece Seu pet shop.
+CAUSAS IDENTIFICADAS NO CÓDIGO PUBLICADO
+Clientes: clientes-paginacao.js lê d.paginacao.offset, paginas e totalGeral. A API do pacote anterior fornecia pagination em inglês. A resposta agora inclui ambos os nomes, com páginas e total da empresa. A exportação existente que usa d.paginacao.total também permanece compatível.
+Produtos: pagina-produto.js usava parseInt(produtoId). Um ID como 7832-abcd-1234 era enviado como 7832, resultando em 404. IDs devem ser strings: preservar UUIDs, zeros iniciais e inteiros longos. A correção vale também para edição e clonagem. O ApiClient codifica o ID no caminho de leitura/edição/exclusão/estoque/histórico.
+Após falha da API, a página não substitui mais o produto por cache local ou exemplos, que poderiam corresponder a outro cadastro/empresa.
 
-Textos de banners que ainda contenham a expressão antiga passam a usar o nome dinâmico da empresa. O conteúdo salvo não é apagado e não há alterações de banco, credenciais ou logo.
+ARQUIVOS DE PRODUÇÃO
+backend/controllers/clienteController.js
+frontend/api/api-client.js
+frontend/item/pagina-produto.js
+frontend/item/editar-produto.js
+frontend/item/novo-produto.js
 
-IMPORTANTE: nas duas áreas mostradas, o código anterior já usava Empresa.nome. Se esse campo do cadastro ainda estiver como Pet Cria, confirme/atualize Configurações → Empresa → Nome fantasia e salve. Quando esse campo não trouxer o nome correto e não houver razão social válida, não é possível deduzir o nome da imagem da logo; o app exibirá Seu pet shop até o cadastro ser atualizado.
+VALIDAÇÃO
+46 testes de regressão passaram (clientes/produtos, imagens/menus, estoque, orçamentos/PDF, logos e layout do caixa). Após o ajuste final de codificação dos IDs, os 11 testes de clientes/produtos foram executados novamente e passaram. Sintaxe dos cinco arquivos de produção validada.
+O teste de clientes executa uma cópia exata do clientes-paginacao.js servido publicamente no momento da análise, contra o controller corrigido e um banco de teste. Cobre primeira/segunda página, pesquisa, total geral e lista vazia.
+IDs de produto são testados desde a URL até o controller: ID textual iniciado por 7832, zeros iniciais, caracteres especiais e números longos. Edição/clonagem preservam ID. Consulta de outra empresa continua em 404. Dados antigos e fotos sem a coluna opcional continuam acessíveis. Falhas reais não viram lista vazia nem produto fictício.
+Os testes não acessam nem modificam o banco de produção.
 
-Validação local: resolução dos campos, duas empresas distintas, substituição dos textos antigos, fallback e interpolação segura. Sem acesso ao cadastro real ou deploy.
+LIMITES DA VERIFICAÇÃO
+O erro de clientes foi confirmado na página aberta do usuário. O código JavaScript público de clientes e produtos foi inspecionado. Este pacote ainda precisa ser publicado: a correção não foi aplicada no servidor e não confirma a existência do cadastro específico solicitado por /itens/7832. Se o ID completo já for exatamente 7832 e o 404 continuar após a publicação, será necessário verificar esse registro no banco da empresa autenticada, sem retirar o filtro por empresa.
+
+TESTES
+Com as dependências do projeto instaladas, use Node 24:
+node --test --test-force-exit tests/listagens-empresas.test.js
+A pasta tests/ inclui testes e a cópia do consumidor público usada na regressão; não substitui clientes-paginacao.js de produção.

@@ -323,3 +323,55 @@ test("foto antiga permanece legível sem preparar variantes e sem atualizar o pr
   assert.equal(leituras, 1);
   assert.equal(await f.Produto.count(), 1);
 });
+
+test('tela publicada de clientes consome a resposta real: primeira/segunda página, busca e vazio', async t => {
+  const f = await fixture(t);
+  await f.Cliente.bulkCreate([...Array.from({length:27},(_,i)=>({nome:'RegistroCliente'+i,empresa_id:1})),{nome:'Empresa alheia',empresa_id:2}]);
+  const dom=new JSDOM('<table><tbody id="clientsTableBody"></tbody></table><div class="pagination-container"></div>',{runScripts:'outside-only'});
+  t.after(()=>dom.window.close());
+  const w=dom.window;w.itemsPerPage=25;w.currentPage=1;w.filtrosAtivos={};let atualizacoes=0;
+  w.updatePaginationInfo=()=>atualizacoes++;
+  w.fetch=async url=>{const query=Object.fromEntries(new URL(url,'https://pethub.test').searchParams);const r=res();await f.clientes.getAllClientes({user:{empresaId:1},query},r);return {ok:r.code===200,json:async()=>r.body};};
+  // Código exato servido em produção, sem adaptar o consumidor ao teste.
+  w.eval(fs.readFileSync(path.join(__dirname,'fixtures/clientes-paginacao-publicada.js'),'utf8'));
+  await w.PetHubClientesPagina.carregar();
+  assert.equal(w.document.querySelectorAll('.client-row').length,25);
+  assert.equal(w.totalClients,27);
+  assert.match(w.document.getElementById('ph-total-clientes').textContent,/Total da empresa: 27/);
+  w.currentPage=2;await w.PetHubClientesPagina.carregar();assert.equal(w.document.querySelectorAll('.client-row').length,2);
+  w.currentPage=1;w.filtrosAtivos.busca='RegistroCliente26';await w.PetHubClientesPagina.carregar();
+  assert.equal(w.document.querySelectorAll('.client-row').length,1);
+  assert.match(w.document.getElementById('ph-total-clientes').textContent,/Total da empresa: 27 · Encontrados com os filtros: 1/);
+  w.filtrosAtivos.busca='Ausente';await w.PetHubClientesPagina.carregar();assert.match(w.document.getElementById('clientsTableBody').textContent,/Nenhum cliente/);
+  assert.equal(w.totalClients,0);assert.equal(atualizacoes,4);
+});
+
+test('detalhes do produto preservam ID texto da URL até a API e rejeitam outra empresa',async t=>{
+ const f=await fixture(t),id='7832-abcd-1234';
+ await f.Produto.create({id,nome:'Produto original',empresa_id:1});
+ const dom=new JSDOM('',{url:'https://pethub.test/item/pagina-produto.html?id='+encodeURIComponent(id),runScripts:'outside-only'});t.after(()=>dom.window.close());const w=dom.window;
+ w.console={log(){},error(){},warn(){},debug(){}};
+ w.eval(fs.readFileSync(path.join(root,'frontend/api/api-client.js'),'utf8'));
+ let endpoint;
+ w.ApiClient.request=async p=>{endpoint=p;const r=res();await f.handlers['/:id']({user:{empresaId:1},params:{id:decodeURIComponent(p.split('/').at(-1))}},r);if(r.code!==200)throw Error(r.body.error);return r.body;};
+ const src=fs.readFileSync(path.join(root,'frontend/item/pagina-produto.js'),'utf8');
+ const load=src.slice(src.indexOf('async function carregarDadosProduto('),src.indexOf('/**\n * Atualizar campos com dados do produto'));
+ let displayed;w.atualizarCamposProduto=p=>displayed=p;w.showToast=m=>assert.fail(m);w.produtoAtual=null;
+ w.eval(load);
+ const init=src.slice(src.indexOf('function inicializarPaginaProduto()'),src.indexOf('  // Configurar abas',src.indexOf('function inicializarPaginaProduto()')))+'}';
+ let pending;const real=w.carregarDadosProduto;w.carregarDadosProduto=p=>(pending=real(p));w.eval(init);w.inicializarPaginaProduto();await pending;
+ assert.equal(endpoint,'/itens/'+id);assert.equal(displayed.id,id);assert.equal(displayed.nome,'Produto original');
+ const denied=res();await f.handlers['/:id']({user:{empresaId:2},params:{id}},denied);assert.equal(denied.code,404);
+ for(const opaque of ['00007832','produto/a?b#c','90071992547409931234']){w.ApiClient.request=async p=>p;assert.equal(await w.ApiClient.getProduto(opaque),'/itens/'+encodeURIComponent(opaque));assert.equal(await w.ApiClient.atualizarProduto(opaque,{}),'/itens/'+encodeURIComponent(opaque));assert.equal(await w.ApiClient.getHistoricoEstoque(opaque),'/itens/'+encodeURIComponent(opaque)+'/historico-estoque');}
+});
+
+test('editar, clonar e formulário alternativo preservam IDs sem conversão numérica',()=>{
+ const id='7832-f00a',cases=[['editar-produto.js','id'],['editar-produto.js','clonar'],['novo-produto.js','id']];
+ for(const[file,key]of cases){let recebido;const src=fs.readFileSync(path.join(root,'frontend/item',file),'utf8');const start=src.indexOf('function inicializarFormulario()');const end=src.indexOf('  // Configurar botões toggle',start);const context={console:{log(){}},URLSearchParams,window:{location:{search:'?'+key+'='+id}},localStorage:{getItem(){return null;}},carregarDadosProduto:x=>recebido=x,carregarDadosProdutoParaClonar:x=>recebido=x};vm.runInNewContext(src.slice(start,end)+'}',context);context.inicializarFormulario();assert.equal(recebido,id);}
+});
+
+test('404 do produto não é substituído por dados locais antigos ou exemplos',async()=>{
+ const src=fs.readFileSync(path.join(root,'frontend/item/pagina-produto.js'),'utf8');let msg,rendered=false;const ctx={console:{log(){},error(){}},produtoAtual:{id:1},produtosExemplo:[{id:1}],localStorage:{getItem(){throw Error('Não deve consultar cache local');}},ApiClient:{async getProduto(){throw Error('Produto não encontrado (HTTP 404)');}},atualizarCamposProduto(){rendered=true;},showToast:m=>msg=m};
+ vm.runInNewContext(src.slice(src.indexOf('async function carregarDadosProduto('),src.indexOf('/**\n * Atualizar campos com dados do produto')),ctx);
+ await ctx.carregarDadosProduto('1');assert.equal(rendered,false);assert.equal(ctx.produtoAtual,null);assert.match(msg,/HTTP 404/);
+});

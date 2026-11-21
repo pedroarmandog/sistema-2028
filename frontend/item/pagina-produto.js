@@ -795,7 +795,7 @@ function inicializarPaginaProduto() {
 
   // Carregar dados do produto
   if (produtoId) {
-    carregarDadosProduto(parseInt(produtoId));
+    carregarDadosProduto(produtoId);
   }
 
   // Configurar abas
@@ -2029,58 +2029,11 @@ async function carregarDadosProduto(produtoId) {
   } catch (error) {
     console.error("❌ Erro ao carregar produto:", error);
     apiErrorMessage = error && error.message ? error.message : String(error);
-    // não mostrar toast aqui — tentar fallbacks primeiro
+    // Exibir o erro real da consulta autenticada.
   }
 
-  // Tentar localizar produto em chaves locais (localStorage) antes do fallback estático
-  try {
-    const localKeys = [
-      "meusItens",
-      "produtos",
-      "produtosLista",
-      "produtos_lista",
-      "meusItensLista",
-    ];
-    let found = null;
-    for (const k of localKeys) {
-      try {
-        const raw = localStorage.getItem(k);
-        if (!raw) continue;
-        const arr = JSON.parse(raw);
-        if (!Array.isArray(arr)) continue;
-        found = arr.find((p) => String(p.id) === String(produtoId));
-        if (found) {
-          console.warn(
-            `[pagina-produto] Produto encontrado em localStorage (key=${k})`,
-          );
-          break;
-        }
-      } catch (e) {
-        /* ignore parse errors */
-      }
-    }
-
-    if (found) {
-      produtoAtual = found;
-      atualizarCamposProduto(found);
-      return;
-    }
-  } catch (e) {
-    console.debug("[pagina-produto] erro buscando localStorage", e);
-  }
-
-  // Fallback final: tentar array de exemplo embutida
-  console.warn("🔄 Usando fallback local estático...");
-  const produto = (produtosExemplo || []).find(
-    (p) => String(p.id) === String(produtoId),
-  );
-  if (produto) {
-    produtoAtual = produto;
-    atualizarCamposProduto(produto);
-    return;
-  }
-
-  // Se chegamos aqui, não encontramos o produto em nenhum lugar — mostrar toast de erro
+  // A API autenticada é a fonte do produto. Não substituir erros por dados locais.
+  produtoAtual = null;
   const finalMsg = apiErrorMessage || "Produto não encontrado";
   showToast("Erro ao carregar produto: " + finalMsg, "error");
 }

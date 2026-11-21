@@ -219,7 +219,10 @@ exports.getAllClientes = async (req, res) => {
     const pagina=Math.floor(offset/limit)+1;
     const pagination={total,limit,offset,page:pagina,totalPages:Math.ceil(total/limit),hasNext:offset+clientes.length<total,hasMore:offset+clientes.length<total,returned:clientes.length,hasPrevious:offset>0,hasPrev:offset>0,nextOffset:offset+limit,previousOffset:Math.max(0,offset-limit)};
     res.set('Cache-Control','private, no-store');
-    res.json({ success:true, clientes, pagination, total, limit, offset });
+    const totalGeral = search ? await Cliente.count({where:{empresa_id:req.user.empresaId}}) : total;
+    // Contrato usado pela tela publicada e pela exportação; manter também o alias em inglês.
+    const paginacao={...pagination,paginas:pagination.totalPages,totalGeral};
+    res.json({ success:true, clientes, paginacao, pagination, total, limit, offset });
   } catch (err) {
     console.error("Erro ao buscar clientes:", err);
     res.status(500).json({

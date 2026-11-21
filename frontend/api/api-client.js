@@ -81,8 +81,7 @@ class ApiClient {
         // compor mensagem de erro a partir dos campos mais comuns
         const serverMsg =
           errorBody &&
-          (errorBody.erro ||
-            errorBody.message ||
+          (errorBody.message ||
             errorBody.error ||
             errorBody.details ||
             (typeof errorBody === "string" ? errorBody : null));
@@ -141,7 +140,7 @@ class ApiClient {
    * Buscar produto por ID
    */
   static async getProduto(id) {
-    return await this.request(`/itens/${id}`);
+    return await this.request(`/itens/${encodeURIComponent(String(id))}`);
   }
 
   /**
@@ -168,7 +167,7 @@ class ApiClient {
    * Atualizar produto existente
    */
   static async atualizarProduto(id, produto) {
-    return await this.request(`/itens/${id}`, {
+    return await this.request(`/itens/${encodeURIComponent(String(id))}`, {
       method: "PUT",
       body: JSON.stringify(produto),
     });
@@ -189,7 +188,7 @@ class ApiClient {
    * Deletar produto
    */
   static async deletarProduto(id) {
-    return await this.request(`/itens/${id}`, {
+    return await this.request(`/itens/${encodeURIComponent(String(id))}`, {
       method: "DELETE",
     });
   }
@@ -203,7 +202,7 @@ class ApiClient {
    */
   static async atualizarEstoque(id, quantidade, operacao, dataAjuste) {
     // Backend `itemRoutes` espera PUT em `/api/itens/:id/estoque`
-    return await this.request(`/itens/${id}/estoque`, {
+    return await this.request(`/itens/${encodeURIComponent(String(id))}/estoque`, {
       method: "PUT",
       body: JSON.stringify({ quantidade, operacao, dataAjuste }),
       headers: { "Content-Type": "application/json" },
@@ -211,7 +210,7 @@ class ApiClient {
   }
 
   static async getHistoricoEstoque(id) {
-    return await this.request(`/itens/${id}/historico-estoque`);
+    return await this.request(`/itens/${encodeURIComponent(String(id))}/historico-estoque`);
   }
 
   // ========================================
@@ -440,10 +439,6 @@ class ApiClient {
   }
 
   // EMPRESAS
-
-  static async getIdentidadePDF() {
-    return await this.request("/empresas/identidade-pdf", {cache:"no-store"});
-  }
 
   static async getEmpresas() {
     return await this.request("/empresas");

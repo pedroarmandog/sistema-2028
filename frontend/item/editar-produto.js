@@ -1292,10 +1292,10 @@ function inicializarFormulario() {
 
   if (clonarId) {
     console.log(`📋 Modo clonagem - carregando produto ID: ${clonarId}`);
-    carregarDadosProdutoParaClonar(parseInt(clonarId));
+    carregarDadosProdutoParaClonar(clonarId);
   } else if (produtoId) {
     console.log(`📦 Carregando produto ID: ${produtoId}`);
-    carregarDadosProduto(parseInt(produtoId));
+    carregarDadosProduto(produtoId);
   }
 
   // Configurar botões toggle (Tipo, Finalidade, Estoque Negativo)
