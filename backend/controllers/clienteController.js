@@ -191,8 +191,11 @@ exports.getAllClientes = async (req, res) => {
       whereClause.empresa_id = req.user.empresaId;
     }
 
-    const limit = Math.min(parseInt(req.query.limit, 10) || 100, 1000);
-    const offset = parseInt(req.query.offset, 10) || 0;
+    const inteiro=(v,padrao,min,max)=>{const n=Number(v);return Number.isFinite(n)&&String(v??'').trim()!==''?Math.max(min,Math.min(Math.floor(n),max)):padrao;};
+    const limit=inteiro(req.query.limit??req.query.pageSize,100,1,1000);
+    const page=inteiro(req.query.page,1,1,Number.MAX_SAFE_INTEGER);
+    const offset=inteiro(req.query.offset,(page-1)*limit,0,Number.MAX_SAFE_INTEGER);
+    const total=await Cliente.count({where:whereClause});
     const clientes = await Cliente.findAll({
       where: whereClause,
       attributes: [
@@ -208,12 +211,15 @@ exports.getAllClientes = async (req, res) => {
         "imagem_perfil",
         "data_nascimento",
       ],
-      order: [["createdAt", "DESC"]], // Ordenar por data de criação (mais recente primeiro)
+      order: [["createdAt", "DESC"],["id","DESC"]], // Ordem estável entre páginas
       limit,
       offset,
     });
 
-    res.json({ success: true, clientes: clientes });
+    const pagina=Math.floor(offset/limit)+1;
+    const pagination={total,limit,offset,page:pagina,totalPages:Math.ceil(total/limit),hasNext:offset+clientes.length<total,hasMore:offset+clientes.length<total,returned:clientes.length,hasPrevious:offset>0,hasPrev:offset>0,nextOffset:offset+limit,previousOffset:Math.max(0,offset-limit)};
+    res.set('Cache-Control','private, no-store');
+    res.json({ success:true, clientes, pagination, total, limit, offset });
   } catch (err) {
     console.error("Erro ao buscar clientes:", err);
     res.status(500).json({

@@ -1,3 +1,25 @@
+// Compatibilidade: carregar os componentes mesmo em HTMLs anteriores ao instalador.
+let erroCatalogoItens = null;
+function imagensItensUI(){
+  return window.PetHubProdutoImagem || {
+    url:()=>'', aplicar:img=>{img.style.display='none';},
+    renderizarLista:(grid,itens,criar)=>{grid.replaceChildren();let i=0;const btn=document.createElement('button');btn.type='button';btn.style.gridColumn='1 / -1';const mais=()=>{btn.remove();const end=Math.min(i+60,itens.length);for(;i<end;i++)grid.append(criar(itens[i]));if(i<itens.length){btn.textContent='Carregar mais';grid.append(btn);}};btn.onclick=mais;mais();}
+  };
+}
+function estoqueItensUI(){
+  const controla=p=>String(p.tipo||'').trim().toLowerCase()==='produto'&&![false,0,'0','false'].includes(p.controlaEstoque);
+  return window.PetHubEstoque || {controlaEstoque:controla,precisaReposicao:p=>controla(p)&&(Number(p.estoqueAtual)<=0||Number(p.estoqueAtual)<Number(p.estoqueMinimo))};
+}
+async function garantirComponentesItens(){
+ const carregar=(globalName,url)=>window[globalName]?Promise.resolve():new Promise(resolve=>{
+  const s=document.createElement('script');let timer;const fim=()=>{clearTimeout(timer);resolve();};s.src=url;s.onload=fim;s.onerror=fim;timer=setTimeout(fim,2000);document.head.append(s);
+ });
+ await Promise.all([carregar('PetHubProdutoImagem','/components/produto-imagens.js?v=20261121-listas2'),carregar('PetHubEstoque','/components/estoque-reposicao.js?v=20261121-listas2')]);
+}
+function mostrarErroCatalogoItens(grid){
+ if(!grid)return;grid.replaceChildren();const aviso=document.createElement('div');aviso.setAttribute('role','alert');aviso.style.cssText='grid-column:1/-1;padding:24px;text-align:center';const texto=document.createElement('p');texto.textContent='Não foi possível carregar os produtos. Atualize a lista para tentar novamente.';const btn=document.createElement('button');btn.type='button';btn.textContent='Atualizar lista';btn.onclick=async()=>{btn.disabled=true;await inicializarProdutosLista();renderizarProdutos('todos');};aviso.append(texto,btn);grid.append(aviso);
+}
+
 ﻿// @ts-nocheck
 
 // Copiado de frontend/dashboard.js - funcionalidades do menu e header
@@ -983,7 +1005,12 @@ async function loadMeusItensFromAPI() {
     console.log("[loadMeusItensFromAPI] Chamando ApiClient.getProdutos()...");
     // Carregar produtos excluindo explicitamente agrupamento de medicamentos
     const produtos=[];
-    for(let offset=0;;offset+=1000){const batch=await ApiClient.getProdutos({excludeAgrupamento:"MEDICAMENTOS",limit:1000,offset});if(!Array.isArray(batch))throw Error("Resposta de catálogo inválida");produtos.push(...batch);if(batch.length<1000)break;}
+    let anterior='';
+    for(let offset=0;;offset+=1000){const data=await ApiClient.getProdutos({excludeAgrupamento:"MEDICAMENTOS",limit:1000,offset});const batch=Array.isArray(data)?data:data?.itens||data?.produtos||data?.rows;
+      if(!Array.isArray(batch)||data?.success===false)throw Error('Resposta de catálogo inválida');
+      const assinatura=batch.length+':'+batch[0]?.id+':'+batch[batch.length-1]?.id;if(batch.length&&assinatura===anterior)throw Error('A API repetiu a página anterior.');anterior=assinatura;
+      produtos.push(...batch);if(batch.length<1000)break;
+    }
     console.log("[loadMeusItensFromAPI] Resposta da API:", produtos);
 
     if (!Array.isArray(produtos)) {
@@ -997,7 +1024,7 @@ async function loadMeusItensFromAPI() {
     return produtos;
   } catch (e) {
     console.error("❌ [loadMeusItensFromAPI] Erro:", e);
-    return [];
+    throw e;
   }
 }
 
@@ -1005,18 +1032,14 @@ async function loadMeusItensFromAPI() {
 async function inicializarProdutosLista() {
   try {
     console.log("[inicializarProdutosLista] Iniciando carregamento...");
+    await garantirComponentesItens();
     produtosLista = await loadMeusItensFromAPI();
+    erroCatalogoItens = null;
 
     console.log(
       "[inicializarProdutosLista] Produtos carregados:",
       produtosLista,
     );
-
-    // Se API retornar vazio, usar fallback local apenas para desenvolvimento
-    if (!produtosLista || produtosLista.length === 0) {
-      console.warn("⚠️ API retornou vazio, usando fallback local");
-      produtosLista = produtosExemplo || [];
-    }
 
     // Ordenar por data de criação (mais novo primeiro)
     produtosLista.sort((a, b) => {
@@ -1118,7 +1141,8 @@ async function inicializarProdutosLista() {
     }
   } catch (error) {
     console.error("❌ Erro ao inicializar produtos:", error);
-    produtosLista = produtosExemplo || [];
+    produtosLista = [];
+    erroCatalogoItens = error;
   }
 }
 
@@ -1961,6 +1985,7 @@ function getLastPriceChangeDate(produto) {
 }
 function renderizarProdutos(categoria, filtrosAdicionais = {}) {
   const grid = document.getElementById("productsGrid");
+  if(erroCatalogoItens){mostrarErroCatalogoItens(grid);return;}
 
   console.log("[renderizarProdutos] ===== INÍCIO =====");
   console.log("[renderizarProdutos] categoria:", categoria);
@@ -2752,7 +2777,7 @@ function renderizarProdutos(categoria, filtrosAdicionais = {}) {
       // Se 'todos' estiver selecionado, não filtrar por saldo
       if (!selecoesSaldo.includes("todos")) {
         produtosFiltrados = produtosFiltrados.filter((p) => {
-          if (!window.PetHubEstoque.controlaEstoque(p)) return false;
+          if (!estoqueItensUI().controlaEstoque(p)) return false;
           const estoque = Number(p.estoqueAtual) || 0;
           return selecoesSaldo.some((s) => {
             if (s === "positivo") return estoque > 0;
@@ -2781,7 +2806,7 @@ function renderizarProdutos(categoria, filtrosAdicionais = {}) {
         : null;
     if (filtroEstoqueMinimo && filtroEstoqueMinimo !== "todos") {
       produtosFiltrados = produtosFiltrados.filter((p) => {
-        if (!window.PetHubEstoque.controlaEstoque(p)) return false;
+        if (!estoqueItensUI().controlaEstoque(p)) return false;
         const estoqueAtual = Number(p.estoqueAtual) || 0;
         const estoqueMinimo = Number(p.estoqueMinimo) || 0;
         const estoqueIdeal =
@@ -2845,7 +2870,7 @@ function renderizarProdutos(categoria, filtrosAdicionais = {}) {
     return;
   }
 
-  window.PetHubProdutoImagem.renderizarLista(grid, produtosFiltrados, criarCardProduto);
+  imagensItensUI().renderizarLista(grid, produtosFiltrados, criarCardProduto);
 
   console.log(`📦 ${produtosFiltrados.length} produtos renderizados no DOM`);
 }
@@ -2873,9 +2898,9 @@ function criarCardProduto(produto) {
 
   // Status de estoque
   let stockStatus = "good";
-  if (window.PetHubEstoque.controlaEstoque(produto) && estoqueAtual <= 0) {
+  if (estoqueItensUI().controlaEstoque(produto) && estoqueAtual <= 0) {
     stockStatus = "out";
-  } else if (window.PetHubEstoque.precisaReposicao(produto)) {
+  } else if (estoqueItensUI().precisaReposicao(produto)) {
     stockStatus = "low";
   }
 
@@ -2892,7 +2917,7 @@ function criarCardProduto(produto) {
   const badgeColor = categoryColors[produto.categoria] || "#f5f5f5";
 
   // Processar imagem
-  const imagemSrc = window.PetHubProdutoImagem.url(produto, "miniatura");
+  const imagemSrc = imagensItensUI().url(produto, "miniatura");
 
   card.innerHTML = `
         <div class="product-image">
@@ -2997,7 +3022,7 @@ function criarCardProduto(produto) {
   }
 
   const foto = card.querySelector("[data-produto-foto]");
-  if (foto) window.PetHubProdutoImagem.aplicar(foto, produto, "miniatura");
+  if (foto) imagensItensUI().aplicar(foto, produto, "miniatura");
 
   // Adicionar evento de clique (usar data-id do card para evitar possíveis conflitos de closure)
   card.addEventListener("click", function (e) {
@@ -3714,6 +3739,7 @@ function normalizarTexto(texto) {
  * Filtrar produtos por busca (mostra/oculta cards)
  */
 function filtrarProdutosPorBusca(query) {
+  if(erroCatalogoItens){mostrarErroCatalogoItens(document.getElementById("productsGrid"));return;}
   const produtos = produtosLista || [];
 
   // Se query vazia, mostrar todos
@@ -3764,7 +3790,7 @@ function filtrarProdutosPorBusca(query) {
     return;
   }
 
-  window.PetHubProdutoImagem.renderizarLista(grid, produtosFiltrados, criarCardProduto);
+  imagensItensUI().renderizarLista(grid, produtosFiltrados, criarCardProduto);
 
   console.log(`📦 ${produtosFiltrados.length} produtos renderizados no grid`);
 }

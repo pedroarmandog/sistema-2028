@@ -1,4 +1,5 @@
 "use strict";
+const {consultarItens,SEM_VARIANTES}=require("./consultaItensCompativel");
 const crypto = require("node:crypto");
 const falha = (message, status = 400) =>
   Object.assign(new Error(message), { status });
@@ -211,8 +212,14 @@ function criarServico({
   async function imagem(emp, id, versao = "miniatura") {
     if (!["miniatura", "media", "ampliada"].includes(versao))
       throw falha("Versão de imagem inválida.");
-    let p = await Produto.findOne({ where: { id, empresa_id: emp } });
+    let p = await consultarItens(Produto,"findOne",{ where: { id, empresa_id: emp } });
     if (!p?.imagem) throw falha("Imagem não encontrada.", 404);
+    if(p[SEM_VARIANTES]){
+      // Fotos legadas continuam legíveis enquanto a otimização opcional não foi preparada.
+      const bytes=await ler(emp,p.imagem);await decodificar(bytes);
+      const max={miniatura:160,media:480,ampliada:1200}[versao];
+      return {bytes:await sharp(bytes,{limitInputPixels:40000000}).rotate().resize({width:max,height:max,fit:'inside',withoutEnlargement:true}).webp({quality:78}).toBuffer(),tipo:'image/webp'};
+    }
     let v = lerJson(p.imagemVersoes);
     if (v?.versao !== 1 || v.origem !== p.imagem) {
       await otimizarRegistro(p);

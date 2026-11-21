@@ -1,3 +1,4 @@
+const {consultarItens}=require("../services/consultaItensCompativel");
 const express = require("express");
 const router = express.Router();
 const Produto = require("../models/Produto");
@@ -76,7 +77,7 @@ router.get("/", async (req, res) => {
     if (excludeAgrupamento) {
       // Excluir qualquer item cujo campo `agrupamento` contenha a string fornecida
       andConditions.push({
-        agrupamento: { [Op.notLike]: `%${excludeAgrupamento}%` },
+        [Op.or]:[{agrupamento:{[Op.notLike]:`%${excludeAgrupamento}%`}},{agrupamento:null}],
       });
     }
 
@@ -132,7 +133,7 @@ router.get("/", async (req, res) => {
     try {
       console.log("GET /api/itens - query params:", req.query);
     } catch (e) {}
-    const itens = await Produto.findAll({
+    const itens = await consultarItens(Produto,"findAll",{
       where,
       order: require("../services/buscaItens").ordemBuscaItens(q, Produto.sequelize),
       limit: Math.min(Math.max(parseInt(req.query.limit,10)||1000,1),1000),
@@ -365,7 +366,7 @@ router.delete("/blocked", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const id = String(req.params.id);
-    const produto = await Produto.findOne({ where: { id, empresa_id: req.user.empresaId } });
+    const produto = await consultarItens(Produto,"findOne",{where:{id,empresa_id:req.user.empresaId}});
     if (!produto)
       return res.status(404).json({ error: "Produto não encontrado" });
     res.json(produto);
@@ -595,7 +596,7 @@ router.put("/:id", async (req, res) => {
       );
     } catch (e) {}
 
-    const produto = await Produto.findOne({where:{id,empresa_id:req.user.empresaId}});
+    const produto = await consultarItens(Produto,"findOne",{where:{id,empresa_id:req.user.empresaId}});
     if (!produto)
       return res.status(404).json({ error: "Produto não encontrado" });
 
