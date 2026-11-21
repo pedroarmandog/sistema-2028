@@ -16,7 +16,7 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
     <!-- Estilos do menu (copiar para sua página) -->
-    <link rel="stylesheet" href="./orcamento.css" />
+    <link rel="stylesheet" href="./orcamento.css?v=20261121-orc1" />
     <link rel="stylesheet" href="../colors.css" />
     <link rel="stylesheet" href="../dashboard.css" />
   </head>
@@ -1519,12 +1519,14 @@
               class="orc-link-nova-aba"
               >Ver em uma nova aba</a
             >
+            <a id="pdfDownload" href="#" download hidden>Baixar PDF</a>
             <button class="orc-modal-close" onclick="fecharComprovantePDF()">
               &times;
             </button>
           </div>
         </div>
         <div class="orc-modal-body orc-pdf-body">
+          <div id="pdfStatus" role="status"></div>
           <iframe
             id="pdfIframe"
             style="width: 100%; height: 100%; border: none"
@@ -1620,7 +1622,9 @@
     </div>
 
     <!-- Script do menu (copiar para sua página) -->
-    <script src="./orcamento.js"></script>
+    <script src="/components/pesquisa-normalizada.js?v=20261121-orc1"></script>
+    <script src="/components/venda-calculos.js?v=20261121-orc1"></script>
+    <script src="./orcamento.js?v=20261121-orc1"></script>
     <!-- Script global do calendário (copia do dashboard) -->
     <script src="../novo-atendimento-global.js"></script>
   </body>

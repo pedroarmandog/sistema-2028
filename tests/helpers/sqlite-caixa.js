@@ -8,6 +8,8 @@ class Database {
       throw new Error("O teste só aceita SQLite em memória.");
     this.filename = filename;
     this.db = new DatabaseSync(filename);
+    // Função REGEXP exclusiva dos testes; TiDB/MySQL já oferece o operador.
+    this.db.function('regexp', (pattern,value) => Number(new RegExp(String(pattern).replaceAll('[[:space:][:punct:]]+', '[^a-zA-Z0-9]+'),'u').test(String(value??''))));
     queueMicrotask(() => done(null));
   }
   serialize(work) {

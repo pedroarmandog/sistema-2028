@@ -33,14 +33,9 @@ function getHojeBrasilStr() {
 exports.produtosEstoqueBaixo = async (req, res) => {
   try {
     const empresaId = req.user?.empresaId;
-    // Usar condição literal para comparar colunas diretamente no SQL
-    const condition = "(estoqueAtual = 0) OR (estoqueAtual < estoqueMinimo)";
-    const whereClause = { [Op.and]: [literal(condition)] };
-    if (empresaId) whereClause.empresa_id = empresaId;
-    const cacheKey = `dashboard:produtosEstoqueBaixo:${empresaId || "all"}`;
-    const cached = cache.get(cacheKey);
-    if (cached) return res.json(cached);
-
+    if (!empresaId) return res.status(403).json({ erro: 'Empresa não identificada' });
+    const whereClause = { empresa_id: empresaId, ...require('../services/estoqueReposicao').condicaoReposicao(Produto) };
+    res.set('Cache-Control', 'private, no-store');
     const produtos = await Produto.findAll({
       attributes: ["id", "nome", "estoqueAtual", "estoqueMinimo"],
       where: whereClause,
@@ -54,7 +49,6 @@ exports.produtosEstoqueBaixo = async (req, res) => {
       estoqueAtual: p.estoqueAtual,
       estoqueMinimo: p.estoqueMinimo,
     }));
-    cache.set(cacheKey, result, 10); // cache 10s
     console.log(`Encontrados ${result.length} produtos com estoque baixo`);
     res.json(result);
   } catch (error) {

@@ -447,6 +447,14 @@ let orcItensAdicionados = [];
 let orcIdAtual = null; // usado pelo modal Ver
 
 // --- Helpers ---
+function valorMonetarioOrcamento(v) {
+  try {
+    return window.PetHubCalculos.centavos(v || 0) / 100;
+  } catch (_) {
+    return 0;
+  }
+}
+
 function fmt(v) {
   return parseFloat(v || 0).toLocaleString("pt-BR", {
     minimumFractionDigits: 2,
@@ -761,111 +769,195 @@ function fecharModalNovoOrcamento() {
 
 // --- Autocomplete Itens ---
 function configurarAutocompletItens() {
-  const input = document.getElementById("orcItemBusca");
-  const lista = document.getElementById("orcItemSugestoes");
-  let timeout;
+  const input = document.getElementById("orcItemBusca"),
+    lista = document.getElementById("orcItemSugestoes");
+  let timer,
+    versao = 0,
+    itens = [],
+    indice = -1;
+  input.setAttribute("role", "combobox");
+  input.setAttribute("aria-autocomplete", "list");
+  input.setAttribute("aria-controls", lista.id);
+  lista.setAttribute("role", "listbox");
+  function fechar() {
+    lista.classList.remove("show");
+    input.setAttribute("aria-expanded", "false");
+    input.removeAttribute("aria-activedescendant");
+    indice = -1;
+  }
+  function mensagem(v) {
+    lista.replaceChildren();
+    const el = document.createElement("div");
+    el.className = "orc-busca-mensagem";
+    el.setAttribute("role", "status");
+    el.textContent = v;
+    lista.append(el);
+    lista.classList.add("show");
+    input.setAttribute("aria-expanded", "true");
+  }
+  function selecionar(i) {
+    const it = itens[i];
+    if (!it) return;
+    orcItemSelecionado = {
+      id: it.id,
+      nome: it.nome ?? it.descricao ?? "",
+      preco: Number(it.precoVenda ?? it.preco ?? 0),
+    };
+    input.value = orcItemSelecionado.nome;
+    document.getElementById("orcPreco").value =
+      orcItemSelecionado.preco.toFixed(2);
+    versao++;
+    fechar();
+    calcularTotalItem();
+  }
+  function destacar(i) {
+    indice = i;
+    lista.querySelectorAll('[role="option"]').forEach((el, n) => {
+      el.classList.toggle("orc-sugestao-ativa", n === i);
+      el.setAttribute("aria-selected", String(n === i));
+    });
+    const el = lista.querySelectorAll('[role="option"]')[i];
+    if (el) {
+      input.setAttribute("aria-activedescendant", el.id);
+      el.scrollIntoView?.({ block: "nearest" });
+    }
+  }
   input.addEventListener("input", () => {
-    clearTimeout(timeout);
-    const q = input.value.trim();
-    if (q.length < 2) {
-      lista.classList.remove("show");
+    clearTimeout(timer);
+    const atual = ++versao,
+      q = input.value.trim();
+    orcItemSelecionado = null;
+    itens = [];
+    indice = -1;
+    if (!window.PetHubPesquisa.normalizar(q)) {
+      fechar();
       return;
     }
-    timeout = setTimeout(async () => {
+    mensagem("Pesquisando…");
+    timer = setTimeout(async () => {
       try {
-        const resp = await fetch(`/api/itens?q=${encodeURIComponent(q)}`);
+        const resp = await fetch(
+          "/api/itens?limit=20&q=" + encodeURIComponent(q),
+          { credentials: "include" },
+        );
+        if (!resp.ok) throw Error("Pesquisa indisponível");
         const data = await resp.json();
-        const itens = Array.isArray(data) ? data : data.itens || [];
-        if (itens.length === 0) {
-          lista.classList.remove("show");
+        if (atual !== versao) return;
+        itens = Array.isArray(data) ? data : data.itens || [];
+        if (!itens.length) {
+          mensagem("Nenhum item encontrado.");
           return;
         }
-        lista.innerHTML = itens
-          .slice(0, 15)
-          .map(
-            (it) => `
-          <div class="orc-sugestao-item" data-id="${it.id}" data-nome="${it.nome || it.descricao || ""}" data-preco="${it.precoVenda || it.preco || 0}">
-            <span>${it.nome || it.descricao || "Item"}</span>
-            <span class="preco">R$ ${fmt(it.precoVenda || it.preco || 0)}</span>
-          </div>`,
-          )
-          .join("");
-        lista.classList.add("show");
-
-        lista.querySelectorAll(".orc-sugestao-item").forEach((el) => {
-          el.addEventListener("click", () => {
-            orcItemSelecionado = {
-              id: el.dataset.id,
-              nome: el.dataset.nome,
-              preco: parseFloat(el.dataset.preco),
-            };
-            input.value = el.dataset.nome;
-            document.getElementById("orcPreco").value = parseFloat(
-              el.dataset.preco,
-            ).toFixed(2);
-            lista.classList.remove("show");
-            calcularTotalItem();
-          });
+        lista.replaceChildren();
+        itens.forEach((it, i) => {
+          const el = document.createElement("div");
+          el.className = "orc-sugestao-item";
+          el.id = "orc-item-opcao-" + i;
+          el.setAttribute("role", "option");
+          el.setAttribute("aria-selected", "false");
+          const nome = document.createElement("span"),
+            preco = document.createElement("span");
+          nome.textContent = it.nome ?? it.descricao ?? "Item";
+          preco.className = "preco";
+          preco.textContent = "R$ " + fmt(it.precoVenda ?? it.preco ?? 0);
+          el.append(nome, preco);
+          el.addEventListener("mousedown", (e) => e.preventDefault());
+          el.addEventListener("click", () => selecionar(i));
+          lista.append(el);
         });
+        lista.classList.add("show");
+        input.setAttribute("aria-expanded", "true");
       } catch (e) {
-        console.error(e);
+        if (atual === versao)
+          mensagem("Não foi possível pesquisar os itens. Tente novamente.");
       }
-    }, 300);
+    }, 200);
   });
-  input.addEventListener("blur", () =>
-    setTimeout(() => lista.classList.remove("show"), 200),
-  );
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      versao++;
+      fechar();
+      return;
+    }
+    if (!lista.classList.contains("show") || !itens.length) return;
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      destacar(
+        indice < 0
+          ? e.key === "ArrowDown"
+            ? 0
+            : itens.length - 1
+          : (indice + (e.key === "ArrowDown" ? 1 : -1) + itens.length) %
+              itens.length,
+      );
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      selecionar(indice < 0 ? 0 : indice);
+    }
+  });
+  input.addEventListener("blur", () => {
+    setTimeout(() => {
+      versao++;
+      fechar();
+    }, 160);
+  });
 }
 
 // --- Autocomplete Clientes ---
 function configurarAutocompletClientes() {
-  const input = document.getElementById("orcClienteBusca");
-  const lista = document.getElementById("orcClienteSugestoes");
-  let cache = null;
-  input.addEventListener("input", async () => {
-    const q = input.value.trim().toLowerCase();
-    if (q.length < 1) {
-      lista.classList.remove("show");
-      orcClienteSelecionado = null;
-      return;
-    }
-    if (!cache) {
+  const input = document.getElementById("orcClienteBusca"),
+    lista = document.getElementById("orcClienteSugestoes");
+  let timer,
+    versao = 0;
+  input.addEventListener("input", () => {
+    clearTimeout(timer);
+    const v = ++versao,
+      q = input.value.trim();
+    orcClienteSelecionado = null;
+    lista.classList.remove("show");
+    if (!q) return;
+    timer = setTimeout(async () => {
       try {
-        const r = await fetch("/api/clientes");
-        cache = await r.json();
-        cache = Array.isArray(cache) ? cache : cache.clientes || [];
-      } catch {
-        cache = [];
+        const r = await fetch(
+          "/api/clientes?limit=15&search=" + encodeURIComponent(q),
+          { credentials: "include" },
+        );
+        if (!r.ok) throw Error("Busca indisponível");
+        const data = await r.json();
+        if (v !== versao) return;
+        const clientes = Array.isArray(data) ? data : data.clientes || [];
+        lista.replaceChildren();
+        clientes.forEach((c) => {
+          const el = document.createElement("div");
+          el.className = "orc-sugestao-item";
+          el.textContent = c.nome;
+          el.addEventListener("mousedown", (e) => e.preventDefault());
+          el.addEventListener("click", () => {
+            orcClienteSelecionado = {
+              id: c.id,
+              nome: c.nome,
+              telefone: c.telefone || c.celular || "",
+            };
+            input.value = c.nome;
+            versao++;
+            lista.classList.remove("show");
+          });
+          lista.append(el);
+        });
+        if (clientes.length) lista.classList.add("show");
+      } catch (e) {
+        if (v === versao) {
+          lista.textContent = "Não foi possível pesquisar clientes.";
+          lista.classList.add("show");
+        }
       }
-    }
-    const filtrados = cache
-      .filter((c) => (c.nome || "").toLowerCase().includes(q))
-      .slice(0, 10);
-    if (filtrados.length === 0) {
-      lista.classList.remove("show");
-      return;
-    }
-    lista.innerHTML = filtrados
-      .map(
-        (c) =>
-          `<div class="orc-sugestao-item" data-id="${c.id}" data-nome="${c.nome}" data-tel="${c.telefone || c.celular || ""}">${c.nome}</div>`,
-      )
-      .join("");
-    lista.classList.add("show");
-    lista.querySelectorAll(".orc-sugestao-item").forEach((el) => {
-      el.addEventListener("click", () => {
-        orcClienteSelecionado = {
-          id: el.dataset.id,
-          nome: el.dataset.nome,
-          telefone: el.dataset.tel,
-        };
-        input.value = el.dataset.nome;
-        lista.classList.remove("show");
-      });
-    });
+    }, 200);
   });
   input.addEventListener("blur", () =>
-    setTimeout(() => lista.classList.remove("show"), 200),
+    setTimeout(() => {
+      versao++;
+      lista.classList.remove("show");
+    }, 160),
   );
 }
 
@@ -919,11 +1011,16 @@ function configurarAutocompletProfissionais() {
 
 // --- Cálculos de item ---
 function calcularTotalItem() {
-  const qty = parseFloat(document.getElementById("orcQtd").value) || 0;
-  const preco = parseFloat(document.getElementById("orcPreco").value) || 0;
-  const desc = parseFloat(document.getElementById("orcDesconto").value) || 0;
+  const qty =
+    Number(document.getElementById("orcQtd").value.replace(",", ".")) || 0;
+  const preco = valorMonetarioOrcamento(
+    document.getElementById("orcPreco").value,
+  );
+  const desc = valorMonetarioOrcamento(
+    document.getElementById("orcDesconto").value,
+  );
   const bruto = qty * preco;
-  const total = bruto - (bruto * desc) / 100;
+  const total = window.PetHubCalculos.calcularItem(qty, preco, desc).totalFinal;
   document.getElementById("orcTotalItem").textContent = fmt(total);
 }
 
@@ -939,15 +1036,20 @@ function adicionarItemOrcamento() {
     alert("Selecione um item da lista de sugestões.");
     return;
   }
-  const qty = parseFloat(document.getElementById("orcQtd").value) || 0;
-  const preco = parseFloat(document.getElementById("orcPreco").value) || 0;
-  const desc = parseFloat(document.getElementById("orcDesconto").value) || 0;
-  if (qty <= 0 || preco <= 0) {
+  const qty =
+    Number(document.getElementById("orcQtd").value.replace(",", ".")) || 0;
+  const preco = valorMonetarioOrcamento(
+    document.getElementById("orcPreco").value,
+  );
+  const desc = valorMonetarioOrcamento(
+    document.getElementById("orcDesconto").value,
+  );
+  if (qty <= 0 || preco <= 0 || desc < 0 || desc > 100) {
     alert("Preencha quantidade e preço válidos.");
     return;
   }
   const bruto = qty * preco;
-  const total = bruto - (bruto * desc) / 100;
+  const total = window.PetHubCalculos.calcularItem(qty, preco, desc).totalFinal;
 
   orcItensAdicionados.push({
     itemId: orcItemSelecionado.id,
@@ -1259,15 +1361,67 @@ function verComprovantePDF() {
   if (!orcIdAtual) return;
   abrirComprovantePDF(orcIdAtual);
 }
-function abrirComprovantePDF(id) {
-  const url = `${API}/${id}/comprovante`;
-  document.getElementById("pdfIframe").src = url;
-  document.getElementById("pdfNovaAba").href = url;
-  document.getElementById("comprovantePDFModal").style.display = "flex";
+let orcPDFUrl = null,
+  orcPDFVersao = 0;
+async function abrirComprovantePDF(id) {
+  const versao = ++orcPDFVersao,
+    modal = document.getElementById("comprovantePDFModal"),
+    frame = document.getElementById("pdfIframe"),
+    status = document.getElementById("pdfStatus"),
+    aba = document.getElementById("pdfNovaAba"),
+    download = document.getElementById("pdfDownload");
+  if (orcPDFUrl) {
+    URL.revokeObjectURL(orcPDFUrl);
+    orcPDFUrl = null;
+  }
+  frame.src = "about:blank";
+  frame.hidden = true;
+  aba.hidden = true;
+  download.hidden = true;
+  modal.style.display = "flex";
+  status.hidden = false;
+  status.textContent = "Gerando PDF…";
+  try {
+    const resp = await fetch(`${API}/${id}/comprovante`, {
+      credentials: "include",
+    });
+    if (
+      !resp.ok ||
+      !resp.headers.get("Content-Type")?.includes("application/pdf")
+    )
+      throw Error("PDF indisponível");
+    const blob = await resp.blob();
+    if (versao !== orcPDFVersao) return;
+    orcPDFUrl = URL.createObjectURL(blob);
+    frame.src = orcPDFUrl;
+    frame.hidden = false;
+    status.hidden = true;
+    aba.href = orcPDFUrl;
+    aba.hidden = false;
+    download.href = orcPDFUrl;
+    download.download = `orcamento-${id}.pdf`;
+    download.hidden = false;
+  } catch (e) {
+    if (versao !== orcPDFVersao) return;
+    status.replaceChildren();
+    const p = document.createElement("p");
+    p.textContent =
+      "Não foi possível gerar o PDF. O orçamento continua salvo. Tente novamente.";
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = "Tentar novamente";
+    btn.addEventListener("click", () => abrirComprovantePDF(id));
+    status.append(p, btn);
+  }
 }
 function fecharComprovantePDF() {
+  orcPDFVersao++;
   document.getElementById("comprovantePDFModal").style.display = "none";
-  document.getElementById("pdfIframe").src = "";
+  document.getElementById("pdfIframe").src = "about:blank";
+  if (orcPDFUrl) {
+    URL.revokeObjectURL(orcPDFUrl);
+    orcPDFUrl = null;
+  }
 }
 
 // ========================================

@@ -1,7 +1,4 @@
-const {normalizarUF}=require("../utils/ufBrasil");
-const inteligencia=require('../services/clienteInteligencia');
-const {normalizarSexo} = require("../utils/sexoCliente");
-const { Cliente, Pet, Venda, sequelize } = require("../models");
+const { Cliente, Pet, Venda } = require("../models");
 // Usando importação centralizada do models/index.js com as associações configuradas
 
 exports.createCliente = async (req, res) => {
@@ -42,7 +39,7 @@ exports.createCliente = async (req, res) => {
       codigo_pais,
     } = req.body;
 
-    const imagem_perfil = req.file ? req.file.url.replace(/^\/uploads\//, "") : null;
+    const imagem_perfil = req.file ? req.file.filename : null;
 
     // Converter tipo_pessoa: "fisica" → "F", "juridica" → "J"
     let tipoPessoaConvertido = null;
@@ -90,13 +87,13 @@ exports.createCliente = async (req, res) => {
       }
     }
 
-    const dadosCliente = {
+    const cliente = await Cliente.create({
       nome,
       cpf: cpf || null,
       rg: rg || null,
-      data_nascimento: data_nascimento || null,
+      data_nascimento,
       idade,
-      sexo: normalizarSexo(sexo),
+      sexo: sexo || null,
       telefone: telefone || null,
       email: email || null,
       telefones_adicionais: telefonesAdicionaisArray,
@@ -107,7 +104,7 @@ exports.createCliente = async (req, res) => {
       complemento,
       bairro,
       cidade,
-      estado: normalizarUF(estado),
+      estado,
       limite_credito,
       grupo_cliente,
       perfil_desconto,
@@ -133,15 +130,6 @@ exports.createCliente = async (req, res) => {
       codigo_ibge_municipio: codigo_ibge_municipio || null,
       pais: pais || "Brasil",
       codigo_pais: codigo_pais || "1058",
-    };
-    const extras=inteligencia.normalizar(req.body);
-    if(Object.keys(extras).length)await inteligencia.preparar(sequelize);
-    const cliente=await sequelize.transaction(async transaction=>{
-      const empresa=await sequelize.models.Empresa.findByPk(req.user.empresaId,{transaction,lock:transaction.LOCK.UPDATE});
-      if(!empresa)throw Object.assign(new Error('Empresa indisponível.'),{status:403});
-      const row=await Cliente.create(dadosCliente,{transaction});
-      if(Object.keys(extras).length)await inteligencia.salvar(sequelize,req.user.empresaId,row.id,extras,{transaction});
-      return row;
     });
 
     res.status(201).json({
@@ -166,8 +154,6 @@ exports.createCliente = async (req, res) => {
 
     // Nota: boas_vindas é disparado no cadastro do primeiro pet (petController)
   } catch (err) {
-    if(err.publica)return res.status(err.status||503).json({success:false,error:err.message});
-    if (err.status >= 400 && err.status < 500) return res.status(err.status).json({success:false,error:err.message});
     console.error("Erro ao criar cliente:", err);
 
     // Tratar erros de duplicidade (CPF/email já cadastrados)
@@ -194,9 +180,47 @@ exports.createCliente = async (req, res) => {
   }
 };
 
-exports.getAllClientes = async (req,res) => {
-  try {return res.json(await require('../services/listagemClientes').listar(sequelize,req.user?.empresaId,req.query));}
-  catch(e){return res.status(e.status||500).json({success:false,error:e.status?e.message:'Não foi possível listar clientes.'});}
+exports.getAllClientes = async (req, res) => {
+  try {
+    if(!req.user?.empresaId)return res.status(403).json({error:'Empresa não identificada'});
+    const search=req.query.search||req.query.q;
+    let whereClause=require('../services/buscaItens').condicaoBuscaCampos(search,['nome','email','telefone','cpf','id'])||{};
+
+    // Filtro obrigatório por empresa
+    if (req.user?.empresaId) {
+      whereClause.empresa_id = req.user.empresaId;
+    }
+
+    const limit = Math.min(parseInt(req.query.limit, 10) || 100, 1000);
+    const offset = parseInt(req.query.offset, 10) || 0;
+    const clientes = await Cliente.findAll({
+      where: whereClause,
+      attributes: [
+        "id",
+        "nome",
+        "email",
+        "telefone",
+        "cpf",
+        "cidade",
+        "ativo",
+        "createdAt",
+        "grupo_cliente",
+        "imagem_perfil",
+        "data_nascimento",
+      ],
+      order: [["createdAt", "DESC"]], // Ordenar por data de criação (mais recente primeiro)
+      limit,
+      offset,
+    });
+
+    res.json({ success: true, clientes: clientes });
+  } catch (err) {
+    console.error("Erro ao buscar clientes:", err);
+    res.status(500).json({
+      success: false,
+      error: "Erro ao buscar os clientes",
+    });
+  }
 };
 
 exports.getClienteById = async (req, res) => {
@@ -204,13 +228,11 @@ exports.getClienteById = async (req, res) => {
     const { id } = req.params;
 
     // Buscar cliente incluindo pets relacionados e vendas (histórico)
-    const cliente = await Cliente.findOne({
-      where:{id,empresa_id:req.user.empresaId},
+    const cliente = await Cliente.findByPk(id, {
       include: [
         {
           model: Pet,
           as: "pets",
-          where:{empresa_id:req.user.empresaId}, required:false,
           // Incluir tags para que a UI de client-details possa renderizá-las
           attributes: [
             "id",
@@ -222,7 +244,6 @@ exports.getClienteById = async (req, res) => {
             "pelagem",
             "chip",
             "pedigree_rg",
-            "especie", "cor", "peso", "idade_informada", "codigo_legado", "origem_importacao",
             "alergias",
             "observacao",
             "tags",
@@ -232,7 +253,6 @@ exports.getClienteById = async (req, res) => {
         {
           model: Venda,
           as: "vendas",
-          where:{empresa_id:req.user.empresaId},
           attributes: [
             "id",
             "data",
@@ -284,18 +304,7 @@ exports.getClienteById = async (req, res) => {
 exports.updateCliente = async (req, res) => {
   try {
     const { id } = req.params;
-    const updates = {...req.body};
-    delete updates.empresa_id;
-    delete updates.id;
-    delete updates.importacao_ref;
-    delete updates.createdAt;
-    delete updates.updatedAt;
-    if ("estado" in updates) updates.estado = normalizarUF(updates.estado);
-    if ("sexo" in updates) updates.sexo = normalizarSexo(updates.sexo);
-    if (updates.data_nascimento === "") {
-      updates.data_nascimento = null;
-      updates.idade = null;
-    }
+    const updates = req.body;
 
     // Converter tipo_pessoa: "fisica" → "F", "juridica" → "J"
     if ("tipo_pessoa" in updates && updates.tipo_pessoa) {
@@ -366,22 +375,11 @@ exports.updateCliente = async (req, res) => {
       }
     }
 
-    if(req.file) updates.imagem_perfil = req.file.url.replace(/^\/uploads\//, "");
-    else if(updates.imagem_perfil !== undefined) {
-      const atual=await Cliente.findOne({where:{id,empresa_id:req.user.empresaId}});
-      if(!atual)return res.status(404).json({error:"Cliente não encontrado"});
-      updates.imagem_perfil=await require("../services/midias").instancia().referencia(req.user.empresaId,updates.imagem_perfil,"clientes",{anterior:atual.imagem_perfil,formato:"nome"});
-    }
-    const extras=inteligencia.normalizar(req.body);
-    if(Object.keys(extras).length)await inteligencia.preparar(sequelize);
-    const updatedRows=await sequelize.transaction(async transaction=>{
-      const empresa=await sequelize.models.Empresa.findByPk(req.user.empresaId,{transaction,lock:transaction.LOCK.UPDATE});
-      if(!empresa)throw Object.assign(new Error('Empresa indisponível.'),{status:403});
-      const row=await Cliente.findOne({where:{id,empresa_id:req.user.empresaId},transaction,lock:transaction.LOCK.UPDATE});
-      if(!row)return 0;
-      await row.update(updates,{transaction});
-      if(Object.keys(extras).length)await inteligencia.salvar(sequelize,req.user.empresaId,id,extras,{transaction});
-      return 1;
+    const [updatedRows] = await Cliente.update(updates, {
+      where: {
+        id: id,
+        ...(req.user?.empresaId ? { empresa_id: req.user.empresaId } : {}),
+      },
     });
 
     if (updatedRows === 0) {
@@ -391,7 +389,7 @@ exports.updateCliente = async (req, res) => {
       });
     }
 
-    const clienteAtualizado = await Cliente.findOne({where:{id,empresa_id:req.user.empresaId}});
+    const clienteAtualizado = await Cliente.findByPk(id);
 
     res.json({
       success: true,
@@ -399,8 +397,6 @@ exports.updateCliente = async (req, res) => {
       cliente: clienteAtualizado,
     });
   } catch (err) {
-    if(err.publica)return res.status(err.status||503).json({success:false,error:err.message});
-    if (err.status >= 400 && err.status < 500) return res.status(err.status).json({success:false,error:err.message});
     console.error("Erro ao atualizar cliente:", err);
     res.status(500).json({
       success: false,
@@ -428,16 +424,8 @@ exports.deleteCliente = async (req, res) => {
       });
     }
 
-    // Excluir somente complementos desta empresa junto com o cadastro.
-    const m=await inteligencia.preparar(sequelize);
-    await sequelize.transaction(async transaction=>{
-      const empresa=await sequelize.models.Empresa.findByPk(req.user.empresaId,{transaction,lock:transaction.LOCK.UPDATE});
-      if(!empresa)throw Object.assign(new Error('Empresa indisponível.'),{status:403});
-      await Cliente.findOne({where:{id,empresa_id:req.user.empresaId},transaction,lock:transaction.LOCK.UPDATE});
-      await m.Perfil.destroy({where:{cliente_id:id,empresa_id:req.user.empresaId},transaction});
-      await m.Historico.destroy({where:{cliente_id:id,empresa_id:req.user.empresaId},transaction});
-      await cliente.destroy({transaction});
-    });
+    // Deletar o cliente
+    await cliente.destroy();
 
     res.json({
       success: true,

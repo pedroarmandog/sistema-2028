@@ -1,11 +1,25 @@
 const { Orcamento } = require("../models/Orcamento");
 const { Op } = require("sequelize");
+const { Cliente } = require("../models");
+async function validarCliente(dados, empresaId) {
+  if (dados.clienteId != null) {
+    const c = await Cliente.findOne({
+      where: { id: dados.clienteId, empresa_id: empresaId },
+    });
+    if (!c)
+      throw Object.assign(Error("Cliente não encontrado nesta empresa."), {
+        status: 404,
+      });
+  }
+}
+
+const { calcularItens, totaisItens } = require("../services/orcamentoDados");
 
 // Listar orçamentos com filtros
 exports.listarOrcamentos = async (req, res) => {
   try {
     const { dataInicio, dataFim, status, q } = req.query;
-    const where = {};
+    const where = { empresa_id: req.user.empresaId };
 
     if (dataInicio && dataFim) {
       where.data = {
@@ -35,49 +49,49 @@ exports.listarOrcamentos = async (req, res) => {
     res.json({ orcamentos });
   } catch (error) {
     console.error("Erro ao listar orçamentos:", error);
-    res.status(500).json({ erro: "Erro ao listar orçamentos" });
+    res.status(error.status || 500).json({ erro: "Erro ao listar orçamentos" });
   }
 };
 
 // Buscar orçamento por ID
 exports.buscarOrcamento = async (req, res) => {
   try {
-    const orcamento = await Orcamento.findByPk(req.params.id);
+    const orcamento = await Orcamento.findOne({
+      where: { id: req.params.id, empresa_id: req.user.empresaId },
+    });
     if (!orcamento) {
       return res.status(404).json({ erro: "Orçamento não encontrado" });
     }
     res.json(orcamento);
   } catch (error) {
     console.error("Erro ao buscar orçamento:", error);
-    res.status(500).json({ erro: "Erro ao buscar orçamento" });
+    res.status(error.status || 500).json({ erro: "Erro ao buscar orçamento" });
   }
 };
 
 // Criar orçamento
 exports.criarOrcamento = async (req, res) => {
   try {
-    const dados = { ...req.body };
+    const dados = Object.fromEntries(
+      [
+        "cliente",
+        "clienteId",
+        "clienteTelefone",
+        "profissional",
+        "profissionalId",
+        "condicaoPagamento",
+        "informacoesAdicionais",
+        "status",
+        "itens",
+      ]
+        .filter((k) => req.body[k] !== undefined)
+        .map((k) => [k, req.body[k]]),
+    );
 
-    // Calcular totais
-    const itens = Array.isArray(dados.itens) ? dados.itens : [];
-    let subtotal = 0;
-    let totalDesconto = 0;
-
-    itens.forEach((item) => {
-      const qty = parseFloat(item.quantidade || 1);
-      const preco = parseFloat(item.valorUnitario || 0);
-      const desconto = parseFloat(item.desconto || 0);
-      const bruto = qty * preco;
-      const descVal = (bruto * desconto) / 100;
-      subtotal += bruto;
-      totalDesconto += descVal;
-    });
-
-    dados.totais = {
-      subtotal: subtotal.toFixed(2),
-      desconto: totalDesconto.toFixed(2),
-      total: (subtotal - totalDesconto).toFixed(2),
-    };
+    await validarCliente(dados, req.user.empresaId);
+    dados.empresa_id = req.user.empresaId;
+    dados.itens = calcularItens(dados.itens || []);
+    dados.totais = totaisItens(dados.itens);
 
     if (!dados.status) dados.status = "pendente";
 
@@ -85,55 +99,57 @@ exports.criarOrcamento = async (req, res) => {
     res.status(201).json(orcamento);
   } catch (error) {
     console.error("Erro ao criar orçamento:", error);
-    res.status(500).json({ erro: "Erro ao criar orçamento" });
+    res.status(error.status || 500).json({ erro: "Erro ao criar orçamento" });
   }
 };
 
 // Atualizar orçamento
 exports.atualizarOrcamento = async (req, res) => {
   try {
-    const orcamento = await Orcamento.findByPk(req.params.id);
+    const orcamento = await Orcamento.findOne({
+      where: { id: req.params.id, empresa_id: req.user.empresaId },
+    });
     if (!orcamento) {
       return res.status(404).json({ erro: "Orçamento não encontrado" });
     }
 
-    const dados = { ...req.body };
+    const dados = Object.fromEntries(
+      [
+        "cliente",
+        "clienteId",
+        "clienteTelefone",
+        "profissional",
+        "profissionalId",
+        "condicaoPagamento",
+        "informacoesAdicionais",
+        "status",
+        "itens",
+      ]
+        .filter((k) => req.body[k] !== undefined)
+        .map((k) => [k, req.body[k]]),
+    );
 
-    // Recalcular totais se itens foram alterados
-    if (dados.itens) {
-      const itens = Array.isArray(dados.itens) ? dados.itens : [];
-      let subtotal = 0;
-      let totalDesconto = 0;
-
-      itens.forEach((item) => {
-        const qty = parseFloat(item.quantidade || 1);
-        const preco = parseFloat(item.valorUnitario || 0);
-        const desconto = parseFloat(item.desconto || 0);
-        const bruto = qty * preco;
-        const descVal = (bruto * desconto) / 100;
-        subtotal += bruto;
-        totalDesconto += descVal;
-      });
-
-      dados.totais = {
-        subtotal: subtotal.toFixed(2),
-        desconto: totalDesconto.toFixed(2),
-        total: (subtotal - totalDesconto).toFixed(2),
-      };
+    await validarCliente(dados, req.user.empresaId);
+    if (dados.itens !== undefined) {
+      dados.itens = calcularItens(dados.itens);
+      dados.totais = totaisItens(dados.itens);
     }
-
     await orcamento.update(dados);
     res.json(orcamento);
   } catch (error) {
     console.error("Erro ao atualizar orçamento:", error);
-    res.status(500).json({ erro: "Erro ao atualizar orçamento" });
+    res
+      .status(error.status || 500)
+      .json({ erro: "Erro ao atualizar orçamento" });
   }
 };
 
 // Deletar orçamento
 exports.deletarOrcamento = async (req, res) => {
   try {
-    const orcamento = await Orcamento.findByPk(req.params.id);
+    const orcamento = await Orcamento.findOne({
+      where: { id: req.params.id, empresa_id: req.user.empresaId },
+    });
     if (!orcamento) {
       return res.status(404).json({ erro: "Orçamento não encontrado" });
     }
@@ -141,6 +157,6 @@ exports.deletarOrcamento = async (req, res) => {
     res.json({ mensagem: "Orçamento excluído com sucesso" });
   } catch (error) {
     console.error("Erro ao deletar orçamento:", error);
-    res.status(500).json({ erro: "Erro ao deletar orçamento" });
+    res.status(error.status || 500).json({ erro: "Erro ao deletar orçamento" });
   }
 };

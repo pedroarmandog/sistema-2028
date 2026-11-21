@@ -1454,3 +1454,9 @@ body {
   background: #f0f7ff;
   color: #007bff;
 }
+
+.orc-sugestao-item.orc-sugestao-ativa { background: #eaf3fd; outline: 2px solid #2188e8; outline-offset:-2px; }
+.orc-busca-mensagem { padding:12px; color:#536274; }
+#pdfStatus { padding:24px; text-align:center; }
+#pdfStatus button { padding:10px 18px; border:1px solid #cad5df; border-radius:6px; cursor:pointer; }
+#comprovantePDFModal [hidden] { display:none !important; }

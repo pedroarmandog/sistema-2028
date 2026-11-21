@@ -44,6 +44,7 @@ function writeBlocked(list) {
 // Listar todos os produtos (do banco) - suporta query q para busca
 router.get("/", async (req, res) => {
   try {
+    if (!req.user?.empresaId) return res.status(403).json({error:"Empresa não identificada"});
     const {
       q,
       excludeAgrupamento,
@@ -125,8 +126,8 @@ router.get("/", async (req, res) => {
     } catch (e) {}
     const itens = await Produto.findAll({
       where,
-      order: [["nome", "ASC"]],
-      limit: 1000,
+      order: require("../services/buscaItens").ordemBuscaItens(q, Produto.sequelize),
+      limit: Math.min(Math.max(parseInt(req.query.limit,10)||1000,1),1000),
     });
     try {
       console.log(`GET /api/itens - itens retornados: ${itens.length}`);

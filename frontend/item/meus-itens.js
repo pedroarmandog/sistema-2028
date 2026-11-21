@@ -1013,6 +1013,12 @@ async function inicializarProdutosLista() {
       produtosLista,
     );
 
+    // Se API retornar vazio, usar fallback local apenas para desenvolvimento
+    if (!produtosLista || produtosLista.length === 0) {
+      console.warn("⚠️ API retornou vazio, usando fallback local");
+      produtosLista = produtosExemplo || [];
+    }
+
     // Ordenar por data de criação (mais novo primeiro)
     produtosLista.sort((a, b) => {
       const ta =
@@ -1725,6 +1731,13 @@ async function inicializarMeusItens() {
     await carregarPerfisValidade();
   } catch (e) {
     console.debug("[inicializarMeusItens] carregarPerfisValidade falhou", e);
+  }
+
+  // Migrar produtos que ainda estejam no localStorage (uma vez)
+  try {
+    await migrarProdutosLocalParaAPI();
+  } catch (e) {
+    console.debug("[inicializarMeusItens] migracao falhou", e);
   }
 
   // Renderizar produtos (carregar lista via API e verificar status de validade antes)
@@ -2740,6 +2753,7 @@ function renderizarProdutos(categoria, filtrosAdicionais = {}) {
       // Se 'todos' estiver selecionado, não filtrar por saldo
       if (!selecoesSaldo.includes("todos")) {
         produtosFiltrados = produtosFiltrados.filter((p) => {
+          if (!window.PetHubEstoque.controlaEstoque(p)) return false;
           const estoque = Number(p.estoqueAtual) || 0;
           return selecoesSaldo.some((s) => {
             if (s === "positivo") return estoque > 0;
@@ -2768,6 +2782,7 @@ function renderizarProdutos(categoria, filtrosAdicionais = {}) {
         : null;
     if (filtroEstoqueMinimo && filtroEstoqueMinimo !== "todos") {
       produtosFiltrados = produtosFiltrados.filter((p) => {
+        if (!window.PetHubEstoque.controlaEstoque(p)) return false;
         const estoqueAtual = Number(p.estoqueAtual) || 0;
         const estoqueMinimo = Number(p.estoqueMinimo) || 0;
         const estoqueIdeal =
@@ -2871,9 +2886,9 @@ function criarCardProduto(produto) {
 
   // Status de estoque
   let stockStatus = "good";
-  if (estoqueAtual === 0) {
+  if (window.PetHubEstoque.controlaEstoque(produto) && estoqueAtual <= 0) {
     stockStatus = "out";
-  } else if (estoqueAtual <= estoqueMinimo && estoqueMinimo > 0) {
+  } else if (window.PetHubEstoque.precisaReposicao(produto)) {
     stockStatus = "low";
   }
 
@@ -2900,7 +2915,7 @@ function criarCardProduto(produto) {
       const API_BASE =
         (window.__API_BASE__ && window.__API_BASE__.toString()) ||
         window.location.origin;
-      imagemSrc = window.PetHubMidias?.url(produto.imagem) || `${API_BASE}/uploads/${produto.imagem.replace(/^\/?uploads\//,"")}`;
+      imagemSrc = `${API_BASE}/uploads/${produto.imagem}`;
     }
   }
 

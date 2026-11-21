@@ -9,6 +9,7 @@ const Orcamento = sequelize.define(
       primaryKey: true,
       autoIncrement: true,
     },
+    empresa_id: { type: DataTypes.INTEGER, allowNull: true },
     data: {
       type: DataTypes.DATE,
       allowNull: false,
