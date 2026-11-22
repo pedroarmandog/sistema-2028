@@ -1,7 +1,7 @@
 (function () {
   "use strict";
   if (window.PetHubProdutoImagem) return;
-  const versao = "20261121-midia1";
+  const versao = "20261122-thumb-contida";
   function hash(s) {
     let n = 2166136261;
     for (let i = 0; i < s.length; i++) {
@@ -65,8 +65,10 @@
     img.style.opacity = "0";
     img.style.display = src ? "block" : "none";
     if (parent) {
-      if (getComputedStyle(parent).position === "static")
-        parent.style.position = "relative";
+      // O card ainda pode estar fora do DOM: getComputedStyle retorna "" nesse caso.
+      // O placeholder absoluto precisa ficar preso à caixa da foto, nunca à tela.
+      const position = getComputedStyle(parent).position;
+      if (!position || position === "static") parent.style.position = "relative";
       let fallback = parent.querySelector("[data-produto-placeholder]");
       if (!fallback) {
         fallback = document.createElement("span");

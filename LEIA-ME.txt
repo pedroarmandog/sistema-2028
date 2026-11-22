@@ -1,34 +1,40 @@
-PETHUB CLIENTE — CARREGAMENTO DE PETS E HISTÓRICO
+PETHUB — ITENS RENDERIZADOS MAS PÁGINA COBERTA
 22/11/2026
 
-COMO APLICAR
-1. Faça backup dos quatro arquivos de produção de mesmo nome.
-2. Copie as pastas backend/ e frontend/ deste pacote para as respectivas pastas do projeto. Substitua os arquivos, mantendo os demais arquivos e as correções anteriores.
-3. Publique a atualização e reinicie o backend no Render.
-4. No navegador, use Ctrl+F5. No aplicativo instalado, feche todas as janelas do PetHub Cliente e reabra. O cache de arquivos estáticos passou para v8; a nova versão respeita a atualização normal do PWA.
-5. Valide com a conta de um tutor que já possui pets: Meus Pets, Histórico, Próximo encontro e Perfil.
-Não apagar cadastros, reimportar pets/clientes nem alterar vínculos de empresa. Não requer migração de banco.
+APLICAÇÃO
+1. Copie backend/ e frontend/ deste pacote para as pastas correspondentes do projeto.
+2. Na raiz do projeto (a pasta que contém backend e frontend), execute:
+   node backend/scripts/corrigir-miniaturas-itens.js
+3. Publique os arquivos alterados no Render e recarregue Meus Itens com Ctrl+F5.
 
-O QUE FOI CORRIGIDO
-- O app fazia Promise.all de seis consultas e só atribuía os resultados quando todas funcionavam. Uma falha em serviços, solicitações ou avisos impedia também os pets e o histórico de aparecerem.
-- Cada consulta agora tem seu resultado tratado separadamente. Consultas bem-sucedidas atualizam a tela; falhas preservam dados já carregados e mostram Tentar novamente. Uma falha inicial de pets/histórico exibe erro explícito, sem afirmar que o tutor não tem cadastros.
-- Respostas com formato inesperado são tratadas como falhas. Sessão revogada/sem acesso limpa os dados e volta ao login. Respostas atrasadas de sessão anterior são descartadas. Nenhum dado autenticado foi colocado em cache persistente.
-- A leitura dos serviços publicados agora seleciona apenas id, nome, tipo e preço, sem exigir as colunas opcionais de imagens do catálogo. Isso evita que um model novo com imagemVersoes, em uma tabela antiga, derrube /servicos e o restante do app.
-- O histórico consulta apenas IDs de pets autorizados e os respectivos agendamentos, sem carregar antes os metadados extras da ficha. Pets legados com empresa_id nulo continuam reconhecidos somente pelo vínculo ao cliente autenticado, conforme a regra já existente. Agendamentos continuam filtrados pela empresa.
-- O novo carregamento mantém solicitações, agendamento com aprovação, histórico, identidade visual e demais fluxos existentes.
+O comando do passo 2 atualiza a versão dos recursos no seu HTML e fixa a posição da caixa da foto no CSS existente. Também atualiza a URL do componente carregado dinamicamente pelo JavaScript de Meus Itens. Ele preserva os demais campos, filtros, menus, scripts e personalizações existentes. Pode executar novamente sem duplicar alterações.
+Não substituímos a página inteira por uma cópia antiga. Os arquivos alterados pelo instalador devem entrar no mesmo commit/deploy do componente corrigido.
 
-ARQUIVOS DE PRODUÇÃO
-backend/services/clientePortal/agenda.js
-backend/services/clientePortal/cadastros.js
-frontend/cliente-app/app.js
-frontend/cliente-app/service-worker.js
+CAUSA
+O helper cria um placeholder absoluto dentro da caixa da foto. Os cards são montados antes de entrarem no DOM. Nesse momento, getComputedStyle pode devolver position vazio. O código tratava apenas position igual a static. A caixa da foto ficava sem position: relative, e o placeholder com inset:0 se expandia até um ancestral da página, cobrindo o conteúdo com fundo cinza e um ícone centralizado. Quando a imagem retornava 404, esse fundo permanecia na tela.
+
+Na verificação com o acesso informado, /api/itens respondeu 200 com oito itens; duas das seis miniaturas com imagem responderam 200 e quatro responderam 404. Os itens estavam presentes: o bloqueio visual era causado pelo fundo da imagem substituta.
+As mensagens de elementos opcionais do dashboard/submenu não explicam esse fundo sobre a tela.
+
+CORREÇÃO
+- O helper trata position vazio e static, prendendo o placeholder à caixa da foto mesmo quando o card ainda está fora do DOM.
+- Componentes que já possuem position relative, absolute ou fixed conservam sua posição.
+- O CSS de Meus Itens fixa position:relative na caixa de 80x80.
+- Uma miniatura indisponível mostra somente um ícone dentro da foto; nome, preço, estoque, filtros e cliques continuam disponíveis.
+- Fotos que carregam escondem somente o seu próprio placeholder.
+- O isolamento por empresa e os endpoints autenticados de imagens são preservados. Nenhum cadastro, estoque ou vínculo de empresa é alterado.
+
+ARQUIVOS
+frontend/components/produto-imagens.js — componente corrigido
+backend/scripts/corrigir-miniaturas-itens.js — integração local idempotente
+Modificados pelo instalador: frontend/item/meus-itens.html, meus-itens.js e meus-itens.css.
+tests/itens-miniatura-visibilidade.test.js — testes de regressão
 
 TESTES
-84 testes passaram: pets/histórico, falhas parciais e recuperação, autenticação/HTTP, solicitações/aprovação, perfil, aparência, logos, áudio e Táxi Dog. Sintaxe dos quatro arquivos de produção validada.
-Acompanha nova suíte tests/portal-dados-tutor.test.js e atualização da suíte de inicialização para carregar o módulo visual usado pelo HTML atual e simular os métodos dos botões. Os testes não exigem alteração do código de produção para acomodar mocks antigos.
-Execute na raiz do projeto, com Node 24 e dependências de testes (sequelize, jsdom, express, cookie-parser, multer, jsonwebtoken, bcryptjs e postcss) instaladas:
-node --test --test-force-exit tests/portal-dados-tutor.test.js tests/cliente-portal-inicializacao.test.js tests/cliente-portal.test.js tests/cliente-portal-http.test.js tests/portal-premium-front.test.js tests/portal-visuais.test.js tests/portal-visuais-front.test.js tests/portal-logo-empresa.test.js tests/portal-aparencia.test.js tests/portal-audio-abas.test.js tests/taxidog.test.js
-Os demais testes e os helpers são os já existentes no projeto.
+30 testes passaram. Sintaxe do componente e do instalador validada.
+Cobre cards criados fora do DOM com position vazio/static; oito itens com erro em todas as imagens; carregamento bem-sucedido; preservação de componentes posicionados; CSS/versões e idempotência do instalador. As suítes existentes de listagem e imagens/menus também foram executadas.
+Com Node 24 e dependências de testes do projeto instaladas (incluindo jsdom e postcss):
+node --test --test-force-exit tests/itens-miniatura-visibilidade.test.js tests/listagens-empresas.test.js tests/menus-imagens.test.js
 
 LIMITES
-Foi confirmado que o JavaScript público ainda continha o carregamento conjunto que bloqueava a atualização de todos os dados em caso de uma falha. A correção foi validada em banco isolado e com o app completo em DOM de teste. Este pacote não foi publicado no servidor e não consulta nem modifica os dados de produção. Se algum endpoint continuar falhando após a publicação, o app passa a identificar a área que falhou e permite tentar novamente, sem ocultar as demais.
+Esta entrega corrige a camada visual que cobria os itens. Um arquivo de imagem ausente continua com placeholder na foto; o pacote não inventa nem recria fotos perdidas. A alteração foi validada em ambiente de teste e ainda precisa ser publicada. Não houve alteração dos produtos ou das imagens em produção.
