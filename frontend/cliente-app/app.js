@@ -93,6 +93,8 @@
     eventsource,
     poll,
     refreshing = false,
+    falhasDados = {},
+    dadosCarregados = new Set(),
     revision = "",
     installPrompt,
     registration,
@@ -892,9 +894,19 @@
       ?.focus();
   }
 
+  const nomesDados = { "/pets": "pets", "/agendamentos": "histórico e agendamentos", "/solicitacoes": "solicitações", "/servicos": "serviços", "/notificacoes": "avisos", "/sessao": "dados da conta" };
+  function avisoDados() {
+    const nomes = Object.keys(falhasDados).map(p => nomesDados[p]);
+    return nomes.length ? '<div class="note" role="status"><strong>Alguns dados não puderam ser atualizados</strong><p>Não foi possível carregar: ' + esc(nomes.join(", ")) + '. Os dados já carregados foram mantidos.</p><button class="btn secondary small" type="button" data-retry-dados>Tentar novamente</button></div>' : "";
+  }
   function render() {
     if (!session) return;
     nav();
+    const essenciais = { home: ["/pets", "/agendamentos"], pets: ["/pets"], history: ["/pets", "/agendamentos"], booking: ["/pets", "/servicos"], requests: ["/pets", "/solicitacoes"], notifications: ["/notificacoes"] }[tab] || [];
+    if (essenciais.some(p => falhasDados[p] && !dadosCarregados.has(p))) {
+      main.innerHTML = avisoDados();
+      return;
+    }
     if (tab === "home") main.innerHTML = home();
     else if (tab === "pets") main.innerHTML = petsPage();
     else if (tab === "booking") {
@@ -913,27 +925,41 @@
       main.innerHTML =
         '<div class="row between"><h1>Suas novidades</h1><button class="link-btn" data-read>Marcar como lidas</button></div>' +
         notificationCards(notifications.itens);
+    const aviso = avisoDados();
+    if (aviso) main.innerHTML = aviso + main.innerHTML;
   }
   async function refresh({ redraw = true } = {}) {
     if (refreshing || !session || !navigator.onLine) return;
     refreshing = true;
     try {
-      const [p, a, r, s, n, sess] = await Promise.all([
-        api("/pets"),
-        api("/agendamentos"),
-        api("/solicitacoes"),
-        api("/servicos"),
-        api("/notificacoes"),
-        api("/sessao"),
-      ]);
-      session = sess;
+      const atual = session;
+      const caminhos = ["/pets", "/agendamentos", "/solicitacoes", "/servicos", "/notificacoes", "/sessao"];
+      const resultados = await Promise.allSettled(caminhos.map(async path => {
+        const data = await api(path);
+        if (path === "/notificacoes" ? !Array.isArray(data?.itens) : path === "/sessao" ? !data?.loja || !data?.perfil : !Array.isArray(data))
+          throw new Error("Resposta inválida.");
+        return data;
+      }));
+      // Uma resposta atrasada de outra sessão nunca deve preencher esta tela.
+      if (session !== atual) return;
+      if (resultados.some(r => r.status === "rejected" && [401, 403].includes(r.reason?.status))) {
+        loggedOut();
+        return;
+      }
+      resultados.forEach((r, i) => {
+        const path = caminhos[i];
+        if (r.status === "rejected") { falhasDados[path] = true; return; }
+        delete falhasDados[path];
+        dadosCarregados.add(path);
+        if (path === "/pets") pets = r.value;
+        else if (path === "/agendamentos") appointments = r.value;
+        else if (path === "/solicitacoes") requests = r.value;
+        else if (path === "/servicos") services = r.value;
+        else if (path === "/notificacoes") notifications = r.value;
+        else session = r.value;
+      });
       marcaEmpresa(session.loja);
       window.PortalTema?.aplicar(document, session.loja.aparencia);
-      pets = p;
-      appointments = a;
-      requests = r;
-      services = s;
-      notifications = n;
       nav();
       if (
         redraw &&
@@ -971,6 +997,7 @@
       marcaEmpresa(session.loja);
       window.PortalTema?.aplicar(document, session.loja.aparencia);
       await refresh({ redraw: false });
+      if (!session) return;
       render();
       live();
     } catch {
@@ -982,6 +1009,9 @@
     session = null;
     pets = [];
     appointments = [];
+    services = [];
+    falhasDados = {};
+    dadosCarregados.clear();
     requests = [];
     notifications = { itens: [], naoLidas: 0 };
     window.ClienteAPI.limpar();
@@ -1557,6 +1587,10 @@
     const b = e.target.closest("button");
     if (!b || b.disabled) return;
     try {
+      if ("retryDados" in b.dataset) {
+        await refresh();
+        return;
+      }
       if (b.dataset.openNotice) {
         const n = notifications.itens.find(
           (n) => String(n.id) === b.dataset.openNotice,

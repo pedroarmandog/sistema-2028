@@ -43,7 +43,7 @@ function validarRegras(r) {
 }
 function criarAgenda({ ERP, m, agora = () => new Date(), aposConfirmar = async () => { } }) {
     async function servico(cfg, id, o = {}) { const r = V.json(cfg.regras), s = r.servicos?.find(s => s.id === String(id)); if (!s)
-        throw V.falha('Serviço não disponível no aplicativo.', 409); const p = await ERP.Produto.findOne({ where: { id: String(id), empresa_id: cfg.empresa_id }, ...o, logging: false }); if (!p || !/^servi[cç]o$/i.test(p.tipo || ''))
+        throw V.falha('Serviço não disponível no aplicativo.', 409); const p = await ERP.Produto.findOne({ ...o, where: { id: String(id), empresa_id: cfg.empresa_id }, attributes: ['id', 'nome', 'tipo', 'preco'], logging: false }); if (!p || !/^servi[cç]o$/i.test(p.tipo || ''))
         throw V.falha('Serviço indisponível.', 409); let profissional = ''; if (s.profissional) {
         const pr = await ERP.Profissional.findOne({ where: { id: s.profissional, empresa_id: cfg.empresa_id, status: 'ativo' }, ...o, logging: false });
         if (!pr)

@@ -1,35 +1,34 @@
-CORREÇÃO — CLIENTES / PRODUTO NÃO ENCONTRADO
-21/11/2026
+PETHUB CLIENTE — CARREGAMENTO DE PETS E HISTÓRICO
+22/11/2026
 
-APLICAÇÃO
-1. Faça backup dos arquivos de mesmo nome no projeto.
-2. Copie backend/ e frontend/ deste pacote para as pastas correspondentes do projeto, substituindo os cinco arquivos. Mantenha as demais correções já aplicadas.
-3. Publique a alteração e reinicie o backend no Render. Apenas atualizar o JavaScript não corrige a resposta de clientes.
-4. Reabra as telas e use Ctrl+F5 para descartar o JavaScript anterior.
-Não executar SQL, apagar registros, reimportar cadastros ou alterar empresa_id.
+COMO APLICAR
+1. Faça backup dos quatro arquivos de produção de mesmo nome.
+2. Copie as pastas backend/ e frontend/ deste pacote para as respectivas pastas do projeto. Substitua os arquivos, mantendo os demais arquivos e as correções anteriores.
+3. Publique a atualização e reinicie o backend no Render.
+4. No navegador, use Ctrl+F5. No aplicativo instalado, feche todas as janelas do PetHub Cliente e reabra. O cache de arquivos estáticos passou para v8; a nova versão respeita a atualização normal do PWA.
+5. Valide com a conta de um tutor que já possui pets: Meus Pets, Histórico, Próximo encontro e Perfil.
+Não apagar cadastros, reimportar pets/clientes nem alterar vínculos de empresa. Não requer migração de banco.
 
-CAUSAS IDENTIFICADAS NO CÓDIGO PUBLICADO
-Clientes: clientes-paginacao.js lê d.paginacao.offset, paginas e totalGeral. A API do pacote anterior fornecia pagination em inglês. A resposta agora inclui ambos os nomes, com páginas e total da empresa. A exportação existente que usa d.paginacao.total também permanece compatível.
-Produtos: pagina-produto.js usava parseInt(produtoId). Um ID como 7832-abcd-1234 era enviado como 7832, resultando em 404. IDs devem ser strings: preservar UUIDs, zeros iniciais e inteiros longos. A correção vale também para edição e clonagem. O ApiClient codifica o ID no caminho de leitura/edição/exclusão/estoque/histórico.
-Após falha da API, a página não substitui mais o produto por cache local ou exemplos, que poderiam corresponder a outro cadastro/empresa.
+O QUE FOI CORRIGIDO
+- O app fazia Promise.all de seis consultas e só atribuía os resultados quando todas funcionavam. Uma falha em serviços, solicitações ou avisos impedia também os pets e o histórico de aparecerem.
+- Cada consulta agora tem seu resultado tratado separadamente. Consultas bem-sucedidas atualizam a tela; falhas preservam dados já carregados e mostram Tentar novamente. Uma falha inicial de pets/histórico exibe erro explícito, sem afirmar que o tutor não tem cadastros.
+- Respostas com formato inesperado são tratadas como falhas. Sessão revogada/sem acesso limpa os dados e volta ao login. Respostas atrasadas de sessão anterior são descartadas. Nenhum dado autenticado foi colocado em cache persistente.
+- A leitura dos serviços publicados agora seleciona apenas id, nome, tipo e preço, sem exigir as colunas opcionais de imagens do catálogo. Isso evita que um model novo com imagemVersoes, em uma tabela antiga, derrube /servicos e o restante do app.
+- O histórico consulta apenas IDs de pets autorizados e os respectivos agendamentos, sem carregar antes os metadados extras da ficha. Pets legados com empresa_id nulo continuam reconhecidos somente pelo vínculo ao cliente autenticado, conforme a regra já existente. Agendamentos continuam filtrados pela empresa.
+- O novo carregamento mantém solicitações, agendamento com aprovação, histórico, identidade visual e demais fluxos existentes.
 
 ARQUIVOS DE PRODUÇÃO
-backend/controllers/clienteController.js
-frontend/api/api-client.js
-frontend/item/pagina-produto.js
-frontend/item/editar-produto.js
-frontend/item/novo-produto.js
-
-VALIDAÇÃO
-46 testes de regressão passaram (clientes/produtos, imagens/menus, estoque, orçamentos/PDF, logos e layout do caixa). Após o ajuste final de codificação dos IDs, os 11 testes de clientes/produtos foram executados novamente e passaram. Sintaxe dos cinco arquivos de produção validada.
-O teste de clientes executa uma cópia exata do clientes-paginacao.js servido publicamente no momento da análise, contra o controller corrigido e um banco de teste. Cobre primeira/segunda página, pesquisa, total geral e lista vazia.
-IDs de produto são testados desde a URL até o controller: ID textual iniciado por 7832, zeros iniciais, caracteres especiais e números longos. Edição/clonagem preservam ID. Consulta de outra empresa continua em 404. Dados antigos e fotos sem a coluna opcional continuam acessíveis. Falhas reais não viram lista vazia nem produto fictício.
-Os testes não acessam nem modificam o banco de produção.
-
-LIMITES DA VERIFICAÇÃO
-O erro de clientes foi confirmado na página aberta do usuário. O código JavaScript público de clientes e produtos foi inspecionado. Este pacote ainda precisa ser publicado: a correção não foi aplicada no servidor e não confirma a existência do cadastro específico solicitado por /itens/7832. Se o ID completo já for exatamente 7832 e o 404 continuar após a publicação, será necessário verificar esse registro no banco da empresa autenticada, sem retirar o filtro por empresa.
+backend/services/clientePortal/agenda.js
+backend/services/clientePortal/cadastros.js
+frontend/cliente-app/app.js
+frontend/cliente-app/service-worker.js
 
 TESTES
-Com as dependências do projeto instaladas, use Node 24:
-node --test --test-force-exit tests/listagens-empresas.test.js
-A pasta tests/ inclui testes e a cópia do consumidor público usada na regressão; não substitui clientes-paginacao.js de produção.
+84 testes passaram: pets/histórico, falhas parciais e recuperação, autenticação/HTTP, solicitações/aprovação, perfil, aparência, logos, áudio e Táxi Dog. Sintaxe dos quatro arquivos de produção validada.
+Acompanha nova suíte tests/portal-dados-tutor.test.js e atualização da suíte de inicialização para carregar o módulo visual usado pelo HTML atual e simular os métodos dos botões. Os testes não exigem alteração do código de produção para acomodar mocks antigos.
+Execute na raiz do projeto, com Node 24 e dependências de testes (sequelize, jsdom, express, cookie-parser, multer, jsonwebtoken, bcryptjs e postcss) instaladas:
+node --test --test-force-exit tests/portal-dados-tutor.test.js tests/cliente-portal-inicializacao.test.js tests/cliente-portal.test.js tests/cliente-portal-http.test.js tests/portal-premium-front.test.js tests/portal-visuais.test.js tests/portal-visuais-front.test.js tests/portal-logo-empresa.test.js tests/portal-aparencia.test.js tests/portal-audio-abas.test.js tests/taxidog.test.js
+Os demais testes e os helpers são os já existentes no projeto.
+
+LIMITES
+Foi confirmado que o JavaScript público ainda continha o carregamento conjunto que bloqueava a atualização de todos os dados em caso de uma falha. A correção foi validada em banco isolado e com o app completo em DOM de teste. Este pacote não foi publicado no servidor e não consulta nem modifica os dados de produção. Se algum endpoint continuar falhando após a publicação, o app passa a identificar a área que falhou e permite tentar novamente, sem ocultar as demais.

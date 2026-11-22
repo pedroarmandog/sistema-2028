@@ -1,5 +1,5 @@
 'use strict';
-const CACHE = 'pethub-cliente-static-v8-identidade-empresa';
+const CACHE = 'pethub-cliente-static-v8-dados-tutor';
 const STATIC = ['/cliente-app/app.html', '/cliente-app/app.css', '/cliente-app/premium.css', '/cliente-app/visual.js', '/cliente-app/api.js', '/cliente-app/tema.js', '/cliente-app/app.js', '/cliente-app/assets/icon-192.png', '/cliente-app/assets/icon-512.png', '/cliente-app/assets/boas-vindas.webp'];
 self.addEventListener('install', event => { event.waitUntil(caches.open(CACHE).then(c => c.addAll(STATIC))); });
 self.addEventListener('activate', event => { event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('pethub-cliente-static-') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
