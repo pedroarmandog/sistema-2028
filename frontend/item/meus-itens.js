@@ -14,7 +14,7 @@ async function garantirComponentesItens(){
  const carregar=(globalName,url)=>window[globalName]?Promise.resolve():new Promise(resolve=>{
   const s=document.createElement('script');let timer;const fim=()=>{clearTimeout(timer);resolve();};s.src=url;s.onload=fim;s.onerror=fim;timer=setTimeout(fim,2000);document.head.append(s);
  });
- await Promise.all([carregar('PetHubProdutoImagem','/components/produto-imagens.js?v=20261121-listas2'),carregar('PetHubEstoque','/components/estoque-reposicao.js?v=20261121-listas2')]);
+ await Promise.all([carregar('PetHubProdutoImagem','/components/produto-imagens.js?v=20261122-thumb-contida'),carregar('PetHubEstoque','/components/estoque-reposicao.js?v=20261121-listas2')]);
 }
 function mostrarErroCatalogoItens(grid){
  if(!grid)return;grid.replaceChildren();const aviso=document.createElement('div');aviso.setAttribute('role','alert');aviso.style.cssText='grid-column:1/-1;padding:24px;text-align:center';const texto=document.createElement('p');texto.textContent='Não foi possível carregar os produtos. Atualize a lista para tentar novamente.';const btn=document.createElement('button');btn.type='button';btn.textContent='Atualizar lista';btn.onclick=async()=>{btn.disabled=true;await inicializarProdutosLista();renderizarProdutos('todos');};aviso.append(texto,btn);grid.append(aviso);
