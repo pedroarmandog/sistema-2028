@@ -5,23 +5,6 @@ const normalizar = (s) =>
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
 const clientes = {
-  codigo_legado: ["Código legado", "cod_cliente", "Código do cliente"],
-  id_legado: ["ID legado", "id_legado"],
-  instagram: ["Instagram"],
-  cadastro_original: ["Data original do cadastro", "data_cadastro", "Data cadastro"],
-  cadastro_bloqueado: ["Cadastro bloqueado"],
-  bloquear_sms: ["Bloquear envio de SMS", "bloquear_envio_sms"],
-  bloquear_whatsapp: ["Bloquear envio de WhatsApp", "bloquear_envio_whatsapp"],
-  telefone2: ["Telefone adicional 2", "fone2"],
-  telefone3: ["Telefone adicional 3", "fone3"],
-  vendas_desde_cadastro: ["Vendas desde o cadastro", "Vendas desde cadastro"],
-  ticket_medio_desde_cadastro: ["Ticket médio desde o cadastro"],
-  vendas_ultimo_mes: ["Vendas no último mês", "Vendas no ultimo mes"],
-  vendas_ultima_semana: ["Vendas na última semana"],
-  data_ultima_venda: ["Data última venda"],
-  quantidade_vendas_historicas: ["Quantidade histórica de vendas"],
-  data_referencia_historico: ["Data de referência do histórico"],
-  origem_historico: ["Origem do histórico"],
   nome: ["Nome", "Nome completo", "Nome do cliente", "Cliente", "Razão social"],
   cpf: ["CPF"],
   cnpj: ["CNPJ"],
@@ -36,7 +19,7 @@ const clientes = {
   complemento: ["Complemento"],
   bairro: ["Bairro"],
   cidade: ["Cidade", "Município"],
-  estado: ["Estado", "UF", "Estado (UF)"],
+  estado: ["Estado", "UF"],
   grupo_cliente: ["Grupo cliente"],
   perfil_desconto: ["Perfil desconto"],
   como_nos_conheceu: ["Como nos conheceu"],
@@ -52,7 +35,6 @@ const clientes = {
   codigo_pais: ["Código país"],
 };
 const produtos = {
-  imagem: ["Imagem", "Foto", "URL da imagem"],
   nome: [
     "Nome",
     "Produto",
@@ -94,7 +76,6 @@ const produtos = {
   observacao: ["Observação"],
 };
 function campos(tipo) {
-  if(tipo==='pets')return require('./pets').campos;
   return tipo === "clientes" ? clientes : produtos;
 }
 function sugerir(tipo, coluna) {

@@ -1,4 +1,3 @@
-const inteligencia=require('../clienteInteligencia');
 const crypto = require("node:crypto");
 const { Op } = require("sequelize");
 const { Cliente } = require("../../models/Cliente");
@@ -13,7 +12,7 @@ const falhar = (mensagem) => {
 };
 const modelos = { clientes: Cliente, produtos: Produto };
 const fortes = {
-  clientes: ["cpf", "cnpj", "email", "codigo_legado", "id_legado"],
+  clientes: ["cpf", "cnpj", "email"],
   produtos: ["codigoBarras", "sku", "gtin"],
 };
 function valorIdentidade(k, v) {
@@ -22,19 +21,6 @@ function valorIdentidade(k, v) {
     : String(v ?? "")
         .trim()
         .toLowerCase();
-}
-function encontrarMatches(tipo,existentes,dados){
-  const iguais=(r,k)=>dados[k]&&r[k]&&valorIdentidade(k,dados[k])===valorIdentidade(k,r[k]);
-  if(tipo!=='clientes')return existentes.filter(r=>fortes[tipo].some(k=>iguais(r,k)));
-  const legados=['codigo_legado','id_legado'].filter(k=>dados[k]);
-  const secundarios=existentes.filter(r=>['cpf','cnpj','email'].some(k=>iguais(r,k)));
-  if(!legados.length)return secundarios;
-  const principais=existentes.filter(r=>legados.some(k=>iguais(r,k)));
-  const divergente=r=>legados.some(k=>r[k]&&valorIdentidade(k,r[k])!==valorIdentidade(k,dados[k]));
-  // Dois códigos legados já conhecidos e distintos não viram uma pessoa só
-  // apenas porque o arquivo reutiliza um CPF/e-mail em mais de um cadastro.
-  const candidatos=secundarios.filter(r=>!divergente(r));
-  return [...new Map([...principais,...candidatos].map(r=>[String(r.id),r])).values()];
 }
 async function centrosDaEmpresa(empresa, transaction) {
   await banco.preparar();
@@ -72,10 +58,7 @@ function converter(tipo, raw) {
     const s = String(v ?? "").trim();
     if (s === "") continue;
     const attr = modelos[tipo].rawAttributes[k];
-    if (!attr) {
-      if(tipo==='clientes'&&(k in inteligencia.PERFIL||k in inteligencia.HISTORICO||['telefone2','telefone3'].includes(k)))dados[k]=s;
-      continue;
-    }
+    if (!attr) continue;
     if (attr.type.options?.length && s.length > attr.type.options.length)
       falhar(
         "Campo " + k + " excede " + attr.type.options.length + " caracteres.",
@@ -117,7 +100,6 @@ function converter(tipo, raw) {
         falhar(k + " fora do limite.");
     }
   }
-  if (dados.estado) dados.estado = require("../../utils/ufBrasil").normalizarUF(dados.estado);
   if (dados.sexo) dados.sexo = normalizarSexo(dados.sexo);
   if (dados.tipo_pessoa) {
     const v = normalizar(dados.tipo_pessoa);
@@ -162,12 +144,6 @@ function converter(tipo, raw) {
   }
   if (dados.csosn && dados.cst_icms)
     falhar("Preencha apenas CST ICMS ou CSOSN.");
-  if(tipo==='clientes'){
-    Object.assign(dados,inteligencia.normalizar(raw));
-    const adicionais=['telefone2','telefone3'].filter(k=>dados[k]).map(k=>String(dados[k]).trim());
-    if(adicionais.length)dados.telefones_adicionais=adicionais;
-    delete dados.telefone2;delete dados.telefone3;
-  }
   return dados;
 }
 async function analisar(
@@ -177,7 +153,6 @@ async function analisar(
   empresa,
   centroPadrao,
   usuario,
-  opcoes = {},
 ) {
   const modelo = modelos[tipo],
     permitidos = campos(tipo);
@@ -188,7 +163,6 @@ async function analisar(
     falhar("Duas colunas foram associadas ao mesmo campo.");
   if (!usados.includes("nome")) falhar("Associe uma coluna ao Nome.");
   const existentes = await modelo.findAll({ where: { empresa_id: empresa } });
-  if(tipo==='clientes')await inteligencia.enriquecer(banco.sequelize,empresa,existentes);
   const centros = tipo === "produtos" ? await centrosDaEmpresa(empresa) : [];
   if (centroPadrao && !centros.some((c) => c.descricao === centroPadrao))
     falhar("Centro padrão não pertence à empresa.");
@@ -197,42 +171,19 @@ async function analisar(
     attributes: ["hash"],
   });
   const hashes = new Set(anteriores.map((r) => r.hash));
-  const nomesVistos = new Set(), documentosVistos = new Map();
+  const nomesVistos = new Set();
   const vistos = new Set(),
     linhas = [];
   for (let idx = 0; idx < arquivo.linhas.length; idx++) {
     const celulas = arquivo.linhas[idx];
     if (!celulas.some((v) => String(v).trim())) continue;
-    let raw = {};
-    const numericos = {};
+    const raw = {};
     mapeamento.forEach((k, i) => {
-      if (k && k !== "ignorar") {
-        raw[k] = celulas[i] ?? "";
-        if(Object.hasOwn(arquivo.numericos?.[idx]||{},i))numericos[k]=arquivo.numericos[idx][i];
-      }
+      if (k && k !== "ignorar") raw[k] = celulas[i] ?? "";
     });
     const linha = { linha: idx + 2, acao: "criar", originais: celulas };
     try {
-      if(tipo==='clientes'){
-        const n=require('./normalizarCliente').preparar(raw,numericos);
-        raw=n.dados;linha.avisos=n.avisos;linha.preservados=n.preservados;
-      }
       const dados = converter(tipo, raw);
-      if(tipo==='clientes'&&dados.cpf){
-        const codigo=dados.codigo_legado||dados.id_legado;
-        const anterior=documentosVistos.get(dados.cpf);
-        if(codigo&&anterior&&anterior!==codigo)linha.avisos.push('CPF compartilhado por códigos legados distintos. Cadastros mantidos separados; confira o documento.');
-        if(codigo)documentosVistos.set(dados.cpf,codigo);
-      }
-      if(tipo==='clientes'&&inteligencia.temHistorico(dados)){
-        Object.assign(dados,inteligencia.normalizar({
-          data_referencia_historico:dados.data_referencia_historico||opcoes.referencia,
-          modo_conciliacao:opcoes.conciliacao||'separado',
-        }));
-        if(!dados.data_referencia_historico)falhar('Informe a data de referência dos indicadores históricos.');
-        if(dados.data_ultima_venda&&dados.data_ultima_venda>dados.data_referencia_historico)falhar('Última venda posterior à referência histórica.');
-        linha.aviso='Resumo histórico consolidado; não serão criadas vendas individuais.';
-      }
       if (tipo === "produtos") {
         const declarado = dados.centroResultado;
         if (declarado) {
@@ -263,11 +214,17 @@ async function analisar(
             Object.keys(dados)
               .sort()
               .map((k) => [k, dados[k]]),
-            ...(Object.keys(linha.preservados||{}).length ? [Object.entries(linha.preservados).sort(([a],[b])=>a.localeCompare(b))] : []),
           ]),
         )
         .digest("hex");
-      const matches = encontrarMatches(tipo,existentes,dados);
+      const matches = existentes.filter((r) =>
+        fortes[tipo].some(
+          (k) =>
+            dados[k] &&
+            r[k] &&
+            valorIdentidade(k, dados[k]) === valorIdentidade(k, r[k]),
+        ),
+      );
       const ids = [...new Set(matches.map((r) => String(r.id)))];
       if (ids.length > 1)
         falhar(
@@ -285,9 +242,7 @@ async function analisar(
       if (!linha.existente && nomesVistos.has(normalizar(dados.nome)))
         linha.aviso = "Nome repetido no arquivo. Confira antes de criar.";
       nomesVistos.add(normalizar(dados.nome));
-      const chavesIdentidade=tipo==='clientes'&&['codigo_legado','id_legado'].some(k=>dados[k])
-        ? ['codigo_legado','id_legado'] : fortes[tipo];
-      const identidades = chavesIdentidade
+      const identidades = fortes[tipo]
         .filter((k) => dados[k])
         .map((k) => k + ":" + valorIdentidade(k, dados[k]));
       if (identidades.some((k) => vistos.has(k)))
@@ -321,8 +276,7 @@ async function analisar(
       total: linhas.length,
       validos: linhas.filter((l) => !l.erro).length,
       erros: linhas.filter((l) => l.erro).length,
-      duplicados: linhas.filter((l) => l.aviso && !String(l.aviso).startsWith('Resumo histórico')).length,
-      avisos: linhas.filter(l=>l.avisos?.length).length,
+      duplicados: linhas.filter((l) => l.aviso).length,
     },
   };
 }
@@ -334,11 +288,6 @@ async function confirmar(tipo, empresa, usuario, token, escolhas) {
       lock: transaction.LOCK.UPDATE,
     });
     if (!empresaRow) falhar("Empresa indisponível.");
-    if(tipo==='clientes'&&banco.sequelize.models.ImportacaoOperacao){
-      const ativa=await banco.sequelize.models.ImportacaoOperacao.findOne({where:{empresa_id:empresa,estado:{[Op.in]:['pendente','processando','interrompido']}},transaction});
-      if(ativa)throw Object.assign(new Error('Há uma operação em lotes para acompanhar ou retomar nesta empresa.'),{status:409,operacaoId:ativa.id});
-    }
-
     const lote = await banco.Lote.findOne({
       where: { id: token, empresa_id: empresa, usuario_id: usuario, tipo },
       transaction,
@@ -360,7 +309,6 @@ async function confirmar(tipo, empresa, usuario, token, escolhas) {
         : [];
     const modelo = modelos[tipo],
       rows = JSON.parse(lote.dados);
-    if(tipo==='clientes'&&rows.length&&rows.every(r=>r.erro))falhar('Nenhum registro válido para importar. Corrija os erros da prévia; nenhuma alteração foi feita.');
     let criados = 0,
       atualizados = 0,
       ignorados = 0;
@@ -369,7 +317,6 @@ async function confirmar(tipo, empresa, usuario, token, escolhas) {
       where: { empresa_id: empresa },
       transaction,
     });
-    if(tipo==='clientes')await inteligencia.enriquecer(banco.sequelize,empresa,atuais,transaction);
     for (const row of rows) {
       const acao = escolhas[String(row.linha)] || row.acao;
       if (!["criar", "ignorar", "atualizar"].includes(acao))
@@ -393,14 +340,20 @@ async function confirmar(tipo, empresa, usuario, token, escolhas) {
         continue;
       }
       const dados = { ...row.dados, empresa_id: empresa };
-      if(tipo==="produtos"&&dados.imagem!==undefined)dados.imagem=await require("../midias").instancia().importar(empresa,dados.imagem,"produtos",{formato:"nome"});
       if (
         tipo === "produtos" &&
         !centros.some((c) => c.descricao === dados.centroResultado)
       )
         falhar("Centro alterado ou removido. Analise novamente.");
       // Revalida identificadores no banco após adquirir o bloqueio da empresa.
-      const matches = encontrarMatches(tipo,atuais,dados);
+      const matches = atuais.filter((r) =>
+        fortes[tipo].some(
+          (k) =>
+            dados[k] &&
+            r[k] &&
+            valorIdentidade(k, dados[k]) === valorIdentidade(k, r[k]),
+        ),
+      );
       if (matches.length > 1)
         falhar(
           "Duplicidade ambígua na linha " + row.linha + ". Refaça a análise.",
@@ -418,16 +371,6 @@ async function confirmar(tipo, empresa, usuario, token, escolhas) {
           falhar(
             "Cadastro atualizado após a prévia. Analise o arquivo novamente.",
           );
-        if(tipo==='clientes'&&dados.telefones_adicionais){
-          let antigos=registro.telefones_adicionais||[];
-          if(typeof antigos==='string'){try{antigos=JSON.parse(antigos);}catch{antigos=[];}}
-          dados.telefones_adicionais=[...new Set([...(Array.isArray(antigos)?antigos:[]),...dados.telefones_adicionais])];
-        }
-        if(tipo==='clientes'&&Object.keys(row.preservados||{}).length){
-          const nota='[Importação: dados de origem para conferência]\n'+Object.entries(row.preservados).map(([k,v])=>`${k}: ${v}`).join('\n');
-          const anterior=dados.observacoes||registro.observacoes||'';
-          dados.observacoes=anterior.includes(nota)?anterior:[anterior,nota].filter(Boolean).join('\n');
-        }
         await registro.update(dados, { transaction });
         atualizados++;
       } else {
@@ -442,25 +385,10 @@ async function confirmar(tipo, empresa, usuario, token, escolhas) {
         }
         if (tipo === "produtos")
           Object.assign(dados, { id: crypto.randomUUID(), tipo: "produto" });
-        if(tipo==='clientes'&&Object.keys(row.preservados||{}).length){
-          const nota='[Importação: dados de origem para conferência]\n'+Object.entries(row.preservados).map(([k,v])=>`${k}: ${v}`).join('\n');
-          dados.observacoes=[dados.observacoes,nota].filter(Boolean).join('\n');
-        }
         registro = await modelo.create(dados, { transaction });
         atuais.push(registro);
         criados++;
       }
-      if(tipo==='clientes'){
-        // Ausências opcionais não apagam os dados já salvos. Mesclar telefones.
-        if(dados.telefones_adicionais?.length){
-          let antigos=registro.telefones_adicionais||[];
-          if(typeof antigos==='string'){try{antigos=JSON.parse(antigos);}catch{antigos=[];}}
-          await registro.update({telefones_adicionais:[...new Set([...(Array.isArray(antigos)?antigos:[]),...dados.telefones_adicionais])]},{transaction});
-        }
-        await inteligencia.salvar(banco.sequelize,empresa,registro.id,row.dados,{transaction,lote:token});
-        Object.assign(registro,{codigo_legado:dados.codigo_legado||registro.codigo_legado,id_legado:dados.id_legado||registro.id_legado});
-      }
-      if(row.avisos?.length)relatorio.push({linha:row.linha,acao,motivo:row.avisos.join(' · '),registro:String(registro.id)});
       await banco.Linha.create(
         {
           empresa_id: empresa,
@@ -471,7 +399,7 @@ async function confirmar(tipo, empresa, usuario, token, escolhas) {
         { transaction },
       );
     }
-    const resultado = { criados, atualizados, ignorados, relatorio, rejeitados:rows.filter(r=>r.erro).length, comAvisos:relatorio.filter(r=>r.acao).length };
+    const resultado = { criados, atualizados, ignorados, relatorio };
     await lote.update(
       { resultado: JSON.stringify(resultado), dados: "[]" },
       { transaction },
@@ -479,4 +407,4 @@ async function confirmar(tipo, empresa, usuario, token, escolhas) {
     return resultado;
   });
 }
-module.exports = { analisar, confirmar, centrosDaEmpresa, encontrarMatches, valorIdentidade };
+module.exports = { analisar, confirmar, centrosDaEmpresa };

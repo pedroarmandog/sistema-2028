@@ -83,6 +83,7 @@ async function fixture(t) {
     };
   load("backend/routes/itemRoutes.js", {
     express: { Router: () => router },
+    "./importacaoRoutes": { criarRotas: () => router },
     "../models/Produto": Produto,
     "../models/Fornecedor": {},
     "../middleware/authUser": { authUser() {} },

@@ -33,7 +33,7 @@ async function pagina(fetch){
  await new Promise(r=>dom.window.document.addEventListener('DOMContentLoaded',r,{once:true}));
  const script=dom.window.document.querySelector('script[src*="importacao.js"]');
  Object.defineProperty(dom.window.document,'currentScript',{configurable:true,value:script});
- dom.window.fetch=fetch;dom.window.eval(codigo);return dom;
+ dom.window.fetch=async(...args)=>({headers:{get:()=> 'application/json'},...await fetch(...args)});dom.window.eval(codigo);return dom;
 }
 const esperar=()=>new Promise(r=>setTimeout(r,0));
 test('botão aparece na barra real e abre o modal de produtos usando a API existente',async()=>{
