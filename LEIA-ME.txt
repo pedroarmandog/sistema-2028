@@ -1,40 +1,56 @@
-PETHUB — ITENS RENDERIZADOS MAS PÁGINA COBERTA
-22/11/2026
+PETHUB — IMPORTAÇÃO DE PRODUTOS E PRESERVAÇÃO DA IMPORTAÇÃO DE CLIENTES
+Arquivos prontos para substituição, sem executar instalador.
 
-APLICAÇÃO
-1. Copie backend/ e frontend/ deste pacote para as pastas correspondentes do projeto.
-2. Na raiz do projeto (a pasta que contém backend e frontend), execute:
-   node backend/scripts/corrigir-miniaturas-itens.js
-3. Publique os arquivos alterados no Render e recarregue Meus Itens com Ctrl+F5.
+DIAGNÓSTICO
+A requisição informada é /api/itens/importacao/campos. Esse é o endpoint de PRODUTOS, não o de clientes. Os logs confirmam que os oito itens existentes são carregados; o problema está na abertura da importação. Os 404 das imagens são requisições distintas e não foram tratados nesta entrega.
+Na verificação pública, meus-itens.html ainda usava importacao.js?v=20261123-botao1, e o script publicado ainda fazia await r.json() diretamente. A última correção do frontend não estava nesse conteúdo publicado. Consultas públicas sem sessão aos dois endpoints foram recusadas com JSON/401, o que não comprova que o caminho autenticado de importação esteja registrado; o erro autenticado 404 foi fornecido pelo usuário.
 
-O comando do passo 2 atualiza a versão dos recursos no seu HTML e fixa a posição da caixa da foto no CSS existente. Também atualiza a URL do componente carregado dinamicamente pelo JavaScript de Meus Itens. Ele preserva os demais campos, filtros, menus, scripts e personalizações existentes. Pode executar novamente sem duplicar alterações.
-Não substituímos a página inteira por uma cópia antiga. Os arquivos alterados pelo instalador devem entrar no mesmo commit/deploy do componente corrigido.
+APLICAR
+1. Faça um commit/backup do projeto atual.
+2. Copie as pastas backend e frontend da raiz deste ZIP para o projeto, substituindo os QUATRO arquivos correspondentes:
+   backend/routes/itemRoutes.js
+   frontend/importacao.js
+   frontend/item/meus-itens.html
+   frontend/clientes.html
+3. Não copie as pastas SOMENTE-SE-AUSENTES ou validacao sobre a raiz automaticamente. Veja a regra abaixo para recursos de apoio.
+4. Faça commit e push dos quatro arquivos e aguarde o novo deploy COMPLETO do serviço da API no Render. Esta entrega exige publicar backend e frontend, servidos pelo mesmo projeto.
+5. Reabra Meus Itens com Ctrl+F5 e clique em Importar Produtos.
+Nenhum comando de instalador é necessário nesta entrega. O registro do roteador já está escrito no itemRoutes.js entregue.
 
-CAUSA
-O helper cria um placeholder absoluto dentro da caixa da foto. Os cards são montados antes de entrarem no DOM. Nesse momento, getComputedStyle pode devolver position vazio. O código tratava apenas position igual a static. A caixa da foto ficava sem position: relative, e o placeholder com inset:0 se expandia até um ancestral da página, cobrindo o conteúdo com fundo cinza e um ícone centralizado. Quando a imagem retornava 404, esse fundo permanecia na tela.
+RECURSOS DE APOIO
+O itemRoutes.js reutiliza backend/routes/importacaoRoutes.js, com criarRotas("produtos"), a fábrica de importação já implementada no sistema.
+Se algum dos arquivos correspondentes em SOMENTE-SE-AUSENTES NÃO EXISTIR no seu projeto, copie apenas esse arquivo ausente para seu caminho backend/... correspondente. Se já existir, mantenha a sua versão, principalmente quando já usada na importação de clientes/pets. Nunca substitua os serviços de clientes/pets com um pacote antigo para resolver este erro.
+A pasta de apoio contém a implementação anteriormente entregue, sem recriar o importador: roteador, campos, leitor XLS/XLSX/CSV, modelos/serviço de importação, normalização e preparação das tabelas. As dependências express, multer, sequelize e xlsx já constam no package.json original.
+Se os recursos/tabelas ainda não tinham sido preparados, o comando backend/scripts/preparar-importacao.js pode ser executado no ambiente do backend, com a conexão ao banco já configurada. As rotas também preparam as tabelas no primeiro uso. Não apague nem recrie tabelas de produtos/clientes.
 
-Na verificação com o acesso informado, /api/itens respondeu 200 com oito itens; duas das seis miniaturas com imagem responderam 200 e quatro responderam 404. Os itens estavam presentes: o bloqueio visual era causado pelo fundo da imagem substituta.
-As mensagens de elementos opcionais do dashboard/submenu não explicam esse fundo sobre a tela.
+SEPARAÇÃO DOS FLUXOS
+Produtos:
+- GET /api/itens/importacao/campos
+- GET /api/itens/importacao/modelo
+- POST /api/itens/importacao/analisar
+- POST /api/itens/importacao/confirmar
+Clientes:
+- GET /api/clientes/importacao/campos
+- GET /api/clientes/importacao/operacoes/atual
+- POST /api/clientes/importacao/analisar
+- POST /api/clientes/importacao/operacoes
+O HTML de produtos conserva data-tipo="produtos". O de clientes conserva data-tipo="clientes". Não há redirecionamento ou tentativa de importar produtos pela API de clientes.
+O arquivo compartilhado importacao.js foi obtido da versão publicada e alterado somente na função request, mantendo o restante integralmente, incluindo lotes/retomada, operacaoId, tratamento dos tutores e telas dos demais modos. Os dois HTMLs receberam a nova versão do importador: ?v=20261123-api2. O widget injetado pelo servidor não foi duplicado no HTML de origem.
 
-CORREÇÃO
-- O helper trata position vazio e static, prendendo o placeholder à caixa da foto mesmo quando o card ainda está fora do DOM.
-- Componentes que já possuem position relative, absolute ou fixed conservam sua posição.
-- O CSS de Meus Itens fixa position:relative na caixa de 80x80.
-- Uma miniatura indisponível mostra somente um ícone dentro da foto; nome, preço, estoque, filtros e cliques continuam disponíveis.
-- Fotos que carregam escondem somente o seu próprio placeholder.
-- O isolamento por empresa e os endpoints autenticados de imagens são preservados. Nenhum cadastro, estoque ou vínculo de empresa é alterado.
+CORREÇÃO DO BACKEND
+O roteador /importacao está registrado imediatamente após a criação de router, antes das rotas por ID. Isso inclui campos, modelo, análise e confirmação de produtos. Autenticação, permissões e isolamento continuam dentro do importador existente.
+Não foi alterado backend/routes/clienteRoutes.js nem as regras de importação de clientes.
 
-ARQUIVOS
-frontend/components/produto-imagens.js — componente corrigido
-backend/scripts/corrigir-miniaturas-itens.js — integração local idempotente
-Modificados pelo instalador: frontend/item/meus-itens.html, meus-itens.js e meus-itens.css.
-tests/itens-miniatura-visibilidade.test.js — testes de regressão
+CONFIRMAR QUE A PUBLICAÇÃO FOI ATUALIZADA
+- Em Rede/Network, a página de Meus Itens deve carregar importacao.js?v=20261123-api2.
+- Com login válido e permissão, /api/itens/importacao/campos deve responder 200 com JSON, não uma página HTML 404.
+- A resposta deve ter campos e centros da própria empresa. O modelo CSV deve baixar.
+- Se o erro continuar, a nova mensagem inclui o modo, URL e status exatos, por exemplo: A importação de produtos recebeu HTML em /api/itens/importacao/campos (HTTP 404). Essa resposta indica que a rota continua ausente no backend publicado; não é erro da planilha.
+- Uma resposta JSON 401/403 permanece como erro de sessão/permissão, sem ser confundida com SyntaxError.
 
 TESTES
-30 testes passaram. Sintaxe do componente e do instalador validada.
-Cobre cards criados fora do DOM com position vazio/static; oito itens com erro em todas as imagens; carregamento bem-sucedido; preservação de componentes posicionados; CSS/versões e idempotência do instalador. As suítes existentes de listagem e imagens/menus também foram executadas.
-Com Node 24 e dependências de testes do projeto instaladas (incluindo jsdom e postcss):
-node --test --test-force-exit tests/itens-miniatura-visibilidade.test.js tests/listagens-empresas.test.js tests/menus-imagens.test.js
-
-LIMITES
-Esta entrega corrige a camada visual que cobria os itens. Um arquivo de imagem ausente continua com placeholder na foto; o pacote não inventa nem recria fotos perdidas. A alteração foi validada em ambiente de teste e ainda precisa ser publicada. Não houve alteração dos produtos ou das imagens em produção.
+22 testes passaram, cobrindo modos separados, abertura/análise/confirmação de produtos, operações em lotes de clientes no frontend, HTML com HTTP 404 ou 200, erros JSON, botão/modal, regressões de clientes/produtos e isolamento entre empresas.
+A planilha Red Pet consolidada foi novamente analisada e confirmada em banco isolado: 95 produtos válidos e 604 unidades. A importação real no servidor NÃO foi realizada.
+Os testes do backend usaram Express, SQLite e o leitor de planilhas reais; as identidades autenticadas foram controladas no teste. Os testes do frontend usaram jsdom e respostas controladas. Nenhuma sessão autenticada de produção foi usada; não houve deploy ou inspeção visual em navegador real.
+Os testes e seus scripts de apoio estão em validacao, apenas para desenvolvimento. Para executá-los, copie seu conteúdo para as pastas correspondentes e use Node 24, jsdom e as dependências normais do projeto:
+node --test --test-force-exit tests/importacao-modos.test.cjs tests/importacao-api-produtos.test.cjs tests/importacao-botao.test.cjs tests/listagens-empresas.test.js

@@ -1,6 +1,8 @@
 const {consultarItens}=require("../services/consultaItensCompativel");
 const express = require("express");
 const router = express.Router();
+// Importação precisa ser registrada antes das rotas de itens por ID.
+router.use("/importacao", require("./importacaoRoutes").criarRotas("produtos"));
 const Produto = require("../models/Produto");
 const Fornecedor = require("../models/Fornecedor");
 const { QueryTypes } = require("sequelize");

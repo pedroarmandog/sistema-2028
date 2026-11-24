@@ -1,0 +1,51 @@
+// Adaptador exclusivo dos testes de caixa: expõe ao Sequelize 6 a interface
+// callback de sqlite3 usando o SQLite integrado ao Node 22.13+/24.
+const { DatabaseSync } = require("node:sqlite");
+class Statement {}
+class Database {
+  constructor(filename, mode, done) {
+    if (filename !== ":memory:")
+      throw new Error("O teste só aceita SQLite em memória.");
+    this.filename = filename;
+    this.db = new DatabaseSync(filename);
+    // Função REGEXP exclusiva dos testes; TiDB/MySQL já oferece o operador.
+    this.db.function('regexp', (pattern,value) => Number(new RegExp(String(pattern).replaceAll('[[:space:][:punct:]]+', '[^a-zA-Z0-9]+'),'u').test(String(value??''))));
+    queueMicrotask(() => done(null));
+  }
+  serialize(work) {
+    work();
+  }
+  all(sql, params, done) {
+    this.exec("all", sql, params, done);
+  }
+  run(sql, params, done) {
+    this.exec("run", sql, params, done);
+  }
+  exec(method, sql, params, done) {
+    if (typeof params === "function") {
+      done = params;
+      params = [];
+    }
+    const meta = new Statement();
+    let result;
+    try {
+      const stmt = this.db.prepare(sql);
+      const args = Array.isArray(params) ? params : [params || {}];
+      result = stmt[method](...args);
+      if (method === "run")
+        Object.assign(meta, {
+          changes: result.changes,
+          lastID: result.lastInsertRowid,
+        });
+    } catch (err) {
+      if (done) return done.call(meta, err);
+      throw err;
+    }
+    done?.call(meta, null, method === "all" ? result : undefined);
+  }
+  close(done) {
+    this.db.close();
+    done?.();
+  }
+}
+module.exports = { Database, OPEN_CREATE: 4, OPEN_READWRITE: 2 };

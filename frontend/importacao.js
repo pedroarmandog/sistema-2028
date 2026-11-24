@@ -29,17 +29,36 @@
     b.onclick = fn;
     return b;
   }
+  // ph-import-api-v2: produtos, clientes e pets continuam com endpoints separados.
   async function request(url, options = {}) {
     const r = await fetch(url, {
       credentials: "include",
       cache: "no-store",
       ...options,
     });
-    const d = await r.json();
+    const texto = await r.text();
+    let d;
+    try {
+      d = JSON.parse(texto);
+    } catch (_) {
+      const modulo = tipo === "clientes" ? "clientes" : tipo === "pets" ? "pets" : "produtos";
+      const status = r.status;
+      const formato = /^\s*</.test(texto) ? "HTML" : "um formato inesperado";
+      throw Object.assign(new Error(
+        "A importação de " + modulo + " recebeu " + formato + " em " + url +
+        " (HTTP " + status + "). " +
+        (status === 404
+          ? "A rota de importação não foi encontrada. Confira o deploy do backend."
+          : status === 401 || status === 403
+            ? "Entre novamente no ERP e confira sua permissão de importação."
+            : "Confira a publicação do backend e tente novamente.")
+      ), { status, endpoint: url });
+    }
     if (!r.ok)
-      throw Object.assign(new Error(d.erro || d.error || "Falha ao acessar a importação."),{status:r.status,operacaoId:d.operacaoId});
+      throw Object.assign(new Error(d.erro || d.error || d.mensagem || "Falha ao acessar a importação."),{status:r.status,operacaoId:d.operacaoId});
     return d;
   }
+
   function aviso(texto, erro = false) {
     const n = modal.querySelector(".notice");
     n.textContent = texto;
