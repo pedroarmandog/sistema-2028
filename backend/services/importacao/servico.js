@@ -162,7 +162,10 @@ async function analisar(
   if (new Set(usados).size !== usados.length)
     falhar("Duas colunas foram associadas ao mesmo campo.");
   if (!usados.includes("nome")) falhar("Associe uma coluna ao Nome.");
-  const existentes = await modelo.findAll({ where: { empresa_id: empresa } });
+  const existentes = await modelo.findAll({
+    where: { empresa_id: empresa },
+    ...(tipo === "produtos" ? { attributes: { exclude: ["imagemVersoes"] } } : {}),
+  });
   const centros = tipo === "produtos" ? await centrosDaEmpresa(empresa) : [];
   if (centroPadrao && !centros.some((c) => c.descricao === centroPadrao))
     falhar("Centro padrão não pertence à empresa.");
@@ -315,6 +318,7 @@ async function confirmar(tipo, empresa, usuario, token, escolhas) {
     const relatorio = [];
     const atuais = await modelo.findAll({
       where: { empresa_id: empresa },
+      ...(tipo === "produtos" ? { attributes: { exclude: ["imagemVersoes"] } } : {}),
       transaction,
     });
     for (const row of rows) {
