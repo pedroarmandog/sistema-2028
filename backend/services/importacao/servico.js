@@ -4,7 +4,7 @@ const { Cliente } = require("../../models/Cliente");
 const Produto = require("../../models/Produto");
 const { Empresa } = require("../../models");
 const banco = require("./modelos");
-const { campos, normalizar, moeda, classificar } = require("./campos");
+const { campos, normalizar, moeda } = require("./campos");
 const { normalizarSexo } = require("../../utils/sexoCliente");
 const documento = (v) => String(v ?? "").replace(/\D/g, "");
 const falhar = (mensagem) => {
@@ -31,25 +31,36 @@ async function centrosDaEmpresa(empresa, transaction) {
     attributes: ["centroResultado"],
     transaction,
   });
+  const centros = await banco.Centro.findAll({
+    where: { empresa_id: empresa }, transaction,
+  });
   for (const nome of new Set(
     itens.map((p) => p.centroResultado).filter(Boolean),
   )) {
+    if (centros.some((c) => normalizar(c.descricao) === normalizar(nome))) continue;
     const slug = crypto
       .createHash("sha256")
       .update(normalizar(nome))
       .digest("hex")
       .slice(0, 32);
-    await banco.Centro.findOrCreate({
+    const [recuperado] = await banco.Centro.findOrCreate({
       where: { empresa_id: empresa, slug },
       defaults: { descricao: nome },
       transaction,
     });
+    centros.push(recuperado);
   }
-  return banco.Centro.findAll({
-    where: { empresa_id: empresa },
-    order: [["descricao", "ASC"]],
-    transaction,
-  });
+  const descricaoPadrao = "Loja venda de produtos";
+  if (!centros.some((c) => normalizar(c.descricao) === normalizar(descricaoPadrao))) {
+    const slug = crypto.createHash("sha256").update(normalizar(descricaoPadrao)).digest("hex").slice(0, 32);
+    const [padrao] = await banco.Centro.findOrCreate({
+      where: { empresa_id: empresa, slug },
+      defaults: { descricao: descricaoPadrao },
+      transaction,
+    });
+    centros.push(padrao);
+  }
+  return centros.sort((a,b) => a.descricao.localeCompare(b.descricao, "pt-BR"));
 }
 function converter(tipo, raw) {
   const dados = {};
@@ -198,13 +209,11 @@ async function analisar(
           dados.centroResultado = c[0].descricao;
           linha.classificacao = "Planilha";
         } else {
-          dados.centroResultado =
-            classificar(dados.nome, centros) || centroPadrao;
-          if (!dados.centroResultado)
-            falhar("Selecione um centro padrão para este produto.");
-          linha.classificacao = classificar(dados.nome, centros)
-            ? "Palavras-chave"
-            : "Centro padrão selecionado";
+          dados.centroResultado = centroPadrao || centros.find(
+            (c) => normalizar(c.descricao) === normalizar("Loja venda de produtos"),
+          )?.descricao;
+          if (!dados.centroResultado) falhar("Centro padrão da empresa indisponível. Tente novamente.");
+          linha.classificacao = centroPadrao ? "Centro padrão selecionado" : "Centro padrão automático";
         }
       }
       linha.dados = dados;

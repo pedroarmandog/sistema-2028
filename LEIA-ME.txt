@@ -1,18 +1,26 @@
-PETHUB — IMPORTAÇÃO COMPATÍVEL SEM imagemVersoes
+PETHUB — CENTRO AUTOMÁTICO NA IMPORTAÇÃO DE PRODUTOS
 
-CAUSA
-O modelo Produto contém a coluna opcional imagemVersoes, mas o banco desta instalação não possui essa coluna. As leituras gerais usadas na análise e na confirmação da importação selecionavam todos os campos do modelo, incluindo a coluna inexistente. O erro não vem da planilha nem do preço dos produtos.
+COMPORTAMENTO
+Produtos sem centro de resultado informado usarão Loja venda de produtos automaticamente. Não é necessário selecionar um centro para analisar ou importar a planilha.
+O centro é consultado somente na empresa autenticada. Se houver um cadastro equivalente, como Loja - Venda de Produtos, ele é reutilizado sem renomear. Se não houver, o importador cria Loja venda de produtos no cadastro de centros da própria empresa usado pela importação.
+Centros explicitamente informados na planilha são preservados e validados na empresa. Uma seleção manual válida no modal também é respeitada. A falta de centro não exige classificação por palavras-chave.
+O menu abre com o padrão selecionado e a instrução do modal foi esclarecida. A importação de clientes conserva suas rotas e seu processamento em lotes.
 
 APLICAR
-Substitua somente backend/services/importacao/servico.js pelo arquivo deste pacote, faça commit/push e aguarde o deploy/reinício do backend no Render. Não é necessário executar instalador, migration ou SQL. Depois abra novamente a importação e analise a planilha.
-
-A alteração está restrita às duas leituras de itens existentes: análise e confirmação. Quando tipo é produtos, as consultas excluem imagemVersoes. Para clientes, mantêm as mesmas opções e o mesmo fluxo. O vínculo empresa_id, as transações, as duplicidades e a confirmação permanecem.
-O arquivo alteracao.patch mostra exatamente as duas alterações para comparação/aplicação pontual caso seu serviço tenha customizações adicionais. Não aplique o patch novamente depois de substituir o arquivo inteiro.
+Substitua os quatro arquivos das pastas backend e frontend deste ZIP nos mesmos caminhos do projeto:
+backend/services/importacao/servico.js
+frontend/importacao.js
+frontend/item/meus-itens.html
+frontend/clientes.html
+Faça commit/push e aguarde o deploy completo do backend/frontend no Render. Reabra Meus Itens com Ctrl+F5. Não exige instalador nem comando SQL.
+Os dois HTMLs carregam importacao.js?v=20261123-centro1 para atualizar o arquivo compartilhado no cache. A alteração da página de clientes é somente essa versão do recurso compartilhado.
 
 PRESERVAÇÃO
-Não cria ou remove colunas. Não apaga produtos, clientes, imagens ou histórico. A importação não precisa da coluna de variantes de imagens. Não modifica o modelo Produto, o frontend ou as rotas de clientes.
+Continua incluída a correção anterior que exclui imagemVersoes nas duas consultas de importação de produtos. Não altera o esquema da tabela de itens nem imagens existentes.
+Não altera preços, quantidades ou registros já importados. Apenas a preparação/análise de produtos poderá criar o centro padrão quando necessário. A confirmação continua sendo uma ação explícita do usuário.
+Não usa centros de outras empresas e não cria centros ao importar clientes. Evita recuperar novamente um centro já existente com o mesmo nome normalizado.
 
 TESTES
-22 testes passaram. A falha foi reproduzida em SQLite de teste removendo fisicamente imagemVersoes da tabela itens, mas mantendo esse atributo no modelo real de Produto.
-Nessa condição, foram exercitados campos/modelo, análise XLSX, prévia, confirmação, repetição sem duplicação e isolamento entre empresas. A planilha consolidada da Red Pet foi analisada com 95 produtos válidos e 604 unidades, e gravada somente no banco isolado. Foi exercitada também a análise/confirmação de cliente no mesmo serviço, sem alterar o contexto de outra empresa. As regressões de listagens e dos dois modos do frontend continuaram passando.
-Não houve alteração no banco de produção nem deploy nesta entrega. Testes de autenticação usaram identidades controladas e o middleware de permissões existente.
+22 testes passaram em ambiente isolado. A planilha consolidada da Red Pet foi analisada SEM enviar centroPadrao: 95 válidos, zero erros, 604 unidades e centro Loja venda de produtos em todas as linhas. A confirmação gravou os produtos somente no banco de teste.
+Também foram verificados: reutilização de Loja - Venda de Produtos, empresa sem nenhum centro, repetição sem duplicar o padrão, preservação do centro explícito, seleção manual, rejeição de centro de outra empresa, análise/confirmação de cliente sem criar centro e compatibilidade com banco sem imagemVersoes.
+Os modos do frontend e as regressões de clientes/produtos continuaram passando. Não houve deploy ou alteração em dados de produção nesta entrega.

@@ -583,7 +583,7 @@
     const mapping = el("div");
     mapping.className = "mapping";
     main.append(mapping);
-    const centro = el("label", "Centro padrão para itens sem correspondência");
+    const centro = el("label", "Centro de resultado para produtos sem centro informado");
     centro.hidden = tipo !== "produtos";
     const select = el("select");
     select.id = "ph-centro";
@@ -623,7 +623,7 @@
     try {
       meta = await request(root + "/campos");
       drop.firstChild.textContent=`Selecione ou arraste CSV, XLS ou XLSX. Até ${meta.limites?.megabytes||5} MB e ${meta.limites?.linhas||2500} registros por arquivo.`;
-      const o = el("option", "Selecione se necessário");
+      const o = el("option", tipo === "produtos" ? "Automático: Loja venda de produtos" : "Selecione se necessário");
       o.value = "";
       select.append(o);
       meta.centros.forEach((nome) => {
@@ -631,14 +631,18 @@
         o.value = nome;
         select.append(o);
       });
+      if (tipo === "produtos") {
+        const chave = (nome) => String(nome).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+        select.value = meta.centros.find((nome) => chave(nome) === "lojavendadeprodutos") || "";
+      }
       if(emLotes){
         const atual=await request(root+'/operacoes/atual');
         if(atual.operacao&&['pendente','processando','interrompido'].includes(atual.operacao.estado)){acompanhar(atual.operacao);return;}
         if(atual.operacao)main.append(botao('Ver última importação',()=>acompanhar(atual.operacao)));
       }
       aviso(
-        tipo === "produtos" && !meta.centros.length
-          ? "Cadastre um Centro de Resultado na empresa antes de importar os produtos."
+        tipo === "produtos"
+          ? "Produtos sem centro informado usarão Loja venda de produtos automaticamente. Selecione o arquivo e clique em Analisar planilha."
           : "Selecione o arquivo e clique em Analisar planilha.",
       );
     } catch (e) {
