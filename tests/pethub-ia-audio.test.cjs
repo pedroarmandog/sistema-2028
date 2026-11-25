@@ -1,0 +1,5 @@
+'use strict';
+const{test}=require('node:test'),assert=require('node:assert/strict'),{duracao}=require('../backend/services/pethubIA/audio');
+test('áudio bloqueia arquivo vazio, grande e duração excessiva antes de chamar SDK',async()=>{await assert.rejects(()=>duracao(Buffer.alloc(0)),/inválido/);await assert.rejects(()=>duracao(Buffer.alloc(5*1024*1024+1)),/5 MB/);await assert.rejects(()=>duracao(Buffer.from('fixture'),{executar:async()=>({stdout:'121'})}),/dois minutos/);});
+test('duração validada pelo executável é arredondada para reserva conservadora',async()=>{let args;assert.equal(await duracao(Buffer.from('fixture'),{executar:async(...p)=>{args=p;return{stdout:'11.2'};}}),12);assert.equal(args[0],'ffprobe');assert(args[1].includes('format=duration'));assert.equal(args[2].timeout,5000);});
+test('ausência de ffprobe interrompe áudio sem simular transcrição',async()=>{await assert.rejects(()=>duracao(Buffer.from('fixture'),{executar:async()=>{throw Object.assign(Error('ausente'),{code:'ENOENT'});}}),e=>e.status===503);});

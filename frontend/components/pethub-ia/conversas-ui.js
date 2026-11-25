@@ -1,0 +1,36 @@
+(() => {
+ 'use strict';
+ const {el,button,field,card,api,aviso}=window.PetHubIAUI;
+ async function montar(parent){
+  const layout=el('div',null,{class:'ia-conversas'}),list=card('Conversas','Pesquise nas conversas desta empresa por nome, telefone ou mensagem.'),messages=card('Atendimento'),info=card('Cliente e contexto');layout.append(list,messages,info);parent.append(layout);
+  let filtro='',cursor=null,sequencia=0,abertura=0,searchTimer;
+  const search=el('input',null,{type:'search',placeholder:'Nome, telefone ou mensagem','aria-label':'Pesquisar conversas',maxlength:'120'}),items=el('div'),status=el('p','',{role:'status'}),next=button('Carregar próximas conversas',()=>load(true));next.hidden=true;
+  const form=el('form',null,{class:'ia-conversa-busca'});form.append(search);const submit=el('button','Pesquisar',{type:'submit'});form.append(submit);form.onsubmit=e=>{e.preventDefault();clearTimeout(searchTimer);load(false).catch(e=>aviso(e.message,true));};
+  list.append(field('Situação','',v=>{filtro=v;load(false).catch(e=>aviso(e.message,true));},{options:[['','Todas'],['ia','Atendimento pela IA'],['humano','Atendimento humano'],['aguardando','Aguardando atendimento'],['finalizada','Finalizadas'],['agendamentos','Com agendamentos'],['erros','Com erros']]}),form,button('Atualizar',()=>load(false)),status,items,next);
+  search.oninput=()=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>{if(parent.isConnected)load(false).catch(e=>aviso(e.message,true));},400);};
+  async function load(append){
+   const seq=++sequencia;if(!append){cursor=null;items.replaceChildren();}const params=new URLSearchParams({estado:filtro,busca:search.value,limite:'25'});if(append&&cursor)params.set('cursor',cursor);status.textContent='Carregando conversas…';next.hidden=true;
+   const result=await api('gestor/conversas?'+params);if(seq!==sequencia||!parent.isConnected)return;
+   if(!Array.isArray(result.itens))throw Error('A API da central de conversas precisa ser atualizada junto com esta página.');
+   for(const row of result.itens){const b=button('',()=>open(row),'ia-conversa-item');b.append(el('strong',row.nome||row.telefone||'Contato removido'),el('small',row.estado+(row.comErro?' · Com erro':'')+(row.aguardandoAprovacao?' · Aguardando aprovação':'')),el('span',row.ultimaMensagem||'Sem mensagens',{class:'ia-conversa-preview'}));if(row.ultimaMensagemEm)b.append(el('small',new Date(row.ultimaMensagemEm).toLocaleString('pt-BR')));items.append(b);}
+   cursor=result.proximoCursor;next.hidden=!result.temMais;next.textContent=result.buscaParcial?'Continuar pesquisa':'Carregar próximas conversas';status.textContent=result.buscaParcial?'A pesquisa continua nas próximas conversas.':items.children.length?items.children.length+' conversa(s) exibida(s).':result.temMais?'Continue a pesquisa para procurar nas próximas conversas.':'Nenhuma conversa encontrada para estes filtros.';
+  }
+  function bubble(msg){const n=el('div',msg.texto,{class:'ia-message '+msg.papel});n.append(el('small',(msg.autor==='equipe'?'Equipe':msg.papel==='user'?'Cliente':'Recepcionista')+' · '+new Date(msg.data).toLocaleString('pt-BR')));return n;}
+  async function open(row){
+   const token=++abertura,result=await api('gestor/conversas/'+row.id);if(token!==abertura||!parent.isConnected)return;
+   messages.replaceChildren(el('h3',row.nome||row.telefone||'Atendimento'));const box=el('div',null,{class:'ia-message-list'});for(const msg of result.mensagens)box.append(bubble(msg));let older=result.mensagensCursor;
+   const previous=button('Carregar mensagens anteriores',async()=>{const r=await api('gestor/conversas/'+row.id+'/mensagens?antes='+encodeURIComponent(older));if(token!==abertura)return;box.prepend(...r.itens.map(bubble));older=r.proximoCursor;previous.hidden=!r.temMais;});previous.hidden=!result.temMaisMensagens;messages.append(previous,box);box.scrollTop=box.scrollHeight;
+   const actions=el('div',null,{class:'ia-actions'});for(const[label,path]of[['Assumir atendimento','assumir'],['Devolver para IA','devolver'],['Finalizar conversa','finalizar']])actions.append(button(label,async()=>{await api('gestor/conversas/'+row.id+'/'+path,{method:'POST',body:{}});await open(row);}));messages.append(actions);
+   if(result.conversa.estado==='humano'){let text='';messages.append(field('Mensagem da equipe','',v=>text=v,{type:'textarea'}),button('Enviar mensagem',async()=>{await api('gestor/conversas/'+row.id+'/enviar',{method:'POST',body:{texto:text}});await open(row);},'primary'));}
+   info.replaceChildren(el('h3','Contato'),el('p',result.conversa.telefone||'Conteúdo removido'),el('p','Responsável: '+(result.conversa.dono||'Não atribuído')),el('p','Origem: '+result.conversa.provedor));
+   if(result.cadastro){const profile=card(result.cadastro.cliente.nome);for(const pet of result.cadastro.pets)profile.append(el('p',pet.nome+' · '+[pet.especie,pet.raca,pet.porte].filter(Boolean).join(' · ')));info.append(profile);}else if(result.cadastroAviso)info.append(el('p',result.cadastroAviso));
+   if(result.consumo)info.append(el('p','Respostas confirmadas: '+result.consumo.respostas),el('p','Tokens confirmados: '+result.consumo.tokensConfirmados),el('small',result.consumo.chamadasSemUsoConfirmado+' chamada(s) com uso ainda não confirmado.'));
+   if(result.contexto?.trechos?.length){const context=el('details');context.append(el('summary','Contexto recente'));for(const trecho of result.contexto.trechos)context.append(el('p','Cliente: '+trecho.cliente),el('p','Recepcionista: '+trecho.assistente));info.append(context);}
+   for(const action of result.acoes){const ca=card(action.tipo,action.proposta?.resumo||action.estado);if(action.estado==='aguardando_gestor')ca.append(button('Aprovar solicitação',async()=>{await api('gestor/acoes/'+action.id+'/aprovar',{method:'POST',body:{}});await open(row);},'primary'),button('Recusar',async()=>{await api('gestor/acoes/'+action.id+'/recusar',{method:'POST',body:{}});await open(row);},'danger'));info.append(ca);}
+   info.append(button('Exportar mensagens completas',async()=>{const current=await api('gestor/conversas/'+row.id);let all=current.mensagens,cursor=current.mensagensCursor;while(cursor){if(all.length>=10000)throw Error('A conversa excede 10.000 mensagens. Faça a exportação em períodos pelo suporte.');const page=await api('gestor/conversas/'+row.id+'/mensagens?limite=100&antes='+encodeURIComponent(cursor));all=[...page.itens,...all];cursor=page.proximoCursor;}const exported={conversa:current.conversa,mensagens:all,acoes_recentes:current.acoes,observacao:'Todas as mensagens retidas, com até 30 ações recentes. Dados excluídos pela política de retenção não são recuperados.'},url=URL.createObjectURL(new Blob([JSON.stringify(exported,null,2)],{type:'application/json'})),a=el('a',null,{href:url,download:'conversa-'+row.id+'.json'});a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}));
+   info.append(button('Excluir conteúdo desta conversa',async()=>{if(!await window.confirm('Excluir mensagens e dados pessoais desta conversa? O histórico financeiro será preservado.'))return;await api('gestor/conversas/'+row.id+'/excluir-conteudo',{method:'POST',body:{confirmar:true}});await open(row);await load(false);},'danger'));
+  }
+  await load(false);
+ }
+ window.PetHubIAConversas={montar};
+})();

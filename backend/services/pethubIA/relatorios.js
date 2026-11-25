@@ -1,0 +1,23 @@
+'use strict';
+const{Op}=require('sequelize'),V=require('./validacao');
+function criar({ERP,m,assinaturas,agora}){
+ async function resultados(emp,{inicio,fim}={}){
+  const state=await assinaturas.estado(emp);if(!state.contrato.funcionalidades.includes('relatorios'))throw V.falha('Relatórios avançados não contratados.',403);
+  const start=new Date(inicio||new Date(+agora()-30*86400000)),end=new Date(fim||agora());if(!Number.isFinite(+start)||!Number.isFinite(+end)||end<start||+end-+start>366*86400000)throw V.falha('Período inválido.');
+  const where={empresa_id:emp,createdAt:{[Op.gte]:start,[Op.lte]:end}};
+  const jobs=await m.Fila.findAll({where:{...where,teste:false},attributes:['id','conversa_id','estado','createdAt','updatedAt','dados'],limit:10001});if(jobs.length>10000)throw V.falha('Reduza o período para até 10.000 interações.',422);
+  const ids=jobs.map(j=>j.id),filter={...where,job_id:{[Op.in]:ids}},[actions,audit,conversations,outgoing]=await Promise.all([m.Acao.findAll({where:{...filter,estado:'concluida'},attributes:['tipo','proposta','resultado','conversa_id']}),m.Auditoria.findAll({where:{...where,tipo:{[Op.in]:['ferramenta','humano_assumiu']}},attributes:['tipo','dados'],limit:50000}),m.Conversa.findAll({where:{empresa_id:emp,id:{[Op.in]:[...new Set(jobs.map(j=>j.conversa_id))]}},attributes:['estado','contato_hash']}),m.Mensagem.findAll({where:{empresa_id:emp,job_id:{[Op.in]:ids},papel:'assistant'},attributes:['job_id','enviada_em']})]);
+  const sent=jobs.filter(j=>j.estado==='enviado'),counts=new Map(),products=new Map(),services=new Map(),hours=new Map();
+  for(const a of actions){counts.set(a.tipo,(counts.get(a.tipo)||0)+1);const p=V.json(a.proposta);if(a.tipo==='criarAgendamento'&&p.servicoId)services.set(p.servicoId,(services.get(p.servicoId)||0)+1);}
+  const audits=audit.filter(a=>a.tipo==='ferramenta'&&ids.includes(V.json(a.dados).jobId));
+  for(const a of audits)if(V.json(a.dados).nome==='buscarProdutos')for(const id of V.json(a.dados).ids||[])products.set(id,(products.get(id)||0)+1);
+  for(const j of jobs){const h=new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit'}).format(j.createdAt);hours.set(h,(hours.get(h)||0)+1);}
+  const productRows=await ERP.Produto.findAll({where:{empresa_id:emp,id:{[Op.in]:[...new Set([...products.keys(),...services.keys()])]}},attributes:['id','nome']});
+  const labels=map=>[...map].map(([id,quantidade])=>({id,nome:productRows.find(p=>String(p.id)===String(id))?.nome||'Item removido',quantidade})).sort((a,b)=>b.quantidade-a.quantidade).slice(0,10);
+  const booked=counts.get('criarAgendamento')||0,conversas=conversations.length;
+  const tempos=sent.map(j=>{const fim=outgoing.find(m=>m.job_id===j.id)?.enviada_em||V.json(j.dados).respostaEm;return fim&&Number.isFinite(+new Date(fim))?Math.max(0,(+new Date(fim)-+j.createdAt)/1000):null;}).filter(v=>v!==null);
+  return{inicio:start,fim:end,foraExpediente:new Set(jobs.filter(j=>V.json(j.dados).foraExpediente===true).map(j=>j.conversa_id)).size,interacoesSemHorarioRegistrado:jobs.filter(j=>typeof V.json(j.dados).foraExpediente!=='boolean').length,clientes: new Set(conversations.map(c=>c.contato_hash)).size,conversas,concluidas:conversations.filter(c=>c.estado==='finalizada').length,respostas:sent.length,agendamentos:booked,cancelados:counts.get('cancelarAgendamento')||0,reagendados:counts.get('reagendarAgendamento')||0,clientesCadastrados:counts.get('cadastrarCliente')||0,petsCadastrados:counts.get('cadastrarPet')||0,consultasProdutos:audits.filter(a=>V.json(a.dados).nome==='buscarProdutos').length,consultasServicos:audits.filter(a=>V.json(a.dados).nome==='consultarServicos').length,transferencias:conversations.filter(c=>c.estado==='humano').length,tempoMedioRespostaSegundos:tempos.length?Math.round(tempos.reduce((a,b)=>a+b,0)/tempos.length):null,respostasSemTempoRegistrado:sent.length-tempos.length,conversaoAgendamento:conversas?Math.round(booked/conversas*100):0,valorServicosAgendados:actions.filter(a=>a.tipo==='criarAgendamento').reduce((sum,a)=>sum+Number(V.json(a.resultado).valorAgendado||V.json(a.proposta).preco||0),0),horarios:[...hours].map(([hora,quantidade])=>({hora,quantidade})).sort((a,b)=>a.hora.localeCompare(b.hora)),servicos:labels(services),produtos:labels(products),tempoEstimadoEconomizadoMinutos:conversas*3,premissaTempo:'Estimativa ilustrativa de 3 minutos por conversa, não uma medição de horas de trabalho.',acoes:[...counts].map(([tipo,quantidade])=>({tipo,quantidade})),nota:'Valor agendado é potencial e não corresponde a faturamento ou pagamento realizado. Contagens de estado consideram a situação atual das conversas do período.'};
+ }
+ return{resultados};
+}
+module.exports={criar};
