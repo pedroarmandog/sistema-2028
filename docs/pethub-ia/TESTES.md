@@ -1,6 +1,6 @@
 # Evidências de testes
 
-Resultado final do conjunto executado: **84 testes passaram, zero falhas**, com Node 24. Registro em `docs/pethub-ia/resultado-testes.txt`.
+Resultado final do conjunto executado: **96 testes passaram, zero falhas**, com Node 24. Registro em `docs/pethub-ia/resultado-testes.txt`.
 
 ## Ambiente e alcance
 
@@ -32,7 +32,7 @@ Os testes novos usam Node 24 e `tests/helpers/sqlite-caixa.js`. `jsdom` é uma d
 - tests/instancias-baileys.test.js: QR/SSE, isolamento das instâncias e disparador, permissões, mídia e remetente selecionado.
 - tests/importacao-api-produtos.test.cjs, tests/importacao-botao.test.cjs e tests/importacao-modos.test.cjs: rotas/botão de produtos, modo clientes separado e compatibilidade da importação.
 
-Essas suítes já existiam no projeto utilizado e não são copiadas de volta pelo pacote IA. O total de 84 inclui essas regressões. O pacote inclui as quatro suítes novas e o adaptador em memória necessário a elas.
+Essas suítes já existiam no projeto utilizado e não são copiadas de volta pelo pacote IA. O total de 96 inclui essas regressões. O pacote inclui as cinco suítes do módulo e o adaptador em memória necessário a elas.
 
 O integrador também foi aplicado à cópia exata do WhatsApp anterior à adaptação: a saída correspondeu byte a byte à versão autorizada revisada; reaplicá-lo não mudou mais nenhum arquivo. O diff dos dois pontos está em `docs/pethub-ia/whatsapp-autorizado.diff`.
 
@@ -69,3 +69,9 @@ Não marcar esta matriz como aprovada apenas porque a suíte local passou.
 - Interfaces exercitadas por DOM para paginação/pesquisa e envio de valores em USD convertidos corretamente para micros.
 
 Continuam sendo testes locais com fornecedores injetados; não representam homologação do aparelho, OpenAI ou TiDB reais.
+
+## Correção da coluna administrativa — v3
+
+A suíte tests/pethub-ia-admin-coluna.test.cjs verifica as duas tabelas e as importações no HTML, usa os renderizadores originais do Admin, testa ativação/desativação individual, primeira configuração, atualização dos dois locais, preservação do clique de detalhes e erros de publicação. Verifica também ausência de duplicação ao refiltrar e independência do componente financeiro opcional.
+
+Um teste adicional no backend conecta a interface ao Express/rotas reais do módulo com SQLite em memória: desativar e reativar por botões diferentes persiste o estado correto sem alterar a outra empresa, chamar a OpenAI ou enviar WhatsApp. Teste de plano arquivado confirma que isso não impede a desativação de um contrato existente. Nenhum desses testes foi executado no banco ou conta de produção do usuário.

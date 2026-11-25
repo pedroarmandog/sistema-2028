@@ -33,7 +33,7 @@ function criarRotas(s,{authUser,authAdmin}){
  admin.post('/modelos/:modelo/verificar',wrap(async(req,res)=>{const row=await s.m.Preco.findByPk(req.params.modelo);if(!row)throw V.falha('Cadastre a tarifa antes de validar.',404);await s.ia.verificar(row.id);await row.update({ativo:true,verificado_em:s.agora()});await s.assinaturas.auditar(null,req.adminId,'modelo_validado',{modelo:row.id});res.json({validado:true});}));
  admin.get('/empresas',wrap(async(req,res)=>{
   const rows=await s.ERP.EmpresaPainel.findAll({attributes:['id','cnpj','nome_fantasia'],limit:1000});const result=[];
-  for(const p of rows){try{const emp=await s.assinaturas.painelId(p.id);result.push({painelId:p.id,nome:p.nome_fantasia,...await s.assinaturas.resumo(emp,true)});}catch(e){if(e.status!==409)throw e;result.push({painelId:p.id,nome:p.nome_fantasia,status:'sem_vinculo',erro:e.message});}}
+  for(const p of rows){try{const emp=await s.assinaturas.painelId(p.id);result.push({painelId:p.id,nome:p.nome_fantasia,cnpj:p.cnpj,...await s.assinaturas.resumo(emp,true)});}catch(e){if(e.status!==409)throw e;result.push({painelId:p.id,nome:p.nome_fantasia,cnpj:p.cnpj,status:'sem_vinculo',erro:e.message});}}
   res.json(result);
  }));
  admin.get('/empresas/:id',wrap(async(req,res)=>{const emp=await s.assinaturas.painelId(req.params.id);res.json({resumo:await s.assinaturas.resumo(emp,true),auditoria:await s.m.Auditoria.findAll({where:{empresa_id:emp},order:[['createdAt','DESC']],limit:100})});}));

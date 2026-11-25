@@ -1,35 +1,45 @@
 {
   "modulo": "PetHub IA — Recepcionista Inteligente",
-  "versao": "2-homologacao",
+  "versao": "3-correcao-coluna-admin",
   "data": "2026-11-25",
-  "publicado": false,
-  "atendimento_real_ativado": false,
+  "deploy_executado_pelo_assistente": false,
+  "versao2_ja_publicada_informada_pelo_usuario": true,
+  "correcao": "Coluna estática em Dashboard/Empresas, importação direta e controle individual persistente.",
   "testes_locais": {
-    "total": 84,
-    "aprovados": 84,
+    "total": 96,
+    "aprovados": 96,
     "falhas": 0
   },
   "whatsapp_sem_novas_alteracoes_nesta_revisao": true,
   "whatsapp_sha256_revisao_autorizada": "d7b1d7ed853c6dc59bbc32357f97bee58e6e97802e96477b4e07a9b424713576",
-  "nova_tabela_v2": "pethub_ia_faturas",
-  "dependencias_adicionais_v2": [],
-  "variaveis_adicionais_v2": [],
-  "arquivos_novos_ou_atualizados_do_modulo": [
+  "novas_migrations_v3": [],
+  "novas_dependencias_v3": [],
+  "novas_variaveis_v3": [],
+  "inclui_html_js_completos_admin": true,
+  "arquivos": [
     {
       "caminho": ".env.pethub-ia.example",
       "sha256": "ba1c621b2afcfe319e4931e2fc7c35ba16565ecab8cb9de9a653928ac4c0e340"
     },
     {
+      "caminho": "COMO-PUBLICAR-COLUNA-IA.md",
+      "sha256": "835412d98eb6724accb00270ad773dd01452dcbefe0ede2944d1993416953698"
+    },
+    {
       "caminho": "LEIA-ME-PETHUB-IA.md",
-      "sha256": "cb0803145155f2f784dba40ee0698cbd5ec4385fb8b619e62d99c151e6ddf31d"
+      "sha256": "a9bbb05528e23846637e557dce988872bf712b88a367432e322c643a29a63ea3"
     },
     {
       "caminho": "backend/routes/pethubIARoutes.js",
-      "sha256": "c071c625510d05e587a6760201e334da11b536d40f537330ffb92bcb042acd38"
+      "sha256": "d3907d4952c0b22e82ceda49b36d190b613b93d27a5342080db41792468534d7"
+    },
+    {
+      "caminho": "backend/scripts/corrigir-coluna-pethub-ia-admin.js",
+      "sha256": "8ae569c6adf1d5ddd010cd7e41f2bd31c609df228b1b79a7da04089f34ba5b6e"
     },
     {
       "caminho": "backend/scripts/integrar-pethub-ia.js",
-      "sha256": "37a8d92e312760dc26333360107e90b1be178237211b3cfd0f88fa614a3da3bd"
+      "sha256": "ce879d16c53933849c78ed2ed6c7dce726f3faca393cf46e14cd201c79fec42a"
     },
     {
       "caminho": "backend/scripts/preparar-pethub-ia.js",
@@ -41,7 +51,7 @@
     },
     {
       "caminho": "backend/services/pethubIA/assinaturas.js",
-      "sha256": "0799e17314c840e562f1b92be4acad76848c7d7a27b6e7fb97b9622d5c120691"
+      "sha256": "2e21c348b047baaf2071e758b07fc37c06a28c2a59eefa653a62a8dca718505c"
     },
     {
       "caminho": "backend/services/pethubIA/audio.js",
@@ -104,12 +114,16 @@
       "sha256": "7acff8c98ac81d14cdcff91a8e836519b3e433d99caad4ecd8b80ec12d92da13"
     },
     {
+      "caminho": "docs/pethub-ia/ALTERACOES-V3.md",
+      "sha256": "98660824d919c4f9827667a30fcb3acef4598b6fcd19dd75035f940ee488d7b2"
+    },
+    {
       "caminho": "docs/pethub-ia/DEPLOY.md",
-      "sha256": "e56110cf9832dc656da60dc49635df58886dca93faee95addc967e38eb8d9b33"
+      "sha256": "62f66c5ee890b629c9adb8512f6327845fe31ea9f1ed733c956faa547ec785f5"
     },
     {
       "caminho": "docs/pethub-ia/FASES.md",
-      "sha256": "70e45a048372473e4b40e4e07391a4c9a640016dd5d63ebbc962be92779f5390"
+      "sha256": "b323a87b51dc6db8529af08443f3af02804a44b8231ea0a34bfc00c51c94f25b"
     },
     {
       "caminho": "docs/pethub-ia/LIMITACOES.md",
@@ -117,11 +131,15 @@
     },
     {
       "caminho": "docs/pethub-ia/TESTES.md",
-      "sha256": "728a6491bfb6a6112b9497cd7f4e92198ce56e8fcf7047e8b46a2e0e7a5caf65"
+      "sha256": "09bc8140de92fae76c4d1736c46c81424cb712bf50fed4daec8cba5cdc8265ed"
+    },
+    {
+      "caminho": "docs/pethub-ia/correcao-coluna-admin.diff",
+      "sha256": "78ef6bb8849b91e5169d0a8a471ac82d57e531fdbd1e7c539ff74f79be80f742"
     },
     {
       "caminho": "docs/pethub-ia/resultado-testes.txt",
-      "sha256": "4e6599d8aa451261d59b28bac8c4b84da54a6106ad992d2303d20c9aa9f4311b"
+      "sha256": "d4bf6d238bb9b5c26162d2bd399ff4dc19203cfc211e82bfae11c51b7051093f"
     },
     {
       "caminho": "docs/pethub-ia/whatsapp-autorizado.diff",
@@ -129,7 +147,7 @@
     },
     {
       "caminho": "frontend/components/pethub-ia/admin.js",
-      "sha256": "ef34e4c5354222fe5a7bd195930edb02f1043dadd990954c9e711fafb8b51817"
+      "sha256": "43a490bf2ad63dc82d2ed6b0875ca67e9e2c37e6b0a8fb396ef0b8564772068f"
     },
     {
       "caminho": "frontend/components/pethub-ia/conversas-ui.js",
@@ -137,7 +155,7 @@
     },
     {
       "caminho": "frontend/components/pethub-ia/estilos.css",
-      "sha256": "5872da7fdf0db2fc590074fa0fa8ee48b12fe35ee6c723bed5931e7d294e1988"
+      "sha256": "4c9659c47f5d6c8d83ec4f6ed39fffbc57a5b43fcf6ef5a012e96fc9af753ff8"
     },
     {
       "caminho": "frontend/components/pethub-ia/financeiro-ui.js",
@@ -149,19 +167,31 @@
     },
     {
       "caminho": "frontend/components/pethub-ia/loader.js",
-      "sha256": "71a47878083199d2da0d2c1bd5e3187590ca821007cdd81ef71e3cbb3a88d1af"
+      "sha256": "e8212129227d0baa37c635909e664dc883355343a7f4b4d5f10788599e28e08b"
     },
     {
       "caminho": "frontend/components/pethub-ia/ui.js",
-      "sha256": "a77f36ffa079b359750d6d84b7b521f1e6c2b37e574e1da25c96fcfc97bae8c8"
+      "sha256": "e31bd3d06453c7ff611df2b80673ed88f75f9ca61ab94c95893deaa08be6b055"
     },
     {
       "caminho": "frontend/configuracoes/pethub-ia.html",
       "sha256": "d68c5ed13ee7de692bf5a0801f19ee0b5d0d496a064f40c64f0e790133b7cf33"
     },
     {
+      "caminho": "frontend/painel-admin/admin-dashboard.html",
+      "sha256": "5c6c45d405f30af472a0e0125f0170c5ba93e7ad3664a36b1c8091b15d4e4b4d"
+    },
+    {
+      "caminho": "frontend/painel-admin/admin-dashboard.js",
+      "sha256": "a92d5a437c03d8f9acf73cae5c5c30092b2cda6179f54fb147cf7e1c3b589742"
+    },
+    {
       "caminho": "tests/helpers/sqlite-caixa.js",
       "sha256": "df32b867e2655d5877b0e01ac065431e9d60319c08875d592c403d35948ad983"
+    },
+    {
+      "caminho": "tests/pethub-ia-admin-coluna.test.cjs",
+      "sha256": "a85c85faa9bfc55746022426a89bfccb3008ec0764e2bd575d53a5cebb208dd4"
     },
     {
       "caminho": "tests/pethub-ia-audio.test.cjs",
@@ -169,7 +199,7 @@
     },
     {
       "caminho": "tests/pethub-ia-ui.test.cjs",
-      "sha256": "ef4d16af99fbbedd4de0475885bf748e1bd6463dc7a5d37cd2145648be6ed0fe"
+      "sha256": "0dd59e9a70108751007075b48cb813bc8fcb15a2c9bb913279671bb6ccdeccea"
     },
     {
       "caminho": "tests/pethub-ia-whatsapp.test.cjs",
@@ -177,17 +207,7 @@
     },
     {
       "caminho": "tests/pethub-ia.test.cjs",
-      "sha256": "5ec21a7bfae3b62538a629045f564b2fbbce4fc868d0ddbc05023d6b9d849cf3"
+      "sha256": "92a997fd90d9dd4e29c0c8e1258899270e568c7ee79fb8cc1b421eb6884ccc88"
     }
-  ],
-  "arquivos_existentes_integrados_na_v1": [
-    "backend/app.js",
-    "backend/services/whatsappService.js",
-    "frontend/painel-admin/admin-dashboard.js",
-    "frontend/novo-atendimento-global.js",
-    "backend/services/pushNotificationService.js",
-    "frontend/mobile/service-worker.js",
-    "package.json"
-  ],
-  "observacao": "Validar OpenAI, TiDB, WhatsApp e dispositivos reais antes de produção. Canal oficial permanece em homologação. Faturas têm origem manual declarada."
+  ]
 }

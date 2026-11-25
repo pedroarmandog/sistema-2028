@@ -95,3 +95,9 @@ Novos serviços: backend/services/pethubIA/conversas.js, financeiro.js e privaci
 Atualizados somente arquivos do novo módulo: serviços index.js, modelos.js, motor.js, ferramentas.js e relatorios.js; backend/routes/pethubIARoutes.js; frontend/configuracoes/pethub-ia.html; componentes admin.js, gestor.js, loader.js e estilos.css; testes e documentação. Nenhuma nova alteração no arquivo de conexão WhatsApp, em seus controllers, filas ou cron.
 
 Migrations: preparar-pethub-ia.js passa a criar pethub_ia_faturas quando ausente. Nenhuma nova coluna nas tabelas existentes. Nenhuma nova variável ou dependência externa.
+
+## Revisão 3 — correção da integração administrativa
+
+Adicionada a coluna no próprio HTML de Dashboard/Empresas e a identificação das linhas no JavaScript original. Loader importado diretamente pelo Admin, com diagnóstico de publicação e sem dependência obrigatória do componente financeiro. Ativar/desativar e gerenciar funcionam nas duas tabelas. Atualização de licença testada pela interface com a API do módulo e banco de laboratório. Scripts corrigir-coluna-pethub-ia-admin.js e integrar-pethub-ia.js aplicam a correção de modo idempotente; há backup antes da escrita.
+
+Sem novas alterações no WhatsApp. Instruções de atualização da v2 publicada na raiz: COMO-PUBLICAR-COLUNA-IA.md.

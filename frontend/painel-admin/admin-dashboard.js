@@ -188,19 +188,24 @@ async function carregarDashboard() {
 
     if (!empresas.length) {
       tbody.innerHTML =
-        '<tr><td colspan="5" style="text-align:center;color:#aaa;padding:30px;">Nenhuma empresa cadastrada</td></tr>';
+        '<tr><td colspan="6" style="text-align:center;color:#aaa;padding:30px;">Nenhuma empresa cadastrada</td></tr>';
       return;
     }
 
     empresas.forEach((emp) => {
       const tr = document.createElement("tr");
-      tr.addEventListener("click", () => abrirModalEmpresa(emp.id));
+      tr.dataset.iaPainel = String(emp.id);
+      tr.addEventListener("click", (e) => {
+        if (e.target.closest(".ia-admin-cell")) return;
+        abrirModalEmpresa(emp.id);
+      });
       tr.innerHTML = `
                 <td><strong>${emp.nome_fantasia}</strong></td>
                 <td>${formatarCnpj(emp.cnpj)}</td>
                 <td><span class="status-badge status-${emp.status}">${emp.status}</span></td>
                 <td>${formatarData(emp.data_vencimento)}</td>
                 <td>${formatarDinheiro(emp.valor_mensalidade)}</td>
+                <td class="ia-admin-cell" data-ia-company-id="${emp.id}"><span>Módulo IA não carregado</span></td>
             `;
       tbody.appendChild(tr);
     });
@@ -242,8 +247,9 @@ async function carregarEmpresas() {
 
     empresas.forEach((emp) => {
       const tr = document.createElement("tr");
+      tr.dataset.iaPainel = String(emp.id);
       tr.addEventListener("click", (e) => {
-        if (e.target.closest(".btn-action")) return;
+        if (e.target.closest(".btn-action, .ia-admin-cell")) return;
         abrirModalEmpresa(emp.id);
       });
 
@@ -260,6 +266,7 @@ async function carregarEmpresas() {
                 <td><span class="status-badge status-${emp.status}">${emp.status}</span></td>
                 <td>${formatarData(emp.data_vencimento)}${vencHoje}</td>
                 <td>${formatarDinheiro(emp.valor_mensalidade)}</td>
+                <td class="ia-admin-cell" data-ia-company-id="${emp.id}"><span>Módulo IA não carregado</span></td>
                 <td>
                   <button class="btn-action impersonar" data-id="${emp.id}" data-nome="${emp.nome_fantasia}" title="Acessar como Admin"><i class="fas fa-user-shield"></i></button>
                   ${emp.status !== "ATIVO" ? `<button class="btn-action reativar" data-id="${emp.id}" title="Reativar"><i class="fas fa-play"></i></button>` : ""}
@@ -891,6 +898,7 @@ document
       const data = await resp.json();
 
       if (resp.ok) {
+        void window.PetHubIAAdmin?.empresaCriada(data);
         showNotification("Empresa e usuário criados com sucesso!", "success");
         document.getElementById("modalNovaEmpresa").classList.remove("show");
         refreshAll();

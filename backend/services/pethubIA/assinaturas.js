@@ -44,7 +44,7 @@ function criar({ ERP, m, agora = () => new Date(), env, statusWhatsApp }) {
       const o={transaction,logging:false};await m.Global.findByPk(1,{...o,lock:transaction.LOCK.UPDATE});
       const [s]=await m.Assinatura.findOrCreate({where:{empresa_id:emp},...o});await s.reload({...o,lock:transaction.LOCK.UPDATE});
       if(s.revisao!==V.inteiro(b.revisao))throw V.falha('Assinatura alterada. Atualize os dados.',409);
-      const p=await m.Plano.findByPk(V.texto(b.plano_id,64,true),o);if(!p?.ativo)throw V.falha('Plano indisponível.');
+      const p=await m.Plano.findByPk(V.texto(b.plano_id,64,true),o);if(!p||(!p.ativo&&(b.estado==='ativo'||s.plano_id!==p.id)))throw V.falha('Plano indisponível.');
       const snapshot=b.personalizado?contrato(b.personalizado):s.plano_id===p.id&&V.json(s.contrato).nome?V.json(s.contrato):contrato(Object.fromEntries(['nome','mensalidade_centavos','respostas','tokens','audios_segundos','teto_micros','modelos','funcionalidades'].map(k=>[k,p[k]])));
       const aplicarNovosLimites=!!b.personalizado||s.plano_id!==p.id;
       const inicio=new Date(b.inicio),vencimento=new Date(b.vencimento);

@@ -1,7 +1,7 @@
 'use strict';
 const fs=require('node:fs'),path=require('node:path');
 function integrar(root=path.resolve(__dirname,'../..')){
- const files=['backend/app.js','frontend/painel-admin/admin-dashboard.js','frontend/novo-atendimento-global.js','package.json','backend/services/pushNotificationService.js','frontend/mobile/service-worker.js'];const texts=Object.fromEntries(files.map(f=>[f,fs.readFileSync(path.join(root,f),'utf8')]));
+ const files=['backend/app.js','frontend/painel-admin/admin-dashboard.js','frontend/novo-atendimento-global.js','package.json','backend/services/pushNotificationService.js','frontend/mobile/service-worker.js','frontend/painel-admin/admin-dashboard.html'];const texts=Object.fromEntries(files.map(f=>[f,fs.readFileSync(path.join(root,f),'utf8')]));
  let app=texts['backend/app.js'];
  if(!app.includes('/* PETHUB_IA_INTEGRACAO */')){
   const parser='app.use(bodyParser.json(';if(!app.includes(parser)||!app.includes('app.use(cookieParser());')||!app.includes('const tagsToInject = [];'))throw Error('app.js fora do formato reconhecido. Nenhum arquivo foi alterado.');
@@ -22,6 +22,7 @@ process.once('SIGTERM',()=>pethubIA.parar());
   app=app.replace('allowedHeaders: [','allowedHeaders: [\n      "X-PetHub-IA",');
  }
  texts['backend/app.js']=app;
+ const coluna=require('./corrigir-coluna-pethub-ia-admin').preparar({html:texts['frontend/painel-admin/admin-dashboard.html'],js:texts['frontend/painel-admin/admin-dashboard.js']});texts['frontend/painel-admin/admin-dashboard.html']=coluna.html;texts['frontend/painel-admin/admin-dashboard.js']=coluna.js;
  let admin=texts['frontend/painel-admin/admin-dashboard.js'];if(!admin.includes('PetHubIAAdmin?.empresaCriada')){const needle='showNotification("Empresa e usuário criados com sucesso!", "success");';if(!admin.includes(needle))throw Error('Fluxo administrativo não reconhecido. Nenhum arquivo foi alterado.');admin=admin.replace(needle,'void window.PetHubIAAdmin?.empresaCriada(data);\n        '+needle);}admin=admin.replace('await window.PetHubIAAdmin?.empresaCriada(data);','void window.PetHubIAAdmin?.empresaCriada(data);');texts['frontend/painel-admin/admin-dashboard.js']=admin;
  let agenda=texts['frontend/novo-atendimento-global.js'];agenda=agenda.replaceAll('${window.taxidogIcone(agendamento)}</strong>','${window.taxidogIcone(agendamento)}${window.pethubIAIcone?.(agendamento)||""}</strong>');texts['frontend/novo-atendimento-global.js']=agenda;
  const pkg=JSON.parse(texts['package.json']);pkg.dependencies={...pkg.dependencies,openai:pkg.dependencies?.openai||'7.64.0',ajv:pkg.dependencies?.ajv||'8.20.0'};texts['package.json']=JSON.stringify(pkg,null,2)+'\n';

@@ -1,0 +1,83 @@
+--- a/frontend/painel-admin/admin-dashboard.html
++++ b/frontend/painel-admin/admin-dashboard.html
+@@ -11,6 +11,7 @@
+       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+     />
+     <link rel="stylesheet" href="admin-dashboard.css" />
++  <link rel="stylesheet" href="/components/pethub-ia/estilos.css?v=3" data-ia-css="1">
+   </head>
+   <body>
+     <!-- Top Bar -->
+@@ -123,6 +124,7 @@
+                   <th>Status</th>
+                   <th>Vencimento</th>
+                   <th>Mensalidade</th>
++                  <th data-ia-column="1">PetHub IA</th>
+                 </tr>
+               </thead>
+               <tbody id="dashTableBody"></tbody>
+@@ -170,6 +172,7 @@
+                 <th>Status</th>
+                 <th>Vencimento</th>
+                 <th>Mensalidade</th>
++                <th data-ia-column="1">PetHub IA</th>
+                 <th>Ações</th>
+               </tr>
+             </thead>
+@@ -883,6 +886,7 @@
+     </div>
+ 
+     <script src="/api-config.js"></script>
+-    <script src="admin-dashboard.js"></script>
++    <script src="admin-dashboard.js?v=20261125-ia-coluna3"></script>
++  <script defer src="/components/pethub-ia/loader.js?v=3" data-pethub-ia-admin="1"></script>
+   </body>
+ </html>
+--- a/frontend/painel-admin/admin-dashboard.js
++++ b/frontend/painel-admin/admin-dashboard.js
+@@ -188,19 +188,24 @@
+ 
+     if (!empresas.length) {
+       tbody.innerHTML =
+-        '<tr><td colspan="5" style="text-align:center;color:#aaa;padding:30px;">Nenhuma empresa cadastrada</td></tr>';
++        '<tr><td colspan="6" style="text-align:center;color:#aaa;padding:30px;">Nenhuma empresa cadastrada</td></tr>';
+       return;
+     }
+ 
+     empresas.forEach((emp) => {
+       const tr = document.createElement("tr");
+-      tr.addEventListener("click", () => abrirModalEmpresa(emp.id));
++      tr.dataset.iaPainel = String(emp.id);
++      tr.addEventListener("click", (e) => {
++        if (e.target.closest(".ia-admin-cell")) return;
++        abrirModalEmpresa(emp.id);
++      });
+       tr.innerHTML = `
+                 <td><strong>${emp.nome_fantasia}</strong></td>
+                 <td>${formatarCnpj(emp.cnpj)}</td>
+                 <td><span class="status-badge status-${emp.status}">${emp.status}</span></td>
+                 <td>${formatarData(emp.data_vencimento)}</td>
+                 <td>${formatarDinheiro(emp.valor_mensalidade)}</td>
++                <td class="ia-admin-cell" data-ia-company-id="${emp.id}"><span>Módulo IA não carregado</span></td>
+             `;
+       tbody.appendChild(tr);
+     });
+@@ -242,8 +247,9 @@
+ 
+     empresas.forEach((emp) => {
+       const tr = document.createElement("tr");
++      tr.dataset.iaPainel = String(emp.id);
+       tr.addEventListener("click", (e) => {
+-        if (e.target.closest(".btn-action")) return;
++        if (e.target.closest(".btn-action, .ia-admin-cell")) return;
+         abrirModalEmpresa(emp.id);
+       });
+ 
+@@ -260,6 +266,7 @@
+                 <td><span class="status-badge status-${emp.status}">${emp.status}</span></td>
+                 <td>${formatarData(emp.data_vencimento)}${vencHoje}</td>
+                 <td>${formatarDinheiro(emp.valor_mensalidade)}</td>
++                <td class="ia-admin-cell" data-ia-company-id="${emp.id}"><span>Módulo IA não carregado</span></td>
+                 <td>
+                   <button class="btn-action impersonar" data-id="${emp.id}" data-nome="${emp.nome_fantasia}" title="Acessar como Admin"><i class="fas fa-user-shield"></i></button>
+                   ${emp.status !== "ATIVO" ? `<button class="btn-action reativar" data-id="${emp.id}" title="Reativar"><i class="fas fa-play"></i></button>` : ""}

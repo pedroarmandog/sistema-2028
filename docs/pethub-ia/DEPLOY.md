@@ -1,5 +1,9 @@
 # Configuração e implantação
 
+## Correção da coluna — v3
+
+Para atualizar uma v2 já publicada, siga COMO-PUBLICAR-COLUNA-IA.md da raiz. Há importação direta no HTML do Admin e controles nas duas tabelas. Não há nova migration/dependência/variável nesta correção. O corretor isolado de frontend faz backup e não depende do hash do WhatsApp.
+
 ## Preservação da instalação atual
 
 Não trocar a biblioteca, variáveis, chaves, banco de autenticação ou rotinas de restauração do WhatsApp. O integrador mantém as dependências já existentes e acrescenta somente `openai@7.64.0` e `ajv@8.20.0`. Não substitua seu package.json/package-lock por arquivos antigos do projeto usado para desenvolvimento.
@@ -10,7 +14,8 @@ O integrador modifica os seguintes pontos:
 | --- | --- |
 | backend/app.js | Instancia módulo isolado, monta webhook bruto antes do parser JSON, API autenticada e página protegida; injeta loader; registra parada apenas do worker IA; acrescenta cabeçalho CORS. |
 | backend/services/whatsappService.js | Somente recebimento passivo `messages.upsert` e quinto argumento opcional de autorização/ID do envio IA. |
-| frontend/painel-admin/admin-dashboard.js | Callback opcional após criação bem-sucedida de empresa; não bloqueia o fluxo existente. |
+| frontend/painel-admin/admin-dashboard.js | Identifica a empresa/célula nas duas tabelas; mantém cliques existentes e callback opcional de criação sem bloquear o fluxo. |
+| frontend/painel-admin/admin-dashboard.html | Coluna estática nas duas tabelas e importação direta do carregador/CSS, independentemente da injeção do backend. |
 | frontend/novo-atendimento-global.js | Ícone de origem ao lado do nome do pet, baseado em metadado de agendamento. |
 | backend/services/pushNotificationService.js | Novo tipo de notificação `pethub_ia`; payloads existentes preservados. |
 | frontend/mobile/service-worker.js | Destino do novo tipo de notificação para a página responsiva de IA. |

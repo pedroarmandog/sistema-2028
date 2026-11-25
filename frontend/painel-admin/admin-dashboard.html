@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="pt-BR">
   <head>
+    <script src="/components/feature-flags.js?v=20261121-midia1"></script>
+    <script src="/components/produto-imagens.js?v=20261121-midia1"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Painel de Controle - PetHub</title>
@@ -9,6 +11,7 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
     <link rel="stylesheet" href="admin-dashboard.css" />
+  <link rel="stylesheet" href="/components/pethub-ia/estilos.css?v=3" data-ia-css="1">
   </head>
   <body>
     <!-- Top Bar -->
@@ -121,6 +124,7 @@
                   <th>Status</th>
                   <th>Vencimento</th>
                   <th>Mensalidade</th>
+                  <th data-ia-column="1">PetHub IA</th>
                 </tr>
               </thead>
               <tbody id="dashTableBody"></tbody>
@@ -168,6 +172,7 @@
                 <th>Status</th>
                 <th>Vencimento</th>
                 <th>Mensalidade</th>
+                <th data-ia-column="1">PetHub IA</th>
                 <th>Ações</th>
               </tr>
             </thead>
@@ -881,6 +886,7 @@
     </div>
 
     <script src="/api-config.js"></script>
-    <script src="admin-dashboard.js"></script>
+    <script src="admin-dashboard.js?v=20261125-ia-coluna3"></script>
+  <script defer src="/components/pethub-ia/loader.js?v=3" data-pethub-ia-admin="1"></script>
   </body>
 </html>

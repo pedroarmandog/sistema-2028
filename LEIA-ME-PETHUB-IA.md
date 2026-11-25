@@ -1,6 +1,8 @@
 # PetHub IA — Recepcionista Inteligente
 
-Versão 2 de homologação, 25/11/2026. Código implementado e testes locais realizados; **não publicado nem ativado em produção**. A validação externa e algumas funcionalidades avançadas estão pendentes. Não tratar esta entrega como liberação comercial concluída.
+Versão 3 de homologação, 25/11/2026. Código implementado e testes locais realizados; **não publicado nem ativado em produção**. A validação externa e algumas funcionalidades avançadas estão pendentes. Não tratar esta entrega como liberação comercial concluída.
+
+**Correção da coluna no Admin:** leia primeiro [COMO-PUBLICAR-COLUNA-IA.md](COMO-PUBLICAR-COLUNA-IA.md). O pacote inclui agora o HTML e o JavaScript completos do painel com coluna e importações diretas.
 
 ## O que está incluído
 
@@ -18,7 +20,7 @@ Veja [ALTERACOES-V2.md](docs/pethub-ia/ALTERACOES-V2.md) para as novidades e atu
 
 ## Instalação
 
-Este pacote contém arquivos novos e um integrador para as alterações pontuais. **Não contém versões completas de app.js, whatsappService.js ou package.json para sobrepor sua versão atual.**
+Este pacote contém arquivos novos e um integrador para as alterações pontuais. **Não contém versões completas de app.js, whatsappService.js ou package.json para sobrepor sua versão atual. Inclui o HTML/JS do Admin corrigidos; se houver personalizações adicionais, utilize o corretor com backup em vez de sobrepô-los.**
 
 1. Copie os diretórios `backend/`, `frontend/`, `tests/`, `docs/`, o exemplo de ambiente e este documento para a raiz do projeto existente.
 2. Execute `node backend/scripts/integrar-pethub-ia.js`. Ele valida os pontos de integração, confere o hash da versão autorizada do WhatsApp e salva os arquivos que vai modificar em `backups/pethub-ia-<data>/` antes de escrever. Se a sua versão divergir, ele recusa aplicar todas as alterações; revise o conflito, sem substituir o WhatsApp por outra versão.
