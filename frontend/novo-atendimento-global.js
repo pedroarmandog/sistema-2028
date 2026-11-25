@@ -1349,7 +1349,7 @@ function adicionarAgendamentoAoDOM(agendamento) {
                 <div class="agendamento-columns">
                     <div class="agendamento-horario">${escapeHtmlUnsafe(agendamento.horario || "")}</div>
                     <div class="agendamento-pet-cliente">
-                        <strong>${escapeHtmlUnsafe(agendamento.petNome || "")}${window.taxidogIcone(agendamento)}</strong><br>
+                        <strong>${escapeHtmlUnsafe(agendamento.petNome || "")}${window.taxidogIcone(agendamento)}${window.pethubIAIcone?.(agendamento)||""}</strong><br>
                         <small>${escapeHtmlUnsafe(agendamento.clienteNome || "")}</small>
                     </div>
                     <div class="agendamento-detalhes">${escapeHtmlUnsafe(agendamento.servico || "")}</div>
@@ -1481,7 +1481,7 @@ function carregarAgendamentosPersistidos() {
                         <div class="agendamento-columns">
                             <div class="agendamento-horario">${agendamento.horario}</div>
                             <div class="agendamento-pet-cliente">
-                                <strong>${agendamento.petNome}${window.taxidogIcone(agendamento)}</strong><br>
+                                <strong>${agendamento.petNome}${window.taxidogIcone(agendamento)}${window.pethubIAIcone?.(agendamento)||""}</strong><br>
                                 <small>${agendamento.clienteNome}</small>
                             </div>
                             <div class="agendamento-detalhes">${agendamento.servico}</div>

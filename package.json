@@ -40,7 +40,9 @@
     "stimulsoft-reports-js": "^2025.4.2",
     "web-push": "^3.6.7",
     "xlsx": "^0.18.5",
-    "xml2js": "^0.6.2"
+    "xml2js": "^0.6.2",
+    "openai": "7.64.0",
+    "ajv": "8.20.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",

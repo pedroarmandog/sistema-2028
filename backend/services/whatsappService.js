@@ -189,6 +189,13 @@ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.
         markOnlineOnConnect: false, browser: lib.Browsers.macOS('Desktop'), shouldSyncHistoryMessage: () => false });
       s.socket = socket;
       const desteSocket = () => atual(s) && s.socket === socket;
+      // Integração complementar: falhas da IA não propagam para a sessão.
+      socket.ev.on('messages.upsert', evento => {
+        if (!desteSocket() || evento.type !== 'notify' || process.env.PETHUB_IA_ALLOW_LIVE !== 'true') return;
+        for (const mensagem of (evento.messages || []).slice(0, 20)) {
+          Promise.resolve().then(() => require('./pethubIA').instancia().entradaBaileys(s.empresaId, s.id, mensagem, lib)).catch(() => {});
+        }
+      });
       socket.ev.on('creds.update', dados => {
         if (!desteSocket()) return;
         Object.assign(s.auth.creds, dados);
@@ -435,7 +442,7 @@ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.
   }
   const isConectado = id => obterStatus(id).status === 'conectado';
   const indisponivel = () => ({ sucesso: false, temporario: true, erro: 'WhatsApp não está conectado. Conecte em Marketing → WhatsApp.' });
-  async function enviarMensagem(id, telefone, texto, arquivo) {
+  async function enviarMensagem(id, telefone, texto, arquivo, opcoesIA = {}) {
     const s = sessoes.get(String(id));
     if (s?.status !== 'conectado') return indisponivel();
     const socket = s.socket;
@@ -471,8 +478,12 @@ function criarServico({ repositorio, carregar = importBaileys, gerarQR = QRCode.
       catch { return {sucesso:false,temporario:true,erro:'Não foi possível verificar as preferências de comunicação. Envio preservado.'}; }
       if (!permissao.permitido) return {sucesso:false,bloqueado:true,ignorado:true,erro:permissao.erro};
       if (!isConectado(id) || sessoes.get(String(id))?.socket !== socket) return indisponivel();
+      // Parâmetro opcional apenas para IA. Disparos e lembretes usam o caminho original.
+      if (typeof opcoesIA.autorizar === 'function') await opcoesIA.autorizar();
       envioIniciado = true;
-      const resultado = await socket.sendMessage(destino, conteudo);
+      const resultado = opcoesIA.mensagemId
+        ? await socket.sendMessage(destino, conteudo, { messageId: opcoesIA.mensagemId })
+        : await socket.sendMessage(destino, conteudo);
       return resultado?.key?.id ? { sucesso: true, mensagemId: resultado.key.id }
         : { sucesso: false, incerto: true, erro: 'WhatsApp não confirmou o envio. Confira antes de reenviar.' };
     } catch {

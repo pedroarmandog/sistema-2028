@@ -54,6 +54,7 @@ app.use(
     },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: [
+      "X-PetHub-IA",
       "Content-Type",
       "Authorization",
       "X-Requested-With",
@@ -65,9 +66,19 @@ app.use(
 );
 // O app.use(cors(...)) acima já responde automaticamente aos preflights OPTIONS.
 
+/* PETHUB_IA_INTEGRACAO */
+const pethubIA=require('./services/pethubIA').instancia();
+// Corpo bruto exclusivamente neste webhook; assinatura verificada antes de interpretar JSON.
+app.use('/api/pethub-ia/webhook',require('./routes/pethubIARoutes').criarWebhook(pethubIA));
 app.use(bodyParser.json({ limit: "12mb" })); // aumentar limite para aceitar logos grandes
 app.use(bodyParser.urlencoded({ limit: "10mb", extended: true }));
 app.use(cookieParser());
+app.use('/api/pethub-ia',require('./routes/pethubIARoutes').criarRotas(pethubIA,{authUser,authAdmin:require('./middleware/authAdmin').authAdmin}));
+app.get('/configuracoes/pethub-ia.html',authUser,async(req,res)=>{try{await pethubIA.permitidoGestor(req);await pethubIA.assinaturas.estado(req.user.empresaId);res.sendFile(require('node:path').resolve(__dirname,'../frontend/configuracoes/pethub-ia.html'));}catch(e){res.status(e.status||503).type('text/plain').send(e.status===403?'PetHub IA não está liberado para esta empresa.':'PetHub IA indisponível.');}});
+// Só o worker da IA é iniciado; não inicia ou substitui sessões WhatsApp.
+pethubIA.iniciar();
+process.once('SIGTERM',()=>pethubIA.parar());
+
 app.use("/uploads", require("./routes/midiasRoutes").leitor()); // objetos persistentes; privados exigem autenticação
 app.use("/logos", express.static(path.join(__dirname, "../logos"))); // logos SVG do sistema
 app.use(
@@ -111,6 +122,7 @@ app.use((req, res, next) => {
     // que interfere com o MobileApi e causa redirect loops.
     const isMobile = req.path.startsWith("/mobile/");
     const tagsToInject = [];
+    if ((req.path==='/painel-admin/admin-dashboard.html'||(!/^\/(cliente-app|mobile|comunidade|painel-admin|login)\//.test(req.path)))&&!html.includes('/components/pethub-ia/loader.js')) tagsToInject.push('<script defer src="/components/pethub-ia/loader.js?v=1"></script>');
     if (!req.path.includes('/login/') && !req.path.includes('/painel-admin/') && !req.path.includes('/base-conhecimento/')) tagsToInject.push('<script defer src="/components/cliente-portal-widget.js"></script>');
     // Paleta disponível desde o head nas telas autenticadas do ERP.
     if (!isMobile && !req.path.includes('/login/') && !req.path.includes('/painel-admin/') && !html.includes('tema-bootstrap.js')) {

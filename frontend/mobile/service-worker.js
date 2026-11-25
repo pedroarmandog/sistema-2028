@@ -185,7 +185,7 @@ self.addEventListener("notificationclick", (event) => {
 
   const data = event.notification.data || {};
   const targetPage = data.page || "dashboard";
-  const targetUrl = `/mobile/app.html?page=${targetPage}`;
+  const targetUrl = targetPage === "pethub-ia" ? "/configuracoes/pethub-ia.html" : `/mobile/app.html?page=${targetPage}`;
 
   console.log("[SW]    Navegando para:", targetUrl);
 

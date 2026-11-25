@@ -81,6 +81,7 @@ function formatarHorarioBrasilia(data, comSegundos = true) {
 
 // ── Payloads por evento ───────────────────────────────────
 const PAYLOADS = {
+  pethub_ia: dados => ({title:'PetHub IA',body:dados.tipo==='franquia'?'Sua franquia atingiu '+dados.percentual+'%.':dados.tipo==='humano'?'Um atendimento aguarda a equipe.':dados.tipo==='erro'?'Uma integração da IA precisa de atenção.':'Há uma atualização da recepcionista.',tag:'pethub_ia-'+(dados.conversaId||dados.tipo),data:{page:'pethub-ia',url:'/configuracoes/pethub-ia.html'}}),
   solicitacao_app: dados => ({title:'PetHub Cliente',body:'Uma solicitação do aplicativo aguarda a equipe.',tag:'solicitacao_app-'+dados.eventoId,data:{page:'solicitacoes'}}),
   novo_agendamento: (dados) => ({
     title: "📅 Novo Agendamento",
