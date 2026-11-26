@@ -103,7 +103,7 @@ function criarRotas(tipo) {
         const w = new Worker(
           path.resolve(__dirname, "../services/importacao/arquivo-worker.js"),
           {
-            workerData: { bytes: req.file.buffer, ext, aba: req.body.aba, maxLinhas:Math.max(1,Math.min(10000,parseInt(process.env.IMPORTACAO_MAX_LINHAS,10)||2500)) },
+            workerData: { bytes: req.file.buffer, ext, tipo, aba: req.body.aba, maxLinhas:Math.max(1,Math.min(10000,parseInt(process.env.IMPORTACAO_MAX_LINHAS,10)||2500)) },
             resourceLimits: { maxOldGenerationSizeMb: 96 },
           },
         );

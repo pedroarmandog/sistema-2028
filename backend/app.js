@@ -79,9 +79,7 @@ pethubIA.iniciar();
 process.once('SIGTERM',()=>pethubIA.parar());
 
 // Progresso isolado por usuário/empresa; observação não modifica operações do ERP.
-const onboarding=require('./services/onboarding').instancia();
-app.use('/api/onboarding',require('./routes/onboardingRoutes').criarRotas(onboarding,authUser));
-app.use('/api',onboarding.observar);
+const onboardingRuntime=require('./services/onboardingOpcional').instalar(app,{authUser,raiz:__dirname});
 
 app.use("/uploads", require("./routes/midiasRoutes").leitor()); // objetos persistentes; privados exigem autenticação
 app.use("/logos", express.static(path.join(__dirname, "../logos"))); // logos SVG do sistema
@@ -127,8 +125,8 @@ app.use((req, res, next) => {
     const isMobile = req.path.startsWith("/mobile/");
     const tagsToInject = [];
     if ((req.path==='/painel-admin/admin-dashboard.html'||(!/^\/(cliente-app|mobile|comunidade|painel-admin|login)\//.test(req.path)))&&!html.includes('/components/pethub-ia/loader.js')) tagsToInject.push('<script defer src="/components/pethub-ia/loader.js?v=1"></script>');
-    const guia=require('./services/onboarding/injecao');
-    if(guia.permitida(req.path)&&!html.includes('/components/onboarding/loader.js'))tagsToInject.push(guia.tag);
+    const guia=onboardingRuntime.guia;
+    if(guia&&guia.permitida(req.path)&&!html.includes('/components/onboarding/loader.js'))tagsToInject.push(guia.tag);
 
     if (!req.path.includes('/login/') && !req.path.includes('/painel-admin/') && !req.path.includes('/base-conhecimento/')) tagsToInject.push('<script defer src="/components/cliente-portal-widget.js"></script>');
     // Paleta disponível desde o head nas telas autenticadas do ERP.

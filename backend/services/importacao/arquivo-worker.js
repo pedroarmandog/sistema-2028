@@ -53,6 +53,20 @@ try {
   if (!linhas.length) throw new Error("Arquivo vazio.");
   const cabecalho = linhas.shift().map(String);
   if (!cabecalho.length) throw new Error("Cabeçalho ausente.");
+  // Produtos: ler os números originais, sem transformar o formato visual
+  // (R$, milhares, cores) em conteúdo. Clientes/pets e identificadores não mudam.
+  if (workerData.tipo === "produtos") {
+    const { sugerir } = require("./campos");
+    const numericos = new Set(["preco", "custoBase", "estoqueAtual", "estoqueMinimo", "estoqueIdeal", "peso", "aliq_icms", "aliq_pis", "aliq_cofins", "aliq_ipi"]);
+    for (let c = 0; c < cabecalho.length; c++) {
+      if (!numericos.has(sugerir("produtos", cabecalho[c]))) continue;
+      for (let r = 0; r < linhas.length; r++) {
+        const cell = sheet[XLSX.utils.encode_cell({ r: ref.s.r + 1 + r, c: ref.s.c + c })];
+        if (cell?.t === "n" && Number.isFinite(cell.v)) linhas[r][c] = String(cell.v);
+      }
+    }
+  }
+
   parentPort.postMessage({ cabecalho, linhas, abas: nomes, aba });
 } catch (e) {
   parentPort.postMessage({ erro: e.message });

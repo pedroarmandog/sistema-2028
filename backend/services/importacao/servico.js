@@ -86,7 +86,8 @@ function converter(tipo, raw) {
       if(k === "custoBase" && !Object.hasOwn(dados,k) && Q.kg(dados)) { dados[k]=null; continue; }
       if (!Object.hasOwn(dados, k))
         falhar("Informe " + (k === "custoBase" ? "custo" : "venda") + ".");
-      dados[k] = moeda(dados[k]);
+      try { dados[k] = moeda(dados[k]); }
+      catch (e) { falhar((k === "custoBase" ? "Custo" : "Venda") + ': valor monetário inválido (' + JSON.stringify(String(dados[k]).slice(0,60)) + '). Confira o valor e o mapeamento dessa coluna.'); }
     }
   }
   for (const k of [
