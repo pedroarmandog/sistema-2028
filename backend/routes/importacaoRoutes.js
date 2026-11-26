@@ -68,6 +68,7 @@ function criarRotas(tipo) {
     try {
       await banco.preparar();
       res.json({
+        ...(tipo === "produtos" ? { versaoImportador: "produtos-flex-v2" } : {}),
         campos: campos(tipo),
         limites:{linhas:Math.max(1,Math.min(10000,parseInt(process.env.IMPORTACAO_MAX_LINHAS,10)||2500)),megabytes:5},
         centros:
@@ -128,7 +129,7 @@ function criarRotas(tipo) {
       });
       let mapa = req.body.mapeamento
         ? JSON.parse(req.body.mapeamento)
-        : arquivo.cabecalho.map((c) => sugerir(tipo, c));
+        : arquivo.cabecalho.map((c) => sugerir(tipo, c) || (tipo === "produtos" ? "ignorar" : ""));
       if (!Array.isArray(mapa) || mapa.length !== arquivo.cabecalho.length)
         throw new Error("Mapeamento inválido.");
       if (mapa.some((v) => !v))

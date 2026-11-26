@@ -532,7 +532,7 @@
         "p",
         tipo !== "produtos"
           ? "Importe sua planilha com as colunas em qualquer ordem. Nome é obrigatório."
-          : "Nome e venda são obrigatórios. Custo também é obrigatório, exceto para KG quando não informado. Confira os centros antes de salvar.",
+          : "Nome é obrigatório. Campos opcionais ausentes não impedem a importação: venda sem valor fica zero; custo não informado fica vazio. Confira os valores antes de salvar.",
       ),
     );
     const download = el("a", "Baixar Modelo CSV");

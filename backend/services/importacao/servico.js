@@ -64,6 +64,7 @@ async function centrosDaEmpresa(empresa, transaction) {
   return centros.sort((a,b) => a.descricao.localeCompare(b.descricao, "pt-BR"));
 }
 function converter(tipo, raw) {
+  if (tipo === "produtos") return require("./produtoFlexivel").converter(raw, modelos.produtos);
   const dados = {};
   for (const [k, v] of Object.entries(raw)) {
     if (!Object.hasOwn(campos(tipo), k)) continue;
@@ -247,6 +248,10 @@ async function analisar(
           "Identificadores apontam para registros diferentes. Revise a planilha.",
         );
       if (ids.length === 1) {
+        if (tipo === "produtos" && require("./produtoFlexivel").falta(raw.centroResultado) && matches[0].centroResultado) {
+          dados.centroResultado = matches[0].centroResultado;
+          linha.classificacao = "Centro atual preservado";
+        }
         linha.existente = ids[0];
         linha.versao = matches[0].updatedAt?.toISOString();
         linha.aviso = "Identificador já cadastrado nesta empresa.";
@@ -402,6 +407,7 @@ async function confirmar(tipo, empresa, usuario, token, escolhas) {
         }
         if (tipo === "produtos")
           Object.assign(dados, { id: crypto.randomUUID(), tipo: dados.tipo || "produto", ...(Q.kg(dados)&&dados.estoqueAtual==null?{estoqueAtual:null}:{}) });
+        if (tipo === "produtos") Object.assign(dados, require("./produtoFlexivel").defaults(dados));
         registro = await modelo.create(dados, { transaction });
         atuais.push(registro);
         criados++;
