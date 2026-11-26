@@ -247,7 +247,9 @@ app.use("/api/disparador", authUser, disparadorRoutes);
 // Instâncias de WhatsApp por empresa
 app.use("/api/instancias", authUser, instanciaRoutes);
 // Movimentações manuais: uma transação para documento, saldo e histórico.
-app.use("/api", authUser, require("./routes/movimentacoesEstoqueRoutes").criarRotas(require("./models")));
+/* GRANEL_AUTH_ESCOPO_V2 */
+app.use(["/api/entrada/manual", "/api/saida/manual"], authUser);
+app.use("/api", require("./routes/movimentacoesEstoqueRoutes").criarRotas(require("./models")));
 // Integrar módulo Entrada de Mercadoria (Prisma + TypeScript)
 // entrada-mercadoria (compiled router)
 try {
