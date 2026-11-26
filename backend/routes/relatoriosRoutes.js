@@ -46,6 +46,7 @@ async function gerarDadosFaturamento(filters = {}, req) {
   const empresaObj = await obterEmpresaDoRequest(req);
   if (!empresaObj || !empresaObj.id) return [];
   where.empresa_id = empresaObj.id;
+  where[Op.or]=[{status:{[Op.ne]:"cancelado"}},{status:null}];
 
   // Processar vendas em batches para evitar findAll massivo
   const mapa = new Map();
@@ -100,6 +101,7 @@ async function gerarDadosFaturamento(filters = {}, req) {
           qtd_venda: 0,
           qtd_vendida: 0,
           total_venda: 0,
+          custoSnapshot:0, custoSnapshotCompleto:true, temSnapshot:true, unidade:it.unidade||prodObj.unidade||null,
         };
 
         const qtd = Number(it.quantidade || it.qtd || it.qtd_venda || 1) || 0;
@@ -128,7 +130,9 @@ async function gerarDadosFaturamento(filters = {}, req) {
         } catch (pe) {
           preco = Number(precoRaw) || 0;
         }
-        entry.total_venda += preco * qtd;
+        const calc=require('../../frontend/components/venda-calculos');
+        entry.total_venda = (calc.centavos(entry.total_venda)+calc.centavos(it.totalFinal ?? it.total ?? calc.calcularItem(qtd,preco,it.desconto||0).totalFinal))/100;
+        if(Object.hasOwn(prodObj,'custoBase')) {if(prodObj.custoBase==null)entry.custoSnapshotCompleto=false;else entry.custoSnapshot=(calc.centavos(entry.custoSnapshot)+calc.multiplicar(calc.centavos(prodObj.custoBase),qtd))/100;}else entry.temSnapshot=false;
         mapa.set(key, entry);
       }
     }
@@ -147,6 +151,7 @@ async function gerarDadosFaturamento(filters = {}, req) {
       "preco",
       "tipo",
       "perfilComissao",
+      "unidade",
     ],
   });
   const normalizeStr = (s) =>
@@ -194,10 +199,13 @@ async function gerarDadosFaturamento(filters = {}, req) {
       total_venda = Number((Number(prod.preco) * qtdVendida).toFixed(2));
     }
 
-    const total_lucro = Number((total_venda - total_custo).toFixed(2));
-    const margem = total_venda
+    const custoInformado=v.temSnapshot?v.custoSnapshotCompleto:prod?.custoBase!=null;
+    if(v.temSnapshot)total_custo=v.custoSnapshot;
+    if(!custoInformado)total_custo=null;
+    const total_lucro = custoInformado?Number((total_venda - total_custo).toFixed(2)):null;
+    const margem = custoInformado && total_venda
       ? Number(((total_lucro / total_venda) * 100).toFixed(2))
-      : 0;
+      : custoInformado?0:null;
 
     resultado.push({
       codigo:
@@ -207,6 +215,8 @@ async function gerarDadosFaturamento(filters = {}, req) {
         (prod && prod.id) ||
         "",
       produto: prod || v.nome || v.sample || v.produto || "",
+      unidade:v.unidade||prod?.unidade||"UN",
+      custoInformado,
       qtd_venda: v.qtd_venda,
       qtd_vendida: v.qtd_vendida,
       custo_unit: custoUnit,
@@ -391,10 +401,10 @@ router.get("/venda-no-periodo/pdf", async (req, res) => {
           typeof p.produto === "object"
             ? p.produto.nome || p.produto.produto || String(p.produto.id || "")
             : String(p.produto);
-      const qtdVendidaVal = String(p.qtd_vendida || 0);
-      const totalCustoVal = fmtCurrency(p.total_custo || 0);
+      const qtdVendidaVal = Number(p.qtd_vendida || 0).toLocaleString("pt-BR",{maximumFractionDigits:3})+" "+(p.unidade||p.produto?.unidade||"UN");
+      const totalCustoVal = p.custoInformado===false?"Não informado":fmtCurrency(p.total_custo || 0);
       const totalVendaVal = fmtCurrency(p.total_venda || 0);
-      const totalLucroVal = fmtCurrency(p.total_lucro || 0);
+      const totalLucroVal = p.custoInformado===false?"Não informado":fmtCurrency(p.total_lucro || 0);
 
       const cellValues = [
         codigoVal,
@@ -468,9 +478,9 @@ router.get("/venda-no-periodo/pdf", async (req, res) => {
     x += prodW;
     const totals = [
       String(sumQtdVendida),
-      fmtCurrency(sumTotalCusto),
+      dataProdutos.some(p=>p.custoInformado===false)?"Incompleto":fmtCurrency(sumTotalCusto),
       fmtCurrency(sumTotalVenda),
-      fmtCurrency(sumTotalLucro),
+      dataProdutos.some(p=>p.custoInformado===false)?"Incompleto":fmtCurrency(sumTotalLucro),
     ];
     for (let c = 0; c < totals.length; c++) {
       const w = 70;
@@ -658,10 +668,10 @@ router.post("/faturamento/pdf", async (req, res) => {
           typeof p.produto === "object"
             ? p.produto.nome || p.produto.produto || String(p.produto.id || "")
             : String(p.produto);
-      const qtdVendidaVal = String(p.qtd_vendida || 0);
-      const totalCustoVal = fmtCurrency(p.total_custo || 0);
+      const qtdVendidaVal = Number(p.qtd_vendida || 0).toLocaleString("pt-BR",{maximumFractionDigits:3})+" "+(p.unidade||p.produto?.unidade||"UN");
+      const totalCustoVal = p.custoInformado===false?"Não informado":fmtCurrency(p.total_custo || 0);
       const totalVendaVal = fmtCurrency(p.total_venda || 0);
-      const totalLucroVal = fmtCurrency(p.total_lucro || 0);
+      const totalLucroVal = p.custoInformado===false?"Não informado":fmtCurrency(p.total_lucro || 0);
 
       const cellValues = [
         codigoVal,
@@ -733,9 +743,9 @@ router.post("/faturamento/pdf", async (req, res) => {
     x += colWidths[1];
     const totals = [
       String(sumQtdVendida),
-      fmtCurrency(sumTotalCusto),
+      dataProdutos.some(p=>p.custoInformado===false)?"Incompleto":fmtCurrency(sumTotalCusto),
       fmtCurrency(sumTotalVenda),
-      fmtCurrency(sumTotalLucro),
+      dataProdutos.some(p=>p.custoInformado===false)?"Incompleto":fmtCurrency(sumTotalLucro),
     ];
     for (let c = 0; c < totals.length; c++) {
       const w = colWidths[c + 2];
@@ -1507,8 +1517,7 @@ router.post("/comissao", async (req, res) => {
         }
 
         const totalItem =
-          parseFloat(item.totalFinal || item.total || item.valorUnitario || 0) *
-          (item.quantidade || 1);
+          Number(item.totalFinal ?? item.total ?? require("../../frontend/components/venda-calculos").calcularItem(item.quantidade||1,item.valorUnitario||0,item.desconto||0).totalFinal);
 
         // Determinar quais profissionais recebem comissão por este item
         // Se a venda tem profissional definido → apenas ele

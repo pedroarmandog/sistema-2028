@@ -56,6 +56,7 @@ const produtos = {
   unidade: ["Unidade"],
   agrupamento: ["Agrupamento"],
   finalidade: ["Finalidade"],
+  tipo: ["Tipo", "Tipo do item"],
   estoqueMinimo: ["Estoque mínimo"],
   estoqueIdeal: ["Estoque ideal"],
   ncm: ["NCM"],

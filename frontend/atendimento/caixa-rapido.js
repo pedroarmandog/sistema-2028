@@ -308,16 +308,17 @@
           .catch((e) => notify(e.message, "error"));
       };
       const input = el("input");
-      input.type = "number";
+      input.type = "text";
+      input.inputMode = "decimal";
       input.min = "0.001";
       input.step = "any";
-      input.value = i.quantidade;
+      input.value = window.PetHubQuantidades.formatar(i.quantidade,i.produto);
       input.setAttribute("aria-label", `Quantidade de ${i.produto.nome}`);
       let committed = String(input.value);
       const commit = (returnFocus = false) => {
         if (String(input.value) !== committed) {
           committed = String(input.value);
-          change(Number(input.value));
+          change(Number(input.value.replace(",", ".")));
         }
         if (returnFocus) queue.then(returnToSearch);
       };
@@ -330,14 +331,15 @@
         }
       });
       qty.append(
-        button("−", () => change((q) => q - 1)),
+        button("−", () => change((q) => Math.max(window.PetHubQuantidades.kg(i.produto)?0.001:1,window.PetHubQuantidades.subtrair(q,window.PetHubQuantidades.kg(i.produto)?0.1:1)))),
         input,
-        button("+", () => change((q) => q + 1)),
+        el("small","qr-unidade",window.PetHubQuantidades.unidade(i.produto)),
+        button("+", () => change((q) => window.PetHubQuantidades.somar(q,window.PetHubQuantidades.kg(i.produto)?0.1:1))),
       );
       row.append(
         desc,
         qty,
-        el("span", "qr-unit", money(i.valorUnitario)),
+        el("span", "qr-unit", money(i.valorUnitario)+" / "+window.PetHubQuantidades.unidade(i.produto)),
         el("strong", "qr-line-total", money(i.totalFinal)),
         button("×", () => api().remover(i.id), "qr-remove"),
       );

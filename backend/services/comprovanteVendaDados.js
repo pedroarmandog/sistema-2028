@@ -29,7 +29,8 @@ function moeda(v) {
     currency: "BRL",
   });
 }
-function quantidade(v) {
+function quantidade(v, unidade) {
+  if(require("../../frontend/components/quantidades").kg(unidade||"UN"))return require("../../frontend/components/quantidades").formatar(v,unidade);
   return numero(v).toLocaleString("pt-BR", { maximumFractionDigits: 6 });
 }
 function dataBrasilia(valor) {

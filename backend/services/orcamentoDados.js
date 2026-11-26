@@ -21,7 +21,7 @@ const num = (v, def = 0) => {
 function calcularItens(raw) {
   return (Array.isArray(raw) ? raw : []).map((i) => {
     const p = i.produto || {},
-      q = Number(String(i.quantidade ?? 1).replace(",", ".")),
+      q = require("../../frontend/components/quantidades").numero(i.quantidade ?? 1,{positivo:true}),
       u = num(i.valorUnitario ?? i.preco ?? p.preco),
       d = num(i.desconto);
     if (!Number.isFinite(q) || q <= 0 || u < 0 || d < 0 || d > 100)

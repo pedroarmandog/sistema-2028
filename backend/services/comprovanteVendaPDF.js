@@ -109,7 +109,7 @@ function gerarComprovanteVenda({ venda, empresa, logoBuffer, cliente }) {
       ensure(h + 65);
       text(item.codigo + " - " + item.nome, { bold: true, size: 8 });
       line(
-        `${quantidade(item.quantidade)} ${item.unidade} × ${moeda(item.unitario)}`,
+        `${quantidade(item.quantidade,item.unidade)} ${item.unidade} × ${moeda(item.unitario)}${item.unidade.toUpperCase()==="KG"?" / KG":""}`,
         moeda(item.bruto / 100),
       );
       if (item.desconto !== 0 || item.descontoPercent !== 0)

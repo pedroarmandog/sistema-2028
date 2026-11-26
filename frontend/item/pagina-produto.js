@@ -1,4 +1,4 @@
-﻿// Copiado de frontend/dashboard.js - funcionalidades do menu e header
+// Copiado de frontend/dashboard.js - funcionalidades do menu e header
 
 console.log("🚀 menu.js carregado (snippet do dashboard)");
 
@@ -368,7 +368,7 @@ function preencherDadosProduto(produto) {
     document.getElementById("productCode").textContent =
       produto.codigo || produto.id || "-";
     document.getElementById("productStock").textContent =
-      (produto.estoqueAtual || 0) + " " + (produto.unidade || "UN");
+      (produto.estoqueAtual == null ? "Não informado" : produto.estoqueAtual) + " " + (produto.unidade || "UN");
 
     // Imagem do produto
     const productImage = document.getElementById("productImage");
@@ -448,11 +448,11 @@ function preencherDadosProduto(produto) {
     const margemValor = preco - custoBase;
 
     document.getElementById("precoCusto").textContent =
-      "R$ " + custoBase.toFixed(2).replace(".", ",");
+      produto.custoBase==null?"Não informado":"R$ " + custoBase.toFixed(2).replace(".", ",");
     document.getElementById("precoVenda").textContent =
-      "R$ " + preco.toFixed(2).replace(".", ",");
+      "R$ " + preco.toFixed(2).replace(".", ",")+(String(produto.unidade).toUpperCase()==="KG"?" / KG":"");
     document.getElementById("margemLucro").textContent =
-      "R$ " +
+      produto.custoBase==null?"Não informada":"R$ " +
       margemValor.toFixed(2).replace(".", ",") +
       " (" +
       margem.toFixed(3) +
@@ -462,7 +462,7 @@ function preencherDadosProduto(produto) {
     document.getElementById("modalProdutoNome").textContent =
       produto.nome || "Produto";
     document.getElementById("modalEstoqueAtual").textContent =
-      (produto.estoqueAtual || 0) + " " + (produto.unidade || "UN");
+      (produto.estoqueAtual == null ? "Não informado" : produto.estoqueAtual) + " " + (produto.unidade || "UN");
   } catch (error) {
     console.error("Erro ao preencher dados do produto:", error);
   }
@@ -2052,7 +2052,7 @@ function atualizarCamposProduto(dados) {
 
   // Atualizar estoque
   const estoqueText =
-    dados.tipo === "produto" ? `${dados.estoqueAtual} UN` : "-";
+    dados.tipo === "produto" ? `${dados.estoqueAtual ?? "Não informado"} ${dados.unidade || "UN"}` : "-";
   document.getElementById("productStock").textContent = estoqueText;
 
   // Atualizar detalhes
@@ -2063,11 +2063,11 @@ function atualizarCamposProduto(dados) {
   document.getElementById("categoria").textContent = dados.categoria || "-";
   document.getElementById("marca").textContent = dados.marca || "-";
   document.getElementById("estoqueMinimo").textContent =
-    dados.tipo === "produto" ? `${dados.estoqueMinimo} UN` : "-";
+    dados.tipo === "produto" ? `${dados.estoqueMinimo} ${dados.unidade || "UN"}` : "-";
   try {
     document.getElementById("estoqueIdeal").textContent =
       dados.estoqueIdeal !== undefined && dados.estoqueIdeal !== null
-        ? `${dados.estoqueIdeal} UN`
+        ? `${dados.estoqueIdeal} ${dados.unidade || "UN"}`
         : "UN";
   } catch (e) {}
   try {
@@ -2118,14 +2118,14 @@ function atualizarCamposProduto(dados) {
     const margem = parseFloat(dados.margem) || 0;
 
     document.getElementById("precoCusto").textContent =
-      formatCurrencyBR(custoBase);
+      dados.custoBase==null?"Não informado":formatCurrencyBR(custoBase);
 
     // Calcular margem em reais
     const margemReais = preco - custoBase;
     document.getElementById("margemLucro").textContent =
-      `${formatCurrencyBR(margemReais)} (${margem}%)`;
+      dados.custoBase==null?"Não informada":`${formatCurrencyBR(margemReais)} (${margem}%)`;
 
-    document.getElementById("precoVenda").textContent = formatCurrencyBR(preco);
+    document.getElementById("precoVenda").textContent = formatCurrencyBR(preco)+(String(dados.unidade).toUpperCase()==="KG"?" / KG":"");
 
     // Atualizar gráfico com valores reais
     if (chartPrecificacao) {
@@ -2206,17 +2206,17 @@ function abrirModalEstoque(event) {
 
   if (estoqueElement) {
     const estoqueTexto = estoqueElement.textContent;
-    const match = estoqueTexto.match(/(\d+)/);
+    const match = estoqueTexto.match(/(-?\d+(?:[.,]\d+)?)/);
     if (match) {
-      estoqueAtualProduto = parseInt(match[1]);
+      estoqueAtualProduto = Number(match[1].replace(",", "."));
       document.getElementById("modalEstoqueAtual").textContent =
-        `${estoqueAtualProduto} UN`;
+        `${estoqueAtualProduto} ${produtoAtual?.unidade || "UN"}`;
     }
   }
 
   // Limpar input
   document.getElementById("novoEstoqueInput").value = "";
-  document.getElementById("diferencaEstoque").textContent = "0 UN";
+  document.getElementById("diferencaEstoque").textContent = `0 ${produtoAtual?.unidade || "UN"}`;
 
   // Definir data de hoje
   const hoje = new Date();
@@ -2238,26 +2238,24 @@ function fecharModalEstoque() {
 
 function atualizarPreview() {
   const novoEstoque =
-    parseInt(document.getElementById("novoEstoqueInput").value) || 0;
+    Number(document.getElementById("novoEstoqueInput").value.replace(",", ".")) || 0;
   const diferenca = novoEstoque - estoqueAtualProduto;
   const diferencaElement = document.getElementById("diferencaEstoque");
 
   if (diferenca > 0) {
-    diferencaElement.textContent = `+${diferenca} UN`;
+    diferencaElement.textContent = `+${diferenca} ${produtoAtual?.unidade || "UN"}`;
     diferencaElement.style.color = "#10b981";
   } else if (diferenca < 0) {
-    diferencaElement.textContent = `${diferenca} UN`;
+    diferencaElement.textContent = `${diferenca} ${produtoAtual?.unidade || "UN"}`;
     diferencaElement.style.color = "#ef4444";
   } else {
-    diferencaElement.textContent = "0 UN";
+    diferencaElement.textContent = `0 ${produtoAtual?.unidade || "UN"}`;
     diferencaElement.style.color = "#6b7280";
   }
 }
 
 async function salvarEstoque() {
-  const novoEstoque = parseInt(
-    document.getElementById("novoEstoqueInput").value,
-  );
+  const novoEstoque = Number(document.getElementById("novoEstoqueInput").value.replace(",", "."));
   const dataAjuste = document.getElementById("dataEstoqueInput").value;
 
   if (isNaN(novoEstoque) || novoEstoque < 0) {
@@ -2294,7 +2292,7 @@ async function salvarEstoque() {
     // Atualizar na página
     const estoqueElement = document.getElementById("productStock");
     if (estoqueElement) {
-      estoqueElement.textContent = `${novoEstoque} UN`;
+      estoqueElement.textContent = `${novoEstoque} ${produtoAtual?.unidade || "UN"}`;
     }
 
     // Fechar modal

@@ -1652,6 +1652,7 @@ async function adicionarItem() {
         ? selectedProduto.estoqueAtual
         : "-"),
     custo: custo,
+    unidade: selectedProduto?.unidade || "UN",
     quantidade: quantidade,
     total: custo * quantidade,
   };
@@ -1733,7 +1734,7 @@ function renderizarItensAdicionados() {
                         <div class="added-item-title">${escapeHtml(item.produto)}</div>
                         <div class="added-item-sub">Código: ${escapeHtml(item.codigo || "")} &nbsp; Custo total: R$ ${(item.total || 0).toFixed(2).replace(".", ",")}</div>
                     </div>
-                    <div class="added-item-right">${item.quantidade} UN <button class="btn-remove-item" data-id="${item.id}"><i class="fas fa-times"></i></button></div>
+                    <div class="added-item-right">${item.quantidade} ${item.unidade || "UN"} <button class="btn-remove-item" data-id="${item.id}"><i class="fas fa-times"></i></button></div>
                 </div>
             </td>
         `;
@@ -2206,7 +2207,7 @@ async function finalizarEntrada() {
             ? saved.itens
             : itensAdicionados;
         if (
-          window.ApiClient &&
+          !saved?.estoqueProcessado && window.ApiClient &&
           Array.isArray(itensParaAtualizar) &&
           itensParaAtualizar.length > 0
         ) {

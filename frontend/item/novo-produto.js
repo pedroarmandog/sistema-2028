@@ -3981,10 +3981,11 @@ function preencherFormulario(dados) {
       typeof dados.preco === "number" ? dados.preco : Number(dados.preco) || 0;
     if (custoBaseNum || precoNum) {
       // Se só tem preco (vindo do XML), colocar em custo e deixar venda em branco
-      const custoFinal = custoBaseNum || precoNum;
-      const vendaFinal = custoBaseNum ? precoNum : 0;
+      const isKG=String(dados.unidade||"").toUpperCase()==="KG";
+      const custoFinal = isKG ? (dados.custoBase==null?null:custoBaseNum) : (custoBaseNum || precoNum);
+      const vendaFinal = isKG ? precoNum : (custoBaseNum ? precoNum : 0);
 
-      document.getElementById("custo").value = custoFinal.toFixed(2);
+      document.getElementById("custo").value = custoFinal==null?"":custoFinal.toFixed(2);
       document.getElementById("venda").value =
         vendaFinal > 0 ? vendaFinal.toFixed(2) : "";
 
@@ -4838,11 +4839,11 @@ async function salvarProduto(e) {
       perfilComissao: (dados.perfilComissao || "").toString(),
       curva: (dados.curva || "").toString(),
       preco: precoVal,
-      custoBase: custoVal,
+      custoBase: String(dados.unidade||"").toUpperCase()==="KG" && String(dados.custo??dados.custoBase??"").trim()==="" ? null : custoVal,
       margem: Number(margemPercent.toFixed(2)),
-      estoqueMinimo: Number(dados.estoqueMinimo) || 0,
-      estoqueAtual: Number(dados.estoqueAtual) || 0,
-      estoqueIdeal: Number(dados.estoqueIdeal) || 0,
+      estoqueMinimo: Number(String(dados.estoqueMinimo ?? 0).replace(",", ".")) || 0,
+      estoqueAtual: Number(String(dados.estoqueAtual ?? 0).replace(",", ".")) || 0,
+      estoqueIdeal: Number(String(dados.estoqueIdeal ?? 0).replace(",", ".")) || 0,
       perfilDesconto: (dados.perfilDesconto || "").toString(),
       fornecedores: fornecedores,
       perfilValidade: (dados.perfilValidade || "").toString(),

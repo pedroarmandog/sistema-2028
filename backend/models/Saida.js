@@ -26,6 +26,7 @@ const Saida = sequelize.define(
     centroResultado: { type: DataTypes.STRING },
     categoriaFinanceira: { type: DataTypes.STRING },
     situacao: { type: DataTypes.STRING, defaultValue: "pendente" },
+    estoqueProcessado: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     empresa_id: { type: DataTypes.INTEGER, allowNull: true },
   },
   {

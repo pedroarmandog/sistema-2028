@@ -1074,10 +1074,10 @@ function renderizarItens() {
             <td><input type="text" value="${item.codigo || ""}" data-id="${item.id}" data-field="codigo" class="input-readonly" readonly style="width:80px;padding:4px;border:1px solid #dee2e6;border-radius:4px;" /></td>
             <td><input type="text" value="${item.descricao || ""}" data-id="${item.id}" data-field="descricao" style="width:150px;padding:4px;border:1px solid #dee2e6;border-radius:4px;" /></td>
             <td><input type="date" value="${item.validade || ""}" data-id="${item.id}" data-field="validade" style="width:130px;padding:4px;border:1px solid #dee2e6;border-radius:4px;" /></td>
-            <td><input type="number" value="${item.quantidade || ""}" data-id="${item.id}" data-field="quantidade" style="width:80px;padding:4px;border:1px solid #dee2e6;border-radius:4px;" step="0.01" /></td>
-            <td><input type="number" value="${item.fator || ""}" data-id="${item.id}" data-field="fator" style="width:60px;padding:4px;border:1px solid #dee2e6;border-radius:4px;" step="0.01" /></td>
-            <td><input type="number" value="${item.entEstoque || ""}" data-id="${item.id}" data-field="entEstoque" style="width:80px;padding:4px;border:1px solid #dee2e6;border-radius:4px;" step="0.01" /></td>
-            <td><input type="number" value="${item.unitario || ""}" data-id="${item.id}" data-field="unitario" style="width:90px;padding:4px;border:1px solid #dee2e6;border-radius:4px;" step="0.01" /></td>
+            <td><input type="text" inputmode="decimal" value="${item.quantidade || ""}" data-id="${item.id}" data-field="quantidade" style="width:80px;padding:4px;border:1px solid #dee2e6;border-radius:4px;" step="0.001" /></td>
+            <td><input type="text" inputmode="decimal" value="${item.fator || ""}" data-id="${item.id}" data-field="fator" style="width:60px;padding:4px;border:1px solid #dee2e6;border-radius:4px;" step="0.001" /></td>
+            <td><input type="text" inputmode="decimal" value="${item.entEstoque || ""}" data-id="${item.id}" data-field="entEstoque" style="width:80px;padding:4px;border:1px solid #dee2e6;border-radius:4px;" step="0.001" /></td>
+            <td><input type="number" value="${item.unitario || ""}" data-id="${item.id}" data-field="unitario" style="width:90px;padding:4px;border:1px solid #dee2e6;border-radius:4px;" step="0.001" /></td>
             <td>${formatarMoeda(item.totalBruto)}</td>
             <td>${formatarMoeda(item.totalAquisicao)}</td>
             <td style="width:56px;text-align:center;"><button type="button" class="item-remove-btn" data-id="${item.id}" title="Remover item">×</button></td>
@@ -1287,9 +1287,11 @@ function selectProduto(produto, inputEl, dropdownEl) {
   // encontrar no array de itensEntrada e atualizar campos básicos
   const item = itensEntrada.find((i) => i.id === id);
   if (item) {
+    item.matchedId = produto.id; item.produtoId=produto.id; item.unidade=produto.unidade || "UN";
+    item.fator=Number(produto.fatorCompra)||1; item.entEstoque=window.PetHubQuantidades.embalagem(item.quantidade,item.fator).quantidade;
     item.codigo = produto.codigo || "";
     item.descricao = produto.nome || produto.descricao || "";
-    item.unitario = Number(produto.preco) || item.unitario || 0;
+    item.unitario = produto.custoBase!=null ? Number(produto.custoBase)*item.fator : (item.unitario||0);
     item.totalBruto = item.quantidade * item.unitario;
     item.totalAquisicao = item.totalBruto;
     renderizarItens();
@@ -1313,7 +1315,8 @@ function atualizarItem(id, field, value) {
   // Atualizar valor no modelo. Para o campo 'descricao' NÃO re-renderizamos a tabela
   // durante a digitação — isso evita que o input seja recriado e o dropdown desapareça.
   if (["quantidade", "fator", "entEstoque", "unitario"].includes(field)) {
-    item[field] = parseFloat(value) || 0;
+    item[field] = Number(String(value).replace(",", ".")) || 0;
+    if(["quantidade","fator"].includes(field)) item.entEstoque=item.quantidade>0&&item.fator>0?window.PetHubQuantidades.embalagem(item.quantidade,item.fator).quantidade:0;
     // Recalcular totais do item
     item.totalBruto = item.quantidade * item.unitario;
     item.totalAquisicao = item.totalBruto; // Simplificado
@@ -2342,7 +2345,7 @@ async function finalizarEntrada() {
           created = Object.assign({}, payload, { id: "tmp-" + Date.now() });
         }
       }
-      if (created && created.id) {
+      if (created && created.id && !created.estoqueProcessado) {
         // O backend já cria/atualiza produtos e estoque quando situacao = "concluido".
         // Aqui fazemos apenas fallback para itens sem matchedId caso o backend não tenha processado.
         const updatedIds = new Set(

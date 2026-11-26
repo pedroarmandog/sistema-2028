@@ -1,4 +1,4 @@
-﻿const { DataTypes } = require("sequelize");
+const { DataTypes } = require("sequelize");
 const { sequelize } = require("./Cliente");
 
 const HistoricoEstoque = sequelize.define(
@@ -28,16 +28,16 @@ const HistoricoEstoque = sequelize.define(
       allowNull: false,
     },
     estoqueAnterior: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.DECIMAL(15, 3),
       defaultValue: 0,
       field: "estoque_anterior",
     },
     quantidade: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.DECIMAL(15, 3),
       defaultValue: 0,
     },
     novoEstoque: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.DECIMAL(15, 3),
       defaultValue: 0,
       field: "novo_estoque",
     },

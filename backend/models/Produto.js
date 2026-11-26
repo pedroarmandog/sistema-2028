@@ -1,4 +1,4 @@
-﻿const { DataTypes } = require("sequelize");
+const { DataTypes } = require("sequelize");
 const { sequelize } = require("./Cliente");
 
 const Produto = sequelize.define(
@@ -76,17 +76,17 @@ const Produto = sequelize.define(
       allowNull: true,
     },
     estoqueAtual: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.DECIMAL(15, 3),
       allowNull: true,
       defaultValue: 0,
     },
     estoqueMinimo: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.DECIMAL(15, 3),
       allowNull: true,
       defaultValue: 0,
     },
     estoqueIdeal: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.DECIMAL(15, 3),
       allowNull: true,
       defaultValue: 0,
     },

@@ -511,7 +511,7 @@ function iniciarContagem() {
             const col2 = document.createElement('div');
             col2.style.width = '160px';
             const lblQtd = document.createElement('label'); lblQtd.textContent = 'Quantidade'; lblQtd.style.display='block'; lblQtd.style.marginBottom='8px';
-            const inpQtd = document.createElement('input'); inpQtd.type='number'; inpQtd.id='contagemQuantidade'; inpQtd.className='form-input-contagem'; inpQtd.style.width='100%'; inpQtd.style.padding='10px'; inpQtd.style.border='1px solid #ccc'; inpQtd.style.borderRadius='4px'; inpQtd.min='0';
+            const inpQtd = document.createElement('input'); inpQtd.type='text'; inpQtd.inputMode='decimal'; inpQtd.id='contagemQuantidade'; inpQtd.className='form-input-contagem'; inpQtd.style.width='100%'; inpQtd.style.padding='10px'; inpQtd.style.border='1px solid #ccc'; inpQtd.style.borderRadius='4px'; inpQtd.min='0';
             col2.appendChild(lblQtd); col2.appendChild(inpQtd);
 
             const col3 = document.createElement('div'); col3.style.alignSelf='flex-end';
@@ -532,7 +532,7 @@ function iniciarContagem() {
                 ev.preventDefault();
                 const codigo = document.getElementById('contagemCodigo').value.trim();
                 const quantidadeRaw = document.getElementById('contagemQuantidade').value;
-                const quantidade = Number(quantidadeRaw);
+                const quantidade = Number(quantidadeRaw.replace(",", "."));
                 if(!codigo){ showContagemToast('Informe o código de barras.', 'error'); return; }
                 if(isNaN(quantidade) || quantidade < 0){ showContagemToast('Informe uma quantidade válida (0 ou maior).', 'error'); return; }
 
@@ -570,7 +570,7 @@ function iniciarContagem() {
 
                     const id = produto.id || produto.ID || produto.Id;
                     const atual = Number(produto.estoqueAtual) || 0;
-                    const diff = quantidade - atual;
+                    const diff = Math.round((quantidade - atual)*1000)/1000;
                     if(diff === 0){
                         showContagemToast('Quantidade igual ao estoque atual. Nenhuma alteração necessária.', 'success');
                         document.getElementById('contagemCodigo').value=''; document.getElementById('contagemQuantidade').value='';

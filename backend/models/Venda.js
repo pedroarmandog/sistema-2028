@@ -1,4 +1,4 @@
-﻿const { DataTypes } = require("sequelize");
+const { DataTypes } = require("sequelize");
 const { sequelize } = require("./Cliente");
 
 const Venda = sequelize.define(
@@ -59,6 +59,7 @@ const Venda = sequelize.define(
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    estoqueProcessado: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     empresa_id: {
       type: DataTypes.INTEGER,
       allowNull: true,

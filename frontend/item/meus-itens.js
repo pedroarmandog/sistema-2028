@@ -2887,8 +2887,8 @@ function criarCardProduto(produto) {
   const custoBase = parseFloat(produto.custoBase) || 0;
   const preco = parseFloat(produto.preco) || 0;
   const margem = parseFloat(produto.margem) || 0;
-  const estoqueAtual = parseInt(produto.estoqueAtual) || 0;
-  const estoqueMinimo = parseInt(produto.estoqueMinimo) || 0;
+  const estoqueAtual = Number(produto.estoqueAtual) || 0;
+  const estoqueMinimo = Number(produto.estoqueMinimo) || 0;
 
   // Debug formatação
   const precoFormatado = preco.toFixed(2).replace(".", ",");
@@ -2937,7 +2937,7 @@ function criarCardProduto(produto) {
                   produto.tipo === "produto"
                     ? `
                     <div class="product-margin">
-                        Margem: <span class="margin-value">R$ ${custoBase.toFixed(2).replace(".", ",")} (${margem.toFixed(1).replace(".", ",")}%)</span>
+                        Margem: <span class="margin-value">${produto.custoBase == null ? "Não informada" : "R$ "+(preco-custoBase).toFixed(2).replace(".", ",")+" ("+(preco?((preco-custoBase)/preco*100):0).toFixed(1).replace(".", ",")+"%)"}</span>
                     </div>
                 `
                     : ""
@@ -2948,7 +2948,7 @@ function criarCardProduto(produto) {
                       produto.tipo === "produto"
                         ? `
                         <div class="product-cost">
-                            Custo R$ <span class="product-cost-value">${custoBase.toFixed(2).replace(".", ",")}</span>
+                            Custo R$ <span class="product-cost-value">${produto.custoBase == null ? "Não informado" : custoBase.toFixed(2).replace(".", ",")}</span>
                         </div>
                     `
                         : ""
@@ -2956,7 +2956,7 @@ function criarCardProduto(produto) {
                     
                     <div class="product-price">
                         <span class="product-price-value">
-                            ${produto.tipo === "servico" ? "Valor " : produto.tipo === "plano" ? "Mensalidade " : "R$ "}${preco.toFixed(2).replace(".", ",")}
+                            ${produto.tipo === "servico" ? "Valor " : produto.tipo === "plano" ? "Mensalidade " : "R$ "}${preco.toFixed(2).replace(".", ",")}${String(produto.unidade).toUpperCase()==="KG"?" / KG":""}
                         </span>
                     </div>
                 </div>
@@ -2968,11 +2968,11 @@ function criarCardProduto(produto) {
                 <div class="product-stock">
                     <div class="stock-row">
                         <span class="stock-label">Estoque Mínimo:</span>
-                        <span class="stock-value">${estoqueMinimo}</span>
+                        <span class="stock-value">${estoqueMinimo} ${produto.unidade || "UN"}</span>
                     </div>
                     <div class="stock-row">
                         <span class="stock-label">Estoque Atual:</span>
-                        <span class="stock-value ${stockStatus}">${estoqueAtual}</span>
+                        <span class="stock-value ${stockStatus}">${produto.estoqueAtual==null?"Não informado":estoqueAtual} ${produto.unidade || "UN"}</span>
                     </div>
                     <div class="validade-alert-container" style="margin-top:6px"></div>
                 </div>
@@ -4626,150 +4626,10 @@ function limparFiltrosAvancados() {
  * Exportar produtos para CSV
  */
 function exportarProdutosCSV(mode = "resumido", notify = true) {
-  console.log("📥 Exportando produtos para CSV...", mode);
-
-  // Helper para escapar células que contenham separador/delimitador/quotes/newlines
-  function esc(cell) {
-    if (cell === null || cell === undefined) return "";
-    const s = String(cell);
-    const needQuote =
-      s.indexOf(";") !== -1 || s.indexOf('"') !== -1 || s.indexOf("\n") !== -1;
-    const escaped = s.replace(/"/g, '""');
-    return needQuote ? `"${escaped}"` : escaped;
-  }
-
-  const list = produtosLista || produtosExemplo || [];
-
-  let csv = "";
-  let filename = `produtos_${new Date().getTime()}.csv`;
-
-  if (mode === "detalhado") {
-    // Campos solicitados pelo usuário
-    const headers = [
-      "Código - Descrição",
-      "Unidade",
-      "Grupo",
-      "Subgrupo",
-      "Marca",
-      "Local",
-      "Estoque Mínimo",
-      "NCM",
-      "Centro de resultado",
-      "Perfil de validade",
-      "Preço de Custo",
-      "Preço de Venda",
-      "Data de validade",
-      "Status da validade",
-    ];
-
-    // Cabeçalho do relatório
-    csv += "RELATÓRIO DE PRODUTO\n";
-    csv += "PET CRIA LTDA\n";
-    csv += "Campos: " + headers.join(" | ") + "\n";
-    csv += "\n";
-    csv += headers.join("\t") + "\n";
-
-    const sortedList = (list || []).slice().sort((a, b) =>
-      (a.nome || a.descricao || "")
-        .toString()
-        .localeCompare(b.nome || b.descricao || "", "pt-BR", {
-          sensitivity: "base",
-        }),
-    );
-    sortedList.forEach((produto) => {
-      const id =
-        produto && produto.id !== undefined && produto.id !== null
-          ? produto.id
-          : "";
-      const codigo = produto.codigo || id || "";
-      const descricao = produto.nome || produto.descricao || "";
-      const unidade = produto.unidade || produto.unidadeMedida || "";
-      const grupo = produto.grupo || produto.categoria || "";
-      const subgrupo = produto.subgrupo || produto.agrupamento || "";
-      const marca = produto.marca || "";
-      const local = produto.local || produto.localEstoque || "";
-      const estoqueMinimo =
-        produto.estoqueMinimo !== undefined && produto.estoqueMinimo !== null
-          ? produto.estoqueMinimo
-          : produto.estoque_minimo || "";
-      const ncm = produto.ncm || "";
-      const centroResultado = produto.centroResultado || produto.centro || "";
-      const perfilValidade =
-        produto.perfilValidade && typeof produto.perfilValidade === "object"
-          ? produto.perfilValidade.descricao || ""
-          : produto.perfilValidade || "";
-      const precoCusto =
-        produto.custoBase !== undefined && produto.custoBase !== null
-          ? produto.custoBase
-          : produto.precoCusto || "";
-      const precoVenda =
-        produto.preco !== undefined && produto.preco !== null
-          ? produto.preco
-          : produto.precoVenda || "";
-      const dataValidade = produto.validade || produto.dataValidade || "";
-      const statusValidade =
-        validadeStatusMap && validadeStatusMap[String(id)]
-          ? validadeStatusMap[String(id)].mensagem ||
-            validadeStatusMap[String(id)].status ||
-            ""
-          : "";
-
-      const row = [
-        `${codigo} - ${descricao}`,
-        unidade,
-        grupo,
-        subgrupo,
-        marca,
-        local,
-        estoqueMinimo,
-        ncm,
-        centroResultado,
-        perfilValidade,
-        precoCusto,
-        precoVenda,
-        dataValidade,
-        statusValidade,
-      ];
-      csv += row.map(esc).join("\t") + "\n";
-    });
-    filename = `meus-itens-detalhado_${new Date().toISOString().slice(0, 10)}.csv`;
-  } else {
-    // resumido (tab-separated)
-    csv = "ID\tNome\tTipo\tPreço\n";
-    list.forEach((produto) => {
-      csv += `${esc(produto.id)}\t${esc(produto.nome)}\t${esc(produto.tipo)}\t${esc(produto.preco)}\n`;
-    });
-    filename = `meus-itens-resumido_${new Date().toISOString().slice(0, 10)}.csv`;
-  }
-
-  // Download do arquivo (adicionar BOM para preservar acentuação no Excel)
-  try {
-    const blob = new Blob(["\uFEFF" + csv], {
-      type: "text/tab-separated-values;charset=utf-8;",
-    });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", filename);
-    link.style.visibility = "hidden";
-
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    console.log("✅ CSV exportado com sucesso");
-    if (notify) {
-      if (window.showToast)
-        window.showToast("Exportação gerada com sucesso", "success", 2200);
-      else alert("Exportação gerada com sucesso");
-    }
-  } catch (e) {
-    console.error("Erro ao exportar CSV", e);
-    if (notify) {
-      if (window.showToast)
-        window.showToast("Erro ao gerar exportação", "error", 3000);
-      else alert("Erro ao gerar exportação");
-    }
-  }
+  const csv=window.PetHubProdutosPlanilha.csv(produtosLista||[]);
+  const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+  const link=document.createElement("a");link.href=url;link.download="produtos-pethub.csv";document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  if(notify&&window.showToast)window.showToast("Exportação gerada com sucesso","success",2200);
 }
 
 /**
@@ -4892,7 +4752,9 @@ function exportarProdutosXLS(mode = "resumido", notify = true) {
 
       const ws = XLSX.utils.aoa_to_sheet(aoa);
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Produtos");
+      const dadosImportacao=XLSX.utils.aoa_to_sheet(window.PetHubProdutosPlanilha.linhas(list));
+      XLSX.utils.book_append_sheet(wb, dadosImportacao, "Produtos");
+      XLSX.utils.book_append_sheet(wb, ws, "Relatorio");
       const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
       const blob = new Blob([wbout], { type: "application/octet-stream" });
       const filename =
@@ -5964,7 +5826,7 @@ async function zerarEstoque() {
     const produtos = produtosLista || [];
     let produtosFiltrados = produtos.filter((p) => {
       // Filtrar por tipo de estoque
-      const estoque = parseInt(p.estoqueAtual) || 0;
+      const estoque = Number(p.estoqueAtual) || 0;
       let passaTipo = false;
 
       if (tipo === "todos") passaTipo = true;

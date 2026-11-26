@@ -1019,6 +1019,7 @@ function calcularTotalItem() {
   const desc = valorMonetarioOrcamento(
     document.getElementById("orcDesconto").value,
   );
+  try { window.PetHubQuantidades.validar(qty,orcItemSelecionado,{positivo:true}); } catch(e) { alert(e.message); return; }
   const bruto = qty * preco;
   const total = window.PetHubCalculos.calcularItem(qty, preco, desc).totalFinal;
   document.getElementById("orcTotalItem").textContent = fmt(total);
@@ -1048,11 +1049,13 @@ function adicionarItemOrcamento() {
     alert("Preencha quantidade e preço válidos.");
     return;
   }
+  try { window.PetHubQuantidades.validar(qty,orcItemSelecionado,{positivo:true}); } catch(e) { alert(e.message); return; }
   const bruto = qty * preco;
   const total = window.PetHubCalculos.calcularItem(qty, preco, desc).totalFinal;
 
   orcItensAdicionados.push({
     itemId: orcItemSelecionado.id,
+    unidade: orcItemSelecionado.unidade || "UN",
     nome: orcItemSelecionado.nome,
     quantidade: qty,
     valorUnitario: preco,
@@ -1088,7 +1091,7 @@ function renderItensTabela() {
         (it, i) => `
       <tr>
         <td>${it.nome}</td>
-        <td>${it.quantidade}</td>
+        <td>${it.quantidade} ${it.unidade || "UN"}</td>
         <td>R$ ${fmt(it.valorUnitario)}</td>
         <td>${fmt(it.desconto)}%</td>
         <td>R$ ${fmt(it.total)}</td>
@@ -1183,6 +1186,7 @@ async function finalizarOrcamento() {
       .value.trim(),
     itens: orcItensAdicionados.map((it) => ({
       itemId: it.itemId,
+      unidade: it.unidade || "UN",
       nome: it.nome,
       quantidade: it.quantidade,
       valorUnitario: it.valorUnitario,
@@ -1266,7 +1270,7 @@ async function verDetalhes(id) {
                 parseFloat(it.quantidade || 1) *
                 parseFloat(it.valorUnitario || 0);
               const t = b - (b * parseFloat(it.desconto || 0)) / 100;
-              return `<tr><td>${it.nome || "-"}</td><td>${it.quantidade}</td><td>R$ ${fmt(it.valorUnitario)}</td><td>${fmt(it.desconto || 0)}%</td><td>R$ ${fmt(t)}</td></tr>`;
+              return `<tr><td>${it.nome || "-"}</td><td>${it.quantidade} ${it.unidade || "UN"}</td><td>R$ ${fmt(it.valorUnitario)}</td><td>${fmt(it.desconto || 0)}%</td><td>R$ ${fmt(t)}</td></tr>`;
             })
             .join("")}</tbody>
         </table>

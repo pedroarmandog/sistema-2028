@@ -28,6 +28,7 @@ const Entrada = sequelize.define(
     situacao: { type: DataTypes.STRING, defaultValue: "pendente" },
     pagamentos: { type: DataTypes.JSON },
     dataPagamento: { type: DataTypes.DATEONLY },
+    estoqueProcessado: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     empresa_id: { type: DataTypes.INTEGER, allowNull: true },
   },
   {

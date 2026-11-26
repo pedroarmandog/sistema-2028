@@ -1,7 +1,7 @@
-const {vincularCliente}=require('../services/vendaCliente');
 const { Venda } = require("../models/Venda");
 const { Op } = require("sequelize");
 const Produto = require("../models/Produto");
+const estoque = require("../services/estoqueFracionado").criar({Produto, Venda, HistoricoEstoque:require("../models/HistoricoEstoque")});
 const { Profissional } = require("../models/Profissional");
 const { Cliente } = require("../models/Cliente");
 
@@ -94,19 +94,10 @@ exports.buscarVenda = async (req, res) => {
   }
 };
 
-// O ciclo fiscal (autorização e protocolos) só é escrito pelo serviço de emissão.
-function dadosComerciais(body) {
-  const dados = { ...body };
-  for (const campo of ["empresa_id","numero_nfe","serie_nfe","chave_acesso_nfe","data_emissao_nfe",
-    "protocolo_nfe","xml_nfe","status_fiscal","id","createdAt","updatedAt"]) delete dados[campo];
-  return dados;
-}
-
 // Criar venda
 exports.criarVenda = async (req, res) => {
   try {
-    const dados = dadosComerciais(req.body);
-    await vincularCliente(Cliente,req.user?.empresaId,dados);
+    const dados = { ...req.body };
 
     // --- Enriquecer itens com produto.id e perfilComissao via nome ---
     if (Array.isArray(dados.itens) && dados.itens.length > 0) {
@@ -130,7 +121,7 @@ exports.criarVenda = async (req, res) => {
       let mapaProdNome = {};
       if (nomesSemId.length > 0) {
         const prods = await Produto.findAll({
-          where: { empresa_id: req.user.empresaId, nome: { [Op.in]: nomesSemId } },
+          where: { nome: { [Op.in]: nomesSemId }, empresa_id:req.user.empresaId },
           attributes: ["id", "nome", "perfilComissao", "tipo"],
         }).catch(() => []);
         prods.forEach((p) => {
@@ -169,16 +160,22 @@ exports.criarVenda = async (req, res) => {
     // --- Resolver profissionalId pelo nome se não vier preenchido ---
     if (!dados.profissionalId && dados.profissional) {
       const prof = await Profissional.findOne({
-        where: { nome: dados.profissional.trim() },
+        where: { nome: dados.profissional.trim(), empresa_id:req.user.empresaId },
         attributes: ["id"],
       }).catch(() => null);
       if (prof) dados.profissionalId = prof.id;
     }
 
-    const venda = await Venda.create({
-      ...dados,
-      empresa_id: req.user?.empresaId || null,
-    });
+    // --- Resolver clienteId pelo nome se não vier preenchido ---
+    if (!dados.clienteId && dados.cliente) {
+      const cli = await Cliente.findOne({
+        where: { nome: dados.cliente.trim(), empresa_id:req.user.empresaId },
+        attributes: ["id"],
+      }).catch(() => null);
+      if (cli) dados.clienteId = cli.id;
+    }
+
+    const venda = await estoque.gravarVenda(dados,req.user?.empresaId);
 
     // --- Processar pagamento via Haver (debitar saldo do cliente) ---
     try {
@@ -362,7 +359,7 @@ exports.criarVenda = async (req, res) => {
             ? pagamentos.map(p => p.forma || p.tipo || "").filter(Boolean).join(", ")
             : "—";
           const itens = Array.isArray(venda.itens) ? venda.itens : [];
-          const qtdItens = itens.reduce((acc, i) => acc + (parseInt(i.quantidade) || 1), 0);
+          const qtdItens = itens.reduce((acc, i) => acc + (Number(i.quantidade) || 0), 0);
           let valorTotal = 0;
           try {
             const totais = venda.totais
@@ -386,9 +383,8 @@ exports.criarVenda = async (req, res) => {
       }
     });
   } catch (error) {
-    if(error.status)return res.status(error.status).json({erro:error.message});
     console.error("Erro ao criar venda:", error);
-    res.status(500).json({ erro: "Erro ao criar venda" });
+    res.status(error.status||500).json({ erro: error.status?error.message:"Erro ao criar venda" });
   }
 };
 
@@ -421,9 +417,7 @@ exports.atualizarVenda = async (req, res) => {
       return res.status(403).json({ erro: "Acesso negado" });
     }
 
-    const dados=dadosComerciais(req.body);
-    if(Object.hasOwn(dados,'clienteId')||Object.hasOwn(dados,'cliente'))await vincularCliente(Cliente,req.user.empresaId,dados);
-    await venda.update(dados);
+    await estoque.gravarVenda(req.body,req.user.empresaId,venda.id);
 
     // Recarregar venda com dados atualizados para o push
     const vendaAtualizada = await Venda.findByPk(req.params.id);
@@ -440,7 +434,7 @@ exports.atualizarVenda = async (req, res) => {
             ? pagamentos.map(p => p.forma || p.tipo || "").filter(Boolean).join(", ")
             : "—";
           const itens = Array.isArray(vendaAtualizada.itens) ? vendaAtualizada.itens : [];
-          const qtdItens = itens.reduce((acc, i) => acc + (parseInt(i.quantidade) || 1), 0);
+          const qtdItens = itens.reduce((acc, i) => acc + (Number(i.quantidade) || 0), 0);
           let valorTotal = 0;
           try {
             const totais = vendaAtualizada.totais
@@ -471,9 +465,8 @@ exports.atualizarVenda = async (req, res) => {
 
     res.json(vendaAtualizada);
   } catch (error) {
-    if(error.status)return res.status(error.status).json({erro:error.message});
     console.error("Erro ao atualizar venda:", error);
-    res.status(500).json({ erro: "Erro ao atualizar venda" });
+    res.status(error.status||500).json({ erro: error.status?error.message:"Erro ao atualizar venda" });
   }
 };
 
@@ -506,10 +499,10 @@ exports.deletarVenda = async (req, res) => {
       return res.status(403).json({ erro: "Acesso negado" });
     }
 
-    await venda.destroy();
+    await estoque.excluirVenda(venda.id,req.user.empresaId);
     res.json({ mensagem: "Venda deletada com sucesso" });
   } catch (error) {
     console.error("Erro ao deletar venda:", error);
-    res.status(500).json({ erro: "Erro ao deletar venda" });
+    res.status(error.status||500).json({ erro: error.status?error.message:"Erro ao deletar venda" });
   }
 };

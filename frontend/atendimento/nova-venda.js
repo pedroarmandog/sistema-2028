@@ -1,4 +1,4 @@
-﻿// Copiado de frontend/dashboard.js - funcionalidades do menu e header
+// Copiado de frontend/dashboard.js - funcionalidades do menu e header
 
 console.log("🚀 menu.js carregado (snippet do dashboard)");
 
@@ -556,6 +556,7 @@ function inicializarNovaVenda() {
 
   // Elementos do formulário
   const quantidade = document.getElementById("quantidade");
+  quantidade.type="text"; quantidade.inputMode="decimal"; quantidade.setAttribute("aria-label","Quantidade na unidade do produto");
   const valorUnitario = document.getElementById("valorUnitario");
   const descontoPercent = document.getElementById("descontoPercent");
   const totalValue = document.querySelector(".total-value");
@@ -563,7 +564,7 @@ function inicializarNovaVenda() {
 
   // Função para calcular total do item (global para ser acessível)
   window.calcularTotalItem = function () {
-    const qtd = parseFloat(quantidade.value) || 0;
+    const qtd = Number(quantidade.value.replace(",", ".")) || 0;
     const valor = window.PetHubCalculos.centavos(valorUnitario.value || 0) / 100;
     const desc = parseFloat(descontoPercent.value.replace(",", ".")) || 0;
 
@@ -585,7 +586,7 @@ function inicializarNovaVenda() {
   // Função para adicionar item à lista
   // Função para adicionar item à lista
   async function adicionarItem() {
-    const qtd = parseFloat(quantidade.value) || 0;
+    const qtd = Number(quantidade.value.replace(",", ".")) || 0;
     const valor = window.PetHubCalculos.centavos(valorUnitario.value || 0) / 100;
     const desc = parseFloat(descontoPercent.value.replace(",", ".")) || 0;
     const produtoNome = document.getElementById("pesquisarProduto").value;
@@ -616,6 +617,7 @@ function inicializarNovaVenda() {
     const produtoEncontrado = produtosSistema.find(p => campoProduto.dataset.produtoId
       ? String(p.id) === String(campoProduto.dataset.produtoId) : p.nome === produtoNome);
     if (!produtoEncontrado) { mostrarNotificacao('error', 'Selecione um produto do catálogo.'); return false; }
+    try { window.PetHubQuantidades.validar(qtd,produtoEncontrado,{positivo:true}); } catch(e) { mostrarNotificacao('warning',e.message); return false; }
     const quantidadeNoCarrinho = itensVenda.filter(i => String(i.produto.id) === String(produtoEncontrado.id)).reduce((n,i) => n + i.quantidade, 0);
 
     if (produtoEncontrado) {
@@ -673,7 +675,7 @@ function inicializarNovaVenda() {
 
     const mesmo = document.body.classList.contains('caixa-rapido') && itensVenda.find(i =>
       String(i.produto.id) === String(item.produto.id) && i.valorUnitario === valor && i.desconto === desc);
-    if (mesmo) { mesmo.quantidade += qtd; mesmo.totalBruto += totalBruto; mesmo.totalFinal += totalFinal; }
+    if (mesmo) { mesmo.quantidade = window.PetHubQuantidades.somar(mesmo.quantidade,qtd); Object.assign(mesmo,window.PetHubCalculos.calcularItem(mesmo.quantidade,valor,desc)); }
     else itensVenda.push(item);
 
     console.log("📋 Array depois:", itensVenda.length, "itens");
@@ -706,6 +708,7 @@ function inicializarNovaVenda() {
       const catalogo = await carregarProdutosDoSistema();
       const produto = catalogo.find(p => String(p.id) === String(item.produto.id));
       if (!produto) { mostrarNotificacao('error', 'Produto indisponível.'); return false; }
+      try { qtd=window.PetHubQuantidades.validar(qtd,produto,{positivo:true}); } catch(e) { mostrarNotificacao('warning',e.message); return false; }
       const outros = itensVenda.filter(i => i !== item && String(i.produto.id) === String(produto.id)).reduce((n,i) => n + i.quantidade, 0);
       if (produto.tipo === 'produto' && !produto.permiteEstoqueNegativo && qtd + outros > produto.estoqueAtual) {
         mostrarNotificacao('warning', 'Quantidade não disponível no estoque.'); return false;
@@ -756,7 +759,7 @@ function inicializarNovaVenda() {
                 <div class="item-content">
                     <div class="item-produto">${item.produto.nome || item.produto}</div>
                     <div class="item-info">
-                        ${item.quantidade} UN x ${item.valorUnitario.toLocaleString(
+                        <input class="peso-item-venda" type="text" inputmode="decimal" aria-label="Quantidade" value="${window.PetHubQuantidades.formatar(item.quantidade,item.produto)}" onchange="PetHubVenda.quantidade('${item.id}',Number(this.value.replace(',','.')))" style="width:72px"> ${window.PetHubQuantidades.unidade(item.produto)} x ${item.valorUnitario.toLocaleString(
                           "pt-BR",
                           {
                             style: "currency",
@@ -869,7 +872,7 @@ function inicializarNovaVenda() {
   function calcularValorFinalComDesconto() { calcularTotalItem(); }
 
   async function validarEstoqueEmTempoReal() {
-    const qtd = parseFloat(document.getElementById("quantidade").value) || 0;
+    const qtd = Number(document.getElementById("quantidade").value.replace(",", ".")) || 0;
     const produtoNome = document.getElementById("pesquisarProduto").value;
 
     if (!produtoNome.trim() || qtd === 0) return;
@@ -1249,7 +1252,7 @@ async function buscarProdutos() {
         const tipo = produto.tipo || "produto";
         const preco = parseFloat(produto.preco) || 0;
         const categoria = produto.categoria || "Sem categoria";
-        const estoqueAtual = parseInt(produto.estoqueAtual) || 0;
+        const estoqueAtual = Number(produto.estoqueAtual) || 0;
 
         const tipoCapitalizado = tipo.charAt(0).toUpperCase() + tipo.slice(1);
 
@@ -1302,6 +1305,7 @@ async function selecionarProduto(produtoId) {
   document.getElementById("pesquisarProduto").value = produto.nome;
   document.getElementById("pesquisarProduto").dataset.produtoId = produto.id;
   document.getElementById("valorUnitario").value = produto.preco.toFixed(2);
+  let unidadeQtd=document.getElementById("unidadeQuantidadeVenda"); if(!unidadeQtd){unidadeQtd=document.createElement("small");unidadeQtd.id="unidadeQuantidadeVenda";document.getElementById("quantidade").after(unidadeQtd);}unidadeQtd.textContent=" "+window.PetHubQuantidades.unidade(produto);
 
   // Limpar campo de desconto ao selecionar novo produto
   document.getElementById("descontoPercent").value = "";
@@ -3218,7 +3222,7 @@ function configurarModalPagamento(modal, overlay, totalVenda) {
       }
 
       // Uma única execução de estoque, no mesmo fluxo compartilhado.
-      await atualizarEstoque(dadosVenda.itens);
+      if (!vendaSalva.estoqueProcessado) throw new Error("O servidor não confirmou a movimentação do estoque. Confira a venda antes de repetir.");
 
       fecharModal();
 
@@ -3294,60 +3298,6 @@ function limparFormulario() {
   renderizarItens();
 
   console.log("🧹 Formulário limpo - Pronto para nova venda");
-}
-
-// Função para atualizar estoque após venda (usando API)
-async function atualizarEstoque(itensVendidos) {
-  console.log("📦 Atualizando estoque via API...", itensVendidos);
-
-  try {
-    // Atualizar estoque de cada item vendido
-    for (const itemVendido of itensVendidos) {
-      const produtoObj = itemVendido.produto || {};
-      const produtoId = produtoObj.id;
-      const quantidadeVendida = itemVendido.quantidade || itemVendido.qtd || 0;
-
-      // Não tocar estoque para serviços/planos ou quando não houver id do produto
-      const tipo =
-        produtoObj.tipo ||
-        (produtoObj.categoria && String(produtoObj.categoria).toLowerCase()) ||
-        "";
-      if (!produtoId) {
-        console.log(
-          `⏭️ Pulando atualização de estoque (sem id): ${produtoObj.nome || produtoObj} `,
-        );
-        continue;
-      }
-      if (
-        String(tipo).toLowerCase() === "servico" ||
-        String(tipo).toLowerCase() === "servico" ||
-        String(tipo).toLowerCase() === "plano" ||
-        String(tipo).toLowerCase() === "planos"
-      ) {
-        console.log(
-          `⏭️ Pulando atualização de estoque (tipo=${tipo}): ${produtoObj.nome || produtoObj}`,
-        );
-        continue;
-      }
-
-      // Reduzir estoque via API (operação 'reduzir')
-      await ApiClient.atualizarEstoque(
-        produtoId,
-        quantidadeVendida,
-        "reduzir",
-        new Date().toISOString(),
-      );
-
-      console.log(
-        `✅ Estoque reduzido via API: ${produtoObj.nome || produtoId} - Qtd: ${quantidadeVendida}`,
-      );
-    }
-
-    console.log("✅ Todos os estoques atualizados via API");
-  } catch (error) {
-    console.error("❌ Erro ao atualizar estoque via API:", error);
-    alert("Erro ao atualizar estoque: " + error.message);
-  }
 }
 
 /* ========================================

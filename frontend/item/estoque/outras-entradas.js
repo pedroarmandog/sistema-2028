@@ -1652,6 +1652,7 @@ function adicionarItem() {
         ? selectedProduto.estoqueAtual
         : "-"),
     custo: custo,
+    unidade: selectedProduto?.unidade || "UN",
     quantidade: quantidade,
     total: custo * quantidade,
   };
@@ -1733,7 +1734,7 @@ function renderizarItensAdicionados() {
                         <div class="added-item-title">${escapeHtml(item.produto)}</div>
                         <div class="added-item-sub">Código: ${escapeHtml(item.codigo || "")} &nbsp; Custo total: R$ ${(item.total || 0).toFixed(2).replace(".", ",")}</div>
                     </div>
-                    <div class="added-item-right">${item.quantidade} UN <button class="btn-remove-item" data-id="${item.id}"><i class="fas fa-times"></i></button></div>
+                    <div class="added-item-right">${item.quantidade} ${item.unidade || "UN"} <button class="btn-remove-item" data-id="${item.id}"><i class="fas fa-times"></i></button></div>
                 </div>
             </td>
         `;
@@ -2193,10 +2194,7 @@ async function finalizarEntrada() {
       // Atualizar estoque dos produtos relacionados à entrada
       try {
         // Se o backend já atualizou o estoque (updatedProducts), apenas recarregar UI
-        const backendAtualizou =
-          saved &&
-          Array.isArray(saved.updatedProducts) &&
-          saved.updatedProducts.length > 0;
+        const backendAtualizou = saved?.estoqueProcessado || (Array.isArray(saved?.updatedProducts) && saved.updatedProducts.length > 0);
 
         if (backendAtualizou) {
           console.log(

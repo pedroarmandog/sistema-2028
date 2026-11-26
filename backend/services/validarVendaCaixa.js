@@ -51,19 +51,23 @@ function criarValidador({ Produto, Cliente, Profissional, Caixa }) {
         const id = String(i.produto.id);
         quantidades.set(id, (quantidades.get(id) || 0) + i.quantidade);
       }
-      const produtos = await Produto.findAll({
+      const produtos = await require("./consultaItensCompativel").consultarItens(Produto,"findAll",{
         where: { id: [...quantidades.keys()], empresa_id: emp },
       });
       if (produtos.length !== quantidades.size)
         return fail("Há produto indisponível para esta empresa.");
+      let anterior=null;
+      if(req.method==="PUT"&&req.params.id) anterior=await require("../models/Venda").Venda.findOne({where:{id:req.params.id,empresa_id:emp}});
       for (const p of produtos) {
+        require("../../frontend/components/quantidades").validar(quantidades.get(String(p.id)),p,{positivo:true});
+        const proprio=anterior?.estoqueProcessado&&["pago","parcial"].includes(anterior.status)?(anterior.itens||[]).filter(i=>String(i.produto?.id)===String(p.id)).reduce((n,i)=>n+Number(i.quantidade),0):0;
         const permite = [true, 1, "1", "sim", "true"].includes(
           p.permiteEstoqueNegativo,
         );
         if (
           p.tipo === "produto" &&
           !permite &&
-          quantidades.get(String(p.id)) > Number(p.estoqueAtual || 0)
+          quantidades.get(String(p.id)) > Number(p.estoqueAtual || 0)+proprio
         )
           return fail("Quantidade informada não disponível no estoque.");
       }

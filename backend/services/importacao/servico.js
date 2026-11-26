@@ -1,4 +1,5 @@
 const crypto = require("node:crypto");
+const Q = require("../../../frontend/components/quantidades");
 const { Op } = require("sequelize");
 const { Cliente } = require("../../models/Cliente");
 const Produto = require("../../models/Produto");
@@ -78,7 +79,11 @@ function converter(tipo, raw) {
   }
   if (!dados.nome) falhar("Nome obrigatório.");
   if (tipo === "produtos") {
+    dados.unidade = Q.unidade(dados.unidade);
+    if (dados.tipo) { const t=normalizar(dados.tipo); if(!["produto","servico","plano"].includes(t)) falhar("Tipo inválido."); dados.tipo=t; }
+    if(dados.finalidade) { dados.finalidade=normalizar(dados.finalidade); if(!["revenda","insumo"].includes(dados.finalidade)) falhar("Finalidade inválida."); }
     for (const k of ["custoBase", "preco"]) {
+      if(k === "custoBase" && !Object.hasOwn(dados,k) && Q.kg(dados)) { dados[k]=null; continue; }
       if (!Object.hasOwn(dados, k))
         falhar("Informe " + (k === "custoBase" ? "custo" : "venda") + ".");
       dados[k] = moeda(dados[k]);
@@ -97,9 +102,6 @@ function converter(tipo, raw) {
       falhar("Alíquota deve estar entre 0 e 100.");
   }
   for (const k of [
-    "estoqueAtual",
-    "estoqueMinimo",
-    "estoqueIdeal",
     "origem",
     "indicador_ie",
   ]) {
@@ -111,6 +113,7 @@ function converter(tipo, raw) {
         falhar(k + " fora do limite.");
     }
   }
+  for(const k of ["estoqueAtual","estoqueMinimo","estoqueIdeal"]) if(dados[k]!=null) dados[k]=Q.validar(dados[k],dados,{naoNegativo:true});
   if (dados.sexo) dados.sexo = normalizarSexo(dados.sexo);
   if (dados.tipo_pessoa) {
     const v = normalizar(dados.tipo_pessoa);
@@ -397,7 +400,7 @@ async function confirmar(tipo, empresa, usuario, token, escolhas) {
           continue;
         }
         if (tipo === "produtos")
-          Object.assign(dados, { id: crypto.randomUUID(), tipo: "produto" });
+          Object.assign(dados, { id: crypto.randomUUID(), tipo: dados.tipo || "produto", ...(Q.kg(dados)&&dados.estoqueAtual==null?{estoqueAtual:null}:{}) });
         registro = await modelo.create(dados, { transaction });
         atuais.push(registro);
         criados++;

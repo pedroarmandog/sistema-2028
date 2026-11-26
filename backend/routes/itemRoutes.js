@@ -1,3 +1,4 @@
+const Q=require("../../frontend/components/quantidades");
 const {consultarItens}=require("../services/consultaItensCompativel");
 const express = require("express");
 const router = express.Router();
@@ -512,9 +513,9 @@ router.post("/", async (req, res) => {
     if (payload.margem !== undefined && payload.margem !== null)
       payload.margem = Number(payload.margem) || 0;
     if (payload.estoqueAtual !== undefined && payload.estoqueAtual !== null)
-      payload.estoqueAtual = parseInt(payload.estoqueAtual, 10) || 0;
+      payload.estoqueAtual = Q.numero(payload.estoqueAtual);
     if (payload.estoqueMinimo !== undefined && payload.estoqueMinimo !== null)
-      payload.estoqueMinimo = parseInt(payload.estoqueMinimo, 10) || 0;
+      payload.estoqueMinimo = Q.numero(payload.estoqueMinimo,{naoNegativo:true});
 
     // log payload antes de criar (debug temporário)
     try {
@@ -633,6 +634,7 @@ router.put("/:id", async (req, res) => {
 
     // Não aceitar versões/empresa arbitrárias do navegador.
     delete data.imagemVersoes; delete data.empresa_id; delete data.id;
+    for(const k of ["estoqueAtual","estoqueMinimo","estoqueIdeal"]) if(data[k]!=null) data[k]=Q.numero(data[k],{naoNegativo:k!=="estoqueAtual"});
     if(data.imagem!==undefined){
       if(data.imagem!==produto.imagem||data.imagem===null){Object.assign(data,await require('../services/produtoImagens').instancia().preparar(req.user.empresaId,data.imagem));}
     }
@@ -696,66 +698,21 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// Atualizar estoque (PUT /:id/estoque) - quantidade + operacao
-router.put("/:id/estoque", async (req, res) => {
-  try {
-    const id = String(req.params.id);
-    const { quantidade, operacao, dataAjuste } = req.body;
-    if (quantidade === undefined || !operacao)
-      return res
-        .status(400)
-        .json({ error: "Quantidade e operacao obrigatórios" });
-    const produto = await Produto.findByPk(id);
-    if (!produto)
-      return res.status(404).json({ error: "Produto não encontrado" });
-    const atual = Number(produto.estoqueAtual) || 0;
-    let novoEstoque = atual;
-    if (operacao === "reduzir")
-      novoEstoque = Math.max(0, atual - Number(quantidade));
-    else if (operacao === "adicionar") novoEstoque = atual + Number(quantidade);
-    else return res.status(400).json({ error: "Operacao inválida" });
-    await produto.update({ estoqueAtual: novoEstoque });
-
-    // Salvar no histórico de estoque
-    try {
-      const HistoricoEstoque = require("../models/HistoricoEstoque");
-      await HistoricoEstoque.create({
-        produtoId: id,
-        produtoNome: produto.nome,
-        dataMovimento: dataAjuste || new Date(),
-        operacao:
-          operacao === "adicionar"
-            ? "Ajuste Manual (Entrada)"
-            : "Ajuste Manual (Saída)",
-        estoqueAnterior: atual,
-        quantidade:
-          operacao === "adicionar" ? Number(quantidade) : -Number(quantidade),
-        novoEstoque: novoEstoque,
-        observacao: `Ajuste de estoque - ${operacao}`,
-      });
-    } catch (histErr) {
-      console.error("Erro ao salvar histórico de estoque:", histErr);
-    }
-
-    res.json({
-      success: true,
-      produto,
-      estoqueAnterior: atual,
-      novoEstoque,
-      operacao,
-      quantidade,
-    });
-  } catch (error) {
-    console.error("Erro ao atualizar estoque:", error);
-    res.status(error.status||500).json({ error: error.status?error.message:"Erro interno do servidor" });
-  }
-});
+// Ajuste atômico e isolado por empresa. Nunca truncar nem limitar silenciosamente a zero.
+router.put("/:id/estoque", async(req,res)=>{try{
+ const service=require('../services/estoqueFracionado').criar({Produto,HistoricoEstoque:require('../models/HistoricoEstoque')});
+ const quantidade=Q.numero(req.body.quantidade,{positivo:true}),operacao=req.body.operacao;
+ if(!['adicionar','reduzir'].includes(operacao))return res.status(400).json({error:'Operação inválida.'});
+ const result=await Produto.sequelize.transaction(async transaction=>{const p=await service.produto(req.params.id,req.user.empresaId,transaction);if(p.tipo!=='produto')throw Object.assign(Error('Serviços e planos não movimentam estoque.'),{status:400});const estoqueAnterior=Number(p.estoqueAtual||0);await service.mover(p,operacao==='adicionar'?quantidade:-quantidade,{transaction,operacao:'Ajuste Manual',observacao:'Ajuste '+operacao});return {success:true,produto:p,estoqueAnterior,novoEstoque:Number(p.estoqueAtual),quantidade,operacao};});res.json(result);
+}catch(e){res.status(e.status||500).json({error:e.status?e.message:'Erro ao ajustar estoque.'});}});
 
 // Buscar histórico de estoque de um produto
 router.get("/:id/historico-estoque", async (req, res) => {
   try {
     const id = String(req.params.id);
     const HistoricoEstoque = require("../models/HistoricoEstoque");
+    const autorizado=await Produto.findOne({where:{id,empresa_id:req.user.empresaId}});
+    if(!autorizado)return res.status(404).json({error:"Produto não encontrado"});
     const historico = await HistoricoEstoque.findAll({
       where: { produtoId: id },
       order: [["dataMovimento", "DESC"]],

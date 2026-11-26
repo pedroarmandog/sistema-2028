@@ -57,12 +57,12 @@ function criar({ERP,m,assinaturas,agora=()=>new Date(),notificar=async()=>{}}){
    const e=await ERP.Empresa.findByPk(ctx.empresaId,{attributes:keys});result={empresa:e?.get({plain:true}),informacoes:ctx.dados.conhecimento.comercial,faq:ctx.dados.conhecimento.faq.filter(f=>f.ativo)};
   }
   if(name==='buscarProdutos'){
-   const q=V.texto(args.busca,80,true).replace(/[%_\\]/g,'');const rows=await ERP.Produto.findAll({where:{empresa_id:ctx.empresaId,nome:{[Op.like]:'%'+q+'%'},tipo:'produto',[Op.or]:[{ativo:{[Op.ne]:'nao'}},{ativo:null}]},attributes:['id','nome',...(permitido(ctx,'precos')?['preco']:[]),...(permitido(ctx,'estoque')?['estoqueAtual']:[])],limit:5,...o});
-   result=rows.map(p=>({id:p.id,nome:p.nome,...(permitido(ctx,'precos')?{preco:Number.isFinite(Number(p.preco))?Number(p.preco):null}:{}),...(permitido(ctx,'estoque')?{estoque:Number(p.estoqueAtual)||0,disponivel:Number(p.estoqueAtual)>0}:{})}));
+   const q=V.texto(args.busca,80,true).replace(/[%_\\]/g,'');const rows=await ERP.Produto.findAll({where:{empresa_id:ctx.empresaId,nome:{[Op.like]:'%'+q+'%'},tipo:'produto',[Op.or]:[{ativo:{[Op.ne]:'nao'}},{ativo:null}]},attributes:['id','nome','unidade',...(permitido(ctx,'precos')?['preco']:[]),...(permitido(ctx,'estoque')?['estoqueAtual']:[])],limit:5,...o});
+   result=rows.map(p=>({id:p.id,nome:p.nome,unidade:p.unidade,referenciaPreco:String(p.unidade).toUpperCase()==='KG'?'por quilograma':'por unidade',...(permitido(ctx,'precos')?{preco:Number.isFinite(Number(p.preco))?Number(p.preco):null}:{}),...(permitido(ctx,'estoque')?{estoque:Number(p.estoqueAtual)||0,disponivel:Number(p.estoqueAtual)>0}:{})}));
   }
   if(name==='consultarServicos'){
    const r=ctx.dados.agenda.regras;if(!r?.servicos?.length)return{servicos:[],motivo:'Serviços ainda não publicados para a IA.'};
-   const rows=await ERP.Produto.findAll({where:{empresa_id:ctx.empresaId,id:{[Op.in]:r.servicos.map(s=>s.id)},tipo:{[Op.in]:['servico','serviço']}},attributes:['id','nome',...(permitido(ctx,'precos')?['preco']:[])],limit:50,...o});
+   const rows=await ERP.Produto.findAll({where:{empresa_id:ctx.empresaId,id:{[Op.in]:r.servicos.map(s=>s.id)},tipo:{[Op.in]:['servico','serviço']}},attributes:['id','nome','unidade',...(permitido(ctx,'precos')?['preco']:[])],limit:50,...o});
    result=rows.map(s=>({id:s.id,nome:s.nome,...(permitido(ctx,'precos')&&r.servicos.find(x=>x.id===s.id)?.mostrarPreco?{preco:Number.isFinite(Number(s.preco))?Number(s.preco):null}:{}),duracao:r.servicos.find(x=>x.id===s.id)?.duracao}));
   }
   if(name==='identificarCliente'){const c=await cliente(ctx);result=c?{id:c.id,nome:c.nome,pets:(await ERP.Pet.findAll({where:{cliente_id:c.id,[Op.or]:[{empresa_id:ctx.empresaId},{empresa_id:null}]},attributes:['id','nome','especie','raca','porte'],limit:30})).map(p=>p.get({plain:true}))}:{identificado:false};}

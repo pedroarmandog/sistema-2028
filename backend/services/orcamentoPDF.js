@@ -162,7 +162,7 @@ async function gerarOrcamentoPDF(o, identidade) {
       doc.fillColor("#263849").text(part, left, y, { width: 238 });
       if (primeiro) {
         const vals = [
-          quantidade(i.quantidade),
+          quantidade(i.quantidade,i.unidade || i.produto?.unidade)+" "+(i.unidade || i.produto?.unidade || "UN"),
           moeda(i.valorUnitario),
           quantidade(i.desconto) + "%",
           moeda(i.totalFinal),

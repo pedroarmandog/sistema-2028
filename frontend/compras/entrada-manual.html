@@ -1,6 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-br">
 <head>
+    <script src="../components/quantidades.js?v=20261125-granel1"></script>
+<script src="/components/feature-flags.js?v=20261121-midia1"></script>
+    <script src="/components/produto-imagens.js?v=20261121-midia1"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PetHub</title>
@@ -34,10 +37,10 @@
                     <a href="../painel/rel-faturamento.html" class="submenu-item">
                         <span>Rel. Faturamento</span>
                     </a>
-                    <!--<a href="../painel/rel-demonstrativo-resultados.html" class="submenu-item">
+                    <!--<a data-pethub-feature="relatorioDRE" href="../painel/rel-demonstrativo-resultados.html" class="submenu-item">
                         <span>Rel. Demonstrativo de resultados</span>
                     </a>-->
-                    <!--<a href="../painel/rel-recebiveis-produto.html" class="submenu-item">
+                    <!--<a data-pethub-feature="relatorioRecebiveisProdutos" href="../painel/rel-recebiveis-produto.html" class="submenu-item">
                         <span>Rel. Recebíveis por produto</span>
                     </a>-->
                     <a href="../painel/posicao-caixa.html" class="submenu-item">
@@ -197,7 +200,7 @@
                     <!--<a href="../atendimento/contratos.html" class="submenu-item">
                         <span>Contratos</span>
                     </a>-->
-                    <!--<a href="../atendimento/devolucao-venda.html" class="submenu-item">
+                    <!--<a data-pethub-feature="devolucaoVenda" href="../atendimento/devolucao-venda.html" class="submenu-item">
                         <span>Devolução de venda</span>
                     </a>-->
 
@@ -209,7 +212,7 @@
                     <div id="attSubCaixa" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
                         <a href="../Caixa/abertura-fechamento.html" class="submenu-item"><span>Abertura/Fechamento</span></a>
                         <a href="../Caixa/suprimento-sangria.html" class="submenu-item"><span>Suprimento/Sangria</span></a>
-                        <a href="#" class="submenu-item"><span>Rel. Demonstrativo de caixa</span></a>
+                        <a href="#" class="submenu-item" data-pethub-feature="relatorioDemonstrativoCaixa"><span>Rel. Demonstrativo de caixa</span></a>
                     </div>
 
                     <a href="../atendimento/orcamento.html" class="submenu-item">
@@ -257,9 +260,9 @@
                         <span id="compCaretRel" style="font-weight:700">▼</span>
                     </div>
                     <div id="compSubRelatorios" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
-                        <a href="#" class="submenu-item"><span>Entrada no período</span></a>
-                        <a href="#" class="submenu-item"><span>Entrada por produto</span></a>
-                        <a href="#" class="submenu-item"><span>Sugestão de compra</span></a>
+                        <a href="#" class="submenu-item" data-pethub-feature="entradaPeriodo"><span>Entrada no período</span></a>
+                        <a href="#" class="submenu-item" data-pethub-feature="entradaProduto"><span>Entrada por produto</span></a>
+                        <a href="#" class="submenu-item" data-pethub-feature="sugestaoCompra"><span>Sugestão de compra</span></a>
                     </div>
                 </div>
             </div>
@@ -863,7 +866,7 @@
                 <th>Descrição</th>
                 <th>Validade</th>
                 <th>Quantidade</th>
-                <th>Fator</th>
+                <th title="Quantidade na unidade de estoque por embalagem. Ex.: saco de 15 kg = fator 15.">Fator / peso por embalagem</th>
                 <th>Ent. Estoque</th>
                 <th>Unitário</th>
                 <th>Total Bruto</th>
@@ -960,7 +963,7 @@
     </div>
   </div>
   
-  <script src="entrada-manual.js"></script>
+  <script src="entrada-manual.js?v=20261125-granel1"></script>
 </body>
 </html>
 

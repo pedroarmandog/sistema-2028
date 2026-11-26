@@ -1,6 +1,9 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
+    <script src="../components/quantidades.js?v=20261125-granel1"></script>
+<script src="/components/feature-flags.js?v=20261121-midia1"></script>
+    <script src="/components/produto-imagens.js?v=20261121-midia1"></script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>PetHub</title>
@@ -36,10 +39,10 @@
                     <a href="../painel/rel-faturamento.html" class="submenu-item">
                         <span>Rel. Faturamento</span>
                     </a>
-                    <!--<a href="../painel/rel-demonstrativo-resultados.html" class="submenu-item">
+                    <!--<a data-pethub-feature="relatorioDRE" href="../painel/rel-demonstrativo-resultados.html" class="submenu-item">
                         <span>Rel. Demonstrativo de resultados</span>
                     </a>-->
-                    <!--<a href="../painel/rel-recebiveis-produto.html" class="submenu-item">
+                    <!--<a data-pethub-feature="relatorioRecebiveisProdutos" href="../painel/rel-recebiveis-produto.html" class="submenu-item">
                         <span>Rel. Recebíveis por produto</span>
                     </a>-->
                     <a href="../painel/posicao-caixa.html" class="submenu-item">
@@ -199,7 +202,7 @@
                     <!--<a href="../atendimento/contratos.html" class="submenu-item">
                         <span>Contratos</span>
                     </a>-->
-                    <!--<a href="../atendimento/devolucao-venda.html" class="submenu-item">
+                    <!--<a data-pethub-feature="devolucaoVenda" href="../atendimento/devolucao-venda.html" class="submenu-item">
                         <span>Devolução de venda</span>
                     </a>-->
 
@@ -211,7 +214,7 @@
                     <div id="attSubCaixa" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
                         <a href="../Caixa/abertura-fechamento.html" class="submenu-item"><span>Abertura/Fechamento</span></a>
                         <a href="../Caixa/suprimento-sangria.html" class="submenu-item"><span>Suprimento/Sangria</span></a>
-                        <a href="#" class="submenu-item"><span>Rel. Demonstrativo de caixa</span></a>
+                        <a href="#" class="submenu-item" data-pethub-feature="relatorioDemonstrativoCaixa"><span>Rel. Demonstrativo de caixa</span></a>
                     </div>
 
                     <a href="../atendimento/orcamento.html" class="submenu-item">
@@ -259,9 +262,9 @@
                         <span id="compCaretRel" style="font-weight:700">▼</span>
                     </div>
                     <div id="compSubRelatorios" class="nested-submenu submenu" style="display:none; padding-left:12px; margin-top:6px;">
-                        <a href="#" class="submenu-item"><span>Entrada no período</span></a>
-                        <a href="#" class="submenu-item"><span>Entrada por produto</span></a>
-                        <a href="#" class="submenu-item"><span>Sugestão de compra</span></a>
+                        <a href="#" class="submenu-item" data-pethub-feature="entradaPeriodo"><span>Entrada no período</span></a>
+                        <a href="#" class="submenu-item" data-pethub-feature="entradaProduto"><span>Entrada por produto</span></a>
+                        <a href="#" class="submenu-item" data-pethub-feature="sugestaoCompra"><span>Sugestão de compra</span></a>
                     </div>
                 </div>
             </div>
@@ -1011,7 +1014,7 @@
         </div>
         <div class="form-ajuste">
           <label for="novoEstoqueInput">Novo Saldo de Estoque:</label>
-          <input type="number" id="novoEstoqueInput" min="0" placeholder="Digite o novo estoque">
+          <input type="text" inputmode="decimal" id="novoEstoqueInput" min="0" placeholder="Digite o novo estoque">
           
           <label for="dataEstoqueInput" style="margin-top: 16px;">Data do Ajuste:</label>
           <input type="date" id="dataEstoqueInput">
@@ -1036,7 +1039,7 @@
   <script src="../api/api-client.js"></script>
   
   <!-- Script do menu (copiar para sua página) -->
-  <script src="./pagina-produto.js"></script>
+  <script src="./pagina-produto.js?v=20261125-granel1"></script>
   <!-- Script global do calendário (copia do dashboard) -->
   <script src="../novo-atendimento-global.js"></script>
     
