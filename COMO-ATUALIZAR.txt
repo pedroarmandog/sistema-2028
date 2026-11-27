@@ -1,0 +1,16 @@
+ATUALIZAÇÃO DE CONTAS A PAGAR — ARQUIVOS COMPLETOS
+
+1. Faça uma cópia de segurança dos arquivos atuais do projeto.
+2. Extraia o ZIP.
+3. Copie as pastas backend, frontend e tests para a pasta principal do seu sistema, onde fica package.json.
+4. Quando o Windows perguntar, substitua os arquivos de mesmo nome. Mescle as pastas; não exclua as pastas existentes.
+5. No GitHub Desktop, faça o commit e envie as alterações. Publique o novo commit no Render.
+6. Após a publicação, atualize o Dashboard e Contas a pagar com Ctrl+F5.
+
+Não precisa executar instalador ou aplicador. O ZIP contém os arquivos completos, prontos para substituição. Não exige npm install, nova migration ou alteração das variáveis do Render.
+
+Os arquivos são da versão do projeto utilizada na correção. Alterações próprias feitas depois dessa versão nos mesmos arquivos precisam ser conciliadas antes da substituição.
+
+As pastas backend e frontend contêm a correção do sistema. A pasta tests contém os testes e seu adaptador; não é executada automaticamente.
+
+O relatório técnico acompanha o pacote. A correção foi testada localmente; a causa exata do erro publicado ainda depende da conferência do banco/log do Render. O script backend/scripts/diagnosticar-contas-pagar.js é opcional para diagnóstico de leitura e não faz parte da aplicação dos arquivos.

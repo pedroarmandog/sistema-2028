@@ -1,6 +1,8 @@
 ﻿<!doctype html>
 <html lang="pt-br">
   <head>
+    <script src="/components/feature-flags.js?v=20261121-midia1"></script>
+    <script src="/components/produto-imagens.js?v=20261121-midia1"></script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
@@ -49,10 +51,10 @@
             <a href="./painel/rel-faturamento.html" class="submenu-item">
               <span>Rel. Faturamento</span>
             </a>
-            <!--<a href="./painel/rel-demonstrativo-resultados.html" class="submenu-item">
+            <!--<a data-pethub-feature="relatorioDRE" href="./painel/rel-demonstrativo-resultados.html" class="submenu-item">
                         <span>Rel. Demonstrativo de resultados</span>
                     </a>-->
-            <!--<a href="./painel/rel-recebiveis-produto.html" class="submenu-item">
+            <!--<a data-pethub-feature="relatorioRecebiveisProdutos" href="./painel/rel-recebiveis-produto.html" class="submenu-item">
                         <span>Rel. Recebíveis por produto</span>
                     </a>-->
             <a href="./painel/posicao-caixa.html" class="submenu-item">
@@ -290,7 +292,7 @@
             <!--<a href="/atendimento/contratos.html" class="submenu-item">
                         <span>Contratos</span>
                     </a>-->
-            <!--<a href="/atendimento/devolucao-venda.html" class="submenu-item">
+            <!--<a data-pethub-feature="devolucaoVenda" href="/atendimento/devolucao-venda.html" class="submenu-item">
                         <span>Devolução de venda</span>
                     </a>-->
 
@@ -322,7 +324,7 @@
                 ><span>Suprimento/Sangria</span></a
               >
               <a href="#" class="submenu-item"
-                ><span>Rel. Demonstrativo de caixa</span></a
+                 data-pethub-feature="relatorioDemonstrativoCaixa"><span>Rel. Demonstrativo de caixa</span></a
               >
             </div>
 
@@ -418,13 +420,13 @@
               style="display: none; padding-left: 12px; margin-top: 6px"
             >
               <a href="#" class="submenu-item"
-                ><span>Entrada no período</span></a
+                 data-pethub-feature="entradaPeriodo"><span>Entrada no período</span></a
               >
               <a href="#" class="submenu-item"
-                ><span>Entrada por produto</span></a
+                 data-pethub-feature="entradaProduto"><span>Entrada por produto</span></a
               >
               <a href="#" class="submenu-item"
-                ><span>Sugestão de compra</span></a
+                 data-pethub-feature="sugestaoCompra"><span>Sugestão de compra</span></a
               >
             </div>
           </div>
@@ -913,7 +915,7 @@
     </div>
 
     <script src="/api-config.js"></script>
-    <script src="dashboard.js?v=20261120-taxidog1"></script>
+    <script src="dashboard.js?v=20261126-contas-pagar"></script>
     <script src="logo-manager.js"></script>
     <script src="novo-atendimento-global.js?v=20261120-taxidog1"></script>
     <script>

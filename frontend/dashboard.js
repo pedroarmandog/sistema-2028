@@ -720,7 +720,7 @@ const DashboardApp = {
     try {
       const data = await this.apiFetch("/dashboard/contas-a-pagar-hoje");
       if (!data || data.length === 0) {
-        el.innerHTML = this.emptyHTML("Nenhuma conta vencendo hoje");
+        el.innerHTML = this.emptyHTML("Nenhuma conta a pagar com vencimento hoje.");
         return;
       }
       el.innerHTML = data
@@ -729,10 +729,10 @@ const DashboardApp = {
                 <div class="widget-list-item conta-item">
                     <div class="widget-list-icon"><i class="fas fa-file-invoice-dollar"></i></div>
                     <div class="widget-list-info">
-                        <strong>${this.escapeHtml(c.fornecedor)}</strong>
-                        <span class="widget-list-sub">NF: ${c.numero || "N/A"} &bull; ${c.situacao}</span>
+                        <strong>${this.escapeHtml(c.descricao || c.fornecedor)}</strong>
+                        <span class="widget-list-sub">NF: ${this.escapeHtml(c.numero || "N/A")} &bull; ${this.escapeHtml(c.situacaoFinanceira || c.situacao)} &bull; ${this.escapeHtml(String(c.dataEntrada || "").split("-").reverse().join("/"))}</span>
                     </div>
-                    <div class="widget-list-value">${this.formatCurrency(c.valorTotal)}</div>
+                    <div class="widget-list-value">${this.formatCurrency(c.saldoPendente ?? c.valorTotal)}</div>
                 </div>
             `,
         )

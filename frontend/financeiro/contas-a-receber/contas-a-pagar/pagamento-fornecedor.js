@@ -1,3 +1,4 @@
+const PF = window.PetHubContasPagar;
 ﻿// Copiado de frontend/dashboard.js - funcionalidades do menu e header
 
 console.log("🚀 menu.js carregado (snippet do dashboard)");
@@ -412,7 +413,7 @@ let documentosSelecionados = [];
 // ---------- LOAD DATA ----------
 async function carregarDocumentos() {
   try {
-    const res = await fetch("/api/entrada/manual", { credentials: "include" });
+    const res = await fetch("/api/entrada/manual?financeiro=1", { credentials: "include" });
     if (!res.ok) throw new Error("status " + res.status);
     let data = await res.json();
     if (!Array.isArray(data)) {
@@ -420,28 +421,16 @@ async function carregarDocumentos() {
       else if (data && Array.isArray(data.data)) data = data.data;
       else data = [];
     }
-    todosDocumentos = data.filter((e) => {
-      const s = (e.situacao || "").toLowerCase();
-      // Mostrar entradas concluídas (estoque recebido, pagamento pendente)
-      // e também qualquer status diferente de pago/excluido/pendente (para compatibilidade)
-      return (
-        s !== "pago" && s !== "excluido" && s !== "pendente" && s !== "ignorada"
-      );
-    });
-    // Fallback: se não há entradas 'concluido', mostrar também as 'pendente' para não ficar vazio
-    if (todosDocumentos.length === 0) {
-      todosDocumentos = data.filter((e) => {
-        const s = (e.situacao || "").toLowerCase();
-        return s !== "pago" && s !== "excluido" && s !== "ignorada";
-      });
-    }
-    todosHistorico = data.filter(
-      (e) => (e.situacao || "").toLowerCase() === "pago",
-    );
+    todosDocumentos = data.filter(e => e.saldoPendente > 0 && e.situacaoFinanceira !== "cancelado");
+    todosHistorico = data.filter(e => e.situacaoFinanceira === "pago");
     filteredDocumentos = [...todosDocumentos];
     renderizarTabela();
   } catch (e) {
     console.error("Erro ao carregar documentos:", e);
+    todosDocumentos = []; todosHistorico = []; filteredDocumentos = []; documentosSelecionados = [];
+    atualizarBannerTotais();
+    const tbody = document.getElementById("tabelaPagamentosBody");
+    if (tbody) tbody.innerHTML = `<tr><td colspan="12">${PF.escape(e.message)}. Use Pesquisar para tentar novamente.</td></tr>`;
   }
 }
 
@@ -467,10 +456,7 @@ function atualizarBannerTotais() {
   const sel = todosDocumentos.filter((d) =>
     documentosSelecionados.includes(String(d.id)),
   );
-  const totalBruto = sel.reduce(
-    (s, d) => s + Number(d.valorTotal || d.totalProdutos || 0),
-    0,
-  );
+  const totalBruto = sel.reduce((s, d) => s + window.PetHubCalculos.centavos(PF.saldo(d)), 0) / 100;
   banner.style.display = "flex";
   banner.innerHTML = `
     <div class="banner-total-item"><span>Total Bruto</span><strong>${totalBruto.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong></div>
@@ -500,11 +486,10 @@ function fmtVal(v) {
 function vencClass(iso) {
   if (!iso) return "";
   try {
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    const d = new Date(iso + "T00:00:00");
+    const hoje = PF.diaBrasil();
+    const d = String(iso).slice(0, 10);
     if (d < hoje) return "venc-atrasado";
-    if (d.toDateString() === hoje.toDateString()) return "venc-hoje";
+    if (d === hoje) return "venc-hoje";
   } catch (e) {}
   return "";
 }
@@ -524,33 +509,15 @@ function renderizarTabela() {
   const isHistorico = tabAtiva === "historico";
   tbody.innerHTML = dados
     .map((doc) => {
-      // Parsear pagamentos (pode vir como string JSON do Sequelize raw)
-      let pags = doc.pagamentos;
-      if (typeof pags === "string") {
-        try {
-          pags = JSON.parse(pags);
-        } catch (e) {
-          pags = [];
-        }
-      }
-      if (!Array.isArray(pags)) pags = [];
-
-      let saldo = Number(doc.valorTotal || doc.totalProdutos || 0);
-      // Fallback: quando valorTotal=0, reconstruir a partir dos pagamentos (documentos zerados por bug antigo)
-      if (saldo === 0 && pags.length > 0) {
-        saldo = pags.reduce(
-          (sum, p) => sum + Number(p.valor || p.amount || 0),
-          0,
-        );
-      }
+      const saldo = isHistorico ? Number(doc.valorPago ?? doc.valorTotal ?? 0) : PF.saldo(doc);
       const venc = doc.dataEntrada || doc.dataEmissao || "";
       return `<tr class="${vencClass(venc)}">
       <td>${isHistorico ? "" : `<input type="checkbox" class="checkbox-documento" data-id="${doc.id}">`}</td>
-      <td>${doc.numero ? doc.numero + "/1" : "-"}</td>
+      <td>${doc.numero ? PF.escape(doc.numero) : "-"}</td>
       <td>${fmtData(doc.dataEmissao)}</td>
       <td>${fmtData(venc)}</td>
-      <td>${doc.fornecedor || "-"}</td>
-      <td>${doc.numero ? "N. " + doc.numero + "/1" : "-"}</td>
+      <td>${PF.escape(doc.fornecedor || "-")}</td>
+      <td>${doc.numero ? "N. " + PF.escape(doc.numero) : "-"}</td>
       <td>${fmtVal(saldo)}</td>
       <td>0,00</td>
       <td>0,00</td>
@@ -664,12 +631,9 @@ function aplicarFiltros() {
   ).trim();
   const previsao = document.getElementById("filtroPrevisao")?.value || "todos";
 
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-  const dMais7 = new Date(hoje);
-  dMais7.setDate(hoje.getDate() + 7);
-  const dMais30 = new Date(hoje);
-  dMais30.setDate(hoje.getDate() + 30);
+  const hoje = PF.diaBrasil();
+  const acrescentarDias = n => { const d = new Date(hoje + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  const dMais7 = acrescentarDias(7), dMais30 = acrescentarDias(30);
 
   filteredDocumentos = todosDocumentos.filter((doc) => {
     if (
@@ -695,7 +659,7 @@ function aplicarFiltros() {
       const vf = parseFloat(valor.replace(",", "."));
       if (
         !isNaN(vf) &&
-        Math.abs(Number(doc.valorTotal || doc.totalProdutos || 0) - vf) > 0.01
+        Math.abs(PF.saldo(doc) - vf) > 0.01
       )
         return false;
     }
@@ -703,9 +667,9 @@ function aplicarFiltros() {
     if (dataVenc && vencISO && vencISO.split("T")[0] !== dataVenc) return false;
     if (previsao !== "todos" && vencISO) {
       try {
-        const d = new Date(vencISO + "T00:00:00");
+        const d = String(vencISO).slice(0, 10);
         if (previsao === "atrasado" && d >= hoje) return false;
-        if (previsao === "hoje" && d.toDateString() !== hoje.toDateString())
+        if (previsao === "hoje" && d !== hoje)
           return false;
         if (previsao === "proximos7" && (d < hoje || d > dMais7)) return false;
         if (previsao === "proximos30" && (d < hoje || d > dMais30))
@@ -739,7 +703,7 @@ function mostrarToastPF(msg, tipo) {
 // ---------- MODAL DE PAGAMENTO ----------
 // ---------- MODAL NOVO DOCUMENTO A PAGAR ----------
 function abrirModalNovoDoc() {
-  const hoje = new Date().toISOString().split("T")[0];
+  const hoje = PF.diaBrasil();
 
   const overlay = document.createElement("div");
   overlay.style.cssText =
@@ -773,7 +737,7 @@ function abrirModalNovoDoc() {
 
       <div style="display:grid;grid-template-columns:1fr 80px 1fr 1fr;gap:12px;margin-bottom:16px;">
         <div>
-          <label style="font-size:12px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.5px;">Valor *</label>
+          <label style="font-size:12px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:.5px;">Valor total *</label>
           <input type="number" id="ndValor" step="0.01" min="0" placeholder="0,00"
             style="width:100%;margin-top:6px;padding:11px 14px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;outline:none;box-sizing:border-box;transition:border-color 0.2s;"
             onfocus="this.style.borderColor='#1976d2'" onblur="this.style.borderColor='#e0e0e0'">
@@ -925,7 +889,7 @@ function abrirModalNovoDoc() {
   }
 
   async function salvarDoc(payload) {
-    const res = await fetch("/api/entrada/manual", {
+    const res = await fetch("/api/entrada/manual?financeiro=1", {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
@@ -969,7 +933,7 @@ function abrirModalNovoDoc() {
         // Selecionar o documento recém-criado e abrir modal de pagamento
         const idCriado = String(criado.id || "");
         if (idCriado) {
-          documentosSelecionados = [idCriado];
+          documentosSelecionados = (criado.documentos || [criado]).map(d => String(d.id));
           // Garantir que o documento está em todosDocumentos (acabou de recarregar)
           atualizarBannerTotais();
           abrirModalPagamento();
@@ -992,10 +956,10 @@ function abrirModalPagamento() {
   const sel = todosDocumentos.filter((d) =>
     documentosSelecionados.includes(String(d.id)),
   );
-  const total = sel.reduce(
-    (s, d) => s + Number(d.valorTotal || d.totalProdutos || 0),
-    0,
-  );
+  let planoBaixa = null;
+  const loteBaixa = typeof crypto.randomUUID === "function" ? crypto.randomUUID() : Date.now() + "-" + Math.random().toString(36).slice(2);
+  const dataBaixa = PF.diaBrasil();
+  const total = sel.reduce((s, d) => s + window.PetHubCalculos.centavos(PF.saldo(d)), 0) / 100;
   const fNomes = [
     ...new Set(sel.map((d) => d.fornecedor || "").filter(Boolean)),
   ].join(", ");
@@ -1012,7 +976,7 @@ function abrirModalPagamento() {
     <div style="padding:20px 26px 16px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;">
       <div>
         <h3 style="margin:0;font-size:17px;color:#1a1a2e;">Pagamento ao Fornecedor</h3>
-        <p style="margin:3px 0 0;font-size:12px;color:#666;">${fNomes}</p>
+        <p style="margin:3px 0 0;font-size:12px;color:#666;">${PF.escape(fNomes)}</p>
       </div>
       <button class="pf-fechar-btn" style="background:none;border:none;font-size:24px;cursor:pointer;color:#aaa;line-height:1;">×</button>
     </div>
@@ -1120,6 +1084,7 @@ function abrirModalPagamento() {
   }
 
   window.__pfRemoverPag = function (idx) {
+    if (planoBaixa) return;
     pagEfetuados.splice(idx, 1);
     totalPago = pagEfetuados.reduce((s, p) => s + Number(p.valor), 0);
     atualizarTotaisModal();
@@ -1185,7 +1150,8 @@ function abrirModalPagamento() {
       alert("Erro interno: campo de valor não encontrado.");
       return false;
     }
-    const valor = parseFloat(inputValorAtivo.value);
+    if (planoBaixa) { alert("Há um pagamento em andamento. Use Tentar novamente para concluir o mesmo lançamento."); return false; }
+    let valor; try { valor = window.PetHubCalculos.centavos(inputValorAtivo.value) / 100; } catch { valor = NaN; }
     if (!valor || valor <= 0) {
       alert("Informe um valor válido.");
       inputValorAtivo.focus();
@@ -1195,7 +1161,7 @@ function abrirModalPagamento() {
       ? parseInt(inputParcelasAtivo.value) || 1
       : null;
     pagEfetuados.push({ forma: formaSelecionada, valor, parcelas });
-    totalPago += valor;
+    totalPago = window.PetHubCalculos.centavos(totalPago + valor) / 100;
     console.log(
       `[PF] Pagamento adicionado: ${formaSelecionada} R$${valor} | total pagamentos:`,
       pagEfetuados,
@@ -1214,7 +1180,7 @@ function abrirModalPagamento() {
     .addEventListener("click", async function () {
       // Auto-adicionar se forma selecionada e nenhum pagamento ainda adicionado
       if (formaSelecionada && inputValorAtivo && pagEfetuados.length === 0) {
-        adicionarPagamento();
+        if (!adicionarPagamento()) return;
       }
       console.log(`[PF] Finalizar clicado | pagEfetuados:`, pagEfetuados);
       if (!pagEfetuados.length) {
@@ -1223,36 +1189,27 @@ function abrirModalPagamento() {
       }
       this.disabled = true;
       this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Registrando...';
-      const ids = [...documentosSelecionados];
-      await Promise.all(
-        ids.map((id) =>
-          fetch("/api/entrada/manual/" + id, {
-            method: "PUT",
-            credentials: "include",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              situacao: "pago",
-              pagamentos: pagEfetuados,
-              dataPagamento: new Date().toISOString().split("T")[0],
-            }),
-          }).catch((e) => console.error(e)),
-        ),
-      );
+      try {
+        if (!planoBaixa) planoBaixa = PF.ratear(sel, pagEfetuados);
+        for (const item of planoBaixa) {
+          await PF.resposta(await fetch("/api/entrada/manual/" + item.id + "?financeiro=1", {
+            method: "PUT", credentials: "include", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ origemFinanceira: "contas-a-pagar", pagamentos: item.pagamentos,
+              loteFinanceiro: loteBaixa, dataPagamento: dataBaixa })
+          }));
+        }
+      } catch (e) {
+        mostrarToastPF(e.message + " Confira os documentos; tentar novamente reutiliza o mesmo lançamento.", "error");
+        this.disabled = false; this.textContent = "Tentar novamente";
+        return;
+      }
       fecharModal();
       documentosSelecionados = [];
       await carregarDocumentos();
       atualizarBannerTotais();
       mostrarToastPF("Pagamento registrado com sucesso!");
-      // Mudar para aba histórico
-      document
-        .querySelectorAll(".tab-item")
-        .forEach((t) => t.classList.remove("active"));
-      const histTab = document.querySelector('.tab-item[data-tab="historico"]');
-      if (histTab) {
-        histTab.classList.add("active");
-        tabAtiva = "historico";
-        renderizarTabela();
-      }
+      // A lista de pendências permanece aberta para acompanhar os saldos parciais.
+
     });
 }
 
@@ -1269,7 +1226,7 @@ async function excluirDocumentos() {
     ov.innerHTML = `<div style="background:#fff;border-radius:10px;padding:28px 24px;max-width:380px;width:90%;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,0.2);">
       <div style="font-size:36px;margin-bottom:10px;">🗑️</div>
       <h3 style="margin:0 0 8px;font-size:16px;color:#b71c1c;">Excluir documento(s)?</h3>
-      <p style="margin:0 0 20px;color:#555;font-size:14px;line-height:1.5;"><strong>${documentosSelecionados.length} documento(s)</strong> serão removidos permanentemente.</p>
+      <p style="margin:0 0 20px;color:#555;font-size:14px;line-height:1.5;"><strong>${documentosSelecionados.length} documento(s)</strong> serão excluídos da lista. Os registros financeiros serão preservados.</p>
       <div style="display:flex;gap:10px;justify-content:center;">
         <button id="__exDocCanc" style="padding:9px 22px;border-radius:6px;border:1px solid #ccc;background:#f5f5f5;cursor:pointer;">Cancelar</button>
         <button id="__exDocOk"   style="padding:9px 22px;border-radius:6px;border:none;background:#d32f2f;color:#fff;cursor:pointer;font-weight:600;">Sim, excluir</button>
@@ -1291,14 +1248,14 @@ async function excluirDocumentos() {
     };
   });
   if (!confirmed) return;
-  await Promise.all(
-    documentosSelecionados.map((id) =>
-      fetch("/api/entrada/manual/" + id, {
-        method: "DELETE",
-        credentials: "include",
-      }).catch((e) => e),
-    ),
-  );
+  try {
+    for (const id of documentosSelecionados) {
+      await PF.resposta(await fetch("/api/entrada/manual/" + id + "?financeiro=1", { method: "DELETE", credentials: "include" }));
+    }
+  } catch (e) {
+    mostrarToastPF(e.message, "error");
+    await carregarDocumentos(); atualizarBannerTotais(); return;
+  }
   documentosSelecionados = [];
   await carregarDocumentos();
   atualizarBannerTotais();
@@ -1403,7 +1360,7 @@ function abrirModalEditarDocumento(id) {
     <h3 style="margin:0 0 18px;font-size:16px;color:#1a1a2e;">Editar Documento</h3>
     <div style="margin-bottom:14px;">
       <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:5px;">FORNECEDOR</label>
-      <input id="__editForn" value="${doc.fornecedor || ""}" style="width:100%;padding:10px 12px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;box-sizing:border-box;">
+      <input id="__editForn" value="${PF.escape(doc.fornecedor || "")}" style="width:100%;padding:10px 12px;border:2px solid #e0e0e0;border-radius:8px;font-size:14px;box-sizing:border-box;">
     </div>
     <div style="margin-bottom:14px;">
       <label style="font-size:12px;font-weight:600;color:#555;display:block;margin-bottom:5px;">VALOR TOTAL (R$) *</label>
@@ -1441,7 +1398,7 @@ function abrirModalEditarDocumento(id) {
     this.disabled = true;
     this.textContent = "Salvando...";
     try {
-      const r = await fetch("/api/entrada/manual/" + id, {
+      const r = await fetch("/api/entrada/manual/" + id + "?financeiro=1", {
         method: "PUT",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -1451,7 +1408,7 @@ function abrirModalEditarDocumento(id) {
           dataEntrada: novoVenc || undefined,
         }),
       });
-      if (!r.ok) throw new Error("status " + r.status);
+      await PF.resposta(r);
       modal.remove();
       overlay.remove();
       await carregarDocumentos();

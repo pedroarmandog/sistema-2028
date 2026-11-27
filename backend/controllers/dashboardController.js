@@ -706,39 +706,14 @@ exports.periodicos = async (req, res) => {
 // Contas a pagar vencendo hoje
 exports.contasAPagarHoje = async (req, res) => {
   try {
-    const dataBrasil = getHojeBrasilStr();
-
-    const empresaId = req.user?.empresaId;
-
-    const whereEmpresa = empresaId
-      ? { [Op.or]: [{ empresa_id: empresaId }, { empresa_id: null }] }
-      : {};
-
-    const entradas = await Entrada.findAll({
-      where: Object.assign(
-        {
-          situacao: { [Op.in]: ["pendente", "concluido"] },
-          dataEntrada: dataBrasil,
-        },
-        whereEmpresa,
-      ),
-      order: [["valorTotal", "DESC"]],
-      limit: 20,
-    });
-
-    const contas = entradas.map((e) => ({
-      id: e.id,
-      fornecedor: e.fornecedor || "Não informado",
-      numero: e.numero || "",
-      valorTotal: parseFloat(e.valorTotal || 0),
-      dataEmissao: e.dataEmissao,
-      dataEntrada: e.dataEntrada,
-      situacao: e.situacao,
-    }));
-
-    res.json(contas);
+    const contas = await require("../services/contasPagar").instancia().hoje(req.user?.empresaId);
+    res.set("Cache-Control", "private, no-store");
+    return res.json(contas);
   } catch (error) {
-    return handleError(res, "Erro ao buscar contas a pagar", error);
+    console.error("[Contas a pagar/dashboard]", { empresaId: req.user?.empresaId,
+      codigo: error.original?.code || error.code, mensagem: error.message });
+    return res.status(error.status || 500).json({ erro: error.status ? error.message :
+      "Não foi possível carregar as contas a pagar. Consulte o diagnóstico do módulo." });
   }
 };
 

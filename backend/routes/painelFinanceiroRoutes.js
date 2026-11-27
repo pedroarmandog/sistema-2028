@@ -24,7 +24,7 @@ router.use(authUser);
 const { Venda, sequelize: seqVenda } = require("../models/Venda");
 const { Agendamento } = require("../models/Agendamento");
 const { MovimentoCaixa } = require("../models/MovimentoCaixa");
-const Entrada = require("../models/Entrada");
+const contasPagar = require("../services/contasPagar");
 const ContaReceber = require("../models/ContaReceber");
 
 // Instância do sequelize compartilhada
@@ -32,7 +32,12 @@ const { sequelize } = require("../models/Cliente");
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function getHojeBrasilStr() {
-  return new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+  return contasPagar.diaBrasil();
+}
+
+// Datas já construídas pelo calendário do painel, sem converter DATEONLY em timestamp UTC.
+function diaCalendario(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 // ── Utilitários ───────────────────────────────────────────────────────────────
@@ -161,13 +166,7 @@ async function somaSaidas(inicio, fim, empresaId) {
     : {};
   const [comprasPagas, movimentos] = await Promise.all([
     // Entradas_mercadoria onde a data de pagamento cai no período e estão pagas
-    Entrada.sum("valorTotal", {
-      where: {
-        ...eW,
-        dataPagamento: { [Op.between]: [inicio, fim] },
-        situacao: "pago",
-      },
-    }),
+    contasPagar.instancia().agrupar(empresaId, { inicio: diaCalendario(inicio), fim: diaCalendario(fim), tipo: "pagos" }).then(rows => rows.reduce((n, r) => n + r.total, 0)),
     // Movimentos de caixa – saídas
     MovimentoCaixa.sum("valor", {
       where: {
@@ -458,94 +457,8 @@ router.get("/resumo", async (req, res) => {
       receber.proximoMes +
       receber.atrasado;
 
-    // ── CONTAS A PAGAR ────────────────────────────────────────────────────────
-    // Documentos a pagar são entradas_mercadoria com situacao='concluido'
-    // (ainda não pagos). O campo dataEntrada armazena a data de vencimento
-    // definida no momento da criação do documento. Quando o documento for pago,
-    // situacao muda para 'pago' e ele deixa de aparecer aqui.
-
-    const [
-      pagHoje,
-      pagSemana,
-      pagProxSem,
-      pagMes,
-      pagProxMes,
-      pagAtrasado,
-      pagGeral,
-    ] = await Promise.all([
-      // Vencimento hoje - usa range com offset -03:00
-      Entrada.findAll({
-        where: {
-          ...eW,
-          dataEntrada: { [Op.gte]: hojeStartStr, [Op.lt]: hojeNextStr },
-          situacao: "concluido",
-        },
-        attributes: ["valorTotal"],
-      }),
-      // Vencimento esta semana
-      Entrada.findAll({
-        where: {
-          ...eW,
-          dataEntrada: { [Op.between]: [semana.inicio, semana.fim] },
-          situacao: "concluido",
-        },
-        attributes: ["valorTotal"],
-      }),
-      // Vencimento próxima semana
-      Entrada.findAll({
-        where: {
-          ...eW,
-          dataEntrada: { [Op.between]: [proxSemIni, proxSemFim] },
-          situacao: "concluido",
-        },
-        attributes: ["valorTotal"],
-      }),
-      // Vencimento este mês
-      Entrada.findAll({
-        where: {
-          ...eW,
-          dataEntrada: { [Op.between]: [mesMesIni, mesMesFim] },
-          situacao: "concluido",
-        },
-        attributes: ["valorTotal"],
-      }),
-      // Vencimento próximo mês
-      Entrada.findAll({
-        where: {
-          ...eW,
-          dataEntrada: { [Op.between]: [proxMesIni, proxMesFim] },
-          situacao: "concluido",
-        },
-        attributes: ["valorTotal"],
-      }),
-      // Atrasados: vencimento anterior a hoje e ainda não pago
-      Entrada.findAll({
-        where: {
-          ...eW,
-          dataEntrada: { [Op.lt]: hojeStartStr },
-          situacao: "concluido",
-        },
-        attributes: ["valorTotal"],
-      }),
-      // Geral: todos os documentos não pagos, independente de vencimento
-      Entrada.findAll({
-        where: { ...eW, situacao: "concluido" },
-        attributes: ["valorTotal"],
-      }),
-    ]);
-
-    const calcPagar = (entradas) =>
-      entradas.reduce((acc, e) => acc + toNum(e.valorTotal), 0);
-
-    const pagar = {
-      hoje: calcPagar(pagHoje),
-      essaSemana: calcPagar(pagSemana),
-      proximaSemana: calcPagar(pagProxSem),
-      esseMes: calcPagar(pagMes),
-      proximoMes: calcPagar(pagProxMes),
-      atrasado: calcPagar(pagAtrasado),
-      geral: calcPagar(pagGeral),
-    };
+    // Saldos financeiros por vencimento DATEONLY, no calendário de Brasília.
+    const pagar = await contasPagar.instancia().resumo(empresaId, dataBrasil);
 
     return res.json({ receber, pagar });
   } catch (err) {
@@ -583,7 +496,7 @@ router.get("/calendario", async (req, res) => {
       ],
     };
     // Validar e sanitizar parâmetros
-    const hoje = new Date();
+    const hoje = new Date(getHojeBrasilStr() + "T12:00:00");
     const mes = parseInt(req.query.mes) || hoje.getMonth() + 1;
     const ano = parseInt(req.query.ano) || hoje.getFullYear();
 
@@ -640,19 +553,7 @@ router.get("/calendario", async (req, res) => {
           raw: true,
         }),
         // Compras pagas por dia (via dataPagamento)
-        Entrada.findAll({
-          attributes: [
-            ["dataPagamento", "dia"],
-            [fn("SUM", col("valorTotal")), "total"],
-          ],
-          where: {
-            ...eW,
-            dataPagamento: { [Op.between]: [mesIni, mesFim] },
-            situacao: "pago",
-          },
-          group: ["dataPagamento"],
-          raw: true,
-        }),
+        contasPagar.instancia().agrupar(empresaId, { inicio: diaCalendario(mesIni), fim: diaCalendario(mesFim), tipo: "pagos" }),
         // Movimentos de caixa – saídas por dia
         MovimentoCaixa.findAll({
           attributes: [
@@ -744,7 +645,7 @@ router.get("/grafico", async (req, res) => {
         ),
       ],
     };
-    const hoje = new Date();
+    const hoje = new Date(getHojeBrasilStr() + "T12:00:00");
     const mes = parseInt(req.query.mes) || hoje.getMonth() + 1;
     const ano = parseInt(req.query.ano) || hoje.getFullYear();
 
@@ -806,19 +707,7 @@ router.get("/grafico", async (req, res) => {
         group: [fn("DATE", col("data"))],
         raw: true,
       }),
-      Entrada.findAll({
-        attributes: [
-          ["dataPagamento", "dia"],
-          [fn("SUM", col("valorTotal")), "total"],
-        ],
-        where: {
-          ...eW,
-          dataPagamento: { [Op.between]: [mesIni, mesFim] },
-          situacao: "pago",
-        },
-        group: ["dataPagamento"],
-        raw: true,
-      }),
+      contasPagar.instancia().agrupar(empresaId, { inicio: diaCalendario(mesIni), fim: diaCalendario(mesFim), tipo: "pagos" }),
       MovimentoCaixa.findAll({
         attributes: [
           [fn("DATE", col("data")), "dia"],
@@ -847,19 +736,7 @@ router.get("/grafico", async (req, res) => {
         raw: true,
       }),
       // A pagar (entradas concluídas não pagas) por vencimento
-      Entrada.findAll({
-        attributes: [
-          ["dataPagamento", "dia"],
-          [fn("SUM", col("valorTotal")), "total"],
-        ],
-        where: {
-          ...eW,
-          dataPagamento: { [Op.between]: [mesIni, mesFim] },
-          situacao: "concluido",
-        },
-        group: ["dataPagamento"],
-        raw: true,
-      }),
+      contasPagar.instancia().agrupar(empresaId, { inicio: diaCalendario(mesIni), fim: diaCalendario(mesFim), tipo: "pendentes" }),
       // ContaReceber pagas por dataPagamento (saldo real)
       ContaReceber.findAll({
         attributes: [
@@ -988,7 +865,7 @@ router.get("/fluxo-caixa", async (req, res) => {
         ),
       ],
     };
-    const hoje = new Date();
+    const hoje = new Date(getHojeBrasilStr() + "T12:00:00");
     const periodo = ["mensal", "semanal", "diario"].includes(req.query.periodo)
       ? req.query.periodo
       : "mensal";
@@ -1096,19 +973,7 @@ router.get("/fluxo-caixa", async (req, res) => {
           raw: true,
         }),
         // Saídas (custos): compras pagas por dia
-        Entrada.findAll({
-          attributes: [
-            ["dataPagamento", "dia"],
-            [fn("SUM", col("valorTotal")), "total"],
-          ],
-          where: {
-            ...eW,
-            dataPagamento: { [Op.between]: [dataIni, dataFim] },
-            situacao: "pago",
-          },
-          group: ["dataPagamento"],
-          raw: true,
-        }),
+        contasPagar.instancia().agrupar(empresaId, { inicio: diaCalendario(dataIni), fim: diaCalendario(dataFim), tipo: "pagos" }),
         // Despesas: movimentos de caixa (saída)
         MovimentoCaixa.findAll({
           attributes: [
@@ -1249,7 +1114,7 @@ router.get("/pagamentos-recebimentos", async (req, res) => {
         ),
       ],
     };
-    const hoje = new Date();
+    const hoje = new Date(getHojeBrasilStr() + "T12:00:00");
     const periodo = ["mensal", "semanal", "diario"].includes(req.query.periodo)
       ? req.query.periodo
       : "mensal";
@@ -1390,33 +1255,9 @@ router.get("/pagamentos-recebimentos", async (req, res) => {
         raw: true,
       }),
       // Pagamentos – entradas_mercadoria PENDENTES (concluido/pendente) por dataEntrada (vencimento)
-      Entrada.findAll({
-        attributes: [
-          ["dataEntrada", "dia"],
-          [fn("SUM", col("valorTotal")), "total"],
-        ],
-        where: {
-          ...eW,
-          dataEntrada: { [Op.between]: [dataIni, dataFim] },
-          situacao: { [Op.notIn]: ["pago", "excluido", "ignorada"] },
-        },
-        group: ["dataEntrada"],
-        raw: true,
-      }),
+      contasPagar.instancia().agrupar(empresaId, { inicio: diaCalendario(dataIni), fim: diaCalendario(dataFim), tipo: "pendentes" }),
       // Pagamentos – entradas_mercadoria PAGAS por dataPagamento
-      Entrada.findAll({
-        attributes: [
-          ["dataPagamento", "dia"],
-          [fn("SUM", col("valorTotal")), "total"],
-        ],
-        where: {
-          ...eW,
-          dataPagamento: { [Op.between]: [dataIni, dataFim] },
-          situacao: "pago",
-        },
-        group: ["dataPagamento"],
-        raw: true,
-      }),
+      contasPagar.instancia().agrupar(empresaId, { inicio: diaCalendario(dataIni), fim: diaCalendario(dataFim), tipo: "pagos" }),
       // Pagamentos – movimentos de caixa saída
       MovimentoCaixa.findAll({
         attributes: [

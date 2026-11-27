@@ -1,6 +1,8 @@
 ﻿<!doctype html>
 <html lang="pt-BR">
   <head>
+    <script src="/components/feature-flags.js?v=20261121-midia1"></script>
+    <script src="/components/produto-imagens.js?v=20261121-midia1"></script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>PetHub</title>
@@ -47,10 +49,10 @@
             <a href="../../../painel/rel-faturamento.html" class="submenu-item">
               <span>Rel. Faturamento</span>
             </a>
-            <!--<a href="../../../painel/rel-demonstrativo-resultados.html" class="submenu-item">
+            <!--<a data-pethub-feature="relatorioDRE" href="../../../painel/rel-demonstrativo-resultados.html" class="submenu-item">
                         <span>Rel. Demonstrativo de resultados</span>
                     </a>-->
-            <!--<a href="../../../painel/rel-recebiveis-produto.html" class="submenu-item">
+            <!--<a data-pethub-feature="relatorioRecebiveisProdutos" href="../../../painel/rel-recebiveis-produto.html" class="submenu-item">
                         <span>Rel. Recebíveis por produto</span>
                     </a>-->
             <a href="../../../painel/posicao-caixa.html" class="submenu-item">
@@ -306,7 +308,7 @@
             <!--<a href="../../../atendimento/contratos.html" class="submenu-item">
                         <span>Contratos</span>
                     </a>-->
-            <!--<a href="../../../atendimento/devolucao-venda.html" class="submenu-item">
+            <!--<a data-pethub-feature="devolucaoVenda" href="../../../atendimento/devolucao-venda.html" class="submenu-item">
                         <span>Devolução de venda</span>
                     </a>-->
 
@@ -342,7 +344,7 @@
                 ><span>Suprimento/Sangria</span></a
               >
               <a href="#" class="submenu-item"
-                ><span>Rel. Demonstrativo de caixa</span></a
+                 data-pethub-feature="relatorioDemonstrativoCaixa"><span>Rel. Demonstrativo de caixa</span></a
               >
             </div>
 
@@ -441,13 +443,13 @@
               style="display: none; padding-left: 12px; margin-top: 6px"
             >
               <a href="#" class="submenu-item"
-                ><span>Entrada no período</span></a
+                 data-pethub-feature="entradaPeriodo"><span>Entrada no período</span></a
               >
               <a href="#" class="submenu-item"
-                ><span>Entrada por produto</span></a
+                 data-pethub-feature="entradaProduto"><span>Entrada por produto</span></a
               >
               <a href="#" class="submenu-item"
-                ><span>Sugestão de compra</span></a
+                 data-pethub-feature="sugestaoCompra"><span>Sugestão de compra</span></a
               >
             </div>
           </div>
@@ -1247,7 +1249,9 @@
     </div>
 
     <!-- Script do menu (copiar para sua página) -->
-    <script src="./pagamento-fornecedor.js"></script>
+    <script src="../../../components/venda-calculos.js?v=20261126-contas-pagar"></script>
+    <script src="../../../components/contas-pagar.js?v=20261126-contas-pagar"></script>
+    <script src="./pagamento-fornecedor.js?v=20261126-contas-pagar"></script>
   </body>
 </html>
 

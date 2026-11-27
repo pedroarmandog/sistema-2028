@@ -13,6 +13,7 @@ function criarRotas(models) {
     Produto,
     HistoricoEstoque,
   });
+  const financeiro = require("../services/contasPagar").criar({ Entrada });
   const r = express.Router();
   const handle = (fn) => async (req, res) => {
     try {
@@ -37,29 +38,27 @@ function criarRotas(models) {
     ["saida", Saida, -1],
   ]) {
     const base = "/" + name + "/manual";
-    r.get(
-      base,
-      handle(async (req, res) =>
-        res.json(
-          await Model.findAll({
-            where: { empresa_id: req.user.empresaId },
-            order: [["id", "DESC"]],
-          }),
-        ),
-      ),
-    );
-    r.get(
-      base + "/:id",
-      handle(async (req, res) => {
-        const row = await Model.findOne({
-          where: { id: req.params.id, empresa_id: req.user.empresaId },
-        });
-        if (!row) throw erro("Movimentação não encontrada.", 404);
-        res.json(row);
-      }),
-    );
+    const financeiroExplicito = req => name === "entrada" && (req.query.financeiro === "1" || req.body?.origemFinanceira === "contas-a-pagar");
+    const financeiroLegado = req => name === "entrada" && !Object.hasOwn(req.body || {}, "itens") && !Object.hasOwn(req.body || {}, "items") &&
+      (req.method === "POST" ? req.body?.valorTotal != null && req.body?.fornecedor :
+        ["pagamentos", "valorTotal", "fornecedor", "dataEntrada", "dataEmissao"].some(k => Object.hasOwn(req.body || {}, k)));
+    r.get(base, handle(async (req, res) => {
+      res.set("Cache-Control", "private, no-store");
+      res.json(financeiroExplicito(req) ? await financeiro.listar(req.user.empresaId) :
+        await Model.findAll({ where: { empresa_id: req.user.empresaId }, order: [["id", "DESC"]] }));
+    }));
+    r.get(base + "/:id", handle(async (req, res) => {
+      const row = financeiroExplicito(req) ? await financeiro.registro(req.params.id, req.user.empresaId) :
+        await Model.findOne({ where: { id: req.params.id, empresa_id: req.user.empresaId } });
+      if (!row) throw erro("Movimentação não encontrada.", 404);
+      res.json(financeiroExplicito(req) ? require("../services/contasPagar").financeiro(row) : row);
+    }));
     async function gravar(req, res) {
       const emp = req.user.empresaId;
+      if (financeiroExplicito(req) || financeiroLegado(req)) {
+        const saved = await financeiro.salvar(emp, req.body, req.params.id);
+        return res.status(req.params.id ? 200 : 201).json(saved);
+      }
       const saved = await db.transaction(async (transaction) => {
         let row = req.params.id
           ? await Model.findOne({
@@ -250,6 +249,7 @@ function criarRotas(models) {
     r.delete(
       base + "/:id",
       handle(async (req, res) => {
+        if (financeiroExplicito(req)) return res.json(await financeiro.excluir(req.user.empresaId, req.params.id));
         await db.transaction(async (transaction) => {
           const row = await Model.findOne({
             where: { id: req.params.id, empresa_id: req.user.empresaId },

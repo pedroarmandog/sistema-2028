@@ -1,0 +1,121 @@
+(sequelize) Warning: SQLite does not support TEXT with options. Plain `TEXT` will be used instead. 
+>> Check: https://www.sqlite.org/datatype3.html
+✔ Reproduz SELECT completo quebrado pelo campo de estoque ausente; fluxo financeiro funciona sem migration (110.767389ms)
+Thu, 26 Nov 2026 21:53:24 GMT router deprecated handlers that are Promise-like are deprecated, use a native Promise instead at ../ui-test-runtime/node_modules/router/lib/route.js:163:13
+[Contas a pagar/dashboard] {
+  empresaId: 0,
+  codigo: 'CONTAS_PAGAR_INVALIDO',
+  mensagem: 'Empresa não identificada.'
+}
+✔ Endpoint HTTP 200 vazio; vencimentos hoje, futuros, pagos, cancelados e isolamento inclusive empresa NULL (159.687884ms)
+[Movimentação estoque] Documento com pagamento não pode ser excluído. Confira o estorno financeiro antes de continuar.
+✔ CRUD financeiro via rotas existentes não exige itens e preserva estoque; edição e persistência após pagamento parcial (56.973754ms)
+✔ Documento de compra finalizado pode receber baixa/edição financeira sem alterar itens, estoque ou marcador (19.830324ms)
+✔ Pagamentos parciais, quitação, excesso, edição abaixo do pago e repetição da requisição (31.536526ms)
+[Movimentação estoque] Documento não encontrado nesta empresa.
+[Movimentação estoque] Documento não encontrado nesta empresa.
+[Movimentação estoque] Documento não encontrado nesta empresa.
+✔ Bloqueia alteração e leitura de conta de outra empresa em todas as operações (30.976256ms)
+✔ Exclusão financeira é lógica e idempotente; nunca destrói o documento ou seus itens (17.323614ms)
+✔ Parcelamento mensal conserva centavos e dia original após fevereiro; não altera outras empresas (15.692104ms)
+✔ Resumo financeiro usa vencimento DATEONLY e saldo parcial, inclui pendente junto com concluído (17.923188ms)
+✔ Pagamentos previstos numa compra não são baixas; histórico pago antigo continua compatível (17.917149ms)
+✔ Brasília antes/depois da meia-noite, datas e valores inválidos (11.863915ms)
+✔ Rateio de vários documentos e formas mantém exatamente o valor uma única vez (0.402187ms)
+✔ Frontend não trata HTTP de erro ou HTML como sucesso (0.509739ms)
+✔ Valores e datas nulos não apagam a dívida; pago não pode aumentar sem estorno; lote não pode mudar de valor (15.788248ms)
+✔ Tela real renderiza saldo parcial, escapa fornecedor e recarrega dados persistidos por HTTP (383.940306ms)
+✔ Pagamento na interface envia rateio correto e não mostra sucesso quando servidor rejeita; retry não duplica baixa (165.034882ms)
+[painel-financeiro/resumo DEBUG] receber: {"hoje":0,"essaSemana":0,"proximaSemana":0,"esseMes":0,"proximoMes":0,"atrasado":0}
+[painel-financeiro/resumo DEBUG] recHoje count: 0 recMes count: 0
+[painel-financeiro/resumo DEBUG] empresaId: 1 eW: {"empresa_id":1}
+[painel-financeiro/resumo DEBUG] hojeStartStr: 2026-11-26 03:00:00 hojeNextStr: 2026-11-27 03:00:00
+[painel-financeiro/resumo DEBUG] ContaReceber counts: { hoje: 0, semana: 0, proxSem: 0, mes: 0, proxMes: 0, atrasado: 0 }
+✔ Integração HTTP do painel financeiro: resumo, calendário, gráfico, fluxo e pagamentos usam saldos e baixas reais (28.865027ms)
+✔ Duas baixas concorrentes não excedem a dívida; transação com saldo desatualizado é rejeitada (11.442765ms)
+[Contas a pagar/dashboard] {
+  empresaId: 1,
+  codigo: 'CONTAS_PAGAR_SCHEMA',
+  mensagem: 'Estrutura de contas a pagar incompleta: dataEntrada. Execute o diagnóstico do módulo.'
+}
+✔ Schema financeiro realmente incompleto retorna diagnóstico 503 em vez de exibir lista vazia (13.831708ms)
+✔ Card mantém estrutura visual e mostra descrição, vencimento e saldo; ausência gera mensagem informativa (12.562494ms)
+(sequelize) Warning: SQLite does not support TEXT with options. Plain `TEXT` will be used instead. 
+>> Check: https://www.sqlite.org/datatype3.html
+✔ Preço por KG: 0.1 → 1.99 (2.442513ms)
+✔ Preço por KG: 0.25 → 4.98 (0.287814ms)
+✔ Preço por KG: 0.5 → 9.95 (0.295135ms)
+✔ Preço por KG: 1 → 19.9 (0.33115ms)
+✔ Preço por KG: 1.5 → 29.85 (0.272852ms)
+✔ Preço por KG: 2 → 39.8 (0.259121ms)
+✔ Preço por KG: 2.75 → 54.73 (0.209616ms)
+✔ Quantidade: vírgula, ponto, três casas e unidade cadastral (25.728187ms)
+✔ Embalagem: 3 sacos × 15 kg e custo por kg (1.713373ms)
+✔ Venda, persistência, edição, cancelamento e serviço sem estoque (195.123099ms)
+✔ Rascunho não baixa; finalizar e pagar novamente não duplicam a baixa (50.615952ms)
+✔ Estoque insuficiente reverte documento e histórico; isolamento por empresa (33.837937ms)
+✔ Concorrência: duas vendas disputando o mesmo saldo não deixam estoque negativo (50.686123ms)
+✔ Histórico conserva peso; produto UN conserva fluxo e quantidade inteira (35.443497ms)
+✔ Entrada por embalagem, repetição, custo KG e estorno atômico (79.633491ms)
+[Movimentação estoque] Movimentação não encontrada.
+[Movimentação estoque] Movimentação não encontrada.
+[Movimentação estoque] Estoque insuficiente para Ração.
+[Movimentação estoque] Somente produtos físicos movimentam estoque.
+✔ Saída fracionada, reversão, validação e isolamento HTTP (49.593971ms)
+✔ Importação Excel real: 18 linhas, preços idênticos, sem inventar custo ou estoque (176.067695ms)
+DECIMAL(15,3): itens.estoqueAtual
+DECIMAL(15,3): itens.estoqueMinimo
+DECIMAL(15,3): itens.estoqueIdeal
+DECIMAL(15,3): historico_estoque.estoque_anterior
+DECIMAL(15,3): historico_estoque.quantidade
+DECIMAL(15,3): historico_estoque.novo_estoque
+Controle transacional: vendas.estoqueProcessado
+Controle transacional: entradas_mercadoria.estoqueProcessado
+Controle transacional: saidas_mercadoria.estoqueProcessado
+Preparação granel concluída. Registros anteriores não foram remarcados nem tiveram saldo recalculado.
+Preparação granel concluída. Registros anteriores não foram remarcados nem tiveram saldo recalculado.
+✔ CSV KG e UN com estoque fracionado e custo ausente aceito (25.654586ms)
+✔ PDF real e orçamento preservam unidade e centavos no peso de 0,250 kg (110.359718ms)
+✔ Migração: colunas DECIMAL e controle de execução aditivo, sem apagar registros (1.687044ms)
+✔ Exportação CSV canônica volta pelo leitor e importador; custo e estoque não viram zero (196.236378ms)
+✔ PDF de venda e orçamento gerados contêm 0,250 KG, preço por KG e total R$ 4,98 (51.919524ms)
+✔ Migração recusa valor fora da faixa em vez de truncar; modelos mantêm DECIMAL (0.520955ms)
+✔ Relatório financeiro: KG, centavos por linha, custo histórico e margem ausente quando custo é desconhecido (32.590435ms)
+Thu, 26 Nov 2026 21:53:25 GMT router deprecated handlers that are Promise-like are deprecated, use a native Promise instead at ../ui-test-runtime/node_modules/router/lib/route.js:163:13
+✔ Rota de ajuste e histórico: fração, atomicidade e empresa proprietária (32.766922ms)
+✔ Validação monetária identifica a coluna e o conteúdo quando o mapeamento está errado (22.906863ms)
+✔ Importação só com nome cria registro sem preço/custo/estoque e não bloqueia por colunas inexistentes (73.543611ms)
+✔ Atualização via importação preserva custo, venda, estoque, unidade e centro que não vieram na planilha (30.883351ms)
+✔ Reproduz a regressão: autenticação global de estoque bloqueia o próprio login (214.90483ms)
+✔ Login público alcança seu controlador com cookie antigo: /api/usuarios/login (12.050382ms)
+✔ Login público alcança seu controlador com cookie antigo: /api/admin/login (6.23346ms)
+✔ Login público alcança seu controlador com cookie antigo: /api/cliente-app/login (5.157978ms)
+✔ Senha inválida continua sendo rejeitada pelo controlador de login (5.700056ms)
+✔ Estoque exige sessão válida: GET /api/entrada/manual (5.190286ms)
+✔ Estoque exige sessão válida: GET /api/saida/manual (5.206171ms)
+✔ Estoque exige sessão válida: POST /api/entrada/manual (5.470669ms)
+✔ Estoque exige sessão válida: POST /api/saida/manual (5.91514ms)
+✔ Estoque exige sessão válida: PUT /api/entrada/manual (6.45919ms)
+✔ Estoque exige sessão válida: PUT /api/saida/manual (6.705782ms)
+✔ Estoque exige sessão válida: DELETE /api/entrada/manual (14.725065ms)
+✔ Estoque exige sessão válida: DELETE /api/saida/manual (8.646898ms)
+✔ Estoque autenticado conserva empresa e demais rotas mantêm sua própria autenticação (12.313429ms)
+✔ Imagem do login aponta para recurso existente e servido como PNG (10.5042ms)
+ℹ tests 63
+ℹ suites 0
+ℹ pass 63
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1714.44539
+✔ Valida sem escrever, aplica com backup, preserva código externo e app.js; reaplicar é idempotente (46.258885ms)
+✔ Arquivo divergente interrompe antes de qualquer alteração (8.572056ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 181.1707
